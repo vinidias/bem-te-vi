@@ -463,6 +463,276 @@ function startObserver() {
   }
 }
 
+// ========== 系统提示词 ==========
+
+let systemPromptContent = '';
+let pendingSystemPrompt = false; // 是否有待发送的 system prompt
+
+// 监听主进程发送的 systemPrompt
+ipcRenderer.on('system-prompt', (_event, content) => {
+  console.log('[Cuckoo AI] 收到 system prompt, 长度:', content?.length);
+  systemPromptContent = content || '';
+  pendingSystemPrompt = true;
+  // 如果当前已有新的空会话输入框，立即发送
+  if (pendingSystemPrompt && systemPromptContent) {
+    try {
+      const input = findInputArea();
+      if (input) {
+        console.log('[Cuckoo AI] 页面已就绪，直接发送 system prompt');
+        sendSystemPromptToInput();
+      } else {
+        // 等待输入框出现
+        waitForInputAndSend();
+      }
+    } catch (e) {
+      console.log('[Cuckoo AI] 当前无法找到输入框，等待后续触发');
+    }
+  }
+});
+
+/**
+ * 查找 DeepSeek 的输入框元素
+ */
+function findInputArea() {
+  // 尝试多种常见的 textarea 选择器
+  const selectors = [
+    'textarea[placeholder*="message"]',
+    'textarea[placeholder*="Message"]',
+    'textarea[placeholder*="输入"]',
+    'textarea[placeholder*="输入消息"]',
+    'textarea[placeholder*="ask"]',
+    'textarea[placeholder*="Ask"]',
+    'textarea[placeholder*="提问"]',
+    'textarea[placeholder*="发送"]',
+    'textarea[placeholder*="send"]',
+    'textarea[placeholder*="deepseek"]',
+    'textarea[placeholder*="DeepSeek"]',
+    'textarea.chat-input',
+    'textarea',
+    'div[contenteditable="true"]',
+    '[role="textbox"]',
+  ];
+
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (el && isInputVisible(el)) {
+      return el;
+    }
+  }
+
+  // 额外搜索：查找包含特定文字的输入框
+  const allTextareas = document.querySelectorAll('textarea');
+  for (const ta of allTextareas) {
+    const placeholder = (ta.placeholder || '').toLowerCase();
+    if (placeholder && (placeholder.includes('deepseek') || placeholder.includes('message') || placeholder.includes('ask') || placeholder.includes('send'))) {
+      return ta;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 检查元素是否可见
+ */
+function isInputVisible(el) {
+  if (!el) return false;
+  const style = window.getComputedStyle(el);
+  return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+}
+
+/**
+ * 发送 system prompt 到输入框
+ */
+function sendSystemPromptToInput() {
+  if (!systemPromptContent) {
+    pendingSystemPrompt = false;
+    return false;
+  }
+
+  const input = findInputArea();
+  if (!input) {
+    console.log('[Cuckoo AI] 找不到输入框');
+    return false;
+  }
+
+  try {
+    // 如果是 textarea，直接设置 value 并派发事件
+    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+      input.focus();
+      input.value = systemPromptContent;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      console.log('[Cuckoo AI] system prompt 已填入输入框');
+    } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
+      input.focus();
+      document.execCommand('selectAll', false, null);
+      document.execCommand('insertText', false, systemPromptContent);
+      console.log('[Cuckoo AI] system prompt 已填入 contentEditable');
+    }
+
+    // 触发发送（等待一小会儿确保输入完成）
+    setTimeout(() => {
+      triggerSend(input);
+      pendingSystemPrompt = false;
+    }, 500);
+
+    return true;
+  } catch (err) {
+    console.error('[Cuckoo AI] 发送 system prompt 失败:', err.message);
+    return false;
+  }
+}
+
+/**
+ * 等待输入框出现后再发送
+ */
+function waitForInputAndSend() {
+  let attempts = 0;
+  const maxAttempts = 30;
+
+  const checkInterval = setInterval(() => {
+    attempts++;
+    if (attempts > maxAttempts) {
+      clearInterval(checkInterval);
+      console.log('[Cuckoo AI] 等待输入框超时，不再尝试');
+      pendingSystemPrompt = false;
+      return;
+    }
+
+    if (findInputArea()) {
+      clearInterval(checkInterval);
+      console.log('[Cuckoo AI] 找到输入框，发送 system prompt');
+      sendSystemPromptToInput();
+    }
+  }, 500);
+}
+
+/**
+ * 触发发送消息
+ */
+function triggerSend(input) {
+  // 方法 1: 查找发送按钮
+  const sendSelectors = [
+    'button[type="submit"]',
+    'button[aria-label*="send"]',
+    'button[aria-label*="发送"]',
+    'button[title*="send"]',
+    'button[title*="发送"]',
+    'button[data-action="send"]',
+    'button[data-type="send"]',
+    '.send-btn',
+    '.submit-btn',
+    'button svg[data-icon="send"]',
+    '[data-testid="send"]',
+    '[data-testid="send-button"]',
+    'button:has(svg[data-icon="arrow"])',
+    'button:has(> svg)',
+  ];
+
+  for (const sel of sendSelectors) {
+    const btn = document.querySelector(sel);
+    if (btn && isInputVisible(btn)) {
+      btn.click();
+      console.log('[Cuckoo AI] 已点击发送按钮');
+      return;
+    }
+  }
+
+  // 方法 2: 在输入框上按 Enter
+  if (input) {
+    const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true });
+    input.dispatchEvent(enterEvent);
+    console.log('[Cuckoo AI] 已通过键盘 Enter 发送');
+  } else {
+    console.log('[Cuckoo AI] 无法找到发送按钮或输入框');
+  }
+}
+
+/**
+ * 查找新建会话按钮并监听点击
+ */
+function findNewSessionButton() {
+  const selectors = [
+    'button[title*="新建"]',
+    'button[title*="New"]',
+    'button[aria-label*="新建"]',
+    'button[aria-label*="New"]',
+    'button[data-action*="new"]',
+    'button[data-action*="chat"]',
+    '.new-chat-btn',
+    '.new-session-btn',
+    '.sidebar-new-btn',
+    '[data-testid="new-chat"]',
+    'button:has(svg[data-icon="plus"])',
+    'button:has(svg[data-icon="add"])',
+    'button:has(svg[data-icon="new"])',
+    '.nav-new-chat',
+    'div:has(> span[data-icon="plus"])',
+  ];
+
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (el && isInputVisible(el)) {
+      return el;
+    }
+  }
+
+  // 搜索包含"新建"文字的元素
+  const allButtons = document.querySelectorAll('button, [role="button"]');
+  for (const btn of allButtons) {
+    const text = (btn.textContent || '').trim();
+    const title = (btn.getAttribute('title') || '').trim();
+    const aria = (btn.getAttribute('aria-label') || '').trim();
+    if ((text.includes('新建') || title.includes('新建') || aria.includes('新建')) && isInputVisible(btn)) {
+      return btn;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 监听新建会话按钮点击
+ */
+function setupNewSessionListener() {
+  const btn = findNewSessionButton();
+  if (!btn) {
+    console.log('[Cuckoo AI] 未找到新建会话按钮，5秒后重试');
+    setTimeout(setupNewSessionListener, 5000);
+    return;
+  }
+
+  console.log('[Cuckoo AI] 找到新建会话按钮:', btn.tagName, btn.textContent?.trim() || btn.getAttribute('title') || '(无文字)');
+
+  // 监听点击事件
+  const clickHandler = () => {
+    console.log('[Cuckoo AI] 检测到新建会话按钮点击');
+
+    // 重置状态
+    pendingSystemPrompt = true;
+    systemPromptContent = systemPromptContent;
+
+    // 等待新会话的输入框出现，然后发送 system prompt
+    setTimeout(() => {
+      waitForInputAndSend();
+    }, 1500);
+  };
+
+  // 使用 event capture 确保在页面脚本之前捕获点击
+  btn.addEventListener('click', clickHandler, true);
+
+  // 使用 MutationObserver 重新绑定（按钮可能被替换）
+  const observer = new MutationObserver(() => {
+    btn.removeEventListener('click', clickHandler, true);
+    setTimeout(() => setupNewSessionListener(), 1000);
+  });
+  observer.observe(btn.parentElement || document.body, { childList: true, subtree: true });
+}
+
+// 启动新建会话监听
+setTimeout(setupNewSessionListener, 3000);
+
 // ========== 初始化 ==========
 
 function init() {

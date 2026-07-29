@@ -1,8 +1,12 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const { exec } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 let mainWindow = null;
+
+// systemPrompt.md 路径
+const SYSTEM_PROMPT_PATH = path.join(__dirname, 'systemPrompt.md');
 
 // 危险命令列表 —— 匹配到的命令会额外警告
 const DANGEROUS_CMDS = [
@@ -19,6 +23,25 @@ const DANGEROUS_CMDS = [
 
 function isDangerous(cmd) {
   return DANGEROUS_CMDS.some((pattern) => pattern.test(cmd.trim()));
+}
+
+/**
+ * 读取 systemPrompt.md 并发送到 preload
+ */
+function sendSystemPrompt() {
+  try {
+    if (fs.existsSync(SYSTEM_PROMPT_PATH)) {
+      const content = fs.readFileSync(SYSTEM_PROMPT_PATH, 'utf-8');
+      console.log('[Cuckoo AI] systemPrompt.md 已读取，长度:', content.length, '字节');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('system-prompt', content);
+      }
+    } else {
+      console.log('[Cuckoo AI] systemPrompt.md 不存在，跳过');
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 读取 systemPrompt.md 失败:', err.message);
+  }
 }
 
 function createWindow() {
@@ -42,11 +65,17 @@ function createWindow() {
   // 加载 DeepSeek
   mainWindow.loadURL('https://chat.deepseek.com/');
 
-  // 页面加载完成后通知渲染进程
+  // 页面加载完成后通知渲染进程并发送 systemPrompt
   mainWindow.webContents.on('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('page-loaded');
+      sendSystemPrompt();
     }
+  });
+
+  // 当 webContents 销毁时停止监听
+  mainWindow.webContents.on('will-destroy', () => {
+    // cleanup if needed
   });
 
   // F12 打开 DevTools
