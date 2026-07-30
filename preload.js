@@ -922,6 +922,9 @@ function init() {
   injectOverlay();
   bindEvents();
 
+  // 默认显示覆盖层
+  showOverlay();
+
   // 延迟启动观察器，等待页面框架渲染
   setTimeout(startObserver, 2000);
 }
