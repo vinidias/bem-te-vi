@@ -23,6 +23,7 @@ const OVERLAY_HTML = `
     <div class="cuckoo-actions">
       <button id="cuckoo-btn-execute" class="cuckoo-btn cuckoo-btn-primary">▶ 确认执行</button>
       <button id="cuckoo-btn-ignore" class="cuckoo-btn cuckoo-btn-secondary">✕ 忽略</button>
+      <button id="cuckoo-btn-send-prompt" class="cuckoo-btn cuckoo-btn-secondary">📋 发送系统提示词</button>
     </div>
     <div id="cuckoo-result-section" class="cuckoo-section cuckoo-hidden">
       <label class="cuckoo-label">执行结果：</label>
@@ -96,6 +97,12 @@ const OVERLAY_CSS = `
   background: rgba(255,255,255,0.08); color: #ccc; border: 1px solid rgba(255,255,255,0.1);
 }
 .cuckoo-btn-secondary:hover { background: rgba(255,255,255,0.15); color: #fff; }
+#cuckoo-btn-send-prompt {
+  background: rgba(124,131,255,0.2); color: #7c83ff; border: 1px solid rgba(124,131,255,0.3);
+}
+#cuckoo-btn-send-prompt:hover {
+  background: rgba(124,131,255,0.3); color: #fff;
+}
 .cuckoo-btn-text {
   background: none; border: none; color: #888; padding: 4px 0;
   text-align: left; font-size: 12px; cursor: pointer;
@@ -284,6 +291,26 @@ function handleIgnore() {
   hideOverlay();
 }
 
+/**
+ * 发送系统提示词按钮点击处理
+ */
+function handleSendPrompt() {
+  if (!systemPromptContent) {
+    alert('系统提示词内容为空');
+    return;
+  }
+  const input = findInputArea();
+  if (!input) {
+    alert('未找到输入框，请确保已打开聊天界面');
+    return;
+  }
+  sendSystemPromptToInput(); // fills input
+  // small delay then trigger send
+  setTimeout(() => {
+    triggerSend(input);
+  }, 300);
+}
+
 function addHistory(entry) {
   commandHistory.unshift(entry);
   if (commandHistory.length > 50) commandHistory.pop();
@@ -338,6 +365,7 @@ function bindEvents() {
   document.getElementById('cuckoo-btn-minimize')?.addEventListener('click', hideOverlay);
   document.getElementById('cuckoo-btn-execute')?.addEventListener('click', handleExecute);
   document.getElementById('cuckoo-btn-ignore')?.addEventListener('click', handleIgnore);
+  document.getElementById('cuckoo-btn-send-prompt')?.addEventListener('click', handleSendPrompt);
   document.getElementById('cuckoo-btn-clear')?.addEventListener('click', () => {
     commandHistory.length = 0;
     renderHistory();
@@ -466,7 +494,9 @@ function startObserver() {
 // ========== 系统提示词 ==========
 
 let systemPromptContent = '';
+let initialPromptContent = '';
 let pendingSystemPrompt = false; // 是否有待发送的 system prompt
+let pendingInitialPrompt = false; // 是否有待发送的初始提示（目录树+systemPrompt）
 
 // 监听主进程发送的 systemPrompt
 ipcRenderer.on('system-prompt', (_event, content) => {
@@ -483,6 +513,28 @@ ipcRenderer.on('system-prompt', (_event, content) => {
       } else {
         // 等待输入框出现
         waitForInputAndSend();
+      }
+    } catch (e) {
+      console.log('[Cuckoo AI] 当前无法找到输入框，等待后续触发');
+    }
+  }
+});
+
+// 监听主进程发送的初始提示（目录树+systemPrompt）
+ipcRenderer.on('initial-prompt', (_event, content) => {
+  console.log('[Cuckoo AI] 收到初始提示, 长度:', content?.length);
+  initialPromptContent = content || '';
+  pendingInitialPrompt = true;
+  // 如果当前已有新的空会话输入框，立即发送
+  if (pendingInitialPrompt && initialPromptContent) {
+    try {
+      const input = findInputArea();
+      if (input) {
+        console.log('[Cuckoo AI] 页面已就绪，直接发送初始提示');
+        sendInitialPromptToInput();
+      } else {
+        // 等待输入框出现
+        waitForInitialPromptAndSend();
       }
     } catch (e) {
       console.log('[Cuckoo AI] 当前无法找到输入框，等待后续触发');
@@ -585,7 +637,50 @@ function sendSystemPromptToInput() {
 }
 
 /**
- * 等待输入框出现后再发送
+ * 发送初始提示（目录树+systemPrompt）到输入框
+ */
+function sendInitialPromptToInput() {
+  if (!initialPromptContent) {
+    pendingInitialPrompt = false;
+    return false;
+  }
+
+  const input = findInputArea();
+  if (!input) {
+    console.log('[Cuckoo AI] 找不到输入框');
+    return false;
+  }
+
+  try {
+    // 如果是 textarea，直接设置 value 并派发事件
+    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+      input.focus();
+      input.value = initialPromptContent;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      console.log('[Cuckoo AI] 初始提示 已填入输入框');
+    } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
+      input.focus();
+      document.execCommand('selectAll', false, null);
+      document.execCommand('insertText', false, initialPromptContent);
+      console.log('[Cuckoo AI] 初始提示 已填入 contentEditable');
+    }
+
+    // 触发发送（等待一小会儿确保输入完成）
+    setTimeout(() => {
+      triggerSend(input);
+      pendingInitialPrompt = false;
+    }, 500);
+
+    return true;
+  } catch (err) {
+    console.error('[Cuckoo AI] 发送初始提示 失败:', err.message);
+    return false;
+  }
+}
+
+/**
+ * 等待输入框出现后再发送 system prompt
  */
 function waitForInputAndSend() {
   let attempts = 0;
@@ -604,6 +699,30 @@ function waitForInputAndSend() {
       clearInterval(checkInterval);
       console.log('[Cuckoo AI] 找到输入框，发送 system prompt');
       sendSystemPromptToInput();
+    }
+  }, 500);
+}
+
+/**
+ * 等待输入框出现后再发送初始提示
+ */
+function waitForInitialPromptAndSend() {
+  let attempts = 0;
+  const maxAttempts = 30;
+
+  const checkInterval = setInterval(() => {
+    attempts++;
+    if (attempts > maxAttempts) {
+      clearInterval(checkInterval);
+      console.log('[Cuckoo AI] 等待输入框超时，不再尝试');
+      pendingInitialPrompt = false;
+      return;
+    }
+
+    if (findInputArea()) {
+      clearInterval(checkInterval);
+      console.log('[Cuckoo AI] 找到输入框，发送初始提示');
+      sendInitialPromptToInput();
     }
   }, 500);
 }

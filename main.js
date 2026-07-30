@@ -8,6 +8,87 @@ let mainWindow = null;
 // systemPrompt.md 路径
 const SYSTEM_PROMPT_PATH = path.join(__dirname, 'systemPrompt.md');
 
+// ========== 持久化会话配置 ==========
+
+// 固定 userData 路径，确保 session 数据（cookies/localStorage 等）持久保存
+const SESSION_DIR = 'cuckoo-ai-pro-session';
+app.setPath('userData', path.join(app.getPath('appData'), SESSION_DIR));
+
+console.log('[Cuckoo AI] Session 数据目录:', app.getPath('userData'));
+
+/**
+ * 递归获取目录树结构字符串
+ * @param {string} dir 目录路径
+ * @param {number} depth 当前深度
+ * @returns {string} 目录树字符串
+ */
+function getDirectoryTree(dir, depth = 0) {
+  const indent = '  '.repeat(depth);
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    let tree = '';
+    for (const entry of entries) {
+      // 跳过隐藏文件和常见的不需要显示的目录
+      if (entry.name.startsWith('.')) continue;
+      tree += `${indent}${entry.name}${entry.isDirectory() ? '/' : ''}\n`;
+      if (entry.isDirectory()) {
+        tree += getDirectoryTree(path.join(dir, entry.name), depth + 1);
+      }
+    }
+    return tree;
+  } catch (err) {
+    console.error('[Cuckoo AI] 读取目录失败:', err.message);
+    return `[无法读取目录: ${dir: ${dir}]\n`;
+  }
+}
+
+/**
+ * 读取 systemPrompt.md 并与选定目录的树结构组合后发送到 preload
+ */
+function sendInitialPrompt() {
+  // 先让用户选择目录
+  const result = dialog.showOpenDialogSync(mainWindow, {
+    properties: ['openDirectory'],
+    buttonLabel: '选择目录',
+    title: '请选择要分析的目录',
+  });
+
+  if (!result || result.length === 0) {
+    console.log('[Cuckoo AI] 用户取消了目录选择');
+    return;
+  }
+
+  const selectedDir = result[0];
+  console.log('[Cuckoo AI] 用户选择目录:', selectedDir);
+
+  // 生成目录树
+  const tree = getDirectoryTree(selectedDir);
+  // 读取系统提示词
+  let promptContent = '';
+  try {
+    if (fs.existsSync(SYSTEM_PROMPT_PATH)) {
+      promptContent = fs.readFileSync(SYSTEM_PROMPT_PATH, 'utf-8');
+    } else {
+      console.warn('[Cuckoo AI] systemPrompt.md 不存在');
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 读取 systemPrompt.md 失败:', err.message);
+  }
+
+  // 组合内容
+  const combined = `我已选择目录：${selectedDir}
+其目录结构如下：
+${tree}
+---
+系统提示词：
+${promptContent}`;
+
+  console.log('[Cuckoo AI] 准备发送初始提示，长度:', combined.length);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('initial-prompt', combined);
+  }
+}
+
 // 危险命令列表 —— 匹配到的命令会额外警告
 const DANGEROUS_CMDS = [
   /^rm\s+-rf\s+\//i,
@@ -54,6 +135,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // preload 需要访问 Node.js API
+      partition: 'persist:cuckoo-deepseek', // 持久化 session（cookies/localStorage）
     },
   });
 
@@ -65,11 +147,11 @@ function createWindow() {
   // 加载 DeepSeek
   mainWindow.loadURL('https://chat.deepseek.com/');
 
-  // 页面加载完成后通知渲染进程并发送 systemPrompt
+  // 页面加载完成后通知渲染进程并发送初始提示（目录选择+systemPrompt）
   mainWindow.webContents.on('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('page-loaded');
-      sendSystemPrompt();
+      sendInitialPrompt(); // 现在包含目录选择和systemPrompt
     }
   });
 
