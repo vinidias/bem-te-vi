@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   executeCommand: (command, id) => {
     return ipcRenderer.invoke('execute-command', { command, id });
   },
+  initProject: () => {
+    return ipcRenderer.invoke('init-project');
+  },
 });
 
 // ========== 覆盖层 UI 注入 ==========
@@ -23,6 +26,9 @@ const OVERLAY_HTML = `
     <div class="cuckoo-actions">
       <button id="cuckoo-btn-execute" class="cuckoo-btn cuckoo-btn-primary">▶ 确认执行</button>
       <button id="cuckoo-btn-ignore" class="cuckoo-btn cuckoo-btn-secondary">✕ 忽略</button>
+    </div>
+    <div class="cuckoo-actions">
+      <button id="cuckoo-btn-init" class="cuckoo-btn cuckoo-btn-primary">🚀 初始化项目</button>
       <button id="cuckoo-btn-send-prompt" class="cuckoo-btn cuckoo-btn-secondary">📋 发送系统提示词</button>
     </div>
     <div id="cuckoo-result-section" class="cuckoo-section cuckoo-hidden">
@@ -311,6 +317,34 @@ function handleSendPrompt() {
   }, 300);
 }
 
+/**
+ * 初始化项目按钮点击处理
+ */
+async function handleInitProject() {
+  const btn = document.getElementById('cuckoo-btn-init');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ 初始化中...';
+  }
+
+  try {
+    const result = await window.electronAPI.initProject();
+    if (result.success) {
+      console.log('[Cuckoo AI] 初始化成功:', result.message);
+    } else {
+      alert(result.message || '初始化失败');
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 初始化出错:', err.message);
+    alert('初始化出错: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🚀 初始化项目';
+    }
+  }
+}
+
 function addHistory(entry) {
   commandHistory.unshift(entry);
   if (commandHistory.length > 50) commandHistory.pop();
@@ -365,6 +399,7 @@ function bindEvents() {
   document.getElementById('cuckoo-btn-minimize')?.addEventListener('click', hideOverlay);
   document.getElementById('cuckoo-btn-execute')?.addEventListener('click', handleExecute);
   document.getElementById('cuckoo-btn-ignore')?.addEventListener('click', handleIgnore);
+  document.getElementById('cuckoo-btn-init')?.addEventListener('click', handleInitProject);
   document.getElementById('cuckoo-btn-send-prompt')?.addEventListener('click', handleSendPrompt);
   document.getElementById('cuckoo-btn-clear')?.addEventListener('click', () => {
     commandHistory.length = 0;
@@ -390,6 +425,34 @@ function bindEvents() {
       hideOverlay();
     }
   });
+}
+
+/**
+ * 初始化项目按钮点击处理
+ */
+async function handleInitProject() {
+  const initBtn = document.getElementById('cuckoo-btn-init');
+  if (initBtn) {
+    initBtn.disabled = true;
+    initBtn.textContent = '⏳ 初始化中...';
+  }
+
+  try {
+    // 调用主进程的 init-project IPC
+    const result = await window.electronAPI.initProject();
+    console.log('[Cuckoo AI] 初始化结果:', result);
+    if (result && !result.success) {
+      alert(result.message || '初始化失败');
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 初始化项目失败:', err);
+    alert('初始化失败: ' + err.message);
+  } finally {
+    if (initBtn) {
+      initBtn.disabled = false;
+      initBtn.textContent = '🚀 初始化项目';
+    }
+  }
 }
 
 // ========== DOM 监测：检测 ```cmd 代码块 ==========

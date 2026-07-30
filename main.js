@@ -22,14 +22,27 @@ console.log('[Cuckoo AI] Session 数据目录:', app.getPath('userData'));
  * @param {number} depth 当前深度
  * @returns {string} 目录树字符串
  */
+// 需要忽略的目录（依赖、构建产物、版本控制等）
+const IGNORED_DIRS = new Set([
+  'node_modules', 'target', 'build', 'dist', 'out',
+  '.git', '.svn', '.hg',
+  '__pycache__', '.pytest_cache', '.coverage',
+  'vendor', 'bower_components', 'jspm_packages',
+  '.idea', '.vscode', '.vs',
+  'logs', 'tmp', 'temp',
+  'bin', 'obj',
+]);
+
 function getDirectoryTree(dir, depth = 0) {
   const indent = '  '.repeat(depth);
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     let tree = '';
     for (const entry of entries) {
-      // 跳过隐藏文件和常见的不需要显示的目录
+      // 跳过隐藏文件
       if (entry.name.startsWith('.')) continue;
+      // 跳过忽略的目录
+      if (entry.isDirectory() && IGNORED_DIRS.has(entry.name)) continue;
       tree += `${indent}${entry.name}${entry.isDirectory() ? '/' : ''}\n`;
       if (entry.isDirectory()) {
         tree += getDirectoryTree(path.join(dir, entry.name), depth + 1);
@@ -38,24 +51,25 @@ function getDirectoryTree(dir, depth = 0) {
     return tree;
   } catch (err) {
     console.error('[Cuckoo AI] 读取目录失败:', err.message);
-    return `[无法读取目录: ${dir: ${dir}]\n`;
+    return `[无法读取目录: ${dir}]\n`;
   }
 }
 
 /**
- * 读取 systemPrompt.md 并与选定目录的树结构组合后发送到 preload
+ * 初始化项目：选择目录并发送目录树 + systemPrompt
+ * 供 IPC 调用（用户点击初始化按钮时触发）
  */
-function sendInitialPrompt() {
+function initProject() {
   // 先让用户选择目录
   const result = dialog.showOpenDialogSync(mainWindow, {
     properties: ['openDirectory'],
     buttonLabel: '选择目录',
-    title: '请选择要分析的目录',
+    title: '请选择要分析的项目目录',
   });
 
   if (!result || result.length === 0) {
     console.log('[Cuckoo AI] 用户取消了目录选择');
-    return;
+    return { success: false, message: '用户取消了目录选择' };
   }
 
   const selectedDir = result[0];
@@ -87,6 +101,8 @@ ${promptContent}`;
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('initial-prompt', combined);
   }
+
+  return { success: true, message: '初始化完成，已发送目录树和系统提示词' };
 }
 
 // 危险命令列表 —— 匹配到的命令会额外警告
@@ -139,6 +155,9 @@ function createWindow() {
     },
   });
 
+  // 窗口最大化
+  mainWindow.maximize();
+
   // 设置 User-Agent，避免被识别为自动化工具
   const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -147,11 +166,11 @@ function createWindow() {
   // 加载 DeepSeek
   mainWindow.loadURL('https://chat.deepseek.com/');
 
-  // 页面加载完成后通知渲染进程并发送初始提示（目录选择+systemPrompt）
+  // 页面加载完成后通知渲染进程
   mainWindow.webContents.on('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('page-loaded');
-      sendInitialPrompt(); // 现在包含目录选择和systemPrompt
+      // 不再自动发送初始提示，等待用户点击初始化按钮
     }
   });
 
@@ -173,6 +192,11 @@ function createWindow() {
 }
 
 // ========== IPC 处理器 ==========
+
+// 初始化项目：选择目录并发送目录树 + systemPrompt
+ipcMain.handle('init-project', async () => {
+  return initProject();
+});
 
 // 执行命令
 ipcMain.handle('execute-command', async (_event, { command, id }) => {
