@@ -3,10 +3,22 @@ const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// ========== 工具库集成 ==========
+const { ToolRegistry, Tool, ToolResult } = require('./tools/ToolRegistry');
+const { FileWriteTool } = require('./tools/FileWriteTool');
+
+// 创建工具注册表并注册工具
+const toolRegistry = new ToolRegistry();
+toolRegistry.register(new FileWriteTool());
+// 后续可在此注册更多工具
+
 let mainWindow = null;
 
 // systemPrompt.md 路径
 const SYSTEM_PROMPT_PATH = path.join(__dirname, 'systemPrompt.md');
+
+// 选中的项目目录
+let selectedProjectDir = null;
 
 // ========== 持久化会话配置 ==========
 
@@ -33,25 +45,44 @@ const IGNORED_DIRS = new Set([
   'bin', 'obj',
 ]);
 
-function getDirectoryTree(dir, depth = 0) {
-  const indent = '  '.repeat(depth);
+/**
+ * 递归获取目录树结构字符串（类似 Windows tree 命令风格）
+ * @param {string} dir 目录路径
+ * @param {string} prefix 当前行前缀（用于绘制树形结构）
+ * @returns {string} 目录树字符串
+ */
+function getDirectoryTree(dir, prefix = '') {
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    // 过滤：跳过隐藏文件和忽略的目录
+    const visibleEntries = entries
+      .filter(e => !e.name.startsWith('.'))
+      .filter(e => !e.isDirectory() || !IGNORED_DIRS.has(e.name))
+      .sort((a, b) => {
+        // 目录优先，然后按名称排序
+        if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+
     let tree = '';
-    for (const entry of entries) {
-      // 跳过隐藏文件
-      if (entry.name.startsWith('.')) continue;
-      // 跳过忽略的目录
-      if (entry.isDirectory() && IGNORED_DIRS.has(entry.name)) continue;
-      tree += `${indent}${entry.name}${entry.isDirectory() ? '/' : ''}\n`;
+
+    visibleEntries.forEach((entry, index) => {
+      const isLast = index === visibleEntries.length - 1;
+      const connector = isLast ? '└── ' : '├── ';
+      const childPrefix = prefix + (isLast ? '    ' : '│   ');
+
+      tree += `${prefix}${connector}${entry.name}${entry.isDirectory() ? '/' : ''}\n`;
+
       if (entry.isDirectory()) {
-        tree += getDirectoryTree(path.join(dir, entry.name), depth + 1);
+        tree += getDirectoryTree(path.join(dir, entry.name), childPrefix);
       }
-    }
+    });
+
     return tree;
   } catch (err) {
     console.error('[Cuckoo AI] 读取目录失败:', err.message);
-    return `[无法读取目录: ${dir}]\n`;
+    return `${prefix}└── [无法读取目录: ${dir}]\n`;
   }
 }
 
@@ -75,6 +106,9 @@ function initProject() {
   const selectedDir = result[0];
   console.log('[Cuckoo AI] 用户选择目录:', selectedDir);
 
+  // 保存选中的项目目录
+  selectedProjectDir = selectedDir;
+
   // 生成目录树
   const tree = getDirectoryTree(selectedDir);
   // 读取系统提示词
@@ -89,20 +123,43 @@ function initProject() {
     console.error('[Cuckoo AI] 读取 systemPrompt.md 失败:', err.message);
   }
 
+  // 读取工具使用规则
+  let rulesContent = '';
+  const RULES_PATH = path.join(__dirname, 'tools', 'rules.md');
+  try {
+    if (fs.existsSync(RULES_PATH)) {
+      rulesContent = fs.readFileSync(RULES_PATH, 'utf-8');
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 读取 rules.md 失败:', err.message);
+  }
+
+  // 获取工具库描述
+  const toolsDescription = toolRegistry.getFormattedToolsForPrompt();
+
+  // 将 {TOOLS_LIST} 占位符替换为实际工具列表
+  const finalRules = rulesContent.replace('{TOOLS_LIST}', toolsDescription);
+  const finalPrompt = promptContent.replace('{TOOLS_LIST}', toolsDescription);
+
   // 组合内容
   const combined = `我已选择目录：${selectedDir}
 其目录结构如下：
 ${tree}
 ---
 系统提示词：
-${promptContent}`;
+${finalPrompt}
+---
+工具使用规则：
+${finalRules}
+---
+如果你觉得需要使用工具，请直接回答工具指令及入参，其他内容不需要回复`;
 
   console.log('[Cuckoo AI] 准备发送初始提示，长度:', combined.length);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('initial-prompt', combined);
   }
 
-  return { success: true, message: '初始化完成，已发送目录树和系统提示词' };
+  return { success: true, message: '初始化完成，已发送目录树、系统提示词、工具规则和工具库' };
 }
 
 // 危险命令列表 —— 匹配到的命令会额外警告
@@ -153,6 +210,16 @@ function createWindow() {
       sandbox: false, // preload 需要访问 Node.js API
       partition: 'persist:cuckoo-deepseek', // 持久化 session（cookies/localStorage）
     },
+  });
+
+  // 检查 preload 文件是否存在
+  const preloadPath = path.join(__dirname, 'preload.js');
+  console.log('[Cuckoo AI Main] preload 路径:', preloadPath);
+  console.log('[Cuckoo AI Main] preload 存在:', fs.existsSync(preloadPath));
+
+  // 转发渲染进程的 console.log 到主进程
+  mainWindow.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
+    console.log('[Renderer Console]', message);
   });
 
   // 窗口最大化
@@ -248,6 +315,29 @@ ipcMain.handle('execute-command', async (_event, { command, id }) => {
       }
     );
   });
+});
+
+// ========== 工具执行 IPC ==========
+
+/**
+ * 执行工具
+ * 支持 AI 调用工具库中的工具
+ */
+ipcMain.handle('execute-tool', async (_event, { toolName, params, callId }) => {
+  console.log(`[Cuckoo AI] 执行工具: ${toolName}`, params);
+  try {
+    // 如果有选中的项目目录，将其作为工作目录传递给工具
+    const paramsWithContext = {
+      ...params,
+      projectDir: selectedProjectDir
+    };
+    const result = await toolRegistry.execute(toolName, paramsWithContext);
+    console.log(`[Cuckoo AI] 工具 ${toolName} 执行结果:`, result.success ? '成功' : '失败');
+    return { callId, success: result.success, data: result.data, error: result.error };
+  } catch (err) {
+    console.error(`[Cuckoo AI] 工具 ${toolName} 执行异常:`, err);
+    return { callId, success: false, error: err.message };
+  }
 });
 
 // ========== 应用生命周期 ==========
