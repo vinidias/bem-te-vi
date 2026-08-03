@@ -6,10 +6,12 @@ const fs = require('fs');
 // ========== 工具库集成 ==========
 const { ToolRegistry, Tool, ToolResult } = require('./tools/ToolRegistry');
 const { FileWriteTool } = require('./tools/FileWriteTool');
+const { FileReadTool } = require('./tools/FileReadTool');
 
 // 创建工具注册表并注册工具
 const toolRegistry = new ToolRegistry();
 toolRegistry.register(new FileWriteTool());
+toolRegistry.register(new FileReadTool());
 // 后续可在此注册更多工具
 
 let mainWindow = null;

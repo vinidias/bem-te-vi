@@ -35,6 +35,19 @@ class UnifiedToolManager {
         additionalProperties: false
       }
     });
+    this.register('file_read', {
+      name: 'file_read',
+      description: '读取指定文件的内容。如果文件不存在或读取失败，会返回错误信息。',
+      parameters: {
+        type: 'object',
+        properties: {
+          file_path: { type: 'string', description: '文件的相对路径或绝对路径' },
+          encoding: { type: 'string', description: '文件编码，默认 utf-8', default: 'utf-8' }
+        },
+        required: ['file_path'],
+        additionalProperties: false
+      }
+    });
   }
 
   register(name, definition) {
@@ -109,6 +122,12 @@ class UnifiedToolManager {
     if (toolName === 'file_write') {
       // 通过 IPC 执行文件写入
       return window.electronAPI?.executeTool?.('file_write', { file_path: toolCall.params.file_path, content: toolCall.params.content, encoding: toolCall.params.encoding }, toolCall.callId)
+        .then(r => ({ success: r.success, data: r.data, error: r.error }))
+        .catch(e => ({ success: false, error: e.message }));
+    }
+    if (toolName === 'file_read') {
+      // 通过 IPC 执行文件读取
+      return window.electronAPI?.executeTool?.('file_read', { file_path: toolCall.params.file_path, encoding: toolCall.params.encoding }, toolCall.callId)
         .then(r => ({ success: r.success, data: r.data, error: r.error }))
         .catch(e => ({ success: false, error: e.message }));
     }
@@ -979,28 +998,100 @@ let pendingToolCall = null; // 待执行的工具调用
  * 2. 代码块格式: ```json {...} ``` 或 ```tool {...} ```
  * 3. 包含额外文本的混合内容
  */
+/**
+ * 宽容解析 JSON：先严格解析，失败后修复常见格式问题再解析
+ * 常见问题：字符串值内未转义的换行、tab、引号（AI 生成的 JSON 经常忘记转义）
+ */
+function parseJsonWithRepair(str) {
+  if (!str) return null;
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    // 修复：把字符串值内裸的换行/tab 转义为 \n \t
+    const repaired = repairJsonString(str);
+    try {
+      return JSON.parse(repaired);
+    } catch (e2) {
+      return null;
+    }
+  }
+}
+
+/**
+ * 修复 JSON 字符串：逐字符扫描，把字符串值内的裸换行、\r、\t 转义，
+ * 并把明显是内容而非边界的裸引号转义为 \"
+ */
+function repairJsonString(str) {
+  let result = '';
+  let inString = false;
+  let escapeNext = false;
+
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+
+    if (escapeNext) {
+      result += ch;
+      escapeNext = false;
+      continue;
+    }
+
+    if (ch === '\\') {
+      result += ch;
+      escapeNext = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      if (inString) {
+        // 字符串内遇到的引号：判断是边界还是内容
+        const nextChar = str[i + 1];
+        const prevChar = result[result.length - 1] || '';
+        const isBoundary = nextChar === ':' || nextChar === ',' || nextChar === '}' || nextChar === ']' ||
+          nextChar === undefined || /[\s]/.test(nextChar || '') ||
+          prevChar === ':' || prevChar === ',' || prevChar === '{' || prevChar === '[';
+        if (isBoundary) {
+          // 字符串结束边界
+          inString = false;
+          result += '"';
+        } else {
+          // 内容里的引号，转义
+          result += '\\"';
+        }
+      } else {
+        inString = true;
+        result += '"';
+      }
+      continue;
+    }
+
+    if (inString) {
+      // 字符串值内的裸控制字符 → 转义
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+    }
+
+    result += ch;
+  }
+
+  return result;
+}
+
 function tryParseToolCall(content) {
   if (!content || typeof content !== 'string') return null;
   const str = content.trim();
 
-
   let parsed = null;
 
-  // 1. 尝试直接解析 JSON（纯 JSON 响应）
-  try {
-    parsed = JSON.parse(str);
-  } catch (e) {
-  }
+  // 1. 尝试直接解析 JSON（纯 JSON 响应，含容错修复）
+  parsed = parseJsonWithRepair(str);
 
   // 2. 提取代码块 ```json/tool ... ```
   if (!parsed) {
     const codeBlockMatch = str.match(/```(?:json|tool)?\s*\n?(\{[\s\S]*?\})\s*```/);
     if (codeBlockMatch) {
       const extracted = codeBlockMatch[1].trim();
-      try {
-        parsed = JSON.parse(extracted);
-      } catch (e) {
-      }
+      parsed = parseJsonWithRepair(extracted);
     }
   }
 
@@ -1010,11 +1101,7 @@ function tryParseToolCall(content) {
     if (firstBrace !== -1) {
       const candidate = extractJsonObject(str, firstBrace);
       if (candidate) {
-        try {
-          parsed = JSON.parse(candidate);
-        } catch (e) {
-        }
-      } else {
+        parsed = parseJsonWithRepair(candidate);
       }
     }
   }
