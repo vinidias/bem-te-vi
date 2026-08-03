@@ -39,7 +39,6 @@ class UnifiedToolManager {
 
   register(name, definition) {
     this.tools.set(name, definition);
-    console.log('[ToolManager] 注册工具:', name);
   }
 
   getToolsDescription() {
@@ -138,7 +137,6 @@ class UnifiedToolManager {
 
 // 实例化工具管理器
 const toolManager = new UnifiedToolManager();
-console.log('[Cuckoo AI] 统一工具管理器已初始化');
 
 // ========== 暴露给渲染进程的 API ==========
 // 尝试 contextBridge，如果失败则直接挂载到 window（作为 fallback）
@@ -156,14 +154,12 @@ let electronAPI = {
 
 try {
   contextBridge.exposeInMainWorld('electronAPI', electronAPI);
-  console.log('[Cuckoo AI] contextBridge.exposeInMainWorld 成功');
 } catch (err) {
   console.error('[Cuckoo AI] contextBridge.exposeInMainWorld 失败:', err);
 }
 
 // 无论 contextBridge 是否成功，都直接挂载到 window 作为备选
 window.electronAPI = electronAPI;
-console.log('[Cuckoo AI] window.electronAPI 直接挂载完成:', !!window.electronAPI);
 
 // ========== 覆盖层 UI 注入 ==========
 
@@ -327,8 +323,6 @@ function injectOverlay() {
   container.id = 'cuckoo-root';
   container.innerHTML = OVERLAY_HTML;
   document.body.appendChild(container);
-  console.log('[Cuckoo AI] injectOverlay - container appended, overlay element:', !!document.getElementById('cuckoo-overlay'));
-  console.log('[Cuckoo AI] injectOverlay - init button:', !!document.getElementById('cuckoo-btn-init'));
 }
 
 // ========== 覆盖层逻辑 ==========
@@ -382,82 +376,6 @@ function displayCommand(cmdData) {
   }
   showOverlay();
 }
-
-/**
- * 尝试解析工具调用命令
- * 格式：```tool
- * {"toolName": "file_write", "params": {...}, "callId": "..."}
- * ```
- */
-function tryParseToolCall(command) {
-  // 检查是否以工具调用格式开始
-  const toolMatch = command.trim().match(/^```(?:tool|json)?\s*\n?(\{[\s\S]*\})\s*```?$/);
-  if (!toolMatch) return null;
-
-  try {
-    const parsed = JSON.parse(toolMatch[1]);
-    // 验证是否包含必要字段
-    if (parsed.toolName && typeof parsed.toolName === 'string') {
-      return {
-        toolName: parsed.toolName,
-        params: parsed.params || {},
-        callId: parsed.callId || `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      };
-    }
-  } catch (e) {
-    console.log('[Cuckoo AI] 解析工具调用失败:', e.message);
-  }
-  return null;
-}
-
-/**
- * 执行工具调用
- */
-async function handleToolCall(toolCall) {
-  const { toolName, params, callId } = toolCall;
-  console.log(`[Cuckoo AI] 执行工具: ${toolName}`, params);
-
-  try {
-    const result = await window.electronAPI.executeTool(toolName, params, callId);
-
-    // 显示执行结果
-    const resultSection = document.getElementById('cuckoo-result-section');
-    const resultStatus = document.getElementById('cuckoo-result-status');
-    const resultOutput = document.getElementById('cuckoo-result-output');
-
-    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
-
-    if (result.success) {
-      if (resultStatus) {
-        resultStatus.textContent = `✅ 工具 ${toolName} 执行成功`;
-        resultStatus.className = 'cuckoo-result-status success';
-      }
-      if (resultOutput) {
-        resultOutput.textContent = JSON.stringify(result.data, null, 2);
-      }
-    } else {
-      if (resultStatus) {
-        resultStatus.textContent = `❌ 工具 ${toolName} 执行失败`;
-        resultStatus.className = 'cuckoo-result-status error';
-      }
-      if (resultOutput) {
-        resultOutput.textContent = result.error || '未知错误';
-      }
-    }
-
-    // 添加到历史
-    addHistory({
-      id: callId,
-      command: `[工具] ${toolName}`,
-      success: result.success,
-      output: result.success ? JSON.stringify(result.data, null, 2) : (result.error || '未知错误'),
-      timestamp: Date.now(),
-    });
-  } catch (err) {
-    console.error('[Cuckoo AI] 工具执行异常:', err);
-  }
-}
-
 async function handleExecute() {
   if (!currentCommand || isExecuting) return;
 
@@ -549,35 +467,6 @@ function handleSendPrompt() {
     triggerSend(input);
   }, 300);
 }
-
-/**
- * 初始化项目按钮点击处理
- */
-async function handleInitProject() {
-  const btn = document.getElementById('cuckoo-btn-init');
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = '⏳ 初始化中...';
-  }
-
-  try {
-    const result = await window.electronAPI.initProject();
-    if (result.success) {
-      console.log('[Cuckoo AI] 初始化成功:', result.message);
-    } else {
-      alert(result.message || '初始化失败');
-    }
-  } catch (err) {
-    console.error('[Cuckoo AI] 初始化出错:', err.message);
-    alert('初始化出错: ' + err.message);
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '🚀 初始化项目';
-    }
-  }
-}
-
 function addHistory(entry) {
   commandHistory.unshift(entry);
   if (commandHistory.length > 50) commandHistory.pop();
@@ -636,15 +525,6 @@ function bindEvents() {
   const sendPromptBtn = document.getElementById('cuckoo-btn-send-prompt');
   const clearBtn = document.getElementById('cuckoo-btn-clear');
 
-  console.log('[Cuckoo AI] bindEvents - 找到的按钮:', {
-    minimizeBtn: !!minimizeBtn,
-    executeBtn: !!executeBtn,
-    ignoreBtn: !!ignoreBtn,
-    initBtn: !!initBtn,
-    sendPromptBtn: !!sendPromptBtn,
-    clearBtn: !!clearBtn
-  });
-
   minimizeBtn?.addEventListener('click', hideOverlay);
   executeBtn?.addEventListener('click', handleExecute);
   ignoreBtn?.addEventListener('click', handleIgnore);
@@ -685,8 +565,6 @@ function bindEvents() {
  */
 async function handleInitProject() {
   const initBtn = document.getElementById('cuckoo-btn-init');
-  console.log('[Cuckoo AI] handleInitProject called, initBtn:', initBtn);
-  console.log('[Cuckoo AI] window.electronAPI:', window.electronAPI);
   if (initBtn) {
     initBtn.disabled = true;
     initBtn.textContent = '⏳ 初始化中...';
@@ -697,9 +575,7 @@ async function handleInitProject() {
     if (!window.electronAPI || !window.electronAPI.initProject) {
       throw new Error('window.electronAPI.initProject 不存在');
     }
-    console.log('[Cuckoo AI] Calling electronAPI.initProject()...');
     const result = await window.electronAPI.initProject();
-    console.log('[Cuckoo AI] 初始化结果:', result);
     if (result && !result.success) {
       alert(result.message || '初始化失败');
     }
@@ -726,11 +602,10 @@ async function handleManualParse() {
   }
 
   try {
-    console.log('[Cuckoo AI] 手动解析开始...');
 
     // 获取页面所有文本内容
     const pageText = document.body.innerText || document.body.textContent || '';
-    console.log('[Cuckoo AI] 页面文本长度:', pageText.length);
+    console.log(pageText);
 
     if (!pageText || pageText.trim().length === 0) {
       alert('页面内容为空，无法解析');
@@ -749,8 +624,10 @@ async function handleManualParse() {
     // 2. 如果没有解析到，尝试查找代码块
     if (toolCalls.length === 0) {
       const codeBlocks = document.querySelectorAll('pre code, pre');
-      for (const block of codeBlocks) {
+      for (let i = 0; i < codeBlocks.length; i++) {
+        const block = codeBlocks[i];
         const text = block.textContent || block.innerText || '';
+        console.log(text);
         if (text && (text.includes('toolName') || text.includes('tool') || text.includes('file_write'))) {
           const parsed = tryParseToolCall(text);
           if (parsed) {
@@ -765,11 +642,9 @@ async function handleManualParse() {
       return;
     }
 
-    console.log('[Cuckoo AI] 手动解析找到工具调用数量:', toolCalls.length);
 
     // 执行所有检测到的工具调用
     for (const toolCall of toolCalls) {
-      console.log('[Cuckoo AI] 执行手动解析的工具调用:', toolCall);
       await handleToolCall(toolCall);
     }
 
@@ -875,13 +750,19 @@ function scanForToolCalls(nodes) {
   for (const node of nodes) {
     if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
+    // 跳过用户消息区域：用户消息中包含系统提示词的示例 JSON，不应被当作工具调用
+    if (isInsideUserMessage(node)) {
+      continue;
+    }
+
     // 检查 pre/code 代码块
     if (['PRE', 'CODE'].includes(node.tagName)) {
       if (!detectedSet.has(node)) {
         detectedSet.add(node);
-        const text = node.textContent || node.innerText || '';
-        if (text.includes('toolName') || text.includes('file_write') || text.includes('"tool"')) {
-          const toolCall = tryParseToolCall(node.textContent || node.innerText || '');
+        const text = (node.textContent || node.innerText || '').trim();
+        console.log(text);
+        if (text.includes('toolName') || text.includes('"tool"') || text.includes('file_write')) {
+          const toolCall = tryParseToolCall(text);
           if (toolCall) toolCalls.push(toolCall);
         }
       }
@@ -892,18 +773,20 @@ function scanForToolCalls(nodes) {
     for (const block of codeBlocks) {
       if (!detectedSet.has(block)) {
         detectedSet.add(block);
-        const text = block.textContent || block.innerText || '';
-        if (text.includes('toolName') || text.includes('file_write') || text.includes('"tool"')) {
-          const toolCall = tryParseToolCall(block.textContent || block.innerText || '');
+        const text = (block.textContent || block.innerText || '').trim();
+        console.log(text);
+        if (text.includes('toolName') || text.includes('"tool"') || text.includes('file_write')) {
+          const toolCall = tryParseToolCall(text);
           if (toolCall) toolCalls.push(toolCall);
         }
       }
     }
 
-    // 检查 markdown 渲染后的内容（可能包含在 div 中）
+    // 检查 markdown 渲染后的内容（仅限 AI 回复区域）
     if (node.tagName === 'DIV') {
-      const text = node.textContent || node.innerText || '';
-      if (text.includes('toolName') || text.includes('file_write')) {
+      const text = (node.textContent || node.innerText || '').trim();
+      if (text.includes('toolName') || text.includes('"tool"') || text.includes('file_write')) {
+        console.log(text);
         const toolCall = tryParseToolCall(text);
         if (toolCall) toolCalls.push(toolCall);
       }
@@ -912,91 +795,57 @@ function scanForToolCalls(nodes) {
   return toolCalls;
 }
 
+/**
+ * 检查节点是否在用户消息区域内
+ * 用户消息中包含系统提示词示例 JSON，应被排除
+ */
+function isInsideUserMessage(node) {
+  // 方法1: 检查节点或其祖先是否为用户消息元素
+  let current = node;
+  while (current) {
+    const role = current.getAttribute?.('data-role') || current.getAttribute?.('data-author') || '';
+    if (role === 'user' || role === 'human') return true;
+
+    // 检查常见的用户消息 class
+    const cls = current.className || '';
+    if (typeof cls === 'string' && (cls.includes('user-message') || cls.includes('message-user') || cls.includes('human'))) {
+      return true;
+    }
+
+    current = current.parentElement;
+  }
+
+  // 方法2: 检查文本内容是否包含用户消息的显著特征
+  const text = (node.textContent || node.innerText || '').substring(0, 200);
+  if (text.includes('我已选择目录：') || text.includes('系统提示词：') || text.includes('工具使用规则：')) {
+    return true;
+  }
+
+  return false;
+}
+
 // ========== AI 回复完成检测 ==========
 /**
  * 检测 AI 是否已完成回复
- * 通过检查 DeepSeek 页面的 UI 状态判断
+ * 规则：如果能找到停止生成按钮（disabled 状态），则视为回复结束
  * @returns {boolean} true 表示 AI 已完成回复
  */
+const STOP_BTN_SELECTOR =
+  '.ds-button.ds-button--primary.ds-button--filled.ds-button--circle.ds-button--m' +
+  '.ds-button--icon-relative-m.ds-button--disabled';
+
 function isAIResponseComplete() {
   try {
-    // 1. 检查是否有典型的"正在生成"指示器
-    const generatingIndicators = document.querySelectorAll(
-      '[data-testid="generating"], .generating, .streaming, [data-state="streaming"], ' +
-      '.typing-indicator, .thinking, [aria-busy="true"], ' +
-      'button[disabled][aria-label*="stop"], button[disabled][aria-label*="停止"]'
-    );
-    if (generatingIndicators.length > 0) {
-      console.log('[Cuckoo AI] 🔍 检测到正在生成指示器，等待完成...');
-      return false;
+    // 如果能在 DOM 中找到 disabled 的停止按钮，则视为回复结束
+    const stopBtn = document.querySelector(STOP_BTN_SELECTOR);
+    if (stopBtn) {
+      console.log('[Cuckoo AI] ✅ 检测到停止按钮(disabled)，回复已结束');
+      return true;
     }
 
-    // 2. 检查最后一条助手消息是否还在流式输出
-    const assistantMessages = document.querySelectorAll(
-      '[data-role="assistant"], [data-author="assistant"], .assistant-message, .bot-message, ' +
-      '[data-testid="assistant-message"], .message-assistant'
-    );
-
-    if (assistantMessages.length > 0) {
-      const lastMsg = assistantMessages[assistantMessages.length - 1];
-
-      // 检查是否有流式输出的特征
-      const streamingElements = lastMsg.querySelectorAll(
-        '.streaming, .typing, .generating, [data-streaming="true"], ' +
-        '.cursor, .blink, .animate-pulse'
-      );
-      if (streamingElements.length > 0) {
-        console.log('[Cuckoo AI] 🔍 检测到最后一条消息正在流式输出中...');
-        return false;
-      }
-
-      // 检查光标闪烁动画（常见于流式输出结束时）
-      const cursors = lastMsg.querySelectorAll('.cursor, .blinking, .animate-blink');
-      if (cursors.length > 0) {
-        console.log('[Cuckoo AI] 🔍 检测到光标闪烁，输出可能未结束...');
-        return false;
-      }
-    }
-
-    // 3. 检查是否有"停止生成"按钮可见（表示正在生成）
-    const stopButtons = document.querySelectorAll(
-      'button[aria-label*="stop" i], button[aria-label*="停止" i], ' +
-      'button[title*="stop" i], button[title*="停止" i]'
-    );
-    const visibleStopButton = Array.from(stopButtons).find(btn => {
-      const style = window.getComputedStyle(btn);
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-    });
-    if (stopButtons.length > 0 && !stopButtons.every(btn => btn.disabled)) {
-      console.log('[Cuckoo AI] 🔍 检测到可用的停止按钮，正在生成中...');
-      return false;
-    }
-
-    // 4. 检查是否有明显的"正在思考/生成中"文本
-    const walker = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT,
-      null,
-      false
-    );
-    let hasGeneratingText = false;
-    while (walker.nextNode()) {
-      const text = walker.currentNode.textContent.trim();
-      if (text && (text.includes('生成中') || text.includes('思考中') ||
-          text.includes('正在生成') || text.includes('Generating') ||
-          text.includes('Thinking') || text.match(/^▌|▊|▋|█$/))) {
-        hasGeneratingText = true;
-        break;
-      }
-    }
-    if (hasGeneratingText) {
-      console.log('[Cuckoo AI] 🔍 检测到"生成中/思考中"文本...');
-      return false;
-    }
-
-    // 所有检查通过，AI 可能已完成
-    console.log('[Cuckoo AI] ✅ AI 回复完成检测通过，准备处理工具调用');
-    return true;
+    // 找不到停止按钮，说明可能还在生成中，或页面状态不确定
+    console.log('[Cuckoo AI] ⏳ 未找到停止按钮，回复可能未结束');
+    return false;
   } catch (err) {
     console.error('[Cuckoo AI] ❌ 检测 AI 完成状态出错:', err);
     // 出错时保守返回 true，避免永远不处理
@@ -1004,33 +853,112 @@ function isAIResponseComplete() {
   }
 }
 
-// ========== MutationObserver 防抖处理 ==========
+// ========== MutationObserver ==========
 
-  function processMutations(mutations) {
-    if (isProcessing) return;
+// 已处理过的消息节点集合（避免重复处理）
+const processedMessages = new WeakSet();
 
-    // 关键：先检查 AI 是否真正完成了回复
-    if (!isAIResponseComplete()) {
-      console.log('[Cuckoo AI] ⏳ AI 回复尚未完成，等待继续输出...');
-      console.log('[Cuckoo AI]    ├─ 当前状态检查: 仍在流式输出/生成中');
-      return; // 直接返回，不处理本次 mutations，等待下一次
+/**
+ * 回复结束后，获取最新 .ds-message > .ds-markdown 的内容并解析工具调用
+ */
+function processLatestAIResponse() {
+  const messages = document.querySelectorAll('.ds-message');
+  if (messages.length === 0) {
+    console.log('[Cuckoo AI] 未找到 .ds-message 节点');
+    return;
+  }
+
+  // 取最后一条消息
+  const lastMessage = messages[messages.length - 1];
+  const markdown = lastMessage.querySelector(':scope > .ds-markdown');
+  if (!markdown) {
+    console.log('[Cuckoo AI] 最新消息中没有 .ds-markdown');
+    return;
+  }
+
+  if (processedMessages.has(lastMessage)) {
+    return; // 已处理过，跳过
+  }
+  processedMessages.add(lastMessage);
+
+  const text = (markdown.textContent || markdown.innerText || '').trim();
+  console.log('[Cuckoo AI] 最新 AI 回复内容:');
+  console.log(text);
+
+  if (!text) return;
+
+  const toolCall = tryParseToolCall(text);
+  if (toolCall) {
+    // 验证 toolName 是否在工具库中
+    const available = toolManager.tools.has(toolCall.toolName);
+    if (!available) {
+      console.log('[Cuckoo AI] ⚠️ 工具不存在: ' + toolCall.toolName + ', 可用工具: ' + Array.from(toolManager.tools.keys()).join(', '));
+      return;
+    }
+    console.log('[Cuckoo AI] ✅ 工具存在: ' + toolCall.toolName + ', 开始执行');
+    notifyToolCallDetected(toolCall);
+    handleToolCall(toolCall);
+  } else {
+    console.log('[Cuckoo AI] 回复内容不是工具调用 JSON');
+  }
+}
+
+function startObserver() {
+  const observer = new MutationObserver((mutations) => {
+    let hasNewContent = false;
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        // 扫描命令
+        const commands = scanForCommands(mutation.addedNodes);
+        for (const cmd of commands) {
+          displayCommand({ command: cmd, timestamp: Date.now(), id: generateId() });
+        }
+        hasNewContent = true;
+      }
     }
 
-    console.log('[Cuckoo AI] ✅ =========================================');
-    console.log('[Cuckoo AI] ✅ 【判定完成】AI 回复已完全结束，开始处理工具调用');
-    console.log('[Cuckoo AI] ✅ =========================================');
-    console.log('[Cuckoo AI] 📊 本次处理详情:');
-    console.log('[Cuckoo AI]    ├─ 触发原因: DOM 稳定 ≥ 2s + 无流式输出特征');
-    console.log('[Cuckoo AI]    ├─ 待处理节点数: 待处理的新增节点数');
-
-    isProcessing = true;
-
-    try {
-      // ... existing code
+    // 回复结束后处理最新 AI 回复
+    if (hasNewContent && isAIResponseComplete()) {
+      processLatestAIResponse();
+    }
+  });
 
   const target = document.body || document.documentElement;
   if (target) {
     observer.observe(target, { childList: true, subtree: true });
+  }
+}
+
+/**
+ * 通知用户检测到工具调用（闪烁状态徽章 + 展开覆盖层）
+ */
+function notifyToolCallDetected(toolCall) {
+  showOverlay();
+  // 更新预览区域显示检测到的工具调用
+  const preview = document.getElementById('cuckoo-cmd-preview');
+  if (preview) {
+    preview.textContent = `[工具] ${toolCall.toolName}\n参数: ${JSON.stringify(toolCall.params, null, 2)}`;
+  }
+  // 闪烁状态徽章
+  const badge = document.getElementById('cuckoo-status-badge');
+  const dot = document.getElementById('cuckoo-status-dot');
+  if (badge) {
+    badge.style.background = 'rgba(124,255,178,0.25)';
+    badge.style.borderColor = 'rgba(124,255,178,0.6)';
+    badge.querySelector('span:last-child') && (badge.querySelector('span:last-child').textContent = 'Cuckoo AI - 工具调用检测到');
+    setTimeout(() => {
+      badge.style.background = 'rgba(124,131,255,0.15)';
+      badge.style.borderColor = 'rgba(124,131,255,0.3)';
+      badge.querySelector('span:last-child') && (badge.querySelector('span:last-child').textContent = 'Cuckoo AI 运行中');
+    }, 3000);
+  }
+  if (dot) {
+    dot.style.background = '#ffc107';
+    dot.style.animation = 'none';
+    setTimeout(() => {
+      dot.style.background = '#7cffb2';
+      dot.style.animation = 'cuckoo-pulse 2s infinite';
+    }, 3000);
   }
 }
 
@@ -1055,70 +983,49 @@ function tryParseToolCall(content) {
   if (!content || typeof content !== 'string') return null;
   const str = content.trim();
 
-  console.log('[Cuckoo AI] 尝试解析工具调用, 内容长度:', str.length);
-  console.log('[Cuckoo AI] 内容前500字符:', str.substring(0, 500));
 
-  // 先检查 JSON 是否可能完整（简单校验）
-  if (!isJsonPotentiallyComplete(str)) {
-    console.log('[Cuckoo AI] JSON 疑似不完整，等待更多内容...');
-    return null;
-  }
-
-  // 1. 尝试直接解析 JSON
   let parsed = null;
+
+  // 1. 尝试直接解析 JSON（纯 JSON 响应）
   try {
     parsed = JSON.parse(str);
-    console.log('[Cuckoo AI] 直接 JSON 解析成功:', parsed);
   } catch (e) {
-    console.log('[Cuckoo AI] 直接 JSON 解析失败:', e.message);
   }
 
-  // 2. 提取代码块 ```json ... ``` 或 ```tool ... ``` 或 ``` ... ```
+  // 2. 提取代码块 ```json/tool ... ```
   if (!parsed) {
-    const codeBlockMatch = str.match(/^```(?:json|tool)?\s*\n?(\{[\s\S]*\})\s*```?$/);
+    const codeBlockMatch = str.match(/```(?:json|tool)?\s*\n?(\{[\s\S]*?\})\s*```/);
     if (codeBlockMatch) {
-      console.log('[Cuckoo AI] 代码块匹配内容:', codeBlockMatch[1].substring(0, 200));
+      const extracted = codeBlockMatch[1].trim();
       try {
-        parsed = JSON.parse(codeBlockMatch[1]);
-        console.log('[Cuckoo AI] 代码块 JSON 解析成功:', parsed);
+        parsed = JSON.parse(extracted);
       } catch (e) {
-        console.log('[Cuckoo AI] 代码块 JSON 解析失败:', e.message);
       }
-    } else {
-      console.log('[Cuckoo AI] 未匹配到代码块格式');
     }
   }
 
-  // 3. 尝试在文本中查找 JSON 对象
+  // 3. 在文本中查找 JSON 对象（取第一个完整的 { ... }）
   if (!parsed) {
-    const jsonMatch = str.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      console.log('[Cuckoo AI] 文本中提取到疑似 JSON:', jsonMatch[0].substring(0, 200));
-      // 再次校验完整性
-      if (isJsonPotentiallyComplete(jsonMatch[0])) {
+    const firstBrace = str.indexOf('{');
+    if (firstBrace !== -1) {
+      const candidate = extractJsonObject(str, firstBrace);
+      if (candidate) {
         try {
-          parsed = JSON.parse(jsonMatch[0]);
-          console.log('[Cuckoo AI] 文本中提取 JSON 解析成功:', parsed);
+          parsed = JSON.parse(candidate);
         } catch (e) {
-          console.log('[Cuckoo AI] 文本中提取 JSON 解析失败:', e.message);
-          console.log('[Cuckoo AI] 失败的 JSON 片段:', jsonMatch[0].substring(0, 300));
         }
       } else {
-        console.log('[Cuckoo AI] 提取的 JSON 片段不完整，等待更多内容...');
       }
-    } else {
-      console.log('[Cuckoo AI] 文本中未找到任何花括号包裹内容');
     }
   }
 
   if (!parsed) {
-    console.log('[Cuckoo AI] 所有解析尝试均失败');
     return null;
   }
 
   // 支持多种字段名：toolName/tool, params/parameters/arguments
   if (!parsed.toolName && !parsed.tool) {
-    console.log('[Cuckoo AI] 缺少 toolName/tool 字段, 完整对象:', parsed);
+    console.log('[Cuckoo AI] 缺少 toolName/tool 字段, 完整对象:', JSON.stringify(parsed));
     return null;
   }
 
@@ -1128,27 +1035,21 @@ function tryParseToolCall(content) {
     params: parsed.params || parsed.parameters || parsed.arguments || {},
     callId: parsed.callId || `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   };
-  console.log('[Cuckoo AI] 解析成功:', result);
+  console.log('[Cuckoo AI] ✅ 解析成功, toolName=' + result.toolName + ', params=' + JSON.stringify(result.params));
   return result;
 }
 
 /**
- * 简单校验 JSON 字符串是否可能完整
- * @param {string} str
- * @returns {boolean}
+ * 从文本中提取完整的 JSON 对象字符串（从 startPos 的 { 开始）
+ * 通过括号配对找到对应的 } 结束位置
  */
-function isJsonPotentiallyComplete(str) {
-  if (!str || typeof str !== 'string') return false;
-  const trimmed = str.trim();
-  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return false;
-
-  // 简单的括号配对检查
+function extractJsonObject(str, startPos) {
   let braceCount = 0;
   let inString = false;
   let escapeNext = false;
 
-  for (let i = 0; i < trimmed.length; i++) {
-    const char = trimmed[i];
+  for (let i = startPos; i < str.length; i++) {
+    const char = str[i];
 
     if (escapeNext) {
       escapeNext = false;
@@ -1160,19 +1061,24 @@ function isJsonPotentiallyComplete(str) {
       continue;
     }
 
-    if (char === '"' && !escapeNext) {
+    if (char === '"') {
       inString = !inString;
       continue;
     }
 
     if (!inString) {
       if (char === '{') braceCount++;
-      else if (char === '}') braceCount--;
+      else if (char === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          return str.substring(startPos, i + 1);
+        }
+      }
     }
   }
 
-  // 括号必须配对平衡
-  return braceCount === 0;
+  // 括号未配对完成（流式输出未结束）
+  return null;
 }
 
 /**
@@ -1181,6 +1087,14 @@ function isJsonPotentiallyComplete(str) {
 async function handleToolCall(toolCall) {
   const { toolName, params, callId } = toolCall;
   console.log(`[Cuckoo AI] 执行工具: ${toolName}`, params);
+
+  // 确保覆盖层可见，让用户看到正在处理
+  showOverlay();
+  const executeBtn = document.getElementById('cuckoo-btn-execute');
+  if (executeBtn) {
+    executeBtn.disabled = true;
+    executeBtn.textContent = '⏳ 工具执行中...';
+  }
 
   try {
     const result = await window.electronAPI.executeTool(toolName, params, callId);
@@ -1220,42 +1134,25 @@ async function handleToolCall(toolCall) {
     });
   } catch (err) {
     console.error('[Cuckoo AI] 工具执行异常:', err);
-  }
-}
-
-/**
- * 检测新增节点中的工具调用
- */
-function scanForToolCalls(nodes) {
-  const toolCalls = [];
-  for (const node of nodes) {
-    if (node.nodeType !== Node.ELEMENT_NODE) continue;
-
-    // 检查文本内容
-    const text = node.textContent || node.innerText || '';
-    if (text.includes('toolName') || text.includes('file_write')) {
-      const toolCall = tryParseToolCall(text);
-      if (toolCall) toolCalls.push(toolCall);
+    const resultSection = document.getElementById('cuckoo-result-section');
+    const resultStatus = document.getElementById('cuckoo-result-status');
+    const resultOutput = document.getElementById('cuckoo-result-output');
+    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
+    if (resultStatus) {
+      resultStatus.textContent = '❌ 系统错误';
+      resultStatus.className = 'cuckoo-result-status error';
     }
-
-    // 递归检查子节点
-    if (node.querySelectorAll) {
-      const codeBlocks = node.querySelectorAll('pre, code');
-      for (const block of codeBlocks) {
-        const text = block.textContent || block.innerText || '';
-        if (text.includes('toolName') || text.includes('file_write')) {
-          const toolCall = tryParseToolCall(text);
-          if (toolCall) toolCalls.push(toolCall);
-        }
-      }
+    if (resultOutput) resultOutput.textContent = err.message || String(err);
+  } finally {
+    if (executeBtn) {
+      executeBtn.disabled = false;
+      executeBtn.textContent = '▶ 确认执行';
     }
   }
-  return toolCalls;
 }
 
 // 监听主进程发送的 systemPrompt
 ipcRenderer.on('system-prompt', (_event, content) => {
-  console.log('[Cuckoo AI] 收到 system prompt, 长度:', content?.length);
   systemPromptContent = content || '';
   pendingSystemPrompt = true;
   // 如果当前已有新的空会话输入框，立即发送
@@ -1263,21 +1160,18 @@ ipcRenderer.on('system-prompt', (_event, content) => {
     try {
       const input = findInputArea();
       if (input) {
-        console.log('[Cuckoo AI] 页面已就绪，直接发送 system prompt');
         sendSystemPromptToInput();
       } else {
         // 等待输入框出现
         waitForInputAndSend();
       }
     } catch (e) {
-      console.log('[Cuckoo AI] 当前无法找到输入框，等待后续触发');
     }
   }
 });
 
 // 监听主进程发送的初始提示（目录树+systemPrompt）
 ipcRenderer.on('initial-prompt', (_event, content) => {
-  console.log('[Cuckoo AI] 收到初始提示, 长度:', content?.length);
   initialPromptContent = content || '';
   pendingInitialPrompt = true;
   // 如果当前已有新的空会话输入框，立即发送
@@ -1285,14 +1179,12 @@ ipcRenderer.on('initial-prompt', (_event, content) => {
     try {
       const input = findInputArea();
       if (input) {
-        console.log('[Cuckoo AI] 页面已就绪，直接发送初始提示');
         sendInitialPromptToInput();
       } else {
         // 等待输入框出现
         waitForInitialPromptAndSend();
       }
     } catch (e) {
-      console.log('[Cuckoo AI] 当前无法找到输入框，等待后续触发');
     }
   }
 });
@@ -1359,7 +1251,6 @@ function sendSystemPromptToInput() {
 
   const input = findInputArea();
   if (!input) {
-    console.log('[Cuckoo AI] 找不到输入框');
     return false;
   }
 
@@ -1370,12 +1261,10 @@ function sendSystemPromptToInput() {
       input.value = systemPromptContent;
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log('[Cuckoo AI] system prompt 已填入输入框');
     } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
       input.focus();
       document.execCommand('selectAll', false, null);
       document.execCommand('insertText', false, systemPromptContent);
-      console.log('[Cuckoo AI] system prompt 已填入 contentEditable');
     }
 
     // 触发发送（等待一小会儿确保输入完成）
@@ -1402,7 +1291,6 @@ function sendInitialPromptToInput() {
 
   const input = findInputArea();
   if (!input) {
-    console.log('[Cuckoo AI] 找不到输入框');
     return false;
   }
 
@@ -1413,12 +1301,10 @@ function sendInitialPromptToInput() {
       input.value = initialPromptContent;
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log('[Cuckoo AI] 初始提示 已填入输入框');
     } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
       input.focus();
       document.execCommand('selectAll', false, null);
       document.execCommand('insertText', false, initialPromptContent);
-      console.log('[Cuckoo AI] 初始提示 已填入 contentEditable');
     }
 
     // 触发发送（等待一小会儿确保输入完成）
@@ -1445,14 +1331,12 @@ function waitForInputAndSend() {
     attempts++;
     if (attempts > maxAttempts) {
       clearInterval(checkInterval);
-      console.log('[Cuckoo AI] 等待输入框超时，不再尝试');
       pendingSystemPrompt = false;
       return;
     }
 
     if (findInputArea()) {
       clearInterval(checkInterval);
-      console.log('[Cuckoo AI] 找到输入框，发送 system prompt');
       sendSystemPromptToInput();
     }
   }, 500);
@@ -1469,14 +1353,12 @@ function waitForInitialPromptAndSend() {
     attempts++;
     if (attempts > maxAttempts) {
       clearInterval(checkInterval);
-      console.log('[Cuckoo AI] 等待输入框超时，不再尝试');
       pendingInitialPrompt = false;
       return;
     }
 
     if (findInputArea()) {
       clearInterval(checkInterval);
-      console.log('[Cuckoo AI] 找到输入框，发送初始提示');
       sendInitialPromptToInput();
     }
   }, 500);
@@ -1508,7 +1390,6 @@ function triggerSend(input) {
     const btn = document.querySelector(sel);
     if (btn && isInputVisible(btn)) {
       btn.click();
-      console.log('[Cuckoo AI] 已点击发送按钮');
       return;
     }
   }
@@ -1517,9 +1398,7 @@ function triggerSend(input) {
   if (input) {
     const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true });
     input.dispatchEvent(enterEvent);
-    console.log('[Cuckoo AI] 已通过键盘 Enter 发送');
   } else {
-    console.log('[Cuckoo AI] 无法找到发送按钮或输入框');
   }
 }
 
@@ -1572,16 +1451,13 @@ function findNewSessionButton() {
 function setupNewSessionListener() {
   const btn = findNewSessionButton();
   if (!btn) {
-    console.log('[Cuckoo AI] 未找到新建会话按钮，5秒后重试');
     setTimeout(setupNewSessionListener, 5000);
     return;
   }
 
-  console.log('[Cuckoo AI] 找到新建会话按钮:', btn.tagName, btn.textContent?.trim() || btn.getAttribute('title') || '(无文字)');
 
   // 监听点击事件
   const clickHandler = () => {
-    console.log('[Cuckoo AI] 检测到新建会话按钮点击');
 
     // 重置状态
     pendingSystemPrompt = true;
@@ -1607,29 +1483,155 @@ function setupNewSessionListener() {
 // 启动新建会话监听
 setTimeout(setupNewSessionListener, 3000);
 
+// ========== 拦截 DeepSeek API 响应（注入到主世界） ==========
+
+console.log('[Cuckoo AI] 安装 API 拦截器（注入主世界）...');
+
+// 监听来自主世界拦截器的消息
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.source === 'cuckoo-interceptor') {
+    console.log('[Cuckoo AI] [拦截] AI回复全文:');
+    console.log(e.data.content);
+    processAIContent(e.data.content);
+  }
+});
+
+// 注入拦截脚本到主世界（绕过 contextIsolation）
+const interceptScript = document.createElement('script');
+interceptScript.textContent = `(${function() {
+  // 在主世界拦截 fetch
+  const origFetch = window.fetch;
+  window.fetch = async function(input, init) {
+    const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : '');
+    const response = await origFetch.call(window, input, init);
+    if (url && (url.includes('chat') || url.includes('completion'))) {
+      window.postMessage({ source: 'cuckoo-interceptor', url: url, type: 'fetch' }, '*');
+      const cloned = response.clone();
+      const ct = response.headers.get('content-type') || '';
+      if (ct.includes('text/event-stream')) {
+        // SSE streaming
+        const reader = cloned.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '', content = '';
+        (async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split('\\n');
+            buf = lines.pop() || '';
+            for (const line of lines) {
+              if (line.startsWith('data: ') && line.slice(6) !== '[DONE]') {
+                try { content += JSON.parse(line.slice(6))?.choices?.[0]?.delta?.content || ''; } catch(e) {}
+              }
+            }
+          }
+          if (content) window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
+        })();
+      } else {
+        cloned.text().then(body => {
+          try {
+            const c = JSON.parse(body)?.choices?.[0]?.message?.content;
+            if (c) window.postMessage({ source: 'cuckoo-interceptor', content: c }, '*');
+          } catch(e) {}
+        });
+      }
+    }
+    return response;
+  };
+
+  // 在主世界拦截 XHR
+  const OrigXHR = window.XMLHttpRequest;
+  window.XMLHttpRequest = function() {
+    const xhr = new OrigXHR();
+    const origOpen = xhr.open;
+    let url = '';
+    xhr.open = function(m, u) { url = u; return origOpen.apply(xhr, arguments); };
+    xhr.addEventListener('load', function() {
+      if (url && (url.includes('chat') || url.includes('completion'))) {
+        window.postMessage({ source: 'cuckoo-interceptor', url: url, type: 'xhr' }, '*');
+        try {
+          const text = xhr.responseText;
+          // SSE extract
+          let content = '';
+          for (const line of text.split('\\n')) {
+            if (line.startsWith('data: ') && line.slice(6) !== '[DONE]') {
+              try { content += JSON.parse(line.slice(6))?.choices?.[0]?.delta?.content || ''; } catch(e) {}
+            }
+          }
+          // or JSON
+          if (!content) {
+            try { content = JSON.parse(text)?.choices?.[0]?.message?.content || ''; } catch(e) {}
+          }
+          if (content) window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
+        } catch(e) {}
+      }
+    });
+    return xhr;
+  };
+  window.XMLHttpRequest.prototype = OrigXHR.prototype;
+
+  // 在主世界拦截 EventSource
+  const OrigES = window.EventSource;
+  window.EventSource = function(url, config) {
+    const es = new OrigES(url, config);
+    let content = '';
+    es.addEventListener('message', function(e) {
+      try { content += JSON.parse(e.data)?.choices?.[0]?.delta?.content || ''; } catch(err) {}
+    });
+    const origClose = es.close;
+    es.close = function() {
+      if (content) window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
+      return origClose.call(es);
+    };
+    return es;
+  };
+  window.EventSource.prototype = OrigES.prototype;
+  window.EventSource.CONNECTING = OrigES.CONNECTING;
+  window.EventSource.OPEN = OrigES.OPEN;
+  window.EventSource.CLOSED = OrigES.CLOSED;
+}}.toString())()`;
+
+// 等待 DOM 就绪后再注入
+function injectInterceptor() {
+  const root = document.documentElement || document.head || document.body;
+  if (root) {
+    root.appendChild(interceptScript);
+    interceptScript.remove();
+    console.log('[Cuckoo AI] 拦截器已注入主世界');
+  } else {
+    setTimeout(injectInterceptor, 10);
+  }
+}
+injectInterceptor();
+
+/**
+ * 检测 AI 回复中是否包含工具调用 JSON，如有则执行
+ */
+function processAIContent(content) {
+  if (!content || typeof content !== 'string') return;
+
+  const toolCall = tryParseToolCall(content);
+  if (toolCall) {
+    console.log('[Cuckoo AI] API拦截: 检测到工具调用，自动执行');
+    notifyToolCallDetected(toolCall);
+    handleToolCall(toolCall);
+  }
+}
+
 // ========== 初始化 ==========
 
 function init() {
-  console.log('[Cuckoo AI] init() 开始执行');
-  console.log('[Cuckoo AI] window.electronAPI:', window.electronAPI);
-  console.log('[Cuckoo AI] document.readyState:', document.readyState);
-  console.log('[Cuckoo AI] location.href:', location.href);
-
   try {
     injectCSS();
-    console.log('[Cuckoo AI] injectCSS 完成');
     injectOverlay();
-    console.log('[Cuckoo AI] injectOverlay 完成');
     bindEvents();
-    console.log('[Cuckoo AI] bindEvents 完成');
 
     // 默认显示覆盖层 - 兜底强制显示
     forceShowOverlay();
-    console.log('[Cuckoo AI] showOverlay 完成');
 
     // 延迟启动观察器，等待页面框架渲染
     setTimeout(startObserver, 2000);
-    console.log('[Cuckoo AI] init() 执行完毕');
   } catch (err) {
     console.error('[Cuckoo AI] init() 出错:', err);
     // 兜底：即使出错也强制显示面板
@@ -1647,7 +1649,6 @@ function forceShowOverlay() {
     overlay.style.transform = 'translateX(0)';
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
-    console.log('[Cuckoo AI] 🛡️ 强制显示覆盖层');
   }
 }
 
@@ -1657,7 +1658,6 @@ function startOverlayWatcher() {
   setInterval(() => {
     const overlay = document.getElementById('cuckoo-overlay');
     if (overlay && overlay.classList.contains('cuckoo-hidden')) {
-      console.log('[Cuckoo AI] 🛡️ 检测到面板被隐藏，自动恢复显示');
       forceShowOverlay();
     }
   }, 5000);
@@ -1669,4 +1669,3 @@ if (document.readyState === 'loading') {
   init();
 }
 
-console.log('[Cuckoo AI] Preload 已加载');

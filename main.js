@@ -142,7 +142,7 @@ function initProject() {
   const finalPrompt = promptContent.replace('{TOOLS_LIST}', toolsDescription);
 
   // 组合内容
-  const combined = `我已选择目录：${selectedDir}
+  const combined = `
 其目录结构如下：
 ${tree}
 ---
