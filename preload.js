@@ -1277,7 +1277,7 @@ async function handleToolCall(toolCall) {
 function sendToolResultToChat(toolCall, result) {
   const input = findInputArea();
   if (!input) {
-    console.log('[Cuckoo AI] 找不到输入框，无法回传工具结果');
+    console.log('[Cuckoo AI] ❌ 找不到输入框，无法回传工具结果');
     return;
   }
 
@@ -1294,28 +1294,35 @@ function sendToolResultToChat(toolCall, result) {
     msg = '[工具执行结果] ' + toolCall.toolName + ' 执行失败\n' + (result.error || '未知错误');
   }
 
-  // 填入输入框
+  console.log('[Cuckoo AI] 回传工具结果, 输入框类型=' + input.tagName + ', 消息长度=' + msg.length);
+
+  // 填入输入框（React 兼容：使用原生 value setter，否则 React 状态不更新）
   try {
     if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
       input.focus();
-      input.value = msg;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        input.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype,
+        'value'
+      ).set;
+      nativeSetter.call(input, msg);
       input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      console.log('[Cuckoo AI] ✅ 已填入 textarea, 当前值长度=' + (input.value || '').length);
     } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
       input.focus();
       document.execCommand('selectAll', false, null);
       document.execCommand('insertText', false, msg);
+      console.log('[Cuckoo AI] ✅ 已填入 contenteditable');
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 回传工具结果到输入框失败:', err.message);
+    console.error('[Cuckoo AI] ❌ 回传工具结果到输入框失败:', err.message);
     return;
   }
 
   // 触发发送
   setTimeout(() => {
     triggerSend(input);
-    console.log('[Cuckoo AI] ✅ 工具结果已发送回聊天, 工具=' + toolCall.toolName + ', 长度=' + msg.length);
-  }, 500);
+    console.log('[Cuckoo AI] ✅ 已触发发送, 工具=' + toolCall.toolName + ', 长度=' + msg.length);
+  }, 300);
 }
 
 // 监听主进程发送的 systemPrompt
@@ -1535,7 +1542,7 @@ function waitForInitialPromptAndSend() {
  * 触发发送消息
  */
 function triggerSend(input) {
-  // 方法 1: 查找发送按钮
+  // 方法 1: 查找发送按钮（按钮仅在输入框有内容时才可用）
   const sendSelectors = [
     'button[type="submit"]',
     'button[aria-label*="send"]',
@@ -1551,21 +1558,25 @@ function triggerSend(input) {
     '[data-testid="send-button"]',
     'button:has(svg[data-icon="arrow"])',
     'button:has(> svg)',
+    'button:has(svg[data-icon="send"])',
   ];
 
   for (const sel of sendSelectors) {
     const btn = document.querySelector(sel);
-    if (btn && isInputVisible(btn)) {
+    if (btn && isInputVisible(btn) && !btn.disabled) {
       btn.click();
+      console.log('[Cuckoo AI] 已点击发送按钮: ' + sel);
       return;
     }
   }
 
-  // 方法 2: 在输入框上按 Enter
+  // 方法 2: 在输入框上模拟完整 Enter 按键序列（keydown + keypress + keyup）
   if (input) {
-    const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true });
-    input.dispatchEvent(enterEvent);
-  } else {
+    const opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true, isComposing: false };
+    input.dispatchEvent(new KeyboardEvent('keydown', opts));
+    input.dispatchEvent(new KeyboardEvent('keypress', opts));
+    input.dispatchEvent(new KeyboardEvent('keyup', opts));
+    console.log('[Cuckoo AI] 已通过 Enter 键触发发送 (未找到发送按钮)');
   }
 }
 
