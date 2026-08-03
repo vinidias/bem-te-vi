@@ -7,6 +7,7 @@ const { FileWriteTool } = require('./FileWriteTool');
 const { FileReadTool } = require('./FileReadTool');
 const { FileEditTool } = require('./FileEditTool');
 const { GlobTool } = require('./GlobTool');
+const { GrepTool } = require('./GrepTool');
 
 // 创建全局工具注册表
 const registry = new ToolRegistry();
@@ -16,6 +17,7 @@ registry.register(new FileWriteTool());
 registry.register(new FileReadTool());
 registry.register(new FileEditTool());
 registry.register(new GlobTool());
+registry.register(new GrepTool());
 
 // 导出
 module.exports = {
@@ -25,6 +27,7 @@ module.exports = {
   FileReadTool,
   FileEditTool,
   GlobTool,
+  GrepTool,
   // 便捷方法
   getAllTools: () => registry,
   getToolDescriptions: () => registry.getDescriptions(),

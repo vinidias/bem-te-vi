@@ -76,6 +76,23 @@ class UnifiedToolManager {
         additionalProperties: false
       }
     });
+    this.register('file_grep', {
+      name: 'file_grep',
+      description: '在项目文件中按正则表达式或文本搜索内容，返回匹配的文件、行号和行内容。',
+      parameters: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: '要搜索的正则表达式或纯文本' },
+          path: { type: 'string', description: '搜索的起始目录（相对路径），默认项目根目录' },
+          glob: { type: 'string', description: '限定搜索的文件类型，如 *.java、**/*.js（可选）' },
+          ignore_case: { type: 'boolean', description: '忽略大小写，默认 false', default: false },
+          output_mode: { type: 'string', description: 'content（输出匹配行）或 count（仅统计数量），默认 content', default: 'content' },
+          context: { type: 'number', description: '匹配行前后各输出的上下文行数，默认 0', default: 0 }
+        },
+        required: ['pattern'],
+        additionalProperties: false
+      }
+    });
   }
 
   register(name, definition) {
@@ -175,6 +192,19 @@ class UnifiedToolManager {
       return window.electronAPI?.executeTool?.('file_glob', {
         pattern: toolCall.params.pattern,
         path: toolCall.params.path
+      }, toolCall.callId)
+        .then(r => ({ success: r.success, data: r.data, error: r.error }))
+        .catch(e => ({ success: false, error: e.message }));
+    }
+    if (toolName === 'file_grep') {
+      // 通过 IPC 执行 grep 搜索
+      return window.electronAPI?.executeTool?.('file_grep', {
+        pattern: toolCall.params.pattern,
+        path: toolCall.params.path,
+        glob: toolCall.params.glob,
+        ignore_case: toolCall.params.ignore_case,
+        output_mode: toolCall.params.output_mode,
+        context: toolCall.params.context
       }, toolCall.callId)
         .then(r => ({ success: r.success, data: r.data, error: r.error }))
         .catch(e => ({ success: false, error: e.message }));
@@ -925,12 +955,17 @@ function isAIResponseComplete() {
 // 已处理过的消息节点集合（避免重复处理）
 const processedMessages = new WeakSet();
 
-// 回复结束后的读取延迟（ms），等待流式渲染完全完成
-const RESPONSE_READ_DELAY = 2000;
 // 内容不完整时的最大重试次数
 const MAX_RETRY_COUNT = 5;
 // 重试间隔（ms）
 const RETRY_INTERVAL = 1500;
+
+/**
+ * 生成 2-4 秒的随机等待时间（ms）
+ */
+function randomDelay() {
+  return Math.floor(Math.random() * 2000) + 2000; // 2000-3999ms
+}
 
 /**
  * 检查字符串是否以 { 开头且括号配对完整（疑似工具调用但内容不完整）
@@ -979,12 +1014,26 @@ function processLatestAIResponse(retryCount = 0) {
     return; // 已处理过，跳过
   }
 
-  // 克隆节点并剔除代码块工具栏按钮（json/复制/下载等按钮文字会混入 textContent）
-  const clone = markdown.cloneNode(true);
-  clone.querySelectorAll('button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"]').forEach(el => el.remove());
-  const text = (clone.textContent || clone.innerText || '').trim();
-  console.log('[Cuckoo AI] 最新 AI 回复内容:');
+  // 提取文本：优先从 pre code 提取（代码块内容天然不含 json/复制/下载等按钮文字）
+  let text = '';
+  const codeEl = markdown.querySelector('pre code');
+  if (codeEl) {
+    text = (codeEl.textContent || codeEl.innerText || '').trim();
+    console.log('[Cuckoo AI] 提取方式: pre code 元素');
+  } else {
+    // 无代码块：克隆节点并剔除可能的工具栏元素
+    const clone = markdown.cloneNode(true);
+    clone.querySelectorAll('button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"], [class*="lang"], [class*="header"]').forEach(el => el.remove());
+    text = (clone.textContent || clone.innerText || '').trim();
+    console.log('[Cuckoo AI] 提取方式: 克隆节点(剔除工具栏)');
+  }
+
+  // 完整打印：长度 + 原文 + 转义形式（JSON.stringify 显示 \n 而非真实换行，方便确认完整性）
+  console.log('[Cuckoo AI] 回复文本长度: ' + text.length);
+  console.log('[Cuckoo AI] 回复完整内容(原文):');
   console.log(text);
+  console.log('[Cuckoo AI] 回复完整内容(转义显示):');
+  console.log(JSON.stringify(text));
 
   if (!text) return;
 
@@ -1051,12 +1100,15 @@ function startObserver() {
       }
     }
 
-    // 回复结束后处理最新 AI 回复（带防抖延迟，确保流式渲染完成）
+    // 回复结束后处理最新 AI 回复（带 2-4s 随机防抖延迟，确保流式渲染完成）
     if (hasNewContent && isAIResponseComplete()) {
       clearTimeout(responseReadTimer);
+      const delay = randomDelay();
+      console.log('[Cuckoo AI] ⏳ 检测到回复结束，随机等待 ' + delay + 'ms 后读取回复...');
       responseReadTimer = setTimeout(() => {
+        console.log('[Cuckoo AI] ✅ 等待结束，开始读取回复');
         processLatestAIResponse();
-      }, RESPONSE_READ_DELAY);
+      }, delay);
     }
   });
 
@@ -1412,11 +1464,14 @@ function sendToolResultToChat(toolCall, result) {
     return;
   }
 
-  // 触发发送
+  // 触发发送（2-4s 随机等待，模拟人工输入节奏）
+  const sendDelay = randomDelay();
+  console.log('[Cuckoo AI] ⏳ 消息已填入输入框，随机等待 ' + sendDelay + 'ms 后发送...');
   setTimeout(() => {
+    console.log('[Cuckoo AI] ✅ 等待结束，开始触发发送');
     triggerSend(input);
     console.log('[Cuckoo AI] ✅ 已触发发送, 工具=' + toolCall.toolName + ', 长度=' + msg.length);
-  }, 300);
+  }, sendDelay);
 }
 
 // 监听主进程发送的 systemPrompt
@@ -1535,11 +1590,14 @@ function sendSystemPromptToInput() {
       document.execCommand('insertText', false, systemPromptContent);
     }
 
-    // 触发发送（等待一小会儿确保输入完成）
+    // 触发发送（2-4s 随机等待，模拟人工输入节奏）
+    const sendDelay = randomDelay();
+    console.log('[Cuckoo AI] ⏳ system prompt 已填入，随机等待 ' + sendDelay + 'ms 后发送...');
     setTimeout(() => {
+      console.log('[Cuckoo AI] ✅ 等待结束，开始发送 system prompt');
       triggerSend(input);
       pendingSystemPrompt = false;
-    }, 500);
+    }, sendDelay);
 
     return true;
   } catch (err) {
@@ -1575,11 +1633,14 @@ function sendInitialPromptToInput() {
       document.execCommand('insertText', false, initialPromptContent);
     }
 
-    // 触发发送（等待一小会儿确保输入完成）
+    // 触发发送（2-4s 随机等待，模拟人工输入节奏）
+    const sendDelay = randomDelay();
+    console.log('[Cuckoo AI] ⏳ 初始提示已填入，随机等待 ' + sendDelay + 'ms 后发送...');
     setTimeout(() => {
+      console.log('[Cuckoo AI] ✅ 等待结束，开始发送初始提示');
       triggerSend(input);
       pendingInitialPrompt = false;
-    }, 500);
+    }, sendDelay);
 
     return true;
   } catch (err) {
