@@ -926,7 +926,10 @@ function processLatestAIResponse() {
   }
   processedMessages.add(lastMessage);
 
-  const text = (markdown.textContent || markdown.innerText || '').trim();
+  // 克隆节点并剔除代码块工具栏按钮（json/复制/下载等按钮文字会混入 textContent）
+  const clone = markdown.cloneNode(true);
+  clone.querySelectorAll('button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"]').forEach(el => el.remove());
+  const text = (clone.textContent || clone.innerText || '').trim();
   console.log('[Cuckoo AI] 最新 AI 回复内容:');
   console.log(text);
 
