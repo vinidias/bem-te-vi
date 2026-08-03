@@ -9,17 +9,23 @@
 
 ## 调用格式
 
-在回复中**仅**包含以下代码块（不要添加任何额外解释）：
-{
-  "toolName": "工具名称",
-  "params": {
-    "参数名": "参数值"
-  },
-  "callId": "唯一调用ID（如 call_1700000001_abc123）"
-}
-----
-- 你的整个回复必须是一个单一的、合法的 JSON 对象。不允许包含任何其他文字。
-- 不要将 JSON 包裹在 Markdown 代码块中（不要使用 ```）。
+将工具调用 JSON 输出在**标准的 Markdown 代码块**中（使用 ```json 标记），不要添加任何额外解释：
+
+```json
+{"toolName":"file_write","params":{"file_path":"src/utils/helper.js","content":"export function formatDate(date) {\n  return date.toISOString().split('T')[0];\n}"},"callId":"call_1700000001_abc123"}
+```
+
+### 格式自查清单（输出前必须逐项检查）
+
+1. **代码块标记**：必须使用 ```json 开头、``` 结尾
+2. **JSON 合法性**：花括号、方括号、逗号、双引号全部配对，没有多余逗号
+3. **转义正确性**：
+   - 内容中的换行 → 转义为 `\n`
+   - 内容中的双引号 → 转义为 `\"`
+   - 内容中的反斜杠 → 转义为 `\\`
+   - 转义后整体是合法 JSON（可用 JSON.parse 解析）
+4. **完整性**：`toolName`、`params`、`callId` 三个字段齐全
+5. **单一性**：一次只调用一个工具，代码块外不要有任何文字
 
 ## 可用工具
 
@@ -31,14 +37,9 @@
 
 **你的回复**（仅工具调用）：
 
-{
-  "toolName": "file_write",
-  "params": {
-    "file_path": "src/utils/helper.js",
-    "content": "export function formatDate(date) {\n  return date.toISOString().split('T')[0];\n}"
-  },
-  "callId": "call_1700000001_abc123"
-}
+```json
+{"toolName":"file_write","params":{"file_path":"src/utils/helper.js","content":"export function formatDate(date) {\n  return date.toISOString().split('T')[0];\n}"},"callId":"call_1700000001_abc123"}
+```
 
 
 **系统返回**：

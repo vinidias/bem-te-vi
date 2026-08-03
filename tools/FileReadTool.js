@@ -25,18 +25,16 @@ class FileReadTool extends Tool {
 
 使用工具时的回复格式：
 - 不要添加任何解释、前缀或后缀。
-- JSON 必须严格遵循以下结构：
+- 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json）：
 
-{
-  "toolName": "file_read",
-  "params": {
-    "file_path": "<路径>"
-  },
-  "callId": "唯一调用ID"
-}
+\`\`\`json
+{"toolName":"file_read","params":{"file_path":"<路径>"},"callId":"唯一调用ID"}
+\`\`\`
 
 示例：
+\`\`\`json
 {"toolName":"file_read","params":{"file_path":"src/utils/helper.js"},"callId":"call_001"}
+\`\`\`
 
 如果用户没有要求读取文件，请像普通助手一样正常回复，不要输出任何 JSON。
       `,

@@ -28,20 +28,19 @@ class FileEditTool extends Tool {
 
 使用工具时的回复格式：
 - 不要添加任何解释、前缀或后缀。
-- JSON 必须严格遵循以下结构：
+- 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json），并确保内容正确转义：
 
-{
-  "toolName": "file_edit",
-  "params": {
-    "file_path": "<路径>",
-    "old_string": "<要查找的旧文本>",
-    "new_string": "<要替换的新文本>"
-  },
-  "callId": "唯一调用ID"
-}
+\`\`\`json
+{"toolName":"file_edit","params":{"file_path":"<路径>","old_string":"<要查找的旧文本>","new_string":"<要替换的新文本>"},"callId":"唯一调用ID"}
+\`\`\`
+
+- old_string/new_string 中的换行转义为 \\n，双引号转义为 \\"，反斜杠转义为 \\\\
+- 输出前检查：JSON 必须合法（括号配对、逗号正确、转义完整）
 
 示例：
+\`\`\`json
 {"toolName":"file_edit","params":{"file_path":"src/utils/helper.js","old_string":"export function formatDate","new_string":"export function formatTime"},"callId":"call_001"}
+\`\`\`
 
 如果用户没有要求修改文件，请像普通助手一样正常回复，不要输出任何 JSON。
       `,

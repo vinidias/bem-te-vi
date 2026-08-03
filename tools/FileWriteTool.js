@@ -26,27 +26,22 @@ class FileWriteTool extends Tool {
 
 使用工具时的回复格式：
 - 不要添加任何解释、前缀或后缀。
-- JSON 必须严格遵循以下结构：
+- 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json），并确保内容正确转义：
 
-{
-  "tool": "file_write",
-  "parameters": {
-    "file_path": "<路径>",
-    "content": "<内容>"
-  }
-}
+\`\`\`json
+{"toolName":"file_write","params":{"file_path":"<路径>","content":"<内容>"},"callId":"唯一调用ID"}
+\`\`\`
 
+- 内容中的换行转义为 \\n，双引号转义为 \\"，反斜杠转义为 \\\\
+- 输出前检查：JSON 必须合法（括号配对、逗号正确、转义完整）
 - 仅当用户指定了非默认编码（例如 "utf-16le"）时，才包含 "encoding" 参数。
-- 正确转义内容中的特殊字符，以确保 JSON 有效。
 
 示例：
 如果你觉得根据用户提出的问题,需要把"Hello, world!" 写入名为 greeting.txt 的文件
 你的回复：
-{"tool":"file_write","parameters":{"file_path":"greeting.txt","content":"Hello, world!"}}
-
-如果你觉得根据用户提出的问题,需要将以下文本保存到 /tmp/notes.txt：第一行\\n第二行
-你的回复：
-{"tool":"file_write","parameters":{"file_path":"/tmp/notes.txt","content":"第一行\\n第二行"}}
+\`\`\`json
+{"toolName":"file_write","params":{"file_path":"greeting.txt","content":"Hello, world!"},"callId":"call_001"}
+\`\`\`
 
 如果用户没有要求写入文件，请像普通助手一样正常回复，不要输出任何 JSON。
       `,

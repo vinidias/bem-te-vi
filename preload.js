@@ -175,7 +175,7 @@ class UnifiedToolManager {
       }
       prompt += '---\n\n';
     }
-    prompt += `## 调用格式\n\n请使用以下格式调用工具（仅输出 JSON，不要包含其他文字）：\n\n\`\`\`json\n{\n  "toolName": "工具名称",\n  "params": { "参数名": "参数值" },\n  "callId": "call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}"\n}\n\`\`\`\n`;
+    prompt += '## 调用格式\n\n请将工具调用 JSON 输出在标准的 Markdown 代码块中（使用 ```json 标记），仅输出 JSON，不要包含其他文字，并确保正确转义（换行\\n、引号\\"、反斜杠\\\\）：\n\n```json\n{"toolName": "工具名称", "params": { "参数名": "参数值" }, "callId": "call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '"}\n```\n';
     return prompt;
   }
 }
@@ -1246,6 +1246,9 @@ async function handleToolCall(toolCall) {
       output: result.success ? JSON.stringify(result.data, null, 2) : (result.error || '未知错误'),
       timestamp: Date.now(),
     });
+
+    // 将执行结果发送回聊天，让 AI 看到结果并继续工作
+    sendToolResultToChat(toolCall, result);
   } catch (err) {
     console.error('[Cuckoo AI] 工具执行异常:', err);
     const resultSection = document.getElementById('cuckoo-result-section');
@@ -1263,6 +1266,53 @@ async function handleToolCall(toolCall) {
       executeBtn.textContent = '▶ 确认执行';
     }
   }
+}
+
+/**
+ * 将工具执行结果发送回 DeepSeek 聊天，让 AI 看到结果并继续工作
+ */
+function sendToolResultToChat(toolCall, result) {
+  const input = findInputArea();
+  if (!input) {
+    console.log('[Cuckoo AI] 找不到输入框，无法回传工具结果');
+    return;
+  }
+
+  // 构造回传消息
+  let msg;
+  if (result.success) {
+    const data = result.data || {};
+    // 大内容截断保护（20KB），避免超长消息
+    if (typeof data.content === 'string' && data.content.length > 20000) {
+      data.content = data.content.substring(0, 20000) + '\n...[内容过长已截断]...';
+    }
+    msg = '[工具执行结果] ' + toolCall.toolName + '\n' + JSON.stringify(data, null, 2);
+  } else {
+    msg = '[工具执行结果] ' + toolCall.toolName + ' 执行失败\n' + (result.error || '未知错误');
+  }
+
+  // 填入输入框
+  try {
+    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+      input.focus();
+      input.value = msg;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
+      input.focus();
+      document.execCommand('selectAll', false, null);
+      document.execCommand('insertText', false, msg);
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 回传工具结果到输入框失败:', err.message);
+    return;
+  }
+
+  // 触发发送
+  setTimeout(() => {
+    triggerSend(input);
+    console.log('[Cuckoo AI] ✅ 工具结果已发送回聊天, 工具=' + toolCall.toolName + ', 长度=' + msg.length);
+  }, 500);
 }
 
 // 监听主进程发送的 systemPrompt
