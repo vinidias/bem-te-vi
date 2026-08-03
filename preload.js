@@ -48,6 +48,21 @@ class UnifiedToolManager {
         additionalProperties: false
       }
     });
+    this.register('file_edit', {
+      name: 'file_edit',
+      description: '在文件中精确查找一段文本并替换为新文本（old_string → new_string），用于修改文件部分内容。',
+      parameters: {
+        type: 'object',
+        properties: {
+          file_path: { type: 'string', description: '文件的相对路径或绝对路径' },
+          old_string: { type: 'string', description: '要查找的旧文本，必须精确匹配文件内容' },
+          new_string: { type: 'string', description: '要替换成的新文本' },
+          replace_all: { type: 'boolean', description: '出现多次时是否全部替换，默认 false', default: false }
+        },
+        required: ['file_path', 'old_string', 'new_string'],
+        additionalProperties: false
+      }
+    });
   }
 
   register(name, definition) {
@@ -128,6 +143,17 @@ class UnifiedToolManager {
     if (toolName === 'file_read') {
       // 通过 IPC 执行文件读取
       return window.electronAPI?.executeTool?.('file_read', { file_path: toolCall.params.file_path, encoding: toolCall.params.encoding }, toolCall.callId)
+        .then(r => ({ success: r.success, data: r.data, error: r.error }))
+        .catch(e => ({ success: false, error: e.message }));
+    }
+    if (toolName === 'file_edit') {
+      // 通过 IPC 执行文件编辑
+      return window.electronAPI?.executeTool?.('file_edit', {
+        file_path: toolCall.params.file_path,
+        old_string: toolCall.params.old_string,
+        new_string: toolCall.params.new_string,
+        replace_all: toolCall.params.replace_all
+      }, toolCall.callId)
         .then(r => ({ success: r.success, data: r.data, error: r.error }))
         .catch(e => ({ success: false, error: e.message }));
     }
@@ -1125,6 +1151,7 @@ function tryParseToolCall(content) {
   console.log('[Cuckoo AI] ✅ 解析成功, toolName=' + result.toolName + ', params=' + JSON.stringify(result.params));
   return result;
 }
+
 
 /**
  * 从文本中提取完整的 JSON 对象字符串（从 startPos 的 { 开始）

@@ -7,11 +7,13 @@ const fs = require('fs');
 const { ToolRegistry, Tool, ToolResult } = require('./tools/ToolRegistry');
 const { FileWriteTool } = require('./tools/FileWriteTool');
 const { FileReadTool } = require('./tools/FileReadTool');
+const { FileEditTool } = require('./tools/FileEditTool');
 
 // 创建工具注册表并注册工具
 const toolRegistry = new ToolRegistry();
 toolRegistry.register(new FileWriteTool());
 toolRegistry.register(new FileReadTool());
+toolRegistry.register(new FileEditTool());
 // 后续可在此注册更多工具
 
 let mainWindow = null;

@@ -25,7 +25,7 @@
 
 {TOOLS_LIST}
 
-> ⚠️ 当前仅实现了 `file_write`，其他工具待后续扩展。
+> ⚠️ 当前已实现 `file_write`、`file_read`、`file_edit`，其他工具待后续扩展。
 
 ## 执行流程示例
 
