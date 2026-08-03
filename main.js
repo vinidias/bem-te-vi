@@ -8,12 +8,14 @@ const { ToolRegistry, Tool, ToolResult } = require('./tools/ToolRegistry');
 const { FileWriteTool } = require('./tools/FileWriteTool');
 const { FileReadTool } = require('./tools/FileReadTool');
 const { FileEditTool } = require('./tools/FileEditTool');
+const { GlobTool } = require('./tools/GlobTool');
 
 // 创建工具注册表并注册工具
 const toolRegistry = new ToolRegistry();
 toolRegistry.register(new FileWriteTool());
 toolRegistry.register(new FileReadTool());
 toolRegistry.register(new FileEditTool());
+toolRegistry.register(new GlobTool());
 // 后续可在此注册更多工具
 
 let mainWindow = null;
@@ -328,7 +330,7 @@ ipcMain.handle('execute-command', async (_event, { command, id }) => {
  * 支持 AI 调用工具库中的工具
  */
 ipcMain.handle('execute-tool', async (_event, { toolName, params, callId }) => {
-  console.log(`[Cuckoo AI] 执行工具: ${toolName}`, params);
+  console.log(`[Cuckoo AI] 执行工具: ${toolName}, projectDir=${selectedProjectDir || '(未初始化,相对路径将解析到系统目录)'}`, JSON.stringify(params));
   try {
     // 如果有选中的项目目录，将其作为工作目录传递给工具
     const paramsWithContext = {
@@ -336,7 +338,11 @@ ipcMain.handle('execute-tool', async (_event, { toolName, params, callId }) => {
       projectDir: selectedProjectDir
     };
     const result = await toolRegistry.execute(toolName, paramsWithContext);
-    console.log(`[Cuckoo AI] 工具 ${toolName} 执行结果:`, result.success ? '成功' : '失败');
+    if (result.success) {
+      console.log(`[Cuckoo AI] ✅ 工具 ${toolName} 执行成功:`, JSON.stringify(result.data));
+    } else {
+      console.log(`[Cuckoo AI] ❌ 工具 ${toolName} 执行失败:`, result.error);
+    }
     return { callId, success: result.success, data: result.data, error: result.error };
   } catch (err) {
     console.error(`[Cuckoo AI] 工具 ${toolName} 执行异常:`, err);

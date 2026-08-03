@@ -63,6 +63,19 @@ class UnifiedToolManager {
         additionalProperties: false
       }
     });
+    this.register('file_glob', {
+      name: 'file_glob',
+      description: '按 glob 模式递归搜索项目中的文件，返回匹配的文件相对路径列表。',
+      parameters: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: 'glob 匹配模式，如 **/*.java、src/**/*.js、*.json' },
+          path: { type: 'string', description: '搜索的起始目录（相对路径），默认项目根目录' }
+        },
+        required: ['pattern'],
+        additionalProperties: false
+      }
+    });
   }
 
   register(name, definition) {
@@ -153,6 +166,15 @@ class UnifiedToolManager {
         old_string: toolCall.params.old_string,
         new_string: toolCall.params.new_string,
         replace_all: toolCall.params.replace_all
+      }, toolCall.callId)
+        .then(r => ({ success: r.success, data: r.data, error: r.error }))
+        .catch(e => ({ success: false, error: e.message }));
+    }
+    if (toolName === 'file_glob') {
+      // 通过 IPC 执行 glob 搜索
+      return window.electronAPI?.executeTool?.('file_glob', {
+        pattern: toolCall.params.pattern,
+        path: toolCall.params.path
       }, toolCall.callId)
         .then(r => ({ success: r.success, data: r.data, error: r.error }))
         .catch(e => ({ success: false, error: e.message }));
@@ -903,10 +925,42 @@ function isAIResponseComplete() {
 // 已处理过的消息节点集合（避免重复处理）
 const processedMessages = new WeakSet();
 
+// 回复结束后的读取延迟（ms），等待流式渲染完全完成
+const RESPONSE_READ_DELAY = 2000;
+// 内容不完整时的最大重试次数
+const MAX_RETRY_COUNT = 5;
+// 重试间隔（ms）
+const RETRY_INTERVAL = 1500;
+
+/**
+ * 检查字符串是否以 { 开头且括号配对完整（疑似工具调用但内容不完整）
+ */
+function isJsonBalanced(str) {
+  const trimmed = (str || '').trim();
+  if (!trimmed.startsWith('{')) return true; // 不是 JSON 开头，不做完整性判断
+  let braceCount = 0;
+  let inString = false;
+  let escapeNext = false;
+  for (const char of trimmed) {
+    if (escapeNext) { escapeNext = false; continue; }
+    if (char === '\\') { escapeNext = true; continue; }
+    if (char === '"') { inString = !inString; continue; }
+    if (!inString) {
+      if (char === '{') braceCount++;
+      else if (char === '}') {
+        braceCount--;
+        if (braceCount < 0) return true; // 多出的 }，视为异常但不再等
+      }
+    }
+  }
+  return braceCount === 0;
+}
+
 /**
  * 回复结束后，获取最新 .ds-message > .ds-markdown 的内容并解析工具调用
+ * @param {number} retryCount 当前重试次数（内容不完整时延迟重试）
  */
-function processLatestAIResponse() {
+function processLatestAIResponse(retryCount = 0) {
   const messages = document.querySelectorAll('.ds-message');
   if (messages.length === 0) {
     console.log('[Cuckoo AI] 未找到 .ds-message 节点');
@@ -924,7 +978,6 @@ function processLatestAIResponse() {
   if (processedMessages.has(lastMessage)) {
     return; // 已处理过，跳过
   }
-  processedMessages.add(lastMessage);
 
   // 克隆节点并剔除代码块工具栏按钮（json/复制/下载等按钮文字会混入 textContent）
   const clone = markdown.cloneNode(true);
@@ -934,6 +987,18 @@ function processLatestAIResponse() {
   console.log(text);
 
   if (!text) return;
+
+  // 内容不完整（疑似流式输出未真正结束）：延迟重试，避免处理截断的 JSON
+  if (!isJsonBalanced(text)) {
+    if (retryCount < MAX_RETRY_COUNT) {
+      console.log('[Cuckoo AI] ⏳ JSON 不完整(疑似流式未结束)，' + (retryCount + 1) + '/' + MAX_RETRY_COUNT + ' 次延迟重试...');
+      setTimeout(() => processLatestAIResponse(retryCount + 1), RETRY_INTERVAL);
+      return; // 不标记 processed，允许重试
+    }
+    console.log('[Cuckoo AI] ⚠️ JSON 持续不完整，放弃本次处理');
+  }
+
+  processedMessages.add(lastMessage);
 
   const toolCall = tryParseToolCall(text);
   if (toolCall) {
@@ -951,6 +1016,9 @@ function processLatestAIResponse() {
   }
 }
 
+// 读取防抖定时器
+let responseReadTimer = null;
+
 function startObserver() {
   const observer = new MutationObserver((mutations) => {
     let hasNewContent = false;
@@ -965,9 +1033,12 @@ function startObserver() {
       }
     }
 
-    // 回复结束后处理最新 AI 回复
+    // 回复结束后处理最新 AI 回复（带防抖延迟，确保流式渲染完成）
     if (hasNewContent && isAIResponseComplete()) {
-      processLatestAIResponse();
+      clearTimeout(responseReadTimer);
+      responseReadTimer = setTimeout(() => {
+        processLatestAIResponse();
+      }, RESPONSE_READ_DELAY);
     }
   });
 
@@ -1263,6 +1334,8 @@ async function handleToolCall(toolCall) {
       resultStatus.className = 'cuckoo-result-status error';
     }
     if (resultOutput) resultOutput.textContent = err.message || String(err);
+    // 系统异常也要回传 AI，让它知道发生了什么
+    sendToolResultToChat(toolCall, { success: false, error: '系统异常: ' + (err.message || String(err)) });
   } finally {
     if (executeBtn) {
       executeBtn.disabled = false;
@@ -1281,7 +1354,7 @@ function sendToolResultToChat(toolCall, result) {
     return;
   }
 
-  // 构造回传消息
+  // 构造回传消息（明确的成功/失败信息，AI 可据此修正并继续）
   let msg;
   if (result.success) {
     const data = result.data || {};
@@ -1289,9 +1362,12 @@ function sendToolResultToChat(toolCall, result) {
     if (typeof data.content === 'string' && data.content.length > 20000) {
       data.content = data.content.substring(0, 20000) + '\n...[内容过长已截断]...';
     }
-    msg = '[工具执行结果] ' + toolCall.toolName + '\n' + JSON.stringify(data, null, 2);
+    msg = '【工具执行结果】' + toolCall.toolName + ' 执行成功 (callId: ' + (toolCall.callId || '') + ')\n' +
+      JSON.stringify(data, null, 2);
   } else {
-    msg = '[工具执行结果] ' + toolCall.toolName + ' 执行失败\n' + (result.error || '未知错误');
+    msg = '【工具执行结果】' + toolCall.toolName + ' 执行失败 (callId: ' + (toolCall.callId || '') + ')\n' +
+      '错误原因: ' + (result.error || '未知错误') + '\n' +
+      '请根据错误原因修正参数后重新调用工具。';
   }
 
   console.log('[Cuckoo AI] 回传工具结果, 输入框类型=' + input.tagName + ', 消息长度=' + msg.length);
