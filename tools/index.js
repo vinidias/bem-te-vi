@@ -8,6 +8,7 @@ const { FileReadTool } = require('./FileReadTool');
 const { FileEditTool } = require('./FileEditTool');
 const { GlobTool } = require('./GlobTool');
 const { GrepTool } = require('./GrepTool');
+const { BashTool } = require('./BashTool');
 
 // 创建全局工具注册表
 const registry = new ToolRegistry();
@@ -18,6 +19,7 @@ registry.register(new FileReadTool());
 registry.register(new FileEditTool());
 registry.register(new GlobTool());
 registry.register(new GrepTool());
+registry.register(new BashTool());
 
 // 导出
 module.exports = {
@@ -28,6 +30,7 @@ module.exports = {
   FileEditTool,
   GlobTool,
   GrepTool,
+  BashTool,
   // 便捷方法
   getAllTools: () => registry,
   getToolDescriptions: () => registry.getDescriptions(),

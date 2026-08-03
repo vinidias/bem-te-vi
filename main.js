@@ -10,6 +10,7 @@ const { FileReadTool } = require('./tools/FileReadTool');
 const { FileEditTool } = require('./tools/FileEditTool');
 const { GlobTool } = require('./tools/GlobTool');
 const { GrepTool } = require('./tools/GrepTool');
+const { BashTool } = require('./tools/BashTool');
 
 // 创建工具注册表并注册工具
 const toolRegistry = new ToolRegistry();
@@ -18,6 +19,7 @@ toolRegistry.register(new FileReadTool());
 toolRegistry.register(new FileEditTool());
 toolRegistry.register(new GlobTool());
 toolRegistry.register(new GrepTool());
+toolRegistry.register(new BashTool());
 // 后续可在此注册更多工具
 
 let mainWindow = null;

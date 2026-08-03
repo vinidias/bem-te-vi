@@ -93,6 +93,20 @@ class UnifiedToolManager {
         additionalProperties: false
       }
     });
+    this.register('bash', {
+      name: 'bash',
+      description: '执行 shell 命令（Windows 使用 cmd.exe），返回 stdout/stderr 输出。可用于查看目录、运行构建、安装依赖、git 操作等。',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: '要执行的 shell 命令' },
+          cwd: { type: 'string', description: '命令的工作目录（相对路径），默认项目根目录' },
+          timeout: { type: 'number', description: '超时时间（毫秒），默认 30000', default: 30000 }
+        },
+        required: ['command'],
+        additionalProperties: false
+      }
+    });
   }
 
   register(name, definition) {
@@ -205,6 +219,16 @@ class UnifiedToolManager {
         ignore_case: toolCall.params.ignore_case,
         output_mode: toolCall.params.output_mode,
         context: toolCall.params.context
+      }, toolCall.callId)
+        .then(r => ({ success: r.success, data: r.data, error: r.error }))
+        .catch(e => ({ success: false, error: e.message }));
+    }
+    if (toolName === 'bash') {
+      // 通过 IPC 执行 shell 命令
+      return window.electronAPI?.executeTool?.('bash', {
+        command: toolCall.params.command,
+        cwd: toolCall.params.cwd,
+        timeout: toolCall.params.timeout
       }, toolCall.callId)
         .then(r => ({ success: r.success, data: r.data, error: r.error }))
         .catch(e => ({ success: false, error: e.message }));
