@@ -996,6 +996,11 @@ function processLatestAIResponse(retryCount = 0) {
       return; // 不标记 processed，允许重试
     }
     console.log('[Cuckoo AI] ⚠️ JSON 持续不完整，放弃本次处理');
+    // 回传 AI，让它重新完整输出
+    sendToolResultToChat(
+      { toolName: '未知', callId: 'incomplete' },
+      { success: false, error: '收到不完整的工具调用 JSON（内容被截断），请重新完整输出工具调用。' }
+    );
   }
 
   processedMessages.add(lastMessage);
@@ -1006,6 +1011,11 @@ function processLatestAIResponse(retryCount = 0) {
     const available = toolManager.tools.has(toolCall.toolName);
     if (!available) {
       console.log('[Cuckoo AI] ⚠️ 工具不存在: ' + toolCall.toolName + ', 可用工具: ' + Array.from(toolManager.tools.keys()).join(', '));
+      // 回传 AI，告知工具不存在
+      sendToolResultToChat(
+        toolCall,
+        { success: false, error: '工具 ' + toolCall.toolName + ' 不存在，可用工具: ' + Array.from(toolManager.tools.keys()).join(', ') }
+      );
       return;
     }
     console.log('[Cuckoo AI] ✅ 工具存在: ' + toolCall.toolName + ', 开始执行');
@@ -1013,6 +1023,14 @@ function processLatestAIResponse(retryCount = 0) {
     handleToolCall(toolCall);
   } else {
     console.log('[Cuckoo AI] 回复内容不是工具调用 JSON');
+    // 内容疑似工具调用但解析失败 → 回传 AI 提示格式问题，让它修正后重新输出
+    if (text.includes('toolName') || text.includes('file_write') || text.includes('file_read') ||
+        text.includes('file_edit') || text.includes('file_glob')) {
+      sendToolResultToChat(
+        { toolName: '未知', callId: 'parse_failed' },
+        { success: false, error: '工具调用 JSON 解析失败，请检查 JSON 格式与转义（换行用\\n、双引号用\\"、反斜杠用\\\\），重新输出完整且合法的工具调用。' }
+      );
+    }
   }
 }
 
