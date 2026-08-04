@@ -979,10 +979,10 @@ function isAIResponseComplete() {
 // 已处理过的消息节点集合（避免重复处理）
 const processedMessages = new WeakSet();
 
-// 内容不完整时的最大重试次数
-const MAX_RETRY_COUNT = 5;
+// 内容不完整时的最大重试次数（AI 生成长内容可能需 30 秒+）
+const MAX_RETRY_COUNT = 20;
 // 重试间隔（ms）
-const RETRY_INTERVAL = 1500;
+const RETRY_INTERVAL = 2000;
 
 /**
  * 生成 2-4 秒的随机等待时间（ms）
@@ -992,15 +992,23 @@ function randomDelay() {
 }
 
 /**
- * 检查字符串是否以 { 开头且括号配对完整（疑似工具调用但内容不完整）
+ * 检查字符串是否为"疑似工具调用但内容不完整"
+ * 规则：文本包含 { 且含工具调用特征（toolName/工具名/大括号开头），
+ * 则从第一个 { 开始检查括号配对；配对不完整返回 false（需要重试）
  */
 function isJsonBalanced(str) {
   const trimmed = (str || '').trim();
-  if (!trimmed.startsWith('{')) return true; // 不是 JSON 开头，不做完整性判断
+  // 不含 { 或没有工具调用特征 → 不是工具调用，直接通过
+  if (!trimmed.includes('{')) return true;
+  if (!/toolName|"tool"|file_|json复制|```/.test(trimmed) && !trimmed.trimStart().startsWith('{')) {
+    return true;
+  }
+  // 从第一个 { 开始检查括号配对
+  const jsonPart = trimmed.substring(trimmed.indexOf('{'));
   let braceCount = 0;
   let inString = false;
   let escapeNext = false;
-  for (const char of trimmed) {
+  for (const char of jsonPart) {
     if (escapeNext) { escapeNext = false; continue; }
     if (char === '\\') { escapeNext = true; continue; }
     if (char === '"') { inString = !inString; continue; }
@@ -1064,11 +1072,11 @@ function processLatestAIResponse(retryCount = 0) {
   // 内容不完整（疑似流式输出未真正结束）：延迟重试，避免处理截断的 JSON
   if (!isJsonBalanced(text)) {
     if (retryCount < MAX_RETRY_COUNT) {
-      console.log('[Cuckoo AI] ⏳ JSON 不完整(疑似流式未结束)，' + (retryCount + 1) + '/' + MAX_RETRY_COUNT + ' 次延迟重试...');
+      console.log('[Cuckoo AI] ⏳ JSON 不完整(疑似流式未结束)，' + (retryCount + 1) + '/' + MAX_RETRY_COUNT + ' 次延迟重试, 当前长度=' + text.length + '...');
       setTimeout(() => processLatestAIResponse(retryCount + 1), RETRY_INTERVAL);
       return; // 不标记 processed，允许重试
     }
-    console.log('[Cuckoo AI] ⚠️ JSON 持续不完整，放弃本次处理');
+    console.log('[Cuckoo AI] ⚠️ JSON 持续不完整（20次重试仍截断），放弃本次处理，当前长度=' + text.length);
     // 回传 AI，让它重新完整输出
     sendToolResultToChat(
       { toolName: '未知', callId: 'incomplete' },
@@ -1097,8 +1105,7 @@ function processLatestAIResponse(retryCount = 0) {
   } else {
     console.log('[Cuckoo AI] 回复内容不是工具调用 JSON');
     // 内容疑似工具调用但解析失败 → 回传 AI 提示格式问题，让它修正后重新输出
-    if (text.includes('toolName') || text.includes('file_write') || text.includes('file_read') ||
-        text.includes('file_edit') || text.includes('file_glob')) {
+    if (text.includes('tool') || text.includes('file_')) {
       sendToolResultToChat(
         { toolName: '未知', callId: 'parse_failed' },
         { success: false, error: '工具调用 JSON 解析失败，请检查 JSON 格式与转义（换行用\\n、双引号用\\"、反斜杠用\\\\），重新输出完整且合法的工具调用。' }

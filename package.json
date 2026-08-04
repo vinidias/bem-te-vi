@@ -6,9 +6,17 @@
   "scripts": {
     "start": "chcp 65001 > nul && electron ."
   },
-  "keywords": ["deepseek", "electron", "cmd", "desktop"],
+  "keywords": [
+    "deepseek",
+    "electron",
+    "cmd",
+    "desktop"
+  ],
   "license": "MIT",
   "devDependencies": {
     "electron": "^33.0.0"
+  },
+  "dependencies": {
+    "mysql2": "^3.23.2"
   }
 }
