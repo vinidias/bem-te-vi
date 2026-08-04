@@ -117,30 +117,14 @@ class FileReadTool extends Tool {
       const absolutePath = path.resolve(resolvedPath);
       console.log('[FileReadTool] 文件已读取:', absolutePath, '大小:', stat.size, 'bytes, format:', format);
 
-      const result = {
-        message: `文件已读取: ${absolutePath}`,
-        content: content,
-        size: stat.size,
-        path: absolutePath,
-        truncated: isTruncated
-      };
-
-      // 如果要求转义格式，生成转义后的字符串
+      console.log('[FileReadTool] 文件已读取:', absolutePath, '大小:', stat.size, 'bytes');
+      // 直接返回文件内容字符串，不包装额外字段
+      // 如果 format 为 'escaped'，返回转义后的字符串（便于在 JSON 中使用）
       if (format === 'escaped') {
-        // 使用 JSON.stringify 生成转义字符串，并去掉首尾的双引号（因为返回的是字符串本身）
-        // 但为了便于直接复制到 old_string，我们保留双引号？需要说明。
-        // 我们返回转义后的字符串（不包含最外层双引号），但包含内部转义。
-        // 实际上，我们在返回的 escapedContent 中存储转义后的内容（即 JSON.stringify 的结果，且不含外层引号？
-        // 但 JSON.stringify 会加上外层双引号，我们需要去掉，因为 old_string 需要的是原内容转义，不是 JSON 字符串。
-        // 正确做法：返回一个转义后的字符串，其中的换行变成 \n，双引号变成 \"，但整体不是 JSON 字符串。
-        // 但为了安全，我们直接返回 JSON.stringify(content) 的结果，即包含双引号的字符串，这样用户可以直接复制到 JSON 中。
-        // 但老用户可能期望的是不带外层引号的纯转义字符串，用于粘贴到 old_string 字段。
-        // 更合理：返回一个对象，其中 escapedContent 是 JSON.stringify(content) 的结果，用户复制该值即可。
-        // 由于 JSON.parse 需要双引号，所以包含外层引号没问题。
-        result.escapedContent = JSON.stringify(content);
+        return ToolResult.success(JSON.stringify(content));
+      } else {
+        return ToolResult.success(content);
       }
-
-      return ToolResult.success(result);
     } catch (err) {
       return ToolResult.error(`读取文件失败: ${err.message}`);
     }
