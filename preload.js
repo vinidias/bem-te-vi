@@ -2057,11 +2057,13 @@ ipcRenderer.on('project-dir-updated', (_event, dirPath) => {
   updateProjectDirDisplay(dirPath);
 });
 
-// 绑定修改按钮事件
-document.addEventListener('DOMContentLoaded', () => {
+// 绑定修改按钮事件 - 直接绑定，阻止冒泡和默认行为
+setTimeout(() => {
   const changeBtn = document.getElementById('cuckoo-btn-change-dir');
   if (changeBtn) {
-    changeBtn.addEventListener('click', async () => {
+    changeBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const result = await window.electronAPI.initProject();
       if (result && result.success) {
         // 主进程会发送事件，不需要额外更新
@@ -2070,7 +2072,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-});
+}, 100);
     bindEvents();
 
     // 默认显示覆盖层 - 兜底强制显示
