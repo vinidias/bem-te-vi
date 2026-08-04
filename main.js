@@ -312,7 +312,7 @@ ${finalRules}
     mainWindow.webContents.send('initial-prompt', combined);
   }
 
-  return { success: true, message: '初始化完成，已发送目录树、系统提示词、工具规则和工具库' };
+  return { success: true, message: '初始化完成，已发送系统提示词、工具规则和工具库' };
 }
 
 // 危险命令列表 —— 匹配到的命令会额外警告
