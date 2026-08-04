@@ -27,6 +27,7 @@ toolRegistry.register(new FileDeleteTool());
 // 后续可在此注册更多工具
 
 let mainWindow = null;
+let sidebarWindow = null;
 
 // systemPrompt.md 路径
 const SYSTEM_PROMPT_PATH = path.join(__dirname, 'systemPrompt.md');
@@ -87,9 +88,12 @@ function saveSessionDirMapping(sessionId, projectDir) {
  */
 function extractSessionIdFromUrl(url) {
   if (!url) return null;
-  // 匹配 /chat/s/ 后面的 UUID
-  const match = url.match(/\/chat\/s\/([a-f0-9-]+)/);
-  return match ? match[1] : null;
+  // 匹配 /chat/s/ 后面的 UUID（更鲁棒，支持任意前缀）
+  const match = url.match(/\/chat\/s\/([a-f0-9-]+)/i);
+  if (match) return match[1];
+  // 备选：匹配 /s/ 后面的 UUID（有些情况下路径可能不同）
+  const altMatch = url.match(/\/s\/([a-f0-9-]+)/i);
+  return altMatch ? altMatch[1] : null;
 }
 
 /**
@@ -100,6 +104,21 @@ function handleUrlChange(url) {
   if (sessionId) {
     currentSessionId = sessionId;
     console.log(`[Cuckoo AI] 当前会话ID: ${sessionId}`);
+    
+    // 检查是否有暂存的项目目录需要绑定到当前会话
+    if (pendingProjectDir) {
+      console.log(`[Cuckoo AI] 发现暂存项目目录 ${pendingProjectDir}，立即绑定到会话 ${sessionId}`);
+      saveSessionDirMapping(sessionId, pendingProjectDir);
+      selectedProjectDir = pendingProjectDir;
+      pendingProjectDir = null;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('project-dir-updated', selectedProjectDir);
+        mainWindow.webContents.send('session-restored', { sessionId, projectDir: selectedProjectDir });
+      }
+      console.log(`[Cuckoo AI] 暂存目录已绑定到会话 ${sessionId}`);
+      return;
+    }
+    
     // 尝试从存储中恢复项目目录
     const restoredDir = getProjectDirBySessionId(sessionId);
     if (restoredDir) {
@@ -145,6 +164,8 @@ function tryRestoreSessionFromUrl() {
 let currentSessionId = null;
 // 当前选中的项目目录（内存缓存）
 let selectedProjectDir = null;
+// 待绑定的项目目录（当初始化时还未获取到sessionId时暂存）
+let pendingProjectDir = null;
 
 // ========== 持久化会话配置 ==========
 
@@ -243,16 +264,19 @@ function initProject(skipPrompt = false) {
     console.log(`[Cuckoo AI] 已保存会话 ${currentSessionId} -> ${selectedDir}`);
   } else {
     // 如果未能获取会话ID，尝试从当前URL提取
+    let sessionId = null;
     if (mainWindow && !mainWindow.isDestroyed()) {
       const url = mainWindow.webContents.getURL();
-      const sessionId = extractSessionIdFromUrl(url);
-      if (sessionId) {
-        currentSessionId = sessionId;
-        saveSessionDirMapping(sessionId, selectedDir);
-        console.log(`[Cuckoo AI] 从URL提取会话ID并保存: ${sessionId} -> ${selectedDir}`);
-      } else {
-        console.warn('[Cuckoo AI] 无法获取会话ID，目录映射未持久化');
-      }
+      sessionId = extractSessionIdFromUrl(url);
+    }
+    if (sessionId) {
+      currentSessionId = sessionId;
+      saveSessionDirMapping(sessionId, selectedDir);
+      console.log(`[Cuckoo AI] 从URL提取会话ID并保存: ${sessionId} -> ${selectedDir}`);
+    } else {
+      // 无法获取会话ID，暂存项目目录，等待URL变化后绑定
+      pendingProjectDir = selectedDir;
+      console.log(`[Cuckoo AI] 暂存项目目录 ${selectedDir}，等待会话ID出现后绑定`);
     }
   }
 
@@ -355,7 +379,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
-    title: 'Cuckoo AI Pro - DeepSeek CMD',
+    title: 'Cuckoo Code Pro - DeepSeek CMD',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

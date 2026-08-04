@@ -136,14 +136,24 @@ class UnifiedToolManager {
       parsed = input;
     } else if (typeof input === 'string') {
       const str = input.trim();
-      const codeBlockMatch = str.match(/^```(?:tool|json)?\s*\n?(\{[\s\S]*\})\s*```?$/);
+      // 只匹配 ```jsontool 代码块作为工具调用，```json 仅作为普通代码示例
+      const codeBlockMatch = str.match(/^```jsontool\s*\n?(\{[\s\S]*\})\s*```?$/);
       if (codeBlockMatch) {
         try { parsed = JSON.parse(codeBlockMatch[1]); } catch (e) { return null; }
       } else {
-        try { parsed = JSON.parse(str); } catch (e) { return null; }
+        // 不再尝试直接解析 JSON（避免误触发），但保留对纯 JSON 对象的支持（用于内部调试）
+        // 仅当字符串看起来是纯 JSON 对象时才解析
+        if (str.startsWith('{') && str.endsWith('}')) {
+          try { parsed = JSON.parse(str); } catch (e) { return null; }
+        }
       }
     }
     if (!parsed || !parsed.toolName) return null;
+    // 验证工具是否存在（如果工具不存在，则忽略）
+    if (!this.tools.has(parsed.toolName)) {
+      console.warn(`[Cuckoo AI] 忽略未知工具调用: ${parsed.toolName}`);
+      return null;
+    }
     return {
       toolName: parsed.toolName,
       params: parsed.params || parsed.parameters || parsed.arguments || {},
@@ -290,7 +300,7 @@ window.electronAPI = electronAPI;
 const OVERLAY_HTML = `
 <div id="cuckoo-overlay" class="cuckoo-overlay cuckoo-hidden">
   <div class="cuckoo-header">
-    <span class="cuckoo-title">🤖 Cuckoo AI - 命令检测</span>
+    <span class="cuckoo-title">🤖 Cuckoo Code - 命令检测</span>
     <button id="cuckoo-btn-minimize" class="cuckoo-btn-icon">—</button>
   </div>
   <div class="cuckoo-body">
@@ -498,6 +508,7 @@ function injectOverlay() {
   container.id = 'cuckoo-root';
   container.innerHTML = OVERLAY_HTML;
   document.body.appendChild(container);
+  document.getElementById('cuckoo-status-badge')?.remove();
 }
 
 // ========== 覆盖层逻辑 ==========

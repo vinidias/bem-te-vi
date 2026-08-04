@@ -1,5 +1,3 @@
-
-
 const { Tool, ToolResult } = require('./ToolRegistry');
 const fs = require('fs');
 const path = require('path');
@@ -21,6 +19,7 @@ class FileReadTool extends Tool {
 - 参数：
   - file_path（字符串，必填）：文件的相对路径或绝对路径。 不要用 / , 而是用\ 作为目录分隔符
   - encoding（字符串，选填）：文件编码，默认为 "utf-8"。仅在需要非默认编码时才包含此参数。
+  - format（字符串，选填）：输出格式，默认为 "plain"。可选值："plain"（原始内容）、"escaped"（转义为 JSON 字符串格式，便于用于 file_edit 的 old_string）
 - 限制：超过 1MB 的文件只会返回前 1MB 内容。
 
 使用工具时的回复格式：
@@ -28,12 +27,12 @@ class FileReadTool extends Tool {
 - 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json）：
 
 \`\`\`json
-{"toolName":"file_read","params":{"file_path":"<路径>"},"callId":"唯一调用ID"}
+{"toolName":"file_read","params":{"file_path":"<路径>","format":"escaped"},"callId":"唯一调用ID"}
 \`\`\`
 
-示例：
+示例（转义模式）：
 \`\`\`json
-{"toolName":"file_read","params":{"file_path":"src/utils/helper.js"},"callId":"call_001"}
+{"toolName":"file_read","params":{"file_path":"src/utils/helper.js","format":"escaped"},"callId":"call_001"}
 \`\`\`
 
 如果用户没有要求读取文件，请像普通助手一样正常回复，不要输出任何 JSON。
@@ -49,6 +48,12 @@ class FileReadTool extends Tool {
             type: 'string',
             description: '文件编码，默认 utf-8',
             default: 'utf-8'
+          },
+          format: {
+            type: 'string',
+            description: '输出格式: plain (原始内容) 或 escaped (转义为JSON字符串)',
+            default: 'plain',
+            enum: ['plain', 'escaped']
           }
         },
         required: ['file_path'],
@@ -59,11 +64,11 @@ class FileReadTool extends Tool {
 
   /**
    * 执行文件读取
-   * @param {Object} params - { file_path, encoding? }
+   * @param {Object} params - { file_path, encoding?, format? }
    * @returns {Promise<ToolResult>}
    */
   async execute(params) {
-    const { file_path, encoding = 'utf-8', projectDir } = params;
+    const { file_path, encoding = 'utf-8', projectDir, format = 'plain' } = params;
 
     try {
       // 规范化路径：将正斜杠转换为反斜杠（Windows兼容）
@@ -110,15 +115,32 @@ class FileReadTool extends Tool {
       }
 
       const absolutePath = path.resolve(resolvedPath);
-      console.log('[FileReadTool] 文件已读取:', absolutePath, '大小:', stat.size, 'bytes');
+      console.log('[FileReadTool] 文件已读取:', absolutePath, '大小:', stat.size, 'bytes, format:', format);
 
-      return ToolResult.success({
+      const result = {
         message: `文件已读取: ${absolutePath}`,
         content: content,
         size: stat.size,
         path: absolutePath,
         truncated: isTruncated
-      });
+      };
+
+      // 如果要求转义格式，生成转义后的字符串
+      if (format === 'escaped') {
+        // 使用 JSON.stringify 生成转义字符串，并去掉首尾的双引号（因为返回的是字符串本身）
+        // 但为了便于直接复制到 old_string，我们保留双引号？需要说明。
+        // 我们返回转义后的字符串（不包含最外层双引号），但包含内部转义。
+        // 实际上，我们在返回的 escapedContent 中存储转义后的内容（即 JSON.stringify 的结果，且不含外层引号？
+        // 但 JSON.stringify 会加上外层双引号，我们需要去掉，因为 old_string 需要的是原内容转义，不是 JSON 字符串。
+        // 正确做法：返回一个转义后的字符串，其中的换行变成 \n，双引号变成 \"，但整体不是 JSON 字符串。
+        // 但为了安全，我们直接返回 JSON.stringify(content) 的结果，即包含双引号的字符串，这样用户可以直接复制到 JSON 中。
+        // 但老用户可能期望的是不带外层引号的纯转义字符串，用于粘贴到 old_string 字段。
+        // 更合理：返回一个对象，其中 escapedContent 是 JSON.stringify(content) 的结果，用户复制该值即可。
+        // 由于 JSON.parse 需要双引号，所以包含外层引号没问题。
+        result.escapedContent = JSON.stringify(content);
+      }
+
+      return ToolResult.success(result);
     } catch (err) {
       return ToolResult.error(`读取文件失败: ${err.message}`);
     }
