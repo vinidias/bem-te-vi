@@ -266,7 +266,10 @@ let electronAPI = {
     return ipcRenderer.invoke('execute-command', { command, id });
   },
   initProject: () => {
-    return ipcRenderer.invoke('init-project');
+    return ipcRenderer.invoke('init-project', { skipPrompt: false });
+  },
+  updateProjectDir: () => {
+    return ipcRenderer.invoke('init-project', { skipPrompt: true });
   },
   executeTool: (toolName, params, callId) => {
     return ipcRenderer.invoke('execute-tool', { toolName, params, callId });
@@ -2064,9 +2067,11 @@ setTimeout(() => {
     changeBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const result = await window.electronAPI.initProject();
+      // 使用 updateProjectDir 只更新目录映射，不重新发送初始提示
+      const result = await window.electronAPI.updateProjectDir();
       if (result && result.success) {
-        // 主进程会发送事件，不需要额外更新
+        // 主进程会发送 project-dir-updated 事件更新显示
+        console.log('[Cuckoo AI] 目录已更新');
       } else {
         console.error('修改目录失败:', result?.message);
       }

@@ -105,20 +105,29 @@ function handleUrlChange(url) {
     if (restoredDir) {
       selectedProjectDir = restoredDir;
       console.log(`[Cuckoo AI] 已恢复项目目录: ${restoredDir}`);
-      // 通知渲染进程恢复成功（可选）
+      // 通知渲染进程恢复成功
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('session-restored', { sessionId, projectDir: restoredDir });
+        // 发送目录更新事件，更新UI显示
+        mainWindow.webContents.send('project-dir-updated', restoredDir);
       }
     } else {
       console.log(`[Cuckoo AI] 会话 ${sessionId} 未找到关联的项目目录`);
       // 清空当前目录
       selectedProjectDir = null;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        // 发送空目录事件，更新UI显示为“未选择”
+        mainWindow.webContents.send('project-dir-updated', null);
+      }
     }
   } else {
     // 非会话页面（如首页），清空状态
     currentSessionId = null;
     selectedProjectDir = null;
     console.log('[Cuckoo AI] 未检测到会话ID，已清空项目目录');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('project-dir-updated', null);
+    }
   }
 }
 
@@ -206,8 +215,9 @@ function getDirectoryTree(dir, prefix = '') {
 /**
  * 初始化项目：选择目录并发送目录树 + systemPrompt
  * 供 IPC 调用（用户点击初始化按钮时触发）
+ * @param {boolean} skipPrompt - 如果为true，只更新目录映射，不发送初始提示（用于修改目录）
  */
-function initProject() {
+function initProject(skipPrompt = false) {
   // 先让用户选择目录
   const result = dialog.showOpenDialogSync(mainWindow, {
     properties: ['openDirectory'],
@@ -249,6 +259,11 @@ function initProject() {
   // 发送目录更新事件到渲染进程
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('project-dir-updated', selectedDir);
+  }
+
+  // 如果只是修改目录，跳过发送初始提示
+  if (skipPrompt) {
+    return { success: true, message: '项目目录已更新' };
   }
 
   // 生成目录树
@@ -416,8 +431,8 @@ function createWindow() {
 // ========== IPC 处理器 ==========
 
 // 初始化项目：选择目录并发送目录树 + systemPrompt
-ipcMain.handle('init-project', async () => {
-  return initProject();
+ipcMain.handle('init-project', async (_event, { skipPrompt = false } = {}) => {
+  return initProject(skipPrompt);
 });
 
 // 执行命令
