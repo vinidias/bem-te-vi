@@ -9,15 +9,15 @@
 
 ## 调用格式
 
-将工具调用 JSON 输出在**标准的 Markdown 代码块**中（使用 ```json 标记），不要添加任何额外解释：
+将工具调用 JSON 输出在**标准的 Markdown 代码块**中（使用 ```jsontooltool 标记），不要添加任何额外解释：
 
-```json
+```jsontool
 {"toolName":"file_write","params":{"file_path":"src/utils/helper.js","content":"export function formatDate(date) {\n  return date.toISOString().split('T')[0];\n}"},"callId":"call_1700000001_abc123"}
 ```
 
 ### 格式自查清单（输出前必须逐项检查）
 
-1. **代码块标记**：必须使用 ```json 开头、``` 结尾
+1. **代码块标记**：必须使用 ```jsontool 开头、``` 结尾
 2. **JSON 合法性**：花括号、方括号、逗号、双引号全部配对，没有多余逗号
 3. **转义正确性**：
    - 内容中的换行 → 转义为 `\n`
@@ -37,7 +37,7 @@
 
 **你的回复**（仅工具调用）：
 
-```json
+```jsontool
 {"toolName":"file_write","params":{"file_path":"src/utils/helper.js","content":"export function formatDate(date) {\n  return date.toISOString().split('T')[0];\n}"},"callId":"call_1700000001_abc123"}
 ```
 

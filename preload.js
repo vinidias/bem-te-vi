@@ -136,16 +136,18 @@ class UnifiedToolManager {
       parsed = input;
     } else if (typeof input === 'string') {
       const str = input.trim();
-      // 只匹配 ```jsontool 代码块作为工具调用，```json 仅作为普通代码示例
-      const codeBlockMatch = str.match(/^```jsontool\s*\n?(\{[\s\S]*\})\s*```?$/);
+      // 严格模式：整个输入必须只包含一个 ```jsontool 代码块（允许前后空白）
+      // 匹配整个字符串（^...$），其中包含代码块，且没有其他非空白字符
+      // 注意：允许代码块前后有空白，但其他非空白字符会导致失败
+      const codeBlockMatch = str.match(/^\s*```jsontool\s*\n?(\{[\s\S]*?\})\s*```\s*$/);
       if (codeBlockMatch) {
+        // 检查是否只有代码块（即匹配后剩余字符串为空）
+        // 由于使用了 ^ 和 $，已经确保整个字符串就是代码块
         try { parsed = JSON.parse(codeBlockMatch[1]); } catch (e) { return null; }
       } else {
-        // 不再尝试直接解析 JSON（避免误触发），但保留对纯 JSON 对象的支持（用于内部调试）
-        // 仅当字符串看起来是纯 JSON 对象时才解析
-        if (str.startsWith('{') && str.endsWith('}')) {
-          try { parsed = JSON.parse(str); } catch (e) { return null; }
-        }
+        // 不再尝试直接解析 JSON（避免误触发），也不支持纯 JSON 对象（为了严格）
+        // 只有 ```jsontool 块才会被识别
+        return null;
       }
     }
     if (!parsed || !parsed.toolName) return null;
@@ -261,7 +263,7 @@ class UnifiedToolManager {
       }
       prompt += '---\n\n';
     }
-    prompt += '## 调用格式\n\n请将工具调用 JSON 输出在标准的 Markdown 代码块中（使用 ```json 标记），仅输出 JSON，不要包含其他文字，并确保正确转义（换行\\n、引号\\"、反斜杠\\\\）：\n\n```json\n{"toolName": "工具名称", "params": { "参数名": "参数值" }, "callId": "call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '"}\n```\n';
+    prompt += '## 调用格式\n\n请将工具调用 JSON 输出在标准的 Markdown 代码块中（使用 ```jsontool 标记），仅输出 JSON，不要包含其他文字，并确保正确转义（换行\\n、引号\\"、反斜杠\\\\）：\n\n```jsontool\n{"toolName": "file_write", "params": { "file_path": "src/example.js", "content": "console.log(\"Hello\");" }, "callId": "call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '"}\n```\n';
     return prompt;
   }
 }
