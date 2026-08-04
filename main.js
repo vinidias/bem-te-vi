@@ -31,7 +31,110 @@ let mainWindow = null;
 // systemPrompt.md 路径
 const SYSTEM_PROMPT_PATH = path.join(__dirname, 'systemPrompt.md');
 
-// 选中的项目目录
+// ========== 会话-目录映射持久化存储 ==========
+const STORE_FILE = path.join(app.getPath('userData'), 'session-dir-map.json');
+
+/**
+ * 读取存储的会话-目录映射
+ */
+function readSessionStore() {
+  try {
+    if (fs.existsSync(STORE_FILE)) {
+      const data = fs.readFileSync(STORE_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 读取会话存储失败:', err.message);
+  }
+  return {};
+}
+
+/**
+ * 写入会话-目录映射
+ */
+function writeSessionStore(store) {
+  try {
+    fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), 'utf-8');
+    console.log('[Cuckoo AI] 会话存储已保存');
+  } catch (err) {
+    console.error('[Cuckoo AI] 写入会话存储失败:', err.message);
+  }
+}
+
+/**
+ * 根据会话ID获取项目目录
+ */
+function getProjectDirBySessionId(sessionId) {
+  if (!sessionId) return null;
+  const store = readSessionStore();
+  return store[sessionId] || null;
+}
+
+/**
+ * 保存会话ID与项目目录的映射
+ */
+function saveSessionDirMapping(sessionId, projectDir) {
+  if (!sessionId) return;
+  const store = readSessionStore();
+  store[sessionId] = projectDir;
+  writeSessionStore(store);
+}
+
+/**
+ * 从URL中提取会话ID
+ * 示例: https://chat.deepseek.com/a/chat/s/bd9953b8-ff70-4207-9a12-5967be02a066
+ * 返回 bd9953b8-ff70-4207-9a12-5967be02a066
+ */
+function extractSessionIdFromUrl(url) {
+  if (!url) return null;
+  // 匹配 /chat/s/ 后面的 UUID
+  const match = url.match(/\/chat\/s\/([a-f0-9-]+)/);
+  return match ? match[1] : null;
+}
+
+/**
+ * 处理URL变化：提取会话ID，并尝试恢复项目目录
+ */
+function handleUrlChange(url) {
+  const sessionId = extractSessionIdFromUrl(url);
+  if (sessionId) {
+    currentSessionId = sessionId;
+    console.log(`[Cuckoo AI] 当前会话ID: ${sessionId}`);
+    // 尝试从存储中恢复项目目录
+    const restoredDir = getProjectDirBySessionId(sessionId);
+    if (restoredDir) {
+      selectedProjectDir = restoredDir;
+      console.log(`[Cuckoo AI] 已恢复项目目录: ${restoredDir}`);
+      // 通知渲染进程恢复成功（可选）
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('session-restored', { sessionId, projectDir: restoredDir });
+      }
+    } else {
+      console.log(`[Cuckoo AI] 会话 ${sessionId} 未找到关联的项目目录`);
+      // 清空当前目录
+      selectedProjectDir = null;
+    }
+  } else {
+    // 非会话页面（如首页），清空状态
+    currentSessionId = null;
+    selectedProjectDir = null;
+    console.log('[Cuckoo AI] 未检测到会话ID，已清空项目目录');
+  }
+}
+
+/**
+ * 尝试从当前URL恢复会话和项目目录（在页面加载完成后调用）
+ */
+function tryRestoreSessionFromUrl() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const url = mainWindow.webContents.getURL();
+  console.log('[Cuckoo AI] 尝试恢复会话，当前URL:', url);
+  handleUrlChange(url);
+}
+
+// 当前会话ID（从页面URL中提取）
+let currentSessionId = null;
+// 当前选中的项目目录（内存缓存）
 let selectedProjectDir = null;
 
 // ========== 持久化会话配置 ==========
@@ -122,6 +225,31 @@ function initProject() {
 
   // 保存选中的项目目录
   selectedProjectDir = selectedDir;
+
+  // ========== 持久化存储会话-目录映射 ==========
+  // 如果当前有会话ID，保存映射
+  if (currentSessionId) {
+    saveSessionDirMapping(currentSessionId, selectedDir);
+    console.log(`[Cuckoo AI] 已保存会话 ${currentSessionId} -> ${selectedDir}`);
+  } else {
+    // 如果未能获取会话ID，尝试从当前URL提取
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const url = mainWindow.webContents.getURL();
+      const sessionId = extractSessionIdFromUrl(url);
+      if (sessionId) {
+        currentSessionId = sessionId;
+        saveSessionDirMapping(sessionId, selectedDir);
+        console.log(`[Cuckoo AI] 从URL提取会话ID并保存: ${sessionId} -> ${selectedDir}`);
+      } else {
+        console.warn('[Cuckoo AI] 无法获取会话ID，目录映射未持久化');
+      }
+    }
+  }
+
+  // 发送目录更新事件到渲染进程
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('project-dir-updated', selectedDir);
+  }
 
   // 生成目录树
   const tree = getDirectoryTree(selectedDir);
@@ -251,8 +379,21 @@ function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('page-loaded');
-      // 不再自动发送初始提示，等待用户点击初始化按钮
+      // 尝试恢复会话-目录映射
+      tryRestoreSessionFromUrl();
     }
+  });
+
+  // 监听导航事件，检测URL变化（页面跳转/新会话）
+  mainWindow.webContents.on('did-navigate', (_event, url) => {
+    console.log('[Cuckoo AI] 页面导航:', url);
+    handleUrlChange(url);
+  });
+
+  // 监听页面内导航（SPA路由变化）
+  mainWindow.webContents.on('did-navigate-in-page', (_event, url) => {
+    console.log('[Cuckoo AI] 页面内导航:', url);
+    handleUrlChange(url);
   });
 
   // 当 webContents 销毁时停止监听

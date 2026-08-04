@@ -291,6 +291,17 @@ const OVERLAY_HTML = `
     <button id="cuckoo-btn-minimize" class="cuckoo-btn-icon">—</button>
   </div>
   <div class="cuckoo-body">
+    <!-- 当前项目目录展示区域 -->
+    <div class="cuckoo-section cuckoo-project-dir-section">
+      <div class="cuckoo-project-dir-row">
+        <span class="cuckoo-label">📁 当前项目目录</span>
+        <button id="cuckoo-btn-change-dir" class="cuckoo-btn-change-dir" title="点击修改项目目录">🔄 修改</button>
+      </div>
+      <div id="cuckoo-project-dir-display" class="cuckoo-project-dir-display">
+        <span class="cuckoo-dir-path">未选择</span>
+      </div>
+    </div>
+    <div class="cuckoo-divider"></div>
     <div class="cuckoo-section">
       <label class="cuckoo-label">检测到命令：</label>
       <pre id="cuckoo-cmd-preview" class="cuckoo-cmd-preview">暂无</pre>
@@ -429,6 +440,46 @@ const OVERLAY_CSS = `
 .cuckoo-overlay ::-webkit-scrollbar-track { background: transparent; }
 .cuckoo-overlay ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 .cuckoo-overlay ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+/* 项目目录展示样式 */
+.cuckoo-project-dir-section {
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(124,131,255,0.2);
+}
+.cuckoo-project-dir-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cuckoo-btn-change-dir {
+  background: rgba(124,131,255,0.2);
+  border: none;
+  color: #7c83ff;
+  padding: 2px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.cuckoo-btn-change-dir:hover {
+  background: rgba(124,131,255,0.4);
+}
+.cuckoo-project-dir-display {
+  margin-top: 4px;
+  font-size: 13px;
+  font-family: 'Consolas', monospace;
+  color: #aaa;
+  word-break: break-all;
+}
+.cuckoo-dir-path {
+  color: #7cffb2;
+}
+.cuckoo-divider {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin: 4px 0;
+}
 `;
 
 // ========== 注入样式 ==========
@@ -1989,6 +2040,37 @@ function init() {
   try {
     injectCSS();
     injectOverlay();
+
+// 项目目录显示与修改功能
+function updateProjectDirDisplay(dirPath) {
+  const display = document.getElementById('cuckoo-project-dir-display');
+  if (display) {
+    const span = display.querySelector('.cuckoo-dir-path');
+    if (span) {
+      span.textContent = dirPath || '未选择';
+    }
+  }
+}
+
+// 监听主进程的目录更新事件
+ipcRenderer.on('project-dir-updated', (_event, dirPath) => {
+  updateProjectDirDisplay(dirPath);
+});
+
+// 绑定修改按钮事件
+document.addEventListener('DOMContentLoaded', () => {
+  const changeBtn = document.getElementById('cuckoo-btn-change-dir');
+  if (changeBtn) {
+    changeBtn.addEventListener('click', async () => {
+      const result = await window.electronAPI.initProject();
+      if (result && result.success) {
+        // 主进程会发送事件，不需要额外更新
+      } else {
+        console.error('修改目录失败:', result?.message);
+      }
+    });
+  }
+});
     bindEvents();
 
     // 默认显示覆盖层 - 兜底强制显示
