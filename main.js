@@ -266,8 +266,7 @@ function initProject(skipPrompt = false) {
     return { success: true, message: '项目目录已更新' };
   }
 
-  // 生成目录树
-  const tree = getDirectoryTree(selectedDir);
+  // 初始化项目时发送系统提示词和工具规则（不含目录树）
   // 读取系统提示词
   let promptContent = '';
   try {
@@ -298,11 +297,8 @@ function initProject(skipPrompt = false) {
   const finalRules = rulesContent.replace('{TOOLS_LIST}', toolsDescription);
   const finalPrompt = promptContent.replace('{TOOLS_LIST}', toolsDescription);
 
-  // 组合内容
+  // 组合内容（不再包含目录树）
   const combined = `
-其目录结构如下：
-${tree}
----
 系统提示词：
 ${finalPrompt}
 ---
@@ -311,7 +307,7 @@ ${finalRules}
 ---
 如果你觉得需要使用工具，请直接回答工具指令及入参，其他内容不需要回复`;
 
-  console.log('[Cuckoo AI] 准备发送初始提示，长度:', combined.length);
+  console.log('[Cuckoo AI] 准备发送初始提示（不含目录树），长度:', combined.length);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('initial-prompt', combined);
   }
