@@ -107,6 +107,7 @@ class FileEditTool extends Tool {
 
       // 读取文件内容
       const content = fs.readFileSync(resolvedPath, 'utf-8');
+      console.log("content",JSON.stringify(content))
 
       // 检查 old_string 出现的次数
       const occurrences = content.split(old_string).length - 1;
