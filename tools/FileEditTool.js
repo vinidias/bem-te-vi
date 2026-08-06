@@ -89,7 +89,6 @@ class FileEditTool extends Tool {
 
       // 规范化路径：将正斜杠转换为反斜杠（Windows兼容）
       const normalizedPath = file_path.replace(/\//g, path.sep);
-      new_string = file_path.replace(/\//g, path.sep);
       // 如果是相对路径且有项目目录，则相对于项目目录解析
       let resolvedPath = normalizedPath;
       if (!path.isAbsolute(normalizedPath) && projectDir) {
@@ -109,6 +108,8 @@ class FileEditTool extends Tool {
       const content = fs.readFileSync(resolvedPath, 'utf-8');
       console.log("content",JSON.stringify(content))
       console.log("old_string",JSON.stringify(old_string))
+      new_string = new_string.replace(/\r?\n/g, '\r\n');
+
       // 检查 old_string 出现的次数
       let occurrences = content.split(old_string).length - 1;
       if (occurrences === 0) {
