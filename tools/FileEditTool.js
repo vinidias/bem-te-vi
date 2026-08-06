@@ -77,7 +77,7 @@ class FileEditTool extends Tool {
    * @returns {Promise<ToolResult>}
    */
   async execute(params) {
-    const { file_path, old_string, new_string, replace_all = false, projectDir } = params;
+    let { file_path, old_string, new_string, replace_all = false, projectDir } = params;
 
     try {
       if (old_string === undefined || old_string === null || old_string === '') {
@@ -89,7 +89,7 @@ class FileEditTool extends Tool {
 
       // 规范化路径：将正斜杠转换为反斜杠（Windows兼容）
       const normalizedPath = file_path.replace(/\//g, path.sep);
-
+      new_string = file_path.replace(/\//g, path.sep);
       // 如果是相对路径且有项目目录，则相对于项目目录解析
       let resolvedPath = normalizedPath;
       if (!path.isAbsolute(normalizedPath) && projectDir) {
@@ -108,12 +108,18 @@ class FileEditTool extends Tool {
       // 读取文件内容
       const content = fs.readFileSync(resolvedPath, 'utf-8');
       console.log("content",JSON.stringify(content))
-
+      console.log("old_string",JSON.stringify(old_string))
       // 检查 old_string 出现的次数
-      const occurrences = content.split(old_string).length - 1;
+      let occurrences = content.split(old_string).length - 1;
+      if (occurrences === 0) {
+        old_string = old_string.replace(/\r?\n/g, '\r\n');
+        occurrences = content.split(old_string).length - 1;
+      }
+      console.log("old_string",JSON.stringify(old_string))
       if (occurrences === 0) {
         return ToolResult.error(`未找到要替换的文本，请检查 old_string 是否与文件内容精确匹配。文件路径: ${resolvedPath}`);
       }
+
 
       if (occurrences > 1 && !replace_all) {
         return ToolResult.error(`old_string 在文件中出现 ${occurrences} 次，请提供更长的唯一片段，或设置 replace_all: true`);
