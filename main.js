@@ -518,7 +518,7 @@ ipcMain.handle('execute-command', async (_event, { command, id }) => {
     const child = exec(
       trimmed,
       {
-        cwd: process.env.USERPROFILE || 'C:\\',
+        cwd: selectedProjectDir || process.env.USERPROFILE || app.getPath('home'),
         timeout: 30000, // 30 秒超时
         maxBuffer: 1024 * 1024, // 1MB 输出缓冲
       },

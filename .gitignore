@@ -1,3 +1,71 @@
-/.idea/
-/node_modules/
-/dist/
+# Dependencies
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Session/user data
+userData/
+*.session
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Test files
+test/
+*.test.js
+*.spec.js
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+
+# Project specific
+.cuckooCode/
+remark/
+overlay.html
+sidebar.html
+test.txt
+abc.json
+abcaa.json
+node_modules.zip
+
+# Keys/secrets
+*.pem
+*.key
+*.crt
+*.p12
+sk-*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Misc
+.cache/
