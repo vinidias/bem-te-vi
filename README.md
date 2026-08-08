@@ -52,7 +52,7 @@ npm start
 
 ## 开源协议
 
-MIT License
+GNU General Public License v3.0
 
 ## 贡献
 
