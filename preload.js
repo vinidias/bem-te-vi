@@ -330,6 +330,9 @@ const OVERLAY_HTML = `
       <button id="cuckoo-btn-send-prompt" class="cuckoo-btn cuckoo-btn-secondary">📋 发送系统提示词</button>
       <button id="cuckoo-btn-manual-parse" class="cuckoo-btn cuckoo-btn-secondary" title="手动触发解析当前页面内容中的工具调用">🔍 手动解析</button>
     </div>
+    <div class="cuckoo-actions">
+      <button id="cuckoo-btn-gen-doc" class="cuckoo-btn cuckoo-btn-primary" title="让 AI 生成项目说明文档 (CUCKOO.md)">📄 生成项目说明</button>
+    </div>
     <div id="cuckoo-result-section" class="cuckoo-section cuckoo-hidden">
       <label class="cuckoo-label">执行结果：</label>
       <div id="cuckoo-result-status" class="cuckoo-result-status"></div>
@@ -655,6 +658,42 @@ function handleSendPrompt() {
     triggerSend(input);
   }, 300);
 }
+
+/**
+ * 生成项目说明文档按钮点击处理
+ */
+function handleGenerateDoc() {
+  const input = findInputArea();
+  if (!input) {
+    alert('未找到输入框，请确保已打开聊天界面');
+    return;
+  }
+
+  const message = '根据当前项目生成一个类似 claude.md 的项目说明文件，并将文件放到当前项目 .cuckooCode/CUCKOO.md';
+
+  // 填入输入框并发送
+  try {
+    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+      input.focus();
+      input.value = message;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
+      input.focus();
+      document.execCommand('selectAll', false, null);
+      document.execCommand('insertText', false, message);
+    }
+
+    // 触发发送
+    setTimeout(() => {
+      triggerSend(input);
+    }, 300);
+  } catch (err) {
+    console.error('[Cuckoo AI] 发送生成文档消息失败:', err.message);
+    alert('发送消息失败: ' + err.message);
+  }
+}
+
 function addHistory(entry) {
   commandHistory.unshift(entry);
   if (commandHistory.length > 50) commandHistory.pop();
@@ -726,6 +765,12 @@ function bindEvents() {
   // 手动解析按钮
   const manualParseBtn = document.getElementById('cuckoo-btn-manual-parse');
   manualParseBtn?.addEventListener('click', handleManualParse);
+
+  // 生成项目说明文档按钮
+  const genDocBtn = document.getElementById('cuckoo-btn-gen-doc');
+  genDocBtn?.addEventListener('click', handleGenerateDoc);
+
+  // 键盘快捷键
 
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {
