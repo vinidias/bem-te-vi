@@ -444,8 +444,13 @@ const OVERLAY_CSS = `
   position: fixed; bottom: 20px; left: 20px; z-index: 2147483647;
   background: rgba(124,131,255,0.15); border: 1px solid rgba(124,131,255,0.3);
   border-radius: 20px; padding: 6px 14px; font-size: 11px; color: #7c83ff;
-  display: flex; align-items: center; gap: 6px; pointer-events: none;
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  transition: background 0.2s, border-color 0.2s;
+}
+#cuckoo-status-badge:hover {
+  background: rgba(124,131,255,0.3);
+  border-color: rgba(124,131,255,0.6);
 }
 #cuckoo-status-dot {
   width: 6px; height: 6px; border-radius: 50%; background: #7cffb2; animation: cuckoo-pulse 2s infinite;
@@ -769,6 +774,15 @@ function bindEvents() {
   // 生成项目说明文档按钮
   const genDocBtn = document.getElementById('cuckoo-btn-gen-doc');
   genDocBtn?.addEventListener('click', handleGenerateDoc);
+
+  // 状态徽章点击显示覆盖层
+  const statusBadge = document.getElementById('cuckoo-status-badge');
+  statusBadge?.addEventListener('click', () => {
+    const overlay = document.getElementById('cuckoo-overlay');
+    if (overlay && overlay.classList.contains('cuckoo-hidden')) {
+      showOverlay();
+    }
+  });
 
   // 键盘快捷键
 

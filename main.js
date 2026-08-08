@@ -321,7 +321,7 @@ function initProject(skipPrompt = false) {
   const finalRules = rulesContent.replace('{TOOLS_LIST}', toolsDescription);
   const finalPrompt = promptContent.replace('{TOOLS_LIST}', toolsDescription);
 
-  // 组合内容（不再包含目录树）
+  // 组合内容（包含目录树）
   let projectIntro = '';
   const cuckooMdPath = path.join(selectedDir, '.cuckooCode', 'CUCKOO.md');
   if (fs.existsSync(cuckooMdPath)) {
@@ -333,6 +333,17 @@ function initProject(skipPrompt = false) {
     }
   }
 
+  // 获取目录树
+  let directoryTree = '';
+  try {
+    if (fs.existsSync(selectedDir)) {
+      directoryTree = getDirectoryTree(selectedDir);
+      console.log('[Cuckoo AI] 已获取目录树');
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 获取目录树失败:', err.message);
+  }
+
   const combined = `
 系统提示词：
 ${finalPrompt}
@@ -342,6 +353,9 @@ ${finalRules}
 ${projectIntro ? `---
 ## 项目介绍
 ${projectIntro}` : ''}
+---
+## 当前项目目录结构
+当前项目路径: ${selectedDir}
 ---
 如果你觉得需要使用工具，请直接回答工具指令及入参，其他内容不需要回复`;
 
