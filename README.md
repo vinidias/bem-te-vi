@@ -2,6 +2,11 @@
 
 DeepSeek 桌面应用——内嵌浏览器，识别 AI 回答中的 shell 命令和工具调用并执行。
 
+## 环境要求
+
+- Node.js >= 16.0.0
+- npm 或 yarn
+
 ## 特性
 
 - 🖥️ 基于 Electron 的桌面应用，嵌入 DeepSeek 网页版
@@ -13,7 +18,7 @@ DeepSeek 桌面应用——内嵌浏览器，识别 AI 回答中的 shell 命令
 ## 安装与运行
 
 ```bash
-# 克隆项目
+# 克隆项目（请将 your-username 替换为你的 GitHub 用户名）
 git clone https://github.com/your-username/cuckoo-ai-pro.git
 cd cuckoo-ai-pro
 
@@ -36,6 +41,18 @@ npm start
 3. 点击「确认执行」或「忽略」处理命令
 4. 点击「初始化项目」选择项目目录，AI 将获得当前项目目录树和系统提示词
 5. AI 可通过 `jsontool` 代码块调用工具（如 `file_write`、`bash` 等）
+
+### 工具调用示例
+
+AI 回复中包含如下代码块时，系统会自动解析并执行：
+
+````markdown
+```jsontool
+{"toolName":"file_write","params":{"file_path":"hello.txt","content":"Hello World"},"callId":"call_123"}
+```
+````
+
+系统执行后会返回结果，AI 会根据结果继续下一步操作。
 
 ## 工具系统
 
