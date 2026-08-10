@@ -2,6 +2,14 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 console.log('[Cuckoo AI] Preload script 开始执行');
 
+// 自定义错误：用于标识  解析失败
+class JsonToolParseError extends Error {
+  constructor(message, originalError) {
+    super(message);
+    this.name = 'JsonToolParseError';
+    this.originalError = originalError;
+  }
+}
 // ========== 统一工具系统 (内联到 preload) ==========
 
 class ToolResult {
@@ -136,17 +144,17 @@ class UnifiedToolManager {
       parsed = input;
     } else if (typeof input === 'string') {
       const str = input.trim();
-      // 严格模式：整个输入必须只包含一个 ```jsontool 代码块（允许前后空白）
+      // 严格模式：整个输入必须只包含一个 ---jsontool 代码块（允许前后空白）
       // 匹配整个字符串（^...$），其中包含代码块，且没有其他非空白字符
       // 注意：允许代码块前后有空白，但其他非空白字符会导致失败
-      const codeBlockMatch = str.match(/^\s*```jsontool\s*\n?(\{[\s\S]*?\})\s*```\s*$/);
+      const codeBlockMatch = str.match(/^\s*@@@jsontool-start\s*\n?(\{[\s\S]*?\})\s*```\s*$/);
       if (codeBlockMatch) {
         // 检查是否只有代码块（即匹配后剩余字符串为空）
         // 由于使用了 ^ 和 $，已经确保整个字符串就是代码块
         try { parsed = JSON.parse(codeBlockMatch[1]); } catch (e) { return null; }
       } else {
         // 不再尝试直接解析 JSON（避免误触发），也不支持纯 JSON 对象（为了严格）
-        // 只有 ```jsontool 块才会被识别
+        // 只有 ---jsontool 块才会被识别
         return null;
       }
     }
@@ -248,24 +256,24 @@ class UnifiedToolManager {
     return { success: false, error: `未实现的工具: ${toolName}` };
   }
 
-  getSystemPrompt() {
-    const tools = Array.from(this.tools.values());
-    let prompt = '# 可用工具\n\n';
-    for (const tool of this.tools.values()) {
-      prompt += `## ${tool.name}\n${tool.description}\n\n`;
-      if (tool.parameters && tool.parameters.properties) {
-        prompt += '**参数：**\n';
-        for (const [key, schema] of Object.entries(tool.parameters.properties)) {
-          const required = tool.parameters.required?.includes(key) ? ' (必填)' : ' (选填)';
-          prompt += `- \`${key}\`${required}: ${schema.description} (类型: ${schema.type})\n`;
-        }
-        prompt += '\n';
-      }
-      prompt += '---\n\n';
-    }
-    prompt += '## 调用格式\n\n请将工具调用 JSON 输出在标准的 Markdown 代码块中（使用 ```jsontool 标记），仅输出 JSON，不要包含其他文字，并确保正确转义（换行\\n、引号\\"、反斜杠\\\\）：\n\n```jsontool\n{"toolName": "file_write", "params": { "file_path": "src/example.js", "content": "console.log(\"Hello\");" }, "callId": "call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '"}\n```\n';
-    return prompt;
-  }
+  // getSystemPrompt() {
+  //   const tools = Array.from(this.tools.values());
+  //   let prompt = '# 可用工具\n\n';
+  //   for (const tool of this.tools.values()) {
+  //     prompt += `## ${tool.name}\n${tool.description}\n\n`;
+  //     if (tool.parameters && tool.parameters.properties) {
+  //       prompt += '**参数：**\n';
+  //       for (const [key, schema] of Object.entries(tool.parameters.properties)) {
+  //         const required = tool.parameters.required?.includes(key) ? ' (必填)' : ' (选填)';
+  //         prompt += `- \`${key}\`${required}: ${schema.description} (类型: ${schema.type})\n`;
+  //       }
+  //       prompt += '\n';
+  //     }
+  //     prompt += '---\n\n';
+  //   }
+  //   prompt += '## 调用格式\n\n请将工具调用 JSON 输出在 以@@@jsontool-start为开头,以@@@jsontool-end为结尾进行 标记，仅输出 JSON，不要包含其他文字，并确保正确转义（换行\\n、引号\\"、反斜杠\\\\）：\n\n@@@jsontool-start\n{"toolName": "file_write", "params": { "file_path": "src/example.js", "content": "console.log(\"Hello\");" }, "callId": "call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '"}\n@@@jsontool-end\n';
+  //   return prompt;
+  // }
 }
 
 // 实例化工具管理器
@@ -1011,20 +1019,23 @@ async function handleManualParse() {
 
   try {
 
-    // 获取页面所有文本内容
-    const pageText = document.body.innerText || document.body.textContent || '';
-    console.log(pageText);
-
-    if (!pageText || pageText.trim().length === 0) {
-      alert('页面内容为空，无法解析');
-      return;
+// 获取最后一个 ds-markdown ds-assistant-message-main-content 元素
+    const assistantMessages = document.querySelectorAll('.ds-markdown.ds-assistant-message-main-content');
+    let lastMessageText = '';
+    if (assistantMessages.length > 0) {
+      const lastMsg = assistantMessages[assistantMessages.length - 1];
+      // 提取文本：优先从 pre code 提取（避免复制按钮等干扰），否则用 innerText
+      const codeEl = lastMsg.querySelector('pre code');
+      if (codeEl) {
+        lastMessageText = codeEl.textContent || codeEl.innerText || '';
+      } else {
+        lastMessageText = lastMsg.innerText || lastMsg.textContent || '';
+      }
     }
+    debugger
+    const directParse = tryParseToolCall(lastMessageText);
 
-    // 尝试解析工具调用
     const toolCalls = [];
-
-    // 1. 尝试直接解析整个页面内容
-    const directParse = tryParseToolCall(document.body.innerText || document.body.textContent || '');
     if (directParse) {
       toolCalls.push(directParse);
     }
@@ -1035,7 +1046,6 @@ async function handleManualParse() {
       for (let i = 0; i < codeBlocks.length; i++) {
         const block = codeBlocks[i];
         const text = block.textContent || block.innerText || '';
-        console.log(text);
         if (text && (text.includes('toolName') || text.includes('tool') || text.includes('file_write'))) {
           const parsed = tryParseToolCall(text);
           if (parsed) {
@@ -1568,16 +1578,16 @@ function repairJsonString(str) {
 function tryParseToolCall(content) {
   if (!content || typeof content !== 'string') return null;
   const str = content.trim();
-
-  // 检查是否以 ```jsontool 开头并结尾
-  if (!str.startsWith('```jsontool') || !str.endsWith('```')) {
+  console.log("tryParseToolCall:str",str)
+  // 检查是否以 ---jsontool 开头并结尾
+  if (!str.startsWith('@@@jsontool-start') || !str.endsWith('@@@jsontool-end')) {
     return null;
   }
 
-  // 提取中间部分：去除开头的 ```jsontool 和结尾的 ```
-  let jsonStr = str.substring('```jsontool'.length);
-  jsonStr = jsonStr.substring(0, jsonStr.length - '```'.length).trim();
-
+  // 提取中间部分：去除开头的 ---jsontool 和结尾的 ```
+  let jsonStr = str.substring('@@@jsontool-start'.length);
+  jsonStr = jsonStr.substring(0, jsonStr.length - '@@@jsontool-end'.length).trim();
+  console.log("tryParseToolCall:jsonStr",str)
   let parsed = null;
   try {
     parsed = JSON.parse(jsonStr);
