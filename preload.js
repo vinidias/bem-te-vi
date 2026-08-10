@@ -4,22 +4,54 @@ console.log('[Cuckoo AI] Preload script 开始执行');
 
 // ========== 统一工具系统 (内联到 preload) ==========
 
+/**
+ * 工具执行结果封装类
+ */
 class ToolResult {
+  /**
+   * 创建一个工具执行结果实例
+   * @param {boolean} success - 执行是否成功
+   * @param {*} data - 执行成功时返回的数据
+   * @param {string|null} error - 执行失败时的错误信息
+   */
   constructor(success, data, error) {
     this.success = success;
     this.data = data;
     this.error = error;
   }
+
+  /**
+   * 创建一个成功的工具执行结果
+   * @param {*} data - 执行返回的数据
+   * @returns {ToolResult} 成功结果实例
+   */
   static success(data) { return new ToolResult(true, data, null); }
+
+  /**
+   * 创建一个失败的工具执行结果
+   * @param {string} error - 错误信息
+   * @returns {ToolResult} 失败结果实例
+   */
   static error(error) { return new ToolResult(false, null, error); }
 }
 
+/**
+ * 统一工具管理器
+ * 负责注册、管理、解析和执行所有工具调用
+ */
 class UnifiedToolManager {
+  /**
+   * 创建工具管理器实例，并自动注册内置工具
+   */
   constructor() {
     this.tools = new Map();
     this.registerBuiltinTools();
   }
 
+  /**
+   * 注册所有内置工具
+   * 包含：file_write、file_read、file_edit、file_glob、file_grep、bash
+   */
   registerBuiltinTools() {
     this.register('file_write', {
       name: 'file_write',
@@ -109,10 +141,19 @@ class UnifiedToolManager {
     });
   }
 
+  /**
+   * 注册一个工具
+   * @param {string} name - 工具名称
+   * @param {Object} definition - 工具定义，包含 name、description、parameters 等字段
+   */
   register(name, definition) {
     this.tools.set(name, definition);
   }
 
+  /**
+   * 获取所有工具的文本描述（用于提示词）
+   * @returns {string} 格式化的工具描述列表
+   */
   getToolsDescription() {
     return Array.from(this.tools.values()).map((t, i) => {
       const params = t.parameters.properties ? Object.keys(t.parameters.properties).join(', ') : '无';
@@ -120,6 +161,10 @@ class UnifiedToolManager {
     }).join('\n\n');
   }
 
+  /**
+   * 获取所有工具的 JSON Schema 定义
+   * @returns {Object} 以工具名为键，参数 schema 为值的对象
+   */
   getToolsSchema() {
     const schemas = {};
     for (const [name, tool] of this.tools) {
@@ -128,6 +173,12 @@ class UnifiedToolManager {
     return schemas;
   }
 
+  /**
+   * 解析工具调用
+   * 严格解析输入内容，只识别 ```jsontool 代码块中的 JSON，并验证工具是否存在
+   * @param {string|Object} input - 输入内容，可以是字符串或对象
+   * @returns {Object|null} 解析后的工具调用对象，包含 toolName、params、callId，或 null
+   */
   parseToolCall(input) {
     if (!input) return null;
     let parsed = null;
@@ -163,6 +214,12 @@ class UnifiedToolManager {
     };
   }
 
+  /**
+   * 验证工具参数是否符合 schema 定义
+   * @param {string} toolName - 工具名称
+   * @param {Object} params - 待验证的参数对象
+   * @returns {Object} 验证结果，包含 valid（布尔值）和 errors（错误数组）
+   */
   validateParams(toolName, params) {
     const tool = this.tools.get(toolName);
     if (!tool) return { valid: false, errors: [`未知工具: ${toolName}`] };
@@ -185,6 +242,15 @@ class UnifiedToolManager {
     return { valid: errors.length === 0, errors };
   }
 
+  /**
+   * 执行工具调用
+   * 根据 toolName 路由到对应的工具实现，通过 IPC 与主进程通信执行实际操作
+   * @param {Object} toolCall - 工具调用对象
+   * @param {string} toolCall.toolName - 工具名称
+   * @param {Object} toolCall.params - 工具参数
+   * @param {string} toolCall.callId - 调用 ID
+   * @returns {Promise<Object>} 执行结果，包含 success、data 和 error 字段
+   */
   async execute(toolCall) {
     const { toolName, params, callId } = toolCall;
     const validation = this.validateParams(toolName, params);
@@ -589,6 +655,9 @@ const OVERLAY_CSS = `
 `;
 
 // ========== 注入样式 ==========
+/**
+ * 注入覆盖层 CSS 样式到页面头部
+ */
 function injectCSS() {
   const style = document.createElement('style');
   style.textContent = OVERLAY_CSS;
@@ -596,6 +665,10 @@ function injectCSS() {
 }
 
 // ========== 注入覆盖层 HTML ==========
+/**
+ * 注入覆盖层 HTML 到页面 body
+ * 创建 cuckoo-root 容器并填充 OVERLAY_HTML 内容
+ */
 function injectOverlay() {
   const container = document.createElement('div');
   container.id = 'cuckoo-root';
@@ -611,37 +684,67 @@ let isExecuting = false;
 let commandIdCounter = 0;
 const commandHistory = [];
 
+/**
+ * 生成唯一命令 ID
+ * @returns {string} 格式为 cmd_时间戳_序号 的唯一标识
+ */
 function generateId() {
   return `cmd_${Date.now()}_${++commandIdCounter}`;
 }
 
+/**
+ * 格式化时间戳为 HH:mm:ss 格式
+ * @param {number} ts - 时间戳（毫秒）
+ * @returns {string} 格式化后的时间字符串
+ */
 function formatTime(ts) {
   const d = new Date(ts);
   const pad = (n) => String(n).padStart(2, '0');
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+/**
+ * 截断文本到指定长度，超出部分以 ... 结尾
+ * @param {string} text - 要截断的文本
+ * @param {number} maxLen - 最大长度，默认 50
+ * @returns {string} 截断后的文本
+ */
 function truncate(text, maxLen = 50) {
   if (!text || text.length <= maxLen) return text || '';
   return text.substring(0, maxLen) + '...';
 }
 
+/**
+ * HTML 转义，防止 XSS 攻击
+ * @param {string} text - 要转义的文本
+ * @returns {string} 转义后的 HTML 字符串
+ */
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
+/**
+ * 显示覆盖层（移除 hidden 类）
+ */
 function showOverlay() {
   const el = document.getElementById('cuckoo-overlay');
   if (el) el.classList.remove('cuckoo-hidden');
 }
 
+/**
+ * 隐藏覆盖层（添加 hidden 类）
+ */
 function hideOverlay() {
   const el = document.getElementById('cuckoo-overlay');
   if (el) el.classList.add('cuckoo-hidden');
 }
 
+/**
+ * 显示命令预览并展开覆盖层
+ * @param {Object} cmdData - 命令数据对象，包含 command、timestamp、id 等字段
+ */
 function displayCommand(cmdData) {
   currentCommand = cmdData;
   const preview = document.getElementById('cuckoo-cmd-preview');
@@ -655,6 +758,10 @@ function displayCommand(cmdData) {
   }
   showOverlay();
 }
+/**
+ * 确认执行当前显示的命令
+ * 通过 IPC 调用主进程执行命令，并显示执行结果
+ */
 async function handleExecute() {
   if (!currentCommand || isExecuting) return;
 
@@ -713,6 +820,9 @@ async function handleExecute() {
   }
 }
 
+/**
+ * 忽略当前命令，将命令记录为已忽略并隐藏覆盖层
+ */
 function handleIgnore() {
   if (currentCommand) {
     addHistory({
@@ -782,12 +892,20 @@ function handleGenerateDoc() {
   }
 }
 
+/**
+ * 添加一条历史记录
+ * @param {Object} entry - 历史记录对象，包含 id、command、success、canceled、output、timestamp 等字段
+ */
 function addHistory(entry) {
   commandHistory.unshift(entry);
   if (commandHistory.length > 50) commandHistory.pop();
   renderHistory();
 }
 
+/**
+ * 渲染历史记录列表
+ * 将 commandHistory 中的记录渲染到界面，并为每条记录绑定点击事件以查看详情
+ */
 function renderHistory() {
   const list = document.getElementById('cuckoo-history-list');
   if (!list) return;
@@ -832,6 +950,10 @@ function renderHistory() {
   });
 }
 
+/**
+ * 绑定覆盖层所有 UI 事件
+ * 包括按钮点击、键盘快捷键、状态徽章点击等
+ */
 function bindEvents() {
   const minimizeBtn = document.getElementById('cuckoo-btn-minimize');
   const executeBtn = document.getElementById('cuckoo-btn-execute');
@@ -870,8 +992,6 @@ function bindEvents() {
       showOverlay();
     }
   });
-
-  // 键盘快捷键
 
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {
@@ -1069,6 +1189,12 @@ async function handleManualParse() {
 
 // ========== DOM 监测：检测 ```cmd 代码块 ==========
 
+/**
+ * 从代码块元素中检测并提取 cmd/powershell/batch 命令
+ * 支持多种语言标记方式：data-language 属性、language-* class、第一行标记
+ * @param {Element} element - 要检测的 DOM 元素
+ * @returns {string|null} 提取的命令内容，如果未检测到则返回 null
+ */
 function detectCmdInCodeBlock(element) {
   const codeEl = element.tagName === 'CODE' ? element : element.querySelector('code');
   if (!codeEl) return null;
@@ -1119,8 +1245,16 @@ function detectCmdInCodeBlock(element) {
   return lines.join('\n').trim() || null;
 }
 
+/**
+ * 用于记录已检测过的节点，避免重复处理
+ */
 const detectedSet = new WeakSet();
 
+/**
+ * 扫描给定的 DOM 节点列表，提取其中的命令
+ * @param {NodeList|Array} nodes - 要扫描的 DOM 节点列表
+ * @returns {string[]} 提取到的命令数组
+ */
 function scanForCommands(nodes) {
   const commands = [];
   for (const node of nodes) {
@@ -1391,12 +1525,12 @@ function processLatestAIResponse(retryCount = 0) {
   } else {
     console.log('[Cuckoo AI] 回复内容不是工具调用 JSON');
     // 内容疑似工具调用但解析失败 → 回传 AI 提示格式问题，让它修正后重新输出
-    if (text.includes('tool') || text.includes('file_')) {
-      sendToolResultToChat(
-        { toolName: '未知', callId: 'parse_failed' },
-        { success: false, error: '工具调用 JSON 解析失败，请检查 JSON 格式与转义（换行用\\n、双引号用\\"、反斜杠用\\\\），重新输出完整且合法的工具调用。' }
-      );
-    }
+    // if (text.includes('tool') || text.includes('file_')) {
+    //   sendToolResultToChat(
+    //     { toolName: '未知', callId: 'parse_failed' },
+    //     { success: false, error: '工具调用 JSON 解析失败，请检查 JSON 格式与转义（换行用\\n、双引号用\\"、反斜杠用\\\\），重新输出完整且合法的工具调用。' }
+    //   );
+    // }
   }
 }
 
@@ -1488,6 +1622,12 @@ let pendingToolCall = null; // 待执行的工具调用
 /**
  * 宽容解析 JSON：先严格解析，失败后修复常见格式问题再解析
  * 常见问题：字符串值内未转义的换行、tab、引号（AI 生成的 JSON 经常忘记转义）
+ */
+/**
+ * 宽容解析 JSON：先严格解析，失败后修复常见格式问题再解析
+ * 常见问题：字符串值内未转义的换行、tab、引号（AI 生成的 JSON 经常忘记转义）
+ * @param {string} str - 待解析的 JSON 字符串
+ * @returns {Object|null} 解析后的对象，解析失败返回 null
  */
 function parseJsonWithRepair(str) {
   if (!str) return null;
@@ -2243,6 +2383,10 @@ interceptScript.textContent = `(${function() {
 }}.toString())()`;
 
 // 等待 DOM 就绪后再注入
+/**
+ * 将 API 拦截脚本注入到主世界（绕过 contextIsolation）
+ * 通过 document.documentElement 或 head/body 注入 script 标签
+ */
 function injectInterceptor() {
   const root = document.documentElement || document.head || document.body;
   if (root) {
@@ -2271,12 +2415,20 @@ function processAIContent(content) {
 
 // ========== 初始化 ==========
 
+/**
+ * 初始化 Cuckoo AI 扩展
+ * 注入样式、覆盖层 HTML，绑定事件，启动 MutationObserver 和目录监听
+ */
 function init() {
   try {
     injectCSS();
     injectOverlay();
 
 // 项目目录显示与修改功能
+/**
+ * 更新项目目录显示
+ * @param {string} dirPath - 目录路径
+ */
 function updateProjectDirDisplay(dirPath) {
   const display = document.getElementById('cuckoo-project-dir-display');
   if (display) {
@@ -2329,6 +2481,10 @@ setTimeout(() => {
   startOverlayWatcher();
 }
 
+/**
+ * 强制显示覆盖层（移除所有隐藏状态）
+ * 用于兜底恢复因异常被隐藏的面板
+ */
 function forceShowOverlay() {
   const overlay = document.getElementById('cuckoo-overlay');
   if (overlay) {
@@ -2339,9 +2495,11 @@ function forceShowOverlay() {
   }
 }
 
-// 定期巡检：防止面板被意外隐藏（最小化、ESC、脚本错误等）
+/**
+ * 启动定期巡检，防止面板被意外隐藏（最小化、ESC、脚本错误等）
+ * 每 5 秒检查一次，如果被隐藏则自动恢复
+ */
 function startOverlayWatcher() {
-  // 每 5 秒检查一次，如果被隐藏则自动恢复
   setInterval(() => {
     const overlay = document.getElementById('cuckoo-overlay');
     if (overlay && overlay.classList.contains('cuckoo-hidden')) {
