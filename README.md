@@ -47,9 +47,9 @@ npm start
 AI 回复中包含如下代码块时，系统会自动解析并执行：
 
 ````markdown
-@@@jsontool-start
+```jsontool
 {"toolName":"file_write","params":{"file_path":"hello.txt","content":"Hello World"},"callId":"call_123"}
-@@@jsontool-end
+```
 ````
 
 系统执行后会返回结果，AI 会根据结果继续下一步操作。
