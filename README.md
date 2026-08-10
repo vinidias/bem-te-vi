@@ -1,4 +1,4 @@
-# Cuckoo AI Pro
+# cuckoo-code
 
 DeepSeek 桌面应用——内嵌浏览器，识别 AI 回答中的 shell 命令和工具调用并执行。
 
@@ -47,9 +47,9 @@ npm start
 AI 回复中包含如下代码块时，系统会自动解析并执行：
 
 ````markdown
-```jsontool
+@@@jsontool-start
 {"toolName":"file_write","params":{"file_path":"hello.txt","content":"Hello World"},"callId":"call_123"}
-```
+@@@jsontool-end
 ````
 
 系统执行后会返回结果，AI 会根据结果继续下一步操作。
