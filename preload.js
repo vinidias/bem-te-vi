@@ -1392,12 +1392,12 @@ function processLatestAIResponse(retryCount = 0) {
   } else {
     console.log('[Cuckoo AI] 回复内容不是工具调用 JSON');
     // 内容疑似工具调用但解析失败 → 回传 AI 提示格式问题，让它修正后重新输出
-    if (text.includes('tool') || text.includes('file_')) {
-      sendToolResultToChat(
-        { toolName: '未知', callId: 'parse_failed' },
-        { success: false, error: '工具调用 JSON 解析失败，请检查 JSON 格式与转义（换行用\\n、双引号用\\"、反斜杠用\\\\），重新输出完整且合法的工具调用。' }
-      );
-    }
+    // if (text.includes('tool') || text.includes('file_')) {
+    //   sendToolResultToChat(
+    //     { toolName: '未知', callId: 'parse_failed' },
+    //     { success: false, error: '工具调用 JSON 解析失败，请检查 JSON 格式与转义（换行用\\n、双引号用\\"、反斜杠用\\\\），重新输出完整且合法的工具调用。' }
+    //   );
+    // }
   }
 }
 
@@ -1569,32 +1569,20 @@ function tryParseToolCall(content) {
   if (!content || typeof content !== 'string') return null;
   const str = content.trim();
 
+  // 检查是否以 ```jsontool 开头并结尾
+  if (!str.startsWith('```jsontool') || !str.endsWith('```')) {
+    return null;
+  }
+
+  // 提取中间部分：去除开头的 ```jsontool 和结尾的 ```
+  let jsonStr = str.substring('```jsontool'.length);
+  jsonStr = jsonStr.substring(0, jsonStr.length - '```'.length).trim();
+
   let parsed = null;
-
-  // 1. 尝试直接解析 JSON（纯 JSON 响应，含容错修复）
-  parsed = parseJsonWithRepair(str);
-
-  // 2. 提取代码块 ```json/tool ... ```
-  if (!parsed) {
-    const codeBlockMatch = str.match(/```(?:json|tool)?\s*\n?(\{[\s\S]*?\})\s*```/);
-    if (codeBlockMatch) {
-      const extracted = codeBlockMatch[1].trim();
-      parsed = parseJsonWithRepair(extracted);
-    }
-  }
-
-  // 3. 在文本中查找 JSON 对象（取第一个完整的 { ... }）
-  if (!parsed) {
-    const firstBrace = str.indexOf('{');
-    if (firstBrace !== -1) {
-      const candidate = extractJsonObject(str, firstBrace);
-      if (candidate) {
-        parsed = parseJsonWithRepair(candidate);
-      }
-    }
-  }
-
-  if (!parsed) {
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch (e) {
+    console.log('[Cuckoo AI] JSON 解析失败:', e.message);
     return null;
   }
 
