@@ -1,3 +1,45 @@
-/.idea/
-/node_modules/
-/dist/
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+out/
+
+# Electron
+.log
+.cache
+.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+.swp
+.swo
+
+# Environment
+.env
+.env.local
+.env..local
+
+# Test coverage
+coverage/
+
+# Temporary files
+.tmp
+.temp
+
+# Backup files
+.bak
+.backup
+_restored.
+
+# User data
+userData/

@@ -12,7 +12,7 @@
     "cmd",
     "desktop"
   ],
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "electron": "^33.0.0"
   },
