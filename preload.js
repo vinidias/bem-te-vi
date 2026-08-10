@@ -248,24 +248,24 @@ class UnifiedToolManager {
     return { success: false, error: `未实现的工具: ${toolName}` };
   }
 
-  getSystemPrompt() {
-    const tools = Array.from(this.tools.values());
-    let prompt = '# 可用工具\n\n';
-    for (const tool of this.tools.values()) {
-      prompt += `## ${tool.name}\n${tool.description}\n\n`;
-      if (tool.parameters && tool.parameters.properties) {
-        prompt += '**参数：**\n';
-        for (const [key, schema] of Object.entries(tool.parameters.properties)) {
-          const required = tool.parameters.required?.includes(key) ? ' (必填)' : ' (选填)';
-          prompt += `- \`${key}\`${required}: ${schema.description} (类型: ${schema.type})\n`;
-        }
-        prompt += '\n';
-      }
-      prompt += '---\n\n';
-    }
-    prompt += '## 调用格式\n\n请将工具调用 JSON 输出在标准的 Markdown 代码块中（使用 ```jsontool 标记），仅输出 JSON，不要包含其他文字，并确保正确转义（换行\\n、引号\\"、反斜杠\\\\）：\n\n```jsontool\n{"toolName": "file_write", "params": { "file_path": "src/example.js", "content": "console.log(\"Hello\");" }, "callId": "call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '"}\n```\n';
-    return prompt;
-  }
+  // getSystemPrompt() {
+  //   const tools = Array.from(this.tools.values());
+  //   let prompt = '# 可用工具\n\n';
+  //   for (const tool of this.tools.values()) {
+  //     prompt += `## ${tool.name}\n${tool.description}\n\n`;
+  //     if (tool.parameters && tool.parameters.properties) {
+  //       prompt += '**参数：**\n';
+  //       for (const [key, schema] of Object.entries(tool.parameters.properties)) {
+  //         const required = tool.parameters.required?.includes(key) ? ' (必填)' : ' (选填)';
+  //         prompt += `- \`${key}\`${required}: ${schema.description} (类型: ${schema.type})\n`;
+  //       }
+  //       prompt += '\n';
+  //     }
+  //     prompt += '---\n\n';
+  //   }
+  //   prompt += '## 调用格式\n\n请将工具调用 JSON 输出在 以```jsontool为开头,以```为结尾进行 标记，仅输出 JSON，不要包含其他文字，并确保正确转义（换行\\n、引号\\"、反斜杠\\\\）：\n\n```jsontool\n{"toolName": "file_write", "params": { "file_path": "src/example.js", "content": "console.log(\"Hello\");" }, "callId": "call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '"}\n```\n';
+  //   return prompt;
+  // }
 }
 
 // 实例化工具管理器
@@ -285,6 +285,12 @@ let electronAPI = {
   },
   executeTool: (toolName, params, callId) => {
     return ipcRenderer.invoke('execute-tool', { toolName, params, callId });
+  },
+  listSessions: () => {
+    return ipcRenderer.invoke('list-sessions');
+  },
+  navigateSession: (sessionId) => {
+    return ipcRenderer.invoke('navigate-session', { sessionId });
   },
 };
 
@@ -314,6 +320,17 @@ const OVERLAY_HTML = `
       </div>
       <div id="cuckoo-project-dir-display" class="cuckoo-project-dir-display">
         <span class="cuckoo-dir-path">未选择</span>
+      </div>
+    </div>
+    <div class="cuckoo-divider"></div>
+    <!-- 会话列表区域 -->
+    <div class="cuckoo-section cuckoo-session-section">
+      <div class="cuckoo-session-header">
+        <span class="cuckoo-label">📚 会话列表</span>
+        <button id="cuckoo-btn-refresh-sessions" class="cuckoo-btn-refresh-sessions" title="刷新会话列表">🔄 刷新</button>
+      </div>
+      <div id="cuckoo-session-list" class="cuckoo-session-list">
+        <div class="cuckoo-session-empty">暂无会话</div>
       </div>
     </div>
     <div class="cuckoo-divider"></div>
@@ -502,6 +519,72 @@ const OVERLAY_CSS = `
 .cuckoo-divider {
   border-top: 1px solid rgba(255,255,255,0.06);
   margin: 4px 0;
+}
+
+/* 会话列表样式 */
+.cuckoo-session-section {
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(124,131,255,0.2);
+}
+.cuckoo-session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cuckoo-btn-refresh-sessions {
+  background: rgba(124,131,255,0.2);
+  border: none;
+  color: #7c83ff;
+  padding: 2px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.cuckoo-btn-refresh-sessions:hover {
+  background: rgba(124,131,255,0.4);
+}
+.cuckoo-session-list {
+  max-height: 120px;
+  overflow-y: auto;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cuckoo-session-item {
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+  color: #ccc;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cuckoo-session-item:hover {
+  background: rgba(124,131,255,0.2);
+}
+.cuckoo-session-item .session-id {
+  color: #7c83ff;
+  font-size: 11px;
+}
+.cuckoo-session-item .session-action {
+  color: #7cffb2;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cuckoo-session-empty {
+  color: #666;
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 0;
+  text-align: center;
 }
 `;
 
@@ -775,6 +858,10 @@ function bindEvents() {
   const genDocBtn = document.getElementById('cuckoo-btn-gen-doc');
   genDocBtn?.addEventListener('click', handleGenerateDoc);
 
+  // 刷新会话列表按钮
+  const refreshSessionsBtn = document.getElementById('cuckoo-btn-refresh-sessions');
+  refreshSessionsBtn?.addEventListener('click', renderSessions);
+
   // 状态徽章点击显示覆盖层
   const statusBadge = document.getElementById('cuckoo-status-badge');
   statusBadge?.addEventListener('click', () => {
@@ -805,6 +892,80 @@ function bindEvents() {
       hideOverlay();
     }
   });
+}
+
+// ========== 会话列表功能 ==========
+
+/**
+ * 渲染当前项目目录关联的会话列表
+ */
+async function renderSessions() {
+  const listContainer = document.getElementById('cuckoo-session-list');
+  if (!listContainer) return;
+
+  try {
+    if (!window.electronAPI || !window.electronAPI.listSessions) {
+      listContainer.innerHTML = '<div class="cuckoo-session-empty">API 不可用</div>';
+      return;
+    }
+
+    const result = await window.electronAPI.listSessions();
+    if (!result.success) {
+      listContainer.innerHTML = '<div class="cuckoo-session-empty">加载失败</div>';
+      return;
+    }
+
+    const sessions = result.sessions || [];
+    if (sessions.length === 0) {
+      listContainer.innerHTML = '<div class="cuckoo-session-empty">暂无会话</div>';
+      return;
+    }
+
+    listContainer.innerHTML = sessions.map((sessionId) => `
+      <div class="cuckoo-session-item" data-session-id="${escapeHtml(sessionId)}">
+        <span class="session-id">${escapeHtml(sessionId)}</span>
+        <span class="session-action">▶ 跳转</span>
+      </div>
+    `).join('');
+
+    // 绑定点击事件
+    listContainer.querySelectorAll('.cuckoo-session-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const sessionId = item.dataset.sessionId;
+        if (sessionId) handleNavigateSession(sessionId);
+      });
+    });
+  } catch (err) {
+    console.error('[Cuckoo AI] 渲染会话列表失败:', err);
+    listContainer.innerHTML = '<div class="cuckoo-session-empty">加载出错</div>';
+  }
+}
+
+/**
+ * 导航到指定会话
+ */
+async function handleNavigateSession(sessionId) {
+  if (!sessionId) return;
+
+  try {
+    if (!window.electronAPI || !window.electronAPI.navigateSession) {
+      alert('导航 API 不可用');
+      return;
+    }
+
+    const result = await window.electronAPI.navigateSession(sessionId);
+    if (result.success) {
+      console.log('[Cuckoo AI] 已导航到会话:', sessionId);
+      // 导航成功后，覆盖层可以保持打开，但用户可能会看到页面跳转
+      // 小延迟后刷新会话列表
+      setTimeout(renderSessions, 2000);
+    } else {
+      alert('导航失败: ' + (result.error || '未知错误'));
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 导航到会话失败:', err);
+    alert('导航失败: ' + err.message);
+  }
 }
 
 /**
@@ -874,7 +1035,6 @@ async function handleManualParse() {
       for (let i = 0; i < codeBlocks.length; i++) {
         const block = codeBlocks[i];
         const text = block.textContent || block.innerText || '';
-        console.log(text);
         if (text && (text.includes('toolName') || text.includes('tool') || text.includes('file_write'))) {
           const parsed = tryParseToolCall(text);
           if (parsed) {
@@ -2130,6 +2290,8 @@ function updateProjectDirDisplay(dirPath) {
 // 监听主进程的目录更新事件
 ipcRenderer.on('project-dir-updated', (_event, dirPath) => {
   updateProjectDirDisplay(dirPath);
+  // 目录更新后刷新会话列表
+  renderSessions();
 });
 
 // 绑定修改按钮事件 - 直接绑定，阻止冒泡和默认行为
