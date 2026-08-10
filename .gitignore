@@ -1,45 +1,38 @@
-# Dependencies
+# Node
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 package-lock.json
 yarn.lock
 
-# Build outputs
-dist/
-build/
-out/
-
 # Electron
-.log
-.cache
-.tmp
+out/
+dist/
+release/
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
 # IDE
-.idea/
 .vscode/
-.swp
-.swo
+.idea/
+*.swp
+*.swo
+*~
 
-# Environment
-.env
-.env.local
-.env..local
+# Logs
+logs/
+*.log
 
-# Test coverage
-coverage/
-
-# Temporary files
-.tmp
-.temp
-
-# Backup files
-.bak
-.backup
-_restored.
-
-# User data
+# User data (contains session/cookies)
 userData/
+
+# Temp
+*.tmp
+temp/
+
+# Project specific
+.cuckooCode/
+.claude/
