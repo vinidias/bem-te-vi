@@ -483,6 +483,36 @@ ipcMain.handle('init-project', async (_event, { skipPrompt = false } = {}) => {
   return initProject(skipPrompt);
 });
 
+// 列出当前项目目录关联的所有会话ID
+ipcMain.handle('list-sessions', async () => {
+  if (!selectedProjectDir) {
+    return { success: true, sessions: [] };
+  }
+  const store = readSessionStore();
+  const sessions = Object.keys(store).filter(sessionId => store[sessionId] === selectedProjectDir);
+  console.log(`[Cuckoo AI] 列出会话，项目目录 ${selectedProjectDir} 关联 ${sessions.length} 个会话`);
+  return { success: true, sessions };
+});
+
+// 导航到指定会话
+ipcMain.handle('navigate-session', async (_event, { sessionId }) => {
+  if (!sessionId) {
+    return { success: false, error: '缺少会话ID' };
+  }
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { success: false, error: '主窗口已关闭' };
+  }
+  const url = `https://chat.deepseek.com/a/chat/s/${sessionId}`;
+  console.log(`[Cuckoo AI] 导航到会话: ${url}`);
+  try {
+    await mainWindow.webContents.loadURL(url);
+    return { success: true };
+  } catch (err) {
+    console.error('[Cuckoo AI] 导航失败:', err.message);
+    return { success: false, error: err.message };
+  }
+});
+
 // 执行命令
 ipcMain.handle('execute-command', async (_event, { command, id }) => {
   if (!command || typeof command !== 'string') {

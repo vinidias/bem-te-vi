@@ -2,6 +2,14 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 console.log('[Cuckoo AI] Preload script 开始执行');
 
+// 自定义错误：用于标识  解析失败
+class JsonToolParseError extends Error {
+  constructor(message, originalError) {
+    super(message);
+    this.name = 'JsonToolParseError';
+    this.originalError = originalError;
+  }
+}
 // ========== 统一工具系统 (内联到 preload) ==========
 
 class ToolResult {
@@ -136,17 +144,17 @@ class UnifiedToolManager {
       parsed = input;
     } else if (typeof input === 'string') {
       const str = input.trim();
-      // 严格模式：整个输入必须只包含一个 ```jsontool 代码块（允许前后空白）
+      // 严格模式：整个输入必须只包含一个 ---jsontool 代码块（允许前后空白）
       // 匹配整个字符串（^...$），其中包含代码块，且没有其他非空白字符
       // 注意：允许代码块前后有空白，但其他非空白字符会导致失败
-      const codeBlockMatch = str.match(/^\s*```jsontool\s*\n?(\{[\s\S]*?\})\s*```\s*$/);
+      const codeBlockMatch = str.match(/^\s*@@@jsontool-start\s*\n?(\{[\s\S]*?\})\s*```\s*$/);
       if (codeBlockMatch) {
         // 检查是否只有代码块（即匹配后剩余字符串为空）
         // 由于使用了 ^ 和 $，已经确保整个字符串就是代码块
         try { parsed = JSON.parse(codeBlockMatch[1]); } catch (e) { return null; }
       } else {
         // 不再尝试直接解析 JSON（避免误触发），也不支持纯 JSON 对象（为了严格）
-        // 只有 ```jsontool 块才会被识别
+        // 只有 ---jsontool 块才会被识别
         return null;
       }
     }
@@ -248,24 +256,24 @@ class UnifiedToolManager {
     return { success: false, error: `未实现的工具: ${toolName}` };
   }
 
-  getSystemPrompt() {
-    const tools = Array.from(this.tools.values());
-    let prompt = '# 可用工具\n\n';
-    for (const tool of this.tools.values()) {
-      prompt += `## ${tool.name}\n${tool.description}\n\n`;
-      if (tool.parameters && tool.parameters.properties) {
-        prompt += '**参数：**\n';
-        for (const [key, schema] of Object.entries(tool.parameters.properties)) {
-          const required = tool.parameters.required?.includes(key) ? ' (必填)' : ' (选填)';
-          prompt += `- \`${key}\`${required}: ${schema.description} (类型: ${schema.type})\n`;
-        }
-        prompt += '\n';
-      }
-      prompt += '---\n\n';
-    }
-    prompt += '## 调用格式\n\n请将工具调用 JSON 输出在标准的 Markdown 代码块中（使用 ```jsontool 标记），仅输出 JSON，不要包含其他文字，并确保正确转义（换行\\n、引号\\"、反斜杠\\\\）：\n\n```jsontool\n{"toolName": "file_write", "params": { "file_path": "src/example.js", "content": "console.log(\"Hello\");" }, "callId": "call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '"}\n```\n';
-    return prompt;
-  }
+  // getSystemPrompt() {
+  //   const tools = Array.from(this.tools.values());
+  //   let prompt = '# 可用工具\n\n';
+  //   for (const tool of this.tools.values()) {
+  //     prompt += `## ${tool.name}\n${tool.description}\n\n`;
+  //     if (tool.parameters && tool.parameters.properties) {
+  //       prompt += '**参数：**\n';
+  //       for (const [key, schema] of Object.entries(tool.parameters.properties)) {
+  //         const required = tool.parameters.required?.includes(key) ? ' (必填)' : ' (选填)';
+  //         prompt += `- \`${key}\`${required}: ${schema.description} (类型: ${schema.type})\n`;
+  //       }
+  //       prompt += '\n';
+  //     }
+  //     prompt += '---\n\n';
+  //   }
+  //   prompt += '## 调用格式\n\n请将工具调用 JSON 输出在 以@@@jsontool-start为开头,以@@@jsontool-end为结尾进行 标记，仅输出 JSON，不要包含其他文字，并确保正确转义（换行\\n、引号\\"、反斜杠\\\\）：\n\n@@@jsontool-start\n{"toolName": "file_write", "params": { "file_path": "src/example.js", "content": "console.log(\"Hello\");" }, "callId": "call_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '"}\n@@@jsontool-end\n';
+  //   return prompt;
+  // }
 }
 
 // 实例化工具管理器
@@ -285,6 +293,12 @@ let electronAPI = {
   },
   executeTool: (toolName, params, callId) => {
     return ipcRenderer.invoke('execute-tool', { toolName, params, callId });
+  },
+  listSessions: () => {
+    return ipcRenderer.invoke('list-sessions');
+  },
+  navigateSession: (sessionId) => {
+    return ipcRenderer.invoke('navigate-session', { sessionId });
   },
 };
 
@@ -314,6 +328,17 @@ const OVERLAY_HTML = `
       </div>
       <div id="cuckoo-project-dir-display" class="cuckoo-project-dir-display">
         <span class="cuckoo-dir-path">未选择</span>
+      </div>
+    </div>
+    <div class="cuckoo-divider"></div>
+    <!-- 会话列表区域 -->
+    <div class="cuckoo-section cuckoo-session-section">
+      <div class="cuckoo-session-header">
+        <span class="cuckoo-label">📚 会话列表</span>
+        <button id="cuckoo-btn-refresh-sessions" class="cuckoo-btn-refresh-sessions" title="刷新会话列表">🔄 刷新</button>
+      </div>
+      <div id="cuckoo-session-list" class="cuckoo-session-list">
+        <div class="cuckoo-session-empty">暂无会话</div>
       </div>
     </div>
     <div class="cuckoo-divider"></div>
@@ -502,6 +527,72 @@ const OVERLAY_CSS = `
 .cuckoo-divider {
   border-top: 1px solid rgba(255,255,255,0.06);
   margin: 4px 0;
+}
+
+/* 会话列表样式 */
+.cuckoo-session-section {
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(124,131,255,0.2);
+}
+.cuckoo-session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cuckoo-btn-refresh-sessions {
+  background: rgba(124,131,255,0.2);
+  border: none;
+  color: #7c83ff;
+  padding: 2px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.cuckoo-btn-refresh-sessions:hover {
+  background: rgba(124,131,255,0.4);
+}
+.cuckoo-session-list {
+  max-height: 120px;
+  overflow-y: auto;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cuckoo-session-item {
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+  color: #ccc;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cuckoo-session-item:hover {
+  background: rgba(124,131,255,0.2);
+}
+.cuckoo-session-item .session-id {
+  color: #7c83ff;
+  font-size: 11px;
+}
+.cuckoo-session-item .session-action {
+  color: #7cffb2;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cuckoo-session-empty {
+  color: #666;
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 0;
+  text-align: center;
 }
 `;
 
@@ -775,6 +866,10 @@ function bindEvents() {
   const genDocBtn = document.getElementById('cuckoo-btn-gen-doc');
   genDocBtn?.addEventListener('click', handleGenerateDoc);
 
+  // 刷新会话列表按钮
+  const refreshSessionsBtn = document.getElementById('cuckoo-btn-refresh-sessions');
+  refreshSessionsBtn?.addEventListener('click', renderSessions);
+
   // 状态徽章点击显示覆盖层
   const statusBadge = document.getElementById('cuckoo-status-badge');
   statusBadge?.addEventListener('click', () => {
@@ -805,6 +900,80 @@ function bindEvents() {
       hideOverlay();
     }
   });
+}
+
+// ========== 会话列表功能 ==========
+
+/**
+ * 渲染当前项目目录关联的会话列表
+ */
+async function renderSessions() {
+  const listContainer = document.getElementById('cuckoo-session-list');
+  if (!listContainer) return;
+
+  try {
+    if (!window.electronAPI || !window.electronAPI.listSessions) {
+      listContainer.innerHTML = '<div class="cuckoo-session-empty">API 不可用</div>';
+      return;
+    }
+
+    const result = await window.electronAPI.listSessions();
+    if (!result.success) {
+      listContainer.innerHTML = '<div class="cuckoo-session-empty">加载失败</div>';
+      return;
+    }
+
+    const sessions = result.sessions || [];
+    if (sessions.length === 0) {
+      listContainer.innerHTML = '<div class="cuckoo-session-empty">暂无会话</div>';
+      return;
+    }
+
+    listContainer.innerHTML = sessions.map((sessionId) => `
+      <div class="cuckoo-session-item" data-session-id="${escapeHtml(sessionId)}">
+        <span class="session-id">${escapeHtml(sessionId)}</span>
+        <span class="session-action">▶ 跳转</span>
+      </div>
+    `).join('');
+
+    // 绑定点击事件
+    listContainer.querySelectorAll('.cuckoo-session-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const sessionId = item.dataset.sessionId;
+        if (sessionId) handleNavigateSession(sessionId);
+      });
+    });
+  } catch (err) {
+    console.error('[Cuckoo AI] 渲染会话列表失败:', err);
+    listContainer.innerHTML = '<div class="cuckoo-session-empty">加载出错</div>';
+  }
+}
+
+/**
+ * 导航到指定会话
+ */
+async function handleNavigateSession(sessionId) {
+  if (!sessionId) return;
+
+  try {
+    if (!window.electronAPI || !window.electronAPI.navigateSession) {
+      alert('导航 API 不可用');
+      return;
+    }
+
+    const result = await window.electronAPI.navigateSession(sessionId);
+    if (result.success) {
+      console.log('[Cuckoo AI] 已导航到会话:', sessionId);
+      // 导航成功后，覆盖层可以保持打开，但用户可能会看到页面跳转
+      // 小延迟后刷新会话列表
+      setTimeout(renderSessions, 2000);
+    } else {
+      alert('导航失败: ' + (result.error || '未知错误'));
+    }
+  } catch (err) {
+    console.error('[Cuckoo AI] 导航到会话失败:', err);
+    alert('导航失败: ' + err.message);
+  }
 }
 
 /**
@@ -850,20 +1019,23 @@ async function handleManualParse() {
 
   try {
 
-    // 获取页面所有文本内容
-    const pageText = document.body.innerText || document.body.textContent || '';
-    console.log(pageText);
-
-    if (!pageText || pageText.trim().length === 0) {
-      alert('页面内容为空，无法解析');
-      return;
+// 获取最后一个 ds-markdown ds-assistant-message-main-content 元素
+    const assistantMessages = document.querySelectorAll('.ds-markdown.ds-assistant-message-main-content');
+    let lastMessageText = '';
+    if (assistantMessages.length > 0) {
+      const lastMsg = assistantMessages[assistantMessages.length - 1];
+      // 提取文本：优先从 pre code 提取（避免复制按钮等干扰），否则用 innerText
+      const codeEl = lastMsg.querySelector('pre code');
+      if (codeEl) {
+        lastMessageText = codeEl.textContent || codeEl.innerText || '';
+      } else {
+        lastMessageText = lastMsg.innerText || lastMsg.textContent || '';
+      }
     }
+    debugger
+    const directParse = tryParseToolCall(lastMessageText);
 
-    // 尝试解析工具调用
     const toolCalls = [];
-
-    // 1. 尝试直接解析整个页面内容
-    const directParse = tryParseToolCall(document.body.innerText || document.body.textContent || '');
     if (directParse) {
       toolCalls.push(directParse);
     }
@@ -874,7 +1046,6 @@ async function handleManualParse() {
       for (let i = 0; i < codeBlocks.length; i++) {
         const block = codeBlocks[i];
         const text = block.textContent || block.innerText || '';
-        console.log(text);
         if (text && (text.includes('toolName') || text.includes('tool') || text.includes('file_write'))) {
           const parsed = tryParseToolCall(text);
           if (parsed) {
@@ -1212,7 +1383,21 @@ function processLatestAIResponse(retryCount = 0) {
 
   processedMessages.add(lastMessage);
 
-  const toolCall = tryParseToolCall(text);
+  let toolCall = null;
+  try {
+    toolCall = tryParseToolCall(text);
+  } catch (err) {
+    if (err instanceof JsonToolParseError) {
+      console.error('[Cuckoo AI] 解析工具调用失败:', err.message, err.originalError);
+      sendToolResultToChat(
+        { toolName: '未知', callId: 'parse_error' },
+        { success: false, error: '工具调用 JSON 解析失败: ' + err.message + '，请检查格式并重新输出。' }
+      );
+      return;
+    } else {
+      throw err;
+    }
+  }
   if (toolCall) {
     // 验证 toolName 是否在工具库中
     const available = toolManager.tools.has(toolCall.toolName);
@@ -1231,12 +1416,12 @@ function processLatestAIResponse(retryCount = 0) {
   } else {
     console.log('[Cuckoo AI] 回复内容不是工具调用 JSON');
     // 内容疑似工具调用但解析失败 → 回传 AI 提示格式问题，让它修正后重新输出
-    if (text.includes('tool') || text.includes('file_')) {
-      sendToolResultToChat(
-        { toolName: '未知', callId: 'parse_failed' },
-        { success: false, error: '工具调用 JSON 解析失败，请检查 JSON 格式与转义（换行用\\n、双引号用\\"、反斜杠用\\\\），重新输出完整且合法的工具调用。' }
-      );
-    }
+    // if (text.includes('tool') || text.includes('file_')) {
+    //   sendToolResultToChat(
+    //     { toolName: '未知', callId: 'parse_failed' },
+    //     { success: false, error: '工具调用 JSON 解析失败，请检查 JSON 格式与转义（换行用\\n、双引号用\\"、反斜杠用\\\\），重新输出完整且合法的工具调用。' }
+    //   );
+    // }
   }
 }
 
@@ -1407,34 +1592,22 @@ function repairJsonString(str) {
 function tryParseToolCall(content) {
   if (!content || typeof content !== 'string') return null;
   const str = content.trim();
-
-  let parsed = null;
-
-  // 1. 尝试直接解析 JSON（纯 JSON 响应，含容错修复）
-  parsed = parseJsonWithRepair(str);
-
-  // 2. 提取代码块 ```json/tool ... ```
-  if (!parsed) {
-    const codeBlockMatch = str.match(/```(?:json|tool)?\s*\n?(\{[\s\S]*?\})\s*```/);
-    if (codeBlockMatch) {
-      const extracted = codeBlockMatch[1].trim();
-      parsed = parseJsonWithRepair(extracted);
-    }
-  }
-
-  // 3. 在文本中查找 JSON 对象（取第一个完整的 { ... }）
-  if (!parsed) {
-    const firstBrace = str.indexOf('{');
-    if (firstBrace !== -1) {
-      const candidate = extractJsonObject(str, firstBrace);
-      if (candidate) {
-        parsed = parseJsonWithRepair(candidate);
-      }
-    }
-  }
-
-  if (!parsed) {
+  console.log("tryParseToolCall:str",str)
+  // 检查是否以 ---jsontool 开头并结尾
+  if (!str.startsWith('@@@jsontool-start') || !str.endsWith('@@@jsontool-end')) {
     return null;
+  }
+
+  // 提取中间部分：去除开头的 ---jsontool 和结尾的 ```
+  let jsonStr = str.substring('@@@jsontool-start'.length);
+  jsonStr = jsonStr.substring(0, jsonStr.length - '@@@jsontool-end'.length).trim();
+  console.log("tryParseToolCall:jsonStr",str)
+  let parsed = null;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch (e) {
+    console.log('[Cuckoo AI] JSON 解析失败:', e.message);
+    throw new JsonToolParseError('JSON解析失败: ' + e.message, e);
   }
 
   // 支持多种字段名：toolName/tool, params/parameters/arguments
@@ -2130,6 +2303,8 @@ function updateProjectDirDisplay(dirPath) {
 // 监听主进程的目录更新事件
 ipcRenderer.on('project-dir-updated', (_event, dirPath) => {
   updateProjectDirDisplay(dirPath);
+  // 目录更新后刷新会话列表
+  renderSessions();
 });
 
 // 绑定修改按钮事件 - 直接绑定，阻止冒泡和默认行为
