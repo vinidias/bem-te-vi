@@ -1262,7 +1262,7 @@ function isAIResponseComplete() {
     }
 
     // 找不到停止按钮，说明可能还在生成中，或页面状态不确定
-    console.log('[Cuckoo AI] ⏳ 未找到停止按钮，回复可能未结束');
+    //console.log('[Cuckoo AI] ⏳ 未找到停止按钮，回复可能未结束');
     return false;
   } catch (err) {
     console.error('[Cuckoo AI] ❌ 检测 AI 完成状态出错:', err);
@@ -1277,7 +1277,7 @@ function isAIResponseComplete() {
 const processedMessages = new WeakSet();
 
 // 内容不完整时的最大重试次数（AI 生成长内容可能需 30 秒+）
-const MAX_RETRY_COUNT = 20;
+const MAX_RETRY_COUNT = 2;
 // 重试间隔（ms）
 const RETRY_INTERVAL = 2000;
 
