@@ -24,6 +24,7 @@ class FileEditTool extends Tool {
 
 注意事项：
 - old_string 必须精确匹配文件中的现有内容，建议截取足够长的唯一片段，避免匹配到多处。
+- old_string 先使用file_read获取文件，再生成old_string, 注意换行符是\n 还是\r\n
 - 如果替换后想要插入新内容到指定位置，可以把 old_string 设为锚点文本，new_string 设为 锚点+新内容。
 
 使用工具时的回复格式：
