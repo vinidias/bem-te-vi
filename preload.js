@@ -1383,7 +1383,21 @@ function processLatestAIResponse(retryCount = 0) {
 
   processedMessages.add(lastMessage);
 
-  const toolCall = tryParseToolCall(text);
+  let toolCall = null;
+  try {
+    toolCall = tryParseToolCall(text);
+  } catch (err) {
+    if (err instanceof JsonToolParseError) {
+      console.error('[Cuckoo AI] 解析工具调用失败:', err.message, err.originalError);
+      sendToolResultToChat(
+        { toolName: '未知', callId: 'parse_error' },
+        { success: false, error: '工具调用 JSON 解析失败: ' + err.message + '，请检查格式并重新输出。' }
+      );
+      return;
+    } else {
+      throw err;
+    }
+  }
   if (toolCall) {
     // 验证 toolName 是否在工具库中
     const available = toolManager.tools.has(toolCall.toolName);
@@ -1593,7 +1607,7 @@ function tryParseToolCall(content) {
     parsed = JSON.parse(jsonStr);
   } catch (e) {
     console.log('[Cuckoo AI] JSON 解析失败:', e.message);
-    return null;
+    throw new JsonToolParseError('JSON解析失败: ' + e.message, e);
   }
 
   // 支持多种字段名：toolName/tool, params/parameters/arguments
