@@ -2437,7 +2437,19 @@ function updateProjectDirDisplay(dirPath) {
       span.textContent = dirPath || '未选择';
     }
   }
+  // 控制整个section的显示隐藏
+  const section = document.querySelector('.cuckoo-project-dir-section');
+  if (section) {
+    if (dirPath && dirPath.trim() !== '') {
+      section.style.display = '';
+    } else {
+      section.style.display = 'none';
+    }
+  }
 }
+
+// 初始化隐藏（如果没有目录）
+updateProjectDirDisplay(null);
 
 // 监听主进程的目录更新事件
 ipcRenderer.on('project-dir-updated', (_event, dirPath) => {
