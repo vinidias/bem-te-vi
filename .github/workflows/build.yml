@@ -18,6 +18,8 @@ jobs:
           node-version: 18
       - run: npm install
       - run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-build
@@ -32,6 +34,8 @@ jobs:
           node-version: 18
       - run: npm install
       - run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
           name: macOS-build
@@ -48,6 +52,7 @@ jobs:
       - run: npm run build
         env:
           DEBUG: electron-builder
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
           name: Linux-build
