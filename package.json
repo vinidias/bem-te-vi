@@ -48,7 +48,7 @@
   "os": ["win32", "darwin", "linux"],
   "build": {
     "appId": "com.cuckoo.cuckoo-code",
-    "productName": "Cuckoo Code",
+    "productName": "Cuckoo-Code",
     "directories": {
       "output": "dist"
     },
