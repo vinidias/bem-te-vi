@@ -5,7 +5,11 @@
   "main": "main.js",
   "scripts": {
     "start": "chcp 65001 > nul && electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:win:nsis": "electron-builder --win --config.win.target=nsis",
+    "build:win:portable": "electron-builder --win --config.win.target=portable"
   },
   "keywords": [
     "deepseek",
@@ -18,19 +22,20 @@
   ],
   "author": {
     "name": "Cuckoo AI Pro Contributors",
-    "url": "https://github.com/your-username/cuckoo-ai-pro"
+    "url": "https://github.com/wangyongpeng90/cuckoo-code"
   },
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/cuckoo-ai-pro.git"
+    "url": "git+https://github.com/wangyongpeng90/cuckoo-code.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/cuckoo-ai-pro/issues"
+    "url": "https://github.com/wangyongpeng90/cuckoo-code/issues"
   },
-  "homepage": "https://github.com/your-username/cuckoo-ai-pro#readme",
+  "homepage": "https://github.com/wangyongpeng90/cuckoo-code#readme",
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^24.13.3"
   },
   "dependencies": {
     "mysql2": "^3.23.2"
@@ -38,5 +43,49 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "os": ["win32", "darwin", "linux"]
+  "os": [
+    "win32",
+    "darwin",
+    "linux"
+  ],
+  "build": {
+    "appId": "com.cuckoo.cuckoo-ai-pro",
+    "productName": "Cuckoo AI Pro",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/.bin",
+      "!dist",
+      "!build",
+      "!*.md",
+      "!LICENSE"
+    ],
+    "extraResources": [
+      {
+        "from": "tools",
+        "to": "tools",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  }
 }
