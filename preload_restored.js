@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 const OVERLAY_HTML = `
 <div id="cuckoo-overlay" class="cuckoo-overlay cuckoo-hidden">
   <div class="cuckoo-header">
-    <span class="cuckoo-title">🤖 Cuckoo AI - 命令检测</span>
+    <span class="cuckoo-title">🤖 Cuckoo Code - 命令检测</span>
     <button id="cuckoo-btn-minimize" class="cuckoo-btn-icon">—</button>
   </div>
   <div class="cuckoo-body">
@@ -46,7 +46,7 @@ const OVERLAY_HTML = `
   </div>
 </div>
 <div id="cuckoo-status-badge">
-  <span id="cuckoo-status-dot"></span> Cuckoo AI 运行中
+  <span id="cuckoo-status-dot"></span> Cuckoo Code 运行中
 </div>
 `;
 
@@ -330,12 +330,12 @@ async function handleInitProject() {
   try {
     const result = await window.electronAPI.initProject();
     if (result.success) {
-      console.log('[Cuckoo AI] 初始化成功:', result.message);
+      console.log('[Cuckoo Code] 初始化成功:', result.message);
     } else {
       alert(result.message || '初始化失败');
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 初始化出错:', err.message);
+    console.error('[Cuckoo Code] 初始化出错:', err.message);
     alert('初始化出错: ' + err.message);
   } finally {
     if (btn) {
@@ -440,12 +440,12 @@ async function handleInitProject() {
   try {
     // 调用主进程的 init-project IPC
     const result = await window.electronAPI.initProject();
-    console.log('[Cuckoo AI] 初始化结果:', result);
+    console.log('[Cuckoo Code] 初始化结果:', result);
     if (result && !result.success) {
       alert(result.message || '初始化失败');
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 初始化项目失败:', err);
+    console.error('[Cuckoo Code] 初始化项目失败:', err);
     alert('初始化失败: ' + err.message);
   } finally {
     if (initBtn) {
@@ -563,7 +563,7 @@ let pendingInitialPrompt = false; // 是否有待发送的初始提示（目录�
 
 // 监听主进程发送的 systemPrompt
 ipcRenderer.on('system-prompt', (_event, content) => {
-  console.log('[Cuckoo AI] 收到 system prompt, 长度:', content?.length);
+  console.log('[Cuckoo Code] 收到 system prompt, 长度:', content?.length);
   systemPromptContent = content || '';
   pendingSystemPrompt = true;
   // 如果当前已有新的空会话输入框，立即发送
@@ -571,21 +571,21 @@ ipcRenderer.on('system-prompt', (_event, content) => {
     try {
       const input = findInputArea();
       if (input) {
-        console.log('[Cuckoo AI] 页面已就绪，直接发送 system prompt');
+        console.log('[Cuckoo Code] 页面已就绪，直接发送 system prompt');
         sendSystemPromptToInput();
       } else {
         // 等待输入框出现
         waitForInputAndSend();
       }
     } catch (e) {
-      console.log('[Cuckoo AI] 当前无法找到输入框，等待后续触发');
+      console.log('[Cuckoo Code] 当前无法找到输入框，等待后续触发');
     }
   }
 });
 
 // 监听主进程发送的初始提示（目录树+systemPrompt）
 ipcRenderer.on('initial-prompt', (_event, content) => {
-  console.log('[Cuckoo AI] 收到初始提示, 长度:', content?.length);
+  console.log('[Cuckoo Code] 收到初始提示, 长度:', content?.length);
   initialPromptContent = content || '';
   pendingInitialPrompt = true;
   // 如果当前已有新的空会话输入框，立即发送
@@ -593,14 +593,14 @@ ipcRenderer.on('initial-prompt', (_event, content) => {
     try {
       const input = findInputArea();
       if (input) {
-        console.log('[Cuckoo AI] 页面已就绪，直接发送初始提示');
+        console.log('[Cuckoo Code] 页面已就绪，直接发送初始提示');
         sendInitialPromptToInput();
       } else {
         // 等待输入框出现
         waitForInitialPromptAndSend();
       }
     } catch (e) {
-      console.log('[Cuckoo AI] 当前无法找到输入框，等待后续触发');
+      console.log('[Cuckoo Code] 当前无法找到输入框，等待后续触发');
     }
   }
 });
@@ -667,7 +667,7 @@ function sendSystemPromptToInput() {
 
   const input = findInputArea();
   if (!input) {
-    console.log('[Cuckoo AI] 找不到输入框');
+    console.log('[Cuckoo Code] 找不到输入框');
     return false;
   }
 
@@ -678,12 +678,12 @@ function sendSystemPromptToInput() {
       input.value = systemPromptContent;
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log('[Cuckoo AI] system prompt 已填入输入框');
+      console.log('[Cuckoo Code] system prompt 已填入输入框');
     } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
       input.focus();
       document.execCommand('selectAll', false, null);
       document.execCommand('insertText', false, systemPromptContent);
-      console.log('[Cuckoo AI] system prompt 已填入 contentEditable');
+      console.log('[Cuckoo Code] system prompt 已填入 contentEditable');
     }
 
     // 触发发送（等待一小会儿确保输入完成）
@@ -694,7 +694,7 @@ function sendSystemPromptToInput() {
 
     return true;
   } catch (err) {
-    console.error('[Cuckoo AI] 发送 system prompt 失败:', err.message);
+    console.error('[Cuckoo Code] 发送 system prompt 失败:', err.message);
     return false;
   }
 }
@@ -710,7 +710,7 @@ function sendInitialPromptToInput() {
 
   const input = findInputArea();
   if (!input) {
-    console.log('[Cuckoo AI] 找不到输入框');
+    console.log('[Cuckoo Code] 找不到输入框');
     return false;
   }
 
@@ -721,12 +721,12 @@ function sendInitialPromptToInput() {
       input.value = initialPromptContent;
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log('[Cuckoo AI] 初始提示 已填入输入框');
+      console.log('[Cuckoo Code] 初始提示 已填入输入框');
     } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
       input.focus();
       document.execCommand('selectAll', false, null);
       document.execCommand('insertText', false, initialPromptContent);
-      console.log('[Cuckoo AI] 初始提示 已填入 contentEditable');
+      console.log('[Cuckoo Code] 初始提示 已填入 contentEditable');
     }
 
     // 触发发送（等待一小会儿确保输入完成）
@@ -737,7 +737,7 @@ function sendInitialPromptToInput() {
 
     return true;
   } catch (err) {
-    console.error('[Cuckoo AI] 发送初始提示 失败:', err.message);
+    console.error('[Cuckoo Code] 发送初始提示 失败:', err.message);
     return false;
   }
 }
@@ -753,14 +753,14 @@ function waitForInputAndSend() {
     attempts++;
     if (attempts > maxAttempts) {
       clearInterval(checkInterval);
-      console.log('[Cuckoo AI] 等待输入框超时，不再尝试');
+      console.log('[Cuckoo Code] 等待输入框超时，不再尝试');
       pendingSystemPrompt = false;
       return;
     }
 
     if (findInputArea()) {
       clearInterval(checkInterval);
-      console.log('[Cuckoo AI] 找到输入框，发送 system prompt');
+      console.log('[Cuckoo Code] 找到输入框，发送 system prompt');
       sendSystemPromptToInput();
     }
   }, 500);
@@ -777,14 +777,14 @@ function waitForInitialPromptAndSend() {
     attempts++;
     if (attempts > maxAttempts) {
       clearInterval(checkInterval);
-      console.log('[Cuckoo AI] 等待输入框超时，不再尝试');
+      console.log('[Cuckoo Code] 等待输入框超时，不再尝试');
       pendingInitialPrompt = false;
       return;
     }
 
     if (findInputArea()) {
       clearInterval(checkInterval);
-      console.log('[Cuckoo AI] 找到输入框，发送初始提示');
+      console.log('[Cuckoo Code] 找到输入框，发送初始提示');
       sendInitialPromptToInput();
     }
   }, 500);
@@ -816,7 +816,7 @@ function triggerSend(input) {
     const btn = document.querySelector(sel);
     if (btn && isInputVisible(btn)) {
       btn.click();
-      console.log('[Cuckoo AI] 已点击发送按钮');
+      console.log('[Cuckoo Code] 已点击发送按钮');
       return;
     }
   }
@@ -825,9 +825,9 @@ function triggerSend(input) {
   if (input) {
     const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true });
     input.dispatchEvent(enterEvent);
-    console.log('[Cuckoo AI] 已通过键盘 Enter 发送');
+    console.log('[Cuckoo Code] 已通过键盘 Enter 发送');
   } else {
-    console.log('[Cuckoo AI] 无法找到发送按钮或输入框');
+    console.log('[Cuckoo Code] 无法找到发送按钮或输入框');
   }
 }
 
@@ -880,16 +880,16 @@ function findNewSessionButton() {
 function setupNewSessionListener() {
   const btn = findNewSessionButton();
   if (!btn) {
-    console.log('[Cuckoo AI] 未找到新建会话按钮，5秒后重试');
+    console.log('[Cuckoo Code] 未找到新建会话按钮，5秒后重试');
     setTimeout(setupNewSessionListener, 5000);
     return;
   }
 
-  console.log('[Cuckoo AI] 找到新建会话按钮:', btn.tagName, btn.textContent?.trim() || btn.getAttribute('title') || '(无文字)');
+  console.log('[Cuckoo Code] 找到新建会话按钮:', btn.tagName, btn.textContent?.trim() || btn.getAttribute('title') || '(无文字)');
 
   // 监听点击事件
   const clickHandler = () => {
-    console.log('[Cuckoo AI] 检测到新建会话按钮点击');
+    console.log('[Cuckoo Code] 检测到新建会话按钮点击');
 
     // 重置状态
     pendingSystemPrompt = true;
@@ -932,4 +932,4 @@ if (document.readyState === 'loading') {
   init();
 }
 
-console.log('[Cuckoo AI] Preload 已加载');
+console.log('[Cuckoo Code] Preload 已加载');

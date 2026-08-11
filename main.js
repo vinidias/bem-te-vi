@@ -45,7 +45,7 @@ function readSessionStore() {
       return JSON.parse(data);
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 读取会话存储失败:', err.message);
+    console.error('[Cuckoo Code] 读取会话存储失败:', err.message);
   }
   return {};
 }
@@ -56,9 +56,9 @@ function readSessionStore() {
 function writeSessionStore(store) {
   try {
     fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), 'utf-8');
-    console.log('[Cuckoo AI] 会话存储已保存');
+    console.log('[Cuckoo Code] 会话存储已保存');
   } catch (err) {
-    console.error('[Cuckoo AI] 写入会话存储失败:', err.message);
+    console.error('[Cuckoo Code] 写入会话存储失败:', err.message);
   }
 }
 
@@ -103,11 +103,11 @@ function handleUrlChange(url) {
   const sessionId = extractSessionIdFromUrl(url);
   if (sessionId) {
     currentSessionId = sessionId;
-    console.log(`[Cuckoo AI] 当前会话ID: ${sessionId}`);
-    
+    console.log(`[Cuckoo Code] 当前会话ID: ${sessionId}`);
+
     // 检查是否有暂存的项目目录需要绑定到当前会话
     if (pendingProjectDir) {
-      console.log(`[Cuckoo AI] 发现暂存项目目录 ${pendingProjectDir}，立即绑定到会话 ${sessionId}`);
+      console.log(`[Cuckoo Code] 发现暂存项目目录 ${pendingProjectDir}，立即绑定到会话 ${sessionId}`);
       saveSessionDirMapping(sessionId, pendingProjectDir);
       selectedProjectDir = pendingProjectDir;
       pendingProjectDir = null;
@@ -115,15 +115,15 @@ function handleUrlChange(url) {
         mainWindow.webContents.send('project-dir-updated', selectedProjectDir);
         mainWindow.webContents.send('session-restored', { sessionId, projectDir: selectedProjectDir });
       }
-      console.log(`[Cuckoo AI] 暂存目录已绑定到会话 ${sessionId}`);
+      console.log(`[Cuckoo Code] 暂存目录已绑定到会话 ${sessionId}`);
       return;
     }
-    
+
     // 尝试从存储中恢复项目目录
     const restoredDir = getProjectDirBySessionId(sessionId);
     if (restoredDir) {
       selectedProjectDir = restoredDir;
-      console.log(`[Cuckoo AI] 已恢复项目目录: ${restoredDir}`);
+      console.log(`[Cuckoo Code] 已恢复项目目录: ${restoredDir}`);
       // 通知渲染进程恢复成功
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('session-restored', { sessionId, projectDir: restoredDir });
@@ -131,7 +131,7 @@ function handleUrlChange(url) {
         mainWindow.webContents.send('project-dir-updated', restoredDir);
       }
     } else {
-      console.log(`[Cuckoo AI] 会话 ${sessionId} 未找到关联的项目目录`);
+      console.log(`[Cuckoo Code] 会话 ${sessionId} 未找到关联的项目目录`);
       // 清空当前目录
       selectedProjectDir = null;
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -143,7 +143,7 @@ function handleUrlChange(url) {
     // 非会话页面（如首页），清空状态
     currentSessionId = null;
     selectedProjectDir = null;
-    console.log('[Cuckoo AI] 未检测到会话ID，已清空项目目录');
+    console.log('[Cuckoo Code] 未检测到会话ID，已清空项目目录');
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('project-dir-updated', null);
     }
@@ -156,7 +156,7 @@ function handleUrlChange(url) {
 function tryRestoreSessionFromUrl() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   const url = mainWindow.webContents.getURL();
-  console.log('[Cuckoo AI] 尝试恢复会话，当前URL:', url);
+  console.log('[Cuckoo Code] 尝试恢复会话，当前URL:', url);
   handleUrlChange(url);
 }
 
@@ -173,7 +173,7 @@ let pendingProjectDir = null;
 const SESSION_DIR = 'cuckoo-ai-pro-session';
 app.setPath('userData', path.join(app.getPath('appData'), SESSION_DIR));
 
-console.log('[Cuckoo AI] Session 数据目录:', app.getPath('userData'));
+console.log('[Cuckoo Code] Session 数据目录:', app.getPath('userData'));
 
 /**
  * 递归获取目录树结构字符串
@@ -228,7 +228,7 @@ function getDirectoryTree(dir, prefix = '') {
 
     return tree;
   } catch (err) {
-    console.error('[Cuckoo AI] 读取目录失败:', err.message);
+    console.error('[Cuckoo Code] 读取目录失败:', err.message);
     return `${prefix}└── [无法读取目录: ${dir}]\n`;
   }
 }
@@ -247,12 +247,12 @@ function initProject(skipPrompt = false) {
   });
 
   if (!result || result.length === 0) {
-    console.log('[Cuckoo AI] 用户取消了目录选择');
+    console.log('[Cuckoo Code] 用户取消了目录选择');
     return { success: false, message: '用户取消了目录选择' };
   }
 
   const selectedDir = result[0];
-  console.log('[Cuckoo AI] 用户选择目录:', selectedDir);
+  console.log('[Cuckoo Code] 用户选择目录:', selectedDir);
 
   // 保存选中的项目目录
   selectedProjectDir = selectedDir;
@@ -261,7 +261,7 @@ function initProject(skipPrompt = false) {
   // 如果当前有会话ID，保存映射
   if (currentSessionId) {
     saveSessionDirMapping(currentSessionId, selectedDir);
-    console.log(`[Cuckoo AI] 已保存会话 ${currentSessionId} -> ${selectedDir}`);
+    console.log(`[Cuckoo Code] 已保存会话 ${currentSessionId} -> ${selectedDir}`);
   } else {
     // 如果未能获取会话ID，尝试从当前URL提取
     let sessionId = null;
@@ -272,11 +272,11 @@ function initProject(skipPrompt = false) {
     if (sessionId) {
       currentSessionId = sessionId;
       saveSessionDirMapping(sessionId, selectedDir);
-      console.log(`[Cuckoo AI] 从URL提取会话ID并保存: ${sessionId} -> ${selectedDir}`);
+      console.log(`[Cuckoo Code] 从URL提取会话ID并保存: ${sessionId} -> ${selectedDir}`);
     } else {
       // 无法获取会话ID，暂存项目目录，等待URL变化后绑定
       pendingProjectDir = selectedDir;
-      console.log(`[Cuckoo AI] 暂存项目目录 ${selectedDir}，等待会话ID出现后绑定`);
+      console.log(`[Cuckoo Code] 暂存项目目录 ${selectedDir}，等待会话ID出现后绑定`);
     }
   }
 
@@ -297,10 +297,10 @@ function initProject(skipPrompt = false) {
     if (fs.existsSync(SYSTEM_PROMPT_PATH)) {
       promptContent = fs.readFileSync(SYSTEM_PROMPT_PATH, 'utf-8');
     } else {
-      console.warn('[Cuckoo AI] systemPrompt.md 不存在');
+      console.warn('[Cuckoo Code] systemPrompt.md 不存在');
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 读取 systemPrompt.md 失败:', err.message);
+    console.error('[Cuckoo Code] 读取 systemPrompt.md 失败:', err.message);
   }
 
   // 读取工具使用规则
@@ -311,7 +311,7 @@ function initProject(skipPrompt = false) {
       rulesContent = fs.readFileSync(RULES_PATH, 'utf-8');
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 读取 rules.md 失败:', err.message);
+    console.error('[Cuckoo Code] 读取 rules.md 失败:', err.message);
   }
 
   // 获取工具库描述
@@ -327,9 +327,9 @@ function initProject(skipPrompt = false) {
   if (fs.existsSync(cuckooMdPath)) {
     try {
       projectIntro = fs.readFileSync(cuckooMdPath, 'utf-8');
-      console.log('[Cuckoo AI] 已读取 CUCKOO.md 内容');
+      console.log('[Cuckoo Code] 已读取 CUCKOO.md 内容');
     } catch (err) {
-      console.error('[Cuckoo AI] 读取 CUCKOO.md 失败:', err.message);
+      console.error('[Cuckoo Code] 读取 CUCKOO.md 失败:', err.message);
     }
   }
 
@@ -338,10 +338,10 @@ function initProject(skipPrompt = false) {
   try {
     if (fs.existsSync(selectedDir)) {
       directoryTree = getDirectoryTree(selectedDir);
-      console.log('[Cuckoo AI] 已获取目录树');
+      console.log('[Cuckoo Code] 已获取目录树');
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 获取目录树失败:', err.message);
+    console.error('[Cuckoo Code] 获取目录树失败:', err.message);
   }
 
   const combined = `
@@ -359,7 +359,7 @@ ${projectIntro}` : ''}
 ---
 如果你觉得需要使用工具，请直接回答工具指令及入参，其他内容不需要回复`;
 
-  console.log('[Cuckoo AI] 准备发送初始提示（不含目录树），长度:', combined.length);
+  console.log('[Cuckoo Code] 准备发送初始提示（不含目录树），长度:', combined.length);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('initial-prompt', combined);
   }
@@ -391,15 +391,15 @@ function sendSystemPrompt() {
   try {
     if (fs.existsSync(SYSTEM_PROMPT_PATH)) {
       const content = fs.readFileSync(SYSTEM_PROMPT_PATH, 'utf-8');
-      console.log('[Cuckoo AI] systemPrompt.md 已读取，长度:', content.length, '字节');
+      console.log('[Cuckoo Code] systemPrompt.md 已读取，长度:', content.length, '字节');
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('system-prompt', content);
       }
     } else {
-      console.log('[Cuckoo AI] systemPrompt.md 不存在，跳过');
+      console.log('[Cuckoo Code] systemPrompt.md 不存在，跳过');
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 读取 systemPrompt.md 失败:', err.message);
+    console.error('[Cuckoo Code] 读取 systemPrompt.md 失败:', err.message);
   }
 }
 
@@ -419,8 +419,8 @@ function createWindow() {
 
   // 检查 preload 文件是否存在
   const preloadPath = path.join(__dirname, 'preload.js');
-  console.log('[Cuckoo AI Main] preload 路径:', preloadPath);
-  console.log('[Cuckoo AI Main] preload 存在:', fs.existsSync(preloadPath));
+  console.log('[Cuckoo Code Main] preload 路径:', preloadPath);
+  console.log('[Cuckoo Code Main] preload 存在:', fs.existsSync(preloadPath));
 
   // 转发渲染进程的 console.log 到主进程
   mainWindow.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
@@ -449,13 +449,13 @@ function createWindow() {
 
   // 监听导航事件，检测URL变化（页面跳转/新会话）
   mainWindow.webContents.on('did-navigate', (_event, url) => {
-    console.log('[Cuckoo AI] 页面导航:', url);
+    console.log('[Cuckoo Code] 页面导航:', url);
     handleUrlChange(url);
   });
 
   // 监听页面内导航（SPA路由变化）
   mainWindow.webContents.on('did-navigate-in-page', (_event, url) => {
-    console.log('[Cuckoo AI] 页面内导航:', url);
+    console.log('[Cuckoo Code] 页面内导航:', url);
     handleUrlChange(url);
   });
 
@@ -490,7 +490,7 @@ ipcMain.handle('list-sessions', async () => {
   }
   const store = readSessionStore();
   const sessions = Object.keys(store).filter(sessionId => store[sessionId] === selectedProjectDir);
-  console.log(`[Cuckoo AI] 列出会话，项目目录 ${selectedProjectDir} 关联 ${sessions.length} 个会话`);
+  console.log(`[Cuckoo Code] 列出会话，项目目录 ${selectedProjectDir} 关联 ${sessions.length} 个会话`);
   return { success: true, sessions };
 });
 
@@ -503,12 +503,12 @@ ipcMain.handle('navigate-session', async (_event, { sessionId }) => {
     return { success: false, error: '主窗口已关闭' };
   }
   const url = `https://chat.deepseek.com/a/chat/s/${sessionId}`;
-  console.log(`[Cuckoo AI] 导航到会话: ${url}`);
+  console.log(`[Cuckoo Code] 导航到会话: ${url}`);
   try {
     await mainWindow.webContents.loadURL(url);
     return { success: true };
   } catch (err) {
-    console.error('[Cuckoo AI] 导航失败:', err.message);
+    console.error('[Cuckoo Code] 导航失败:', err.message);
     return { success: false, error: err.message };
   }
 });
@@ -572,7 +572,7 @@ ipcMain.handle('execute-command', async (_event, { command, id }) => {
  * 支持 AI 调用工具库中的工具
  */
 ipcMain.handle('execute-tool', async (_event, { toolName, params, callId }) => {
-  console.log(`[Cuckoo AI] 执行工具: ${toolName}, projectDir=${selectedProjectDir || '(未初始化,相对路径将解析到系统目录)'}`, JSON.stringify(params));
+  console.log(`[Cuckoo Code] 执行工具: ${toolName}, projectDir=${selectedProjectDir || '(未初始化,相对路径将解析到系统目录)'}`, JSON.stringify(params));
   try {
     // 如果有选中的项目目录，将其作为工作目录传递给工具
     const paramsWithContext = {
@@ -581,13 +581,13 @@ ipcMain.handle('execute-tool', async (_event, { toolName, params, callId }) => {
     };
     const result = await toolRegistry.execute(toolName, paramsWithContext);
     if (result.success) {
-      console.log(`[Cuckoo AI] ✅ 工具 ${toolName} 执行成功:`, JSON.stringify(result.data));
+      console.log(`[Cuckoo Code] ✅ 工具 ${toolName} 执行成功:`, JSON.stringify(result.data));
     } else {
-      console.log(`[Cuckoo AI] ❌ 工具 ${toolName} 执行失败:`, result.error);
+      console.log(`[Cuckoo Code] ❌ 工具 ${toolName} 执行失败:`, result.error);
     }
     return { callId, success: result.success, data: result.data, error: result.error };
   } catch (err) {
-    console.error(`[Cuckoo AI] 工具 ${toolName} 执行异常:`, err);
+    console.error(`[Cuckoo Code] 工具 ${toolName} 执行异常:`, err);
     return { callId, success: false, error: err.message };
   }
 });

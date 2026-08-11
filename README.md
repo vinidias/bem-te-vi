@@ -1,4 +1,4 @@
-# 🧠 Cuckoo AI Pro
+# 🧠 Cuckoo Code
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Electron](https://img.shields.io/badge/Electron-33.0.0-47848F?logo=electron&logoColor=white)](https://electronjs.org/)
@@ -7,7 +7,7 @@
 
 **DeepSeek 桌面应用**——内嵌浏览器，自动识别 AI 回复中的 Shell 命令和工具调用，经用户确认后执行。
 
-Cuckoo AI Pro 是一个 Electron 应用，在 Chromium 窗口中嵌入 [chat.deepseek.com](https://chat.deepseek.com)，并注入一个侧边覆盖层，拦截 AI 生成的内容，提取其中的命令或工具调用，让用户安全地确认和执行。
+Cuckoo Code 是一个 Electron 应用，在 Chromium 窗口中嵌入 [chat.deepseek.com](https://chat.deepseek.com)，并注入一个侧边覆盖层，拦截 AI 生成的内容，提取其中的命令或工具调用，让用户安全地确认和执行。
 
 ---
 
@@ -33,8 +33,8 @@ Cuckoo AI Pro 是一个 Electron 应用，在 Chromium 窗口中嵌入 [chat.dee
 
 ```bash
 # 克隆仓库（将 your-username 替换为你的 GitHub 用户名）
-git clone https://github.com/your-username/cuckoo-ai-pro.git
-cd cuckoo-ai-pro
+git clone https://github.com/wangyongpeng90/cuckoo-code.git
+cd cuckoo-code
 
 # 安装依赖
 npm install

@@ -12,7 +12,7 @@
 - `Ctrl+Shift+C` 快捷键切换覆盖层
 - 项目初始化功能，自动生成目录树并注入系统提示词
 - 支持危险命令检测与额外警告
-- 会话持久化（cookies/localStorage 保存到 `%APPDATA%/cuckoo-ai-pro-session`）
+- 会话持久化（cookies/localStorage 保存到 `%APPDATA%/cuckoo-code-session`）
 
 ### Security
 - 命令执行前必须用户确认

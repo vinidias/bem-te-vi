@@ -13,7 +13,7 @@ npm start
 
 ## 架构
 
-**Cuckoo AI Pro** 是一个 Electron 桌面应用，通过 `BrowserWindow.loadURL` 将 chat.deepseek.com 嵌入到 Chromium 窗口中。它注入一个侧边覆盖层面板，用于拦截、确认并执行 AI 回复中检测到的 shell 命令和工具调用。AI 通过系统提示词被引导使用特定的 JSON 工具调用格式。
+**Cuckoo Code** 是一个 Electron 桌面应用，通过 `BrowserWindow.loadURL` 将 chat.deepseek.com 嵌入到 Chromium 窗口中。它注入一个侧边覆盖层面板，用于拦截、确认并执行 AI 回复中检测到的 shell 命令和工具调用。AI 通过系统提示词被引导使用特定的 JSON 工具调用格式。
 
 ### 进程模型
 

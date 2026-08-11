@@ -1,4 +1,4 @@
-# Contributing to Cuckoo AI Pro
+# Contributing to Cuckoo Code
 
 感谢你考虑为 Cuckoo AI Pro 贡献力量！我们欢迎任何形式的贡献，包括但不限于：
 

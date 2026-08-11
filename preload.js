@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-console.log('[Cuckoo AI] Preload script 开始执行');
+console.log('[Cuckoo Code] Preload script 开始执行');
 
 // ========== 统一工具系统 (内联到 preload) ==========
 
@@ -204,7 +204,7 @@ class UnifiedToolManager {
     if (!parsed || !parsed.toolName) return null;
     // 验证工具是否存在（如果工具不存在，则忽略）
     if (!this.tools.has(parsed.toolName)) {
-      console.warn(`[Cuckoo AI] 忽略未知工具调用: ${parsed.toolName}`);
+      console.warn(`[Cuckoo Code] 忽略未知工具调用: ${parsed.toolName}`);
       return null;
     }
     return {
@@ -363,7 +363,7 @@ let electronAPI = {
 try {
   contextBridge.exposeInMainWorld('electronAPI', electronAPI);
 } catch (err) {
-  console.error('[Cuckoo AI] contextBridge.exposeInMainWorld 失败:', err);
+  console.error('[Cuckoo Code] contextBridge.exposeInMainWorld 失败:', err);
 }
 
 // 无论 contextBridge 是否成功，都直接挂载到 window 作为备选
@@ -431,7 +431,7 @@ const OVERLAY_HTML = `
   </div>
 </div>
 <div id="cuckoo-status-badge">
-  <span id="cuckoo-status-dot"></span> Cuckoo AI 运行中
+  <span id="cuckoo-status-dot"></span> Cuckoo Code 运行中
 </div>
 `;
 
@@ -887,7 +887,7 @@ function handleGenerateDoc() {
       triggerSend(input);
     }, 300);
   } catch (err) {
-    console.error('[Cuckoo AI] 发送生成文档消息失败:', err.message);
+    console.error('[Cuckoo Code] 发送生成文档消息失败:', err.message);
     alert('发送消息失败: ' + err.message);
   }
 }
@@ -1056,7 +1056,7 @@ async function renderSessions() {
       });
     });
   } catch (err) {
-    console.error('[Cuckoo AI] 渲染会话列表失败:', err);
+    console.error('[Cuckoo Code] 渲染会话列表失败:', err);
     listContainer.innerHTML = '<div class="cuckoo-session-empty">加载出错</div>';
   }
 }
@@ -1075,7 +1075,7 @@ async function handleNavigateSession(sessionId) {
 
     const result = await window.electronAPI.navigateSession(sessionId);
     if (result.success) {
-      console.log('[Cuckoo AI] 已导航到会话:', sessionId);
+      console.log('[Cuckoo Code] 已导航到会话:', sessionId);
       // 导航成功后，覆盖层可以保持打开，但用户可能会看到页面跳转
       // 小延迟后刷新会话列表
       setTimeout(renderSessions, 2000);
@@ -1083,7 +1083,7 @@ async function handleNavigateSession(sessionId) {
       alert('导航失败: ' + (result.error || '未知错误'));
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 导航到会话失败:', err);
+    console.error('[Cuckoo Code] 导航到会话失败:', err);
     alert('导航失败: ' + err.message);
   }
 }
@@ -1108,7 +1108,7 @@ async function handleInitProject() {
       alert(result.message || '初始化失败');
     }
   } catch (err) {
-    console.error('[Cuckoo AI] 初始化项目失败:', err);
+    console.error('[Cuckoo Code] 初始化项目失败:', err);
     alert('初始化失败: ' + err.message);
   } finally {
     if (initBtn) {
@@ -1177,7 +1177,7 @@ async function handleManualParse() {
 
     alert(`手动解析完成，共执行 ${toolCalls.length} 个工具调用`);
   } catch (err) {
-    console.error('[Cuckoo AI] 手动解析出错:', err);
+    console.error('[Cuckoo Code] 手动解析出错:', err);
     alert('手动解析出错: ' + err.message);
   } finally {
     if (btn) {
@@ -1380,15 +1380,15 @@ function isAIResponseComplete() {
     // 如果能在 DOM 中找到 disabled 的停止按钮，则视为回复结束
     const stopBtn = document.querySelector(STOP_BTN_SELECTOR);
     if (stopBtn) {
-      console.log('[Cuckoo AI] ✅ 检测到停止按钮(disabled)，回复已结束');
+      console.log('[Cuckoo Code] ✅ 检测到停止按钮(disabled)，回复已结束');
       return true;
     }
 
     // 找不到停止按钮，说明可能还在生成中，或页面状态不确定
-    console.log('[Cuckoo AI] ⏳ 未找到停止按钮，回复可能未结束');
+    console.log('[Cuckoo Code] ⏳ 未找到停止按钮，回复可能未结束');
     return false;
   } catch (err) {
-    console.error('[Cuckoo AI] ❌ 检测 AI 完成状态出错:', err);
+    console.error('[Cuckoo Code] ❌ 检测 AI 完成状态出错:', err);
     // 出错时保守返回 true，避免永远不处理
     return true;
   }
@@ -1450,7 +1450,7 @@ function isJsonBalanced(str) {
 function processLatestAIResponse(retryCount = 0) {
   const messages = document.querySelectorAll('.ds-message');
   if (messages.length === 0) {
-    console.log('[Cuckoo AI] 未找到 .ds-message 节点');
+    console.log('[Cuckoo Code] 未找到 .ds-message 节点');
     return;
   }
 
@@ -1458,7 +1458,7 @@ function processLatestAIResponse(retryCount = 0) {
   const lastMessage = messages[messages.length - 1];
   const markdown = lastMessage.querySelector(':scope > .ds-markdown');
   if (!markdown) {
-    console.log('[Cuckoo AI] 最新消息中没有 .ds-markdown');
+    console.log('[Cuckoo Code] 最新消息中没有 .ds-markdown');
     return;
   }
 
@@ -1471,20 +1471,20 @@ function processLatestAIResponse(retryCount = 0) {
   const codeEl = markdown.querySelector('pre code');
   if (codeEl) {
     text = (codeEl.textContent || codeEl.innerText || '').trim();
-    console.log('[Cuckoo AI] 提取方式: pre code 元素');
+    console.log('[Cuckoo Code] 提取方式: pre code 元素');
   } else {
     // 无代码块：克隆节点并剔除可能的工具栏元素
     const clone = markdown.cloneNode(true);
     clone.querySelectorAll('button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"], [class*="lang"], [class*="header"]').forEach(el => el.remove());
     text = (clone.textContent || clone.innerText || '').trim();
-    console.log('[Cuckoo AI] 提取方式: 克隆节点(剔除工具栏)');
+    console.log('[Cuckoo Code] 提取方式: 克隆节点(剔除工具栏)');
   }
 
   // 完整打印：长度 + 原文 + 转义形式（JSON.stringify 显示 \n 而非真实换行，方便确认完整性）
-  console.log('[Cuckoo AI] 回复文本长度: ' + text.length);
-  console.log('[Cuckoo AI] 回复完整内容(原文):');
+  console.log('[Cuckoo Code] 回复文本长度: ' + text.length);
+  console.log('[Cuckoo Code] 回复完整内容(原文):');
   console.log(text);
-  console.log('[Cuckoo AI] 回复完整内容(转义显示):');
+  console.log('[Cuckoo Code] 回复完整内容(转义显示):');
   console.log(JSON.stringify(text));
 
   if (!text) return;
@@ -1492,11 +1492,11 @@ function processLatestAIResponse(retryCount = 0) {
   // 内容不完整（疑似流式输出未真正结束）：延迟重试，避免处理截断的 JSON
   if (!isJsonBalanced(text)) {
     if (retryCount < MAX_RETRY_COUNT) {
-      console.log('[Cuckoo AI] ⏳ JSON 不完整(疑似流式未结束)，' + (retryCount + 1) + '/' + MAX_RETRY_COUNT + ' 次延迟重试, 当前长度=' + text.length + '...');
+      console.log('[Cuckoo Code] ⏳ JSON 不完整(疑似流式未结束)，' + (retryCount + 1) + '/' + MAX_RETRY_COUNT + ' 次延迟重试, 当前长度=' + text.length + '...');
       setTimeout(() => processLatestAIResponse(retryCount + 1), RETRY_INTERVAL);
       return; // 不标记 processed，允许重试
     }
-    console.log('[Cuckoo AI] ⚠️ JSON 持续不完整（20次重试仍截断），放弃本次处理，当前长度=' + text.length);
+    console.log('[Cuckoo Code] ⚠️ JSON 持续不完整（20次重试仍截断），放弃本次处理，当前长度=' + text.length);
     // 回传 AI，让它重新完整输出
     sendToolResultToChat(
       { toolName: '未知', callId: 'incomplete' },
@@ -1511,7 +1511,7 @@ function processLatestAIResponse(retryCount = 0) {
     // 验证 toolName 是否在工具库中
     const available = toolManager.tools.has(toolCall.toolName);
     if (!available) {
-      console.log('[Cuckoo AI] ⚠️ 工具不存在: ' + toolCall.toolName + ', 可用工具: ' + Array.from(toolManager.tools.keys()).join(', '));
+      console.log('[Cuckoo Code] ⚠️ 工具不存在: ' + toolCall.toolName + ', 可用工具: ' + Array.from(toolManager.tools.keys()).join(', '));
       // 回传 AI，告知工具不存在
       sendToolResultToChat(
         toolCall,
@@ -1519,11 +1519,11 @@ function processLatestAIResponse(retryCount = 0) {
       );
       return;
     }
-    console.log('[Cuckoo AI] ✅ 工具存在: ' + toolCall.toolName + ', 开始执行');
+    console.log('[Cuckoo Code] ✅ 工具存在: ' + toolCall.toolName + ', 开始执行');
     notifyToolCallDetected(toolCall);
     handleToolCall(toolCall);
   } else {
-    console.log('[Cuckoo AI] 回复内容不是工具调用 JSON');
+    console.log('[Cuckoo Code] 回复内容不是工具调用 JSON');
     // 内容疑似工具调用但解析失败 → 回传 AI 提示格式问题，让它修正后重新输出
     // if (text.includes('tool') || text.includes('file_')) {
     //   sendToolResultToChat(
@@ -1555,9 +1555,9 @@ function startObserver() {
     if (hasNewContent && isAIResponseComplete()) {
       clearTimeout(responseReadTimer);
       const delay = randomDelay();
-      console.log('[Cuckoo AI] ⏳ 检测到回复结束，随机等待 ' + delay + 'ms 后读取回复...');
+      console.log('[Cuckoo Code] ⏳ 检测到回复结束，随机等待 ' + delay + 'ms 后读取回复...');
       responseReadTimer = setTimeout(() => {
-        console.log('[Cuckoo AI] ✅ 等待结束，开始读取回复');
+        console.log('[Cuckoo Code] ✅ 等待结束，开始读取回复');
         processLatestAIResponse();
       }, delay);
     }
@@ -1585,11 +1585,11 @@ function notifyToolCallDetected(toolCall) {
   if (badge) {
     badge.style.background = 'rgba(124,255,178,0.25)';
     badge.style.borderColor = 'rgba(124,255,178,0.6)';
-    badge.querySelector('span:last-child') && (badge.querySelector('span:last-child').textContent = 'Cuckoo AI - 工具调用检测到');
+    badge.querySelector('span:last-child') && (badge.querySelector('span:last-child').textContent = 'Cuckoo Code - 工具调用检测到');
     setTimeout(() => {
       badge.style.background = 'rgba(124,131,255,0.15)';
       badge.style.borderColor = 'rgba(124,131,255,0.3)';
-      badge.querySelector('span:last-child') && (badge.querySelector('span:last-child').textContent = 'Cuckoo AI 运行中');
+      badge.querySelector('span:last-child') && (badge.querySelector('span:last-child').textContent = 'Cuckoo Code 运行中');
     }, 3000);
   }
   if (dot) {
@@ -1739,7 +1739,7 @@ function tryParseToolCall(content) {
 
   // 支持多种字段名：toolName/tool, params/parameters/arguments
   if (!parsed.toolName && !parsed.tool) {
-    console.log('[Cuckoo AI] 缺少 toolName/tool 字段, 完整对象:', JSON.stringify(parsed));
+    console.log('[Cuckoo Code] 缺少 toolName/tool 字段, 完整对象:', JSON.stringify(parsed));
     return null;
   }
 
@@ -1749,7 +1749,7 @@ function tryParseToolCall(content) {
     params: parsed.params || parsed.parameters || parsed.arguments || {},
     callId: parsed.callId || `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   };
-  console.log('[Cuckoo AI] ✅ 解析成功, toolName=' + result.toolName + ', params=' + JSON.stringify(result.params));
+  console.log('[Cuckoo Code] ✅ 解析成功, toolName=' + result.toolName + ', params=' + JSON.stringify(result.params));
   return result;
 }
 
@@ -1801,7 +1801,7 @@ function extractJsonObject(str, startPos) {
  */
 async function handleToolCall(toolCall) {
   const { toolName, params, callId } = toolCall;
-  console.log(`[Cuckoo AI] 执行工具: ${toolName}`, params);
+  console.log(`[Cuckoo Code] 执行工具: ${toolName}`, params);
 
   // 确保覆盖层可见，让用户看到正在处理
   showOverlay();
@@ -1851,7 +1851,7 @@ async function handleToolCall(toolCall) {
     // 将执行结果发送回聊天，让 AI 看到结果并继续工作
     sendToolResultToChat(toolCall, result);
   } catch (err) {
-    console.error('[Cuckoo AI] 工具执行异常:', err);
+    console.error('[Cuckoo Code] 工具执行异常:', err);
     const resultSection = document.getElementById('cuckoo-result-section');
     const resultStatus = document.getElementById('cuckoo-result-status');
     const resultOutput = document.getElementById('cuckoo-result-output');
@@ -1877,7 +1877,7 @@ async function handleToolCall(toolCall) {
 function sendToolResultToChat(toolCall, result) {
   const input = findInputArea();
   if (!input) {
-    console.log('[Cuckoo AI] ❌ 找不到输入框，无法回传工具结果');
+    console.log('[Cuckoo Code] ❌ 找不到输入框，无法回传工具结果');
     return;
   }
 
@@ -1897,7 +1897,7 @@ function sendToolResultToChat(toolCall, result) {
       '请根据错误原因修正参数后重新调用工具。';
   }
 
-  console.log('[Cuckoo AI] 回传工具结果, 输入框类型=' + input.tagName + ', 消息长度=' + msg.length);
+  console.log('[Cuckoo Code] 回传工具结果, 输入框类型=' + input.tagName + ', 消息长度=' + msg.length);
 
   // 填入输入框（React 兼容：使用原生 value setter，否则 React 状态不更新）
   try {
@@ -1909,25 +1909,25 @@ function sendToolResultToChat(toolCall, result) {
       ).set;
       nativeSetter.call(input, msg);
       input.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log('[Cuckoo AI] ✅ 已填入 textarea, 当前值长度=' + (input.value || '').length);
+      console.log('[Cuckoo Code] ✅ 已填入 textarea, 当前值长度=' + (input.value || '').length);
     } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
       input.focus();
       document.execCommand('selectAll', false, null);
       document.execCommand('insertText', false, msg);
-      console.log('[Cuckoo AI] ✅ 已填入 contenteditable');
+      console.log('[Cuckoo Code] ✅ 已填入 contenteditable');
     }
   } catch (err) {
-    console.error('[Cuckoo AI] ❌ 回传工具结果到输入框失败:', err.message);
+    console.error('[Cuckoo Code] ❌ 回传工具结果到输入框失败:', err.message);
     return;
   }
 
   // 触发发送（2-4s 随机等待，模拟人工输入节奏）
   const sendDelay = randomDelay();
-  console.log('[Cuckoo AI] ⏳ 消息已填入输入框，随机等待 ' + sendDelay + 'ms 后发送...');
+  console.log('[Cuckoo Code] ⏳ 消息已填入输入框，随机等待 ' + sendDelay + 'ms 后发送...');
   setTimeout(() => {
-    console.log('[Cuckoo AI] ✅ 等待结束，开始触发发送');
+    console.log('[Cuckoo Code] ✅ 等待结束，开始触发发送');
     triggerSend(input);
-    console.log('[Cuckoo AI] ✅ 已触发发送, 工具=' + toolCall.toolName + ', 长度=' + msg.length);
+    console.log('[Cuckoo Code] ✅ 已触发发送, 工具=' + toolCall.toolName + ', 长度=' + msg.length);
   }, sendDelay);
 }
 
@@ -2049,16 +2049,16 @@ function sendSystemPromptToInput() {
 
     // 触发发送（2-4s 随机等待，模拟人工输入节奏）
     const sendDelay = randomDelay();
-    console.log('[Cuckoo AI] ⏳ system prompt 已填入，随机等待 ' + sendDelay + 'ms 后发送...');
+    console.log('[Cuckoo Code] ⏳ system prompt 已填入，随机等待 ' + sendDelay + 'ms 后发送...');
     setTimeout(() => {
-      console.log('[Cuckoo AI] ✅ 等待结束，开始发送 system prompt');
+      console.log('[Cuckoo Code] ✅ 等待结束，开始发送 system prompt');
       triggerSend(input);
       pendingSystemPrompt = false;
     }, sendDelay);
 
     return true;
   } catch (err) {
-    console.error('[Cuckoo AI] 发送 system prompt 失败:', err.message);
+    console.error('[Cuckoo Code] 发送 system prompt 失败:', err.message);
     return false;
   }
 }
@@ -2092,16 +2092,16 @@ function sendInitialPromptToInput() {
 
     // 触发发送（2-4s 随机等待，模拟人工输入节奏）
     const sendDelay = randomDelay();
-    console.log('[Cuckoo AI] ⏳ 初始提示已填入，随机等待 ' + sendDelay + 'ms 后发送...');
+    console.log('[Cuckoo Code] ⏳ 初始提示已填入，随机等待 ' + sendDelay + 'ms 后发送...');
     setTimeout(() => {
-      console.log('[Cuckoo AI] ✅ 等待结束，开始发送初始提示');
+      console.log('[Cuckoo Code] ✅ 等待结束，开始发送初始提示');
       triggerSend(input);
       pendingInitialPrompt = false;
     }, sendDelay);
 
     return true;
   } catch (err) {
-    console.error('[Cuckoo AI] 发送初始提示 失败:', err.message);
+    console.error('[Cuckoo Code] 发送初始提示 失败:', err.message);
     return false;
   }
 }
@@ -2177,7 +2177,7 @@ function triggerSend(input) {
     const btn = document.querySelector(sel);
     if (btn && isInputVisible(btn) && !btn.disabled) {
       btn.click();
-      console.log('[Cuckoo AI] 已点击发送按钮: ' + sel);
+      console.log('[Cuckoo Code] 已点击发送按钮: ' + sel);
       return;
     }
   }
@@ -2188,7 +2188,7 @@ function triggerSend(input) {
     input.dispatchEvent(new KeyboardEvent('keydown', opts));
     input.dispatchEvent(new KeyboardEvent('keypress', opts));
     input.dispatchEvent(new KeyboardEvent('keyup', opts));
-    console.log('[Cuckoo AI] 已通过 Enter 键触发发送 (未找到发送按钮)');
+    console.log('[Cuckoo Code] 已通过 Enter 键触发发送 (未找到发送按钮)');
   }
 }
 
@@ -2275,12 +2275,12 @@ setTimeout(setupNewSessionListener, 3000);
 
 // ========== 拦截 DeepSeek API 响应（注入到主世界） ==========
 
-console.log('[Cuckoo AI] 安装 API 拦截器（注入主世界）...');
+console.log('[Cuckoo Code] 安装 API 拦截器（注入主世界）...');
 
 // 监听来自主世界拦截器的消息
 window.addEventListener('message', (e) => {
   if (e.data && e.data.source === 'cuckoo-interceptor') {
-    console.log('[Cuckoo AI] [拦截] AI回复全文:');
+    console.log('[Cuckoo Code] [拦截] AI回复全文:');
     console.log(e.data.content);
     processAIContent(e.data.content);
   }
@@ -2392,7 +2392,7 @@ function injectInterceptor() {
   if (root) {
     root.appendChild(interceptScript);
     interceptScript.remove();
-    console.log('[Cuckoo AI] 拦截器已注入主世界');
+    console.log('[Cuckoo Code] 拦截器已注入主世界');
   } else {
     setTimeout(injectInterceptor, 10);
   }
@@ -2407,7 +2407,7 @@ function processAIContent(content) {
 
   const toolCall = tryParseToolCall(content);
   if (toolCall) {
-    console.log('[Cuckoo AI] API拦截: 检测到工具调用，自动执行');
+    console.log('[Cuckoo Code] API拦截: 检测到工具调用，自动执行');
     notifyToolCallDetected(toolCall);
     handleToolCall(toolCall);
   }
@@ -2416,7 +2416,7 @@ function processAIContent(content) {
 // ========== 初始化 ==========
 
 /**
- * 初始化 Cuckoo AI 扩展
+ * 初始化 Cuckoo Code 扩展
  * 注入样式、覆盖层 HTML，绑定事件，启动 MutationObserver 和目录监听
  */
 function init() {
@@ -2457,7 +2457,7 @@ setTimeout(() => {
       const result = await window.electronAPI.updateProjectDir();
       if (result && result.success) {
         // 主进程会发送 project-dir-updated 事件更新显示
-        console.log('[Cuckoo AI] 目录已更新');
+        console.log('[Cuckoo Code] 目录已更新');
       } else {
         console.error('修改目录失败:', result?.message);
       }
@@ -2472,7 +2472,7 @@ setTimeout(() => {
     // 延迟启动观察器，等待页面框架渲染
     setTimeout(startObserver, 2000);
   } catch (err) {
-    console.error('[Cuckoo AI] init() 出错:', err);
+    console.error('[Cuckoo Code] init() 出错:', err);
     // 兜底：即使出错也强制显示面板
     forceShowOverlay();
   }

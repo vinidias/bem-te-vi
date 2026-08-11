@@ -1,5 +1,5 @@
 {
-  "name": "cuckoo-ai-pro",
+  "name": "cuckoo-code",
   "version": "1.0.0",
   "description": "DeepSeek 桌面应用——内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行",
   "main": "main.js",
@@ -9,7 +9,9 @@
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:win:nsis": "electron-builder --win --config.win.target=nsis",
-    "build:win:portable": "electron-builder --win --config.win.target=portable"
+    "build:win:portable": "electron-builder --win --config.win.target=portable",
+    "build:mac": "electron-builder --mac",
+    "build:mac:dmg": "electron-builder --mac --config.mac.target=dmg"
   },
   "keywords": [
     "deepseek",
@@ -18,10 +20,10 @@
     "cli",
     "command-execution",
     "developer-tools",
-    "cuckoo"
+    "cuckoo-code"
   ],
   "author": {
-    "name": "Cuckoo AI Pro Contributors",
+    "name": "Cuckoo Code Contributors",
     "url": "https://github.com/wangyongpeng90/cuckoo-code"
   },
   "license": "GPL-3.0-only",
@@ -43,14 +45,10 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "os": [
-    "win32",
-    "darwin",
-    "linux"
-  ],
+  "os": ["win32", "darwin", "linux"],
   "build": {
-    "appId": "com.cuckoo.cuckoo-ai-pro",
-    "productName": "Cuckoo AI Pro",
+    "appId": "com.cuckoo.cuckoo-code",
+    "productName": "Cuckoo Code",
     "directories": {
       "output": "dist"
     },
@@ -60,6 +58,13 @@
         "portable"
       ],
       "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns"
     },
     "nsis": {
       "oneClick": false,
@@ -82,9 +87,7 @@
       {
         "from": "tools",
         "to": "tools",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**/*"]
       }
     ]
   }
