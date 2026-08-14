@@ -14,7 +14,7 @@ const { BashTool } = require('./tools/BashTool');
 const { MySQLTool } = require('./tools/MySQLTool');
 const { FileDeleteTool } = require('./tools/FileDeleteTool');
 const { JsRunner } = require('./tools/JsRunner');
-const { decodeOutput } = require('./tools/decodeOutput');
+const { decodeOutput, normalizeCommand } = require('./tools/decodeOutput');
 
 // 创建工具注册表并注册工具
 const toolRegistry = new ToolRegistry();
@@ -524,7 +524,7 @@ ipcMain.handle('execute-command', async (_event, { command, id }) => {
     return { id, success: false, error: '无效的命令' };
   }
 
-  const trimmed = command.trim();
+  const trimmed = normalizeCommand(command.trim());
   if (!trimmed) {
     return { id, success: false, error: '命令为空' };
   }

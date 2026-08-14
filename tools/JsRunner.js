@@ -13,7 +13,7 @@ const vm = require('vm');
 const { exec } = require('child_process');
 const path = require('path');
 const { DANGEROUS_CMDS } = require('./BashTool');
-const { decodeOutput } = require('./decodeOutput');
+const { decodeOutput, normalizeCommand } = require('./decodeOutput');
 
 // 同步执行超时（vm timeout，覆盖无 await 的死循环）
 const SYNC_TIMEOUT = 30 * 1000;
@@ -114,7 +114,7 @@ function resolveDir(dir, projectDir) {
  * 让 AI 代码可以像普通 shell 一样判断结果。
  */
 function runBash(args, projectDir) {
-  const command = String(args.command || '').trim();
+  const command = normalizeCommand(String(args.command || '').trim());
   if (!command) return Promise.resolve({ success: false, error: 'command 不能为空' });
   if (DANGEROUS_CMDS.some((pattern) => pattern.test(command))) {
     return Promise.resolve({ success: false, error: '命令被安全策略拒绝（危险命令）: ' + command });

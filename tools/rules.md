@@ -36,7 +36,7 @@ await writeFile("src/utils/helper.js", content.replace("formatDate", "formatTime
 ## 读取文件内容
 
 - **优先使用 readFile 工具**读取文件内容（无编码问题，超过 1MB 返回前 1MB）。
-- 若必须用 bash 执行 PowerShell 读取文件，**必须显式指定 UTF-8 编码**：`Get-Content -Encoding UTF8 <文件>`，否则中文会乱码。
+- 若必须用 bash 执行 PowerShell 读取文件，系统会自动为 `Get-Content` 补充 `-Encoding UTF8`（也可以手动写），避免中文乱码。
 
 ## 执行流程示例
 

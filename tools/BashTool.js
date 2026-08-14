@@ -1,7 +1,7 @@
 const { Tool, ToolResult } = require('./ToolRegistry');
 const { exec } = require('child_process');
 const path = require('path');
-const { decodeOutput } = require('./decodeOutput');
+const { decodeOutput, normalizeCommand } = require('./decodeOutput');
 
 // 危险命令列表（与 main.js 的 execute-command 一致），匹配的命令会被拒绝
 const DANGEROUS_CMDS = [
@@ -61,7 +61,7 @@ class BashTool extends Tool {
         return ToolResult.error('command 不能为空');
       }
 
-      const trimmed = command.trim();
+      const trimmed = normalizeCommand(command.trim());
       if (!trimmed) {
         return ToolResult.error('command 不能为空');
       }
