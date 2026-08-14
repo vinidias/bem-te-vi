@@ -605,6 +605,7 @@ ipcMain.handle('execute-tool', async (_event, { toolName, params, callId }) => {
 ipcMain.handle('execute-js', async (_event, { code, callId }) => {
   const preview = String(code || '').replace(/\s+/g, ' ').slice(0, 200);
   console.log(`[Cuckoo Code] 执行 JS 工具脚本: ${preview}`);
+  console.log('[Cuckoo Code] [诊断] 主进程收到的代码(JSON转义): ' + JSON.stringify(String(code || '')).slice(0, 2000));
   if (!code || typeof code !== 'string') {
     return { callId, success: false, error: '无效的 JS 代码' };
   }

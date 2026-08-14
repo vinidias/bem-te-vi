@@ -58,7 +58,7 @@ npm start
 2. 检测标记为 `cmd`、`powershell`、`batch`、`bat`、`dos` 语言的代码块（语言识别统一走 `getCodeBlockLanguage()`：`data-language` 属性 → `language-*` class → `.md-code-block-banner` 里的语言 span（DeepSeek 当前结构），兜底为首行标记）
 3. 提取命令文本并在覆盖层中显示，等待用户确认
 4. 处理前先通过 `isAIResponseComplete()` 检查 AI 是否已完成回复，避免处理部分流式输出（检查生成中指示器、流式光标、停止按钮等）
-5. 优先扫描 JS 工具代码块（语言识别同上，从 banner/属性获取）：```cuckoo 代码块一律视为工具脚本；```js/```javascript 代码块仅当整条回复只包含该代码块、且代码调用了工具函数（`await readFile(` 等）时才视为工具脚本（避免误执行普通示例代码）；执行结果回传聊天，由 AI 继续下一步
+5. 优先扫描 JS 工具代码块（语言识别同上，从 banner/属性获取）：```cuckoo 代码块一律视为工具脚本；```js/```javascript 代码块仅当整条回复只包含该代码块、且代码调用了工具函数（`await readFile(` 等）时才视为工具脚本（避免误执行普通示例代码）；**执行前做稳定性双读校验**（间隔 1.2 秒复查内容，仍在流式更新则重新调度，防止执行半截代码）；执行结果回传聊天，由 AI 继续下一步
 6. 兼容旧格式：扫描代码块和页面文本中的工具调用 JSON（`{"toolName": "...", "params": {...}}`）
 7. 拦截器通道（注入主世界的 fetch/XHR/EventSource 拦截）与 DOM 通道可能先后触发同一回复，通过脚本哈希 + 15 秒窗口去重
 

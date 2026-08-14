@@ -286,6 +286,7 @@ class JsRunner {
       return { success: true, output: output || '(脚本执行完成，无输出)' };
     } catch (err) {
       console.error('[JsRunner] 脚本执行失败:', err && err.stack ? err.stack : String(err));
+      console.error('[JsRunner] [诊断] 失败代码(JSON转义): ' + JSON.stringify(code));
       return { success: false, error: err && err.message ? err.message : String(err) };
     } finally {
       if (settleTimer) clearTimeout(settleTimer);

@@ -1460,6 +1460,8 @@ const processedMessages = new WeakSet();
 const MAX_RETRY_COUNT = 20;
 // 重试间隔（ms）
 const RETRY_INTERVAL = 2000;
+// JS 代码块稳定性校验的最大复查次数（1.2 秒/次，约 48 秒）
+const JS_STABILITY_MAX_RETRY = 40;
 
 /**
  * 生成 2-4 秒的随机等待时间（ms）
@@ -1510,7 +1512,7 @@ function processLatestAIResponse(retryCount = 0) {
     console.log('[Cuckoo Code] 未找到 .ds-message 节点');
     return;
   }
-  //debugger;
+
   // 取最后一条消息
   const lastMessage = messages[messages.length - 1];
   const markdown = lastMessage.querySelector(':scope > .ds-markdown');
@@ -1533,13 +1535,34 @@ function processLatestAIResponse(retryCount = 0) {
   // 优先检测 JS 工具代码块（cuckoo 代码块 / 调用工具函数的 js 代码块）
   const jsBlocks = getJsCodeBlocksFromMarkdown(markdown);
   if (jsBlocks.length > 0) {
-    processedMessages.add(lastMessage);
-    console.log('[Cuckoo Code] ✅ 检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
-    (async () => {
-      for (const code of jsBlocks) {
-        await handleJsToolScript(code);
+    // 稳定性双读校验：DeepSeek 流式渲染期间代码块只渲染了一半（曾导致 "const content"
+    // 这样的残缺代码被执行 → SyntaxError）。间隔 1.2 秒复查内容，仍在变化就重新调度。
+    if (retryCount > JS_STABILITY_MAX_RETRY) {
+      console.log('[Cuckoo Code] ⚠️ 代码块持续不稳定（' + retryCount + ' 次复查），放弃本次处理');
+      processedMessages.add(lastMessage);
+      return;
+    }
+    const snapshot = markdown.textContent || '';
+    const snapshotBlocks = jsBlocks.map((b) => b.length).join(',');
+    console.log('[Cuckoo Code] ⏳ 检测到 JS 工具代码块，稳定性校验中（' + (retryCount + 1) + '/' + JS_STABILITY_MAX_RETRY + '）...');
+    setTimeout(() => {
+      const jsBlocksNow = getJsCodeBlocksFromMarkdown(markdown);
+      const stable = (markdown.textContent || '') === snapshot &&
+        jsBlocksNow.length === jsBlocks.length &&
+        jsBlocksNow.map((b) => b.length).join(',') === snapshotBlocks;
+      if (!stable) {
+        console.log('[Cuckoo Code] ⏳ 代码块仍在流式更新（快照不一致），重新调度');
+        processLatestAIResponse(retryCount + 1);
+        return;
       }
-    })();
+      processedMessages.add(lastMessage);
+      console.log('[Cuckoo Code] ✅ 代码块稳定，检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
+      (async () => {
+        for (const code of jsBlocks) {
+          await handleJsToolScript(code);
+        }
+      })();
+    }, 1200);
     return;
   }
 
@@ -1988,7 +2011,6 @@ function hasOnlyCodeContent(root) {
  * 规则同 extractJsToolBlocks：js/javascript 块要求整条回复只包含代码块
  */
 function getJsCodeBlocksFromMarkdown(root) {
-  // debugger;
   const blocks = [];
   if (!root) return blocks;
 
@@ -2086,6 +2108,7 @@ async function handleJsToolScript(code) {
   }
 
   const callId = 'js_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+  console.log('[Cuckoo Code] [诊断] 即将执行的代码(JSON转义): ' + JSON.stringify(code));
   try {
     const result = await window.electronAPI.executeJs(code, callId);
 
@@ -2294,8 +2317,11 @@ function sendJsResultToChat(code, result) {
   if (result.success) {
     msg = '【JS 执行结果】成功' + String.fromCharCode(10) + (result.output || '(脚本执行完成，无输出)');
   } else {
+    // 失败时把"实际执行的代码"前 300 字符附上，便于定位代码在哪一步被截断/损坏
     msg = '【JS 执行结果】失败' + String.fromCharCode(10) +
       '错误原因: ' + (result.error || '未知错误') + String.fromCharCode(10) +
+      '本次实际执行的代码(前300字符):' + String.fromCharCode(10) +
+      String(code || '').slice(0, 300) + String.fromCharCode(10) +
       '请修正 JavaScript 代码后重新输出完整的 ' + BT + BT + BT + 'cuckoo 代码块。';
   }
   console.log('[Cuckoo Code] 回传 JS 执行结果, 消息长度=' + msg.length);
@@ -2689,8 +2715,14 @@ interceptScript.textContent = `(${function() {
             const lines = buf.split('\n');
             buf = lines.pop() || '';
             for (const line of lines) {
-              if (line.startsWith('data: ') && line.slice(6) !== '[DONE]') {
-                try { content += JSON.parse(line.slice(6))?.choices?.[0]?.delta?.content || ''; } catch(e) {}
+              if (line.startsWith('data:')) {
+                const payload = line.slice(5).replace(/^\s/, '');
+                if (payload !== '[DONE]') {
+                  try {
+                    const obj = JSON.parse(payload);
+                    content += obj?.choices?.[0]?.delta?.content ?? obj?.choices?.[0]?.message?.content ?? '';
+                  } catch(e) {}
+                }
               }
             }
           }
@@ -2737,8 +2769,14 @@ interceptScript.textContent = `(${function() {
           // SSE extract
           let content = '';
           for (const line of text.split('\n')) {
-            if (line.startsWith('data: ') && line.slice(6) !== '[DONE]') {
-              try { content += JSON.parse(line.slice(6))?.choices?.[0]?.delta?.content || ''; } catch(e) {}
+            if (line.startsWith('data:')) {
+              const payload = line.slice(5).replace(/^\s/, '');
+              if (payload !== '[DONE]') {
+                try {
+                  const obj = JSON.parse(payload);
+                  content += obj?.choices?.[0]?.delta?.content ?? obj?.choices?.[0]?.message?.content ?? '';
+                } catch(e) {}
+              }
             }
           }
           // or JSON
@@ -2768,7 +2806,10 @@ interceptScript.textContent = `(${function() {
     const es = new OrigES(url, config);
     let content = '';
     es.addEventListener('message', function(e) {
-      try { content += JSON.parse(e.data)?.choices?.[0]?.delta?.content || ''; } catch(err) {}
+      try {
+        const obj = JSON.parse(e.data);
+        content += obj?.choices?.[0]?.delta?.content ?? obj?.choices?.[0]?.message?.content ?? '';
+      } catch(err) {}
     });
     const origClose = es.close;
     es.close = function() {
@@ -2847,8 +2888,60 @@ function init() {
   try {
     injectCSS();
     injectOverlay();
+    initProjectDirSection();
+    bindEvents();
 
-// 项目目录显示与修改功能
+    // 默认显示覆盖层 - 兜底强制显示
+    forceShowOverlay();
+
+    // 延迟启动观察器，等待页面框架渲染
+    setTimeout(startObserver, 2000);
+  } catch (err) {
+    console.error('[Cuckoo Code] init() 出错:', err);
+    // 兜底：即使出错也强制显示面板
+    forceShowOverlay();
+  }
+
+  // 定期巡检：防止面板被意外隐藏
+  startOverlayWatcher();
+}
+
+// ========== 项目目录显示与修改功能 ==========
+
+/**
+ * 初始化项目目录区域：默认隐藏、监听目录更新、绑定修改按钮
+ */
+function initProjectDirSection() {
+  // 初始化隐藏（如果没有目录）
+  updateProjectDirDisplay(null);
+
+  // 监听主进程的目录更新事件
+  ipcRenderer.on('project-dir-updated', (_event, dirPath) => {
+    updateProjectDirDisplay(dirPath);
+    // 目录更新后刷新会话列表
+    renderSessions();
+  });
+
+  // 绑定修改按钮事件 - 直接绑定，阻止冒泡和默认行为
+  setTimeout(() => {
+    const changeBtn = document.getElementById('cuckoo-btn-change-dir');
+    if (changeBtn) {
+      changeBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // 使用 updateProjectDir 只更新目录映射，不重新发送初始提示
+        const result = await window.electronAPI.updateProjectDir();
+        if (result && result.success) {
+          // 主进程会发送 project-dir-updated 事件更新显示
+          console.log('[Cuckoo Code] 目录已更新');
+        } else {
+          console.error('修改目录失败:', result?.message);
+        }
+      });
+    }
+  }, 100);
+}
+
 /**
  * 更新项目目录显示
  * @param {string} dirPath - 目录路径
@@ -2870,51 +2963,6 @@ function updateProjectDirDisplay(dirPath) {
       section.style.display = 'none';
     }
   }
-}
-
-// 初始化隐藏（如果没有目录）
-updateProjectDirDisplay(null);
-
-// 监听主进程的目录更新事件
-ipcRenderer.on('project-dir-updated', (_event, dirPath) => {
-  updateProjectDirDisplay(dirPath);
-  // 目录更新后刷新会话列表
-  renderSessions();
-});
-
-// 绑定修改按钮事件 - 直接绑定，阻止冒泡和默认行为
-setTimeout(() => {
-  const changeBtn = document.getElementById('cuckoo-btn-change-dir');
-  if (changeBtn) {
-    changeBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      // 使用 updateProjectDir 只更新目录映射，不重新发送初始提示
-      const result = await window.electronAPI.updateProjectDir();
-      if (result && result.success) {
-        // 主进程会发送 project-dir-updated 事件更新显示
-        console.log('[Cuckoo Code] 目录已更新');
-      } else {
-        console.error('修改目录失败:', result?.message);
-      }
-    });
-  }
-}, 100);
-    bindEvents();
-
-    // 默认显示覆盖层 - 兜底强制显示
-    forceShowOverlay();
-
-    // 延迟启动观察器，等待页面框架渲染
-    setTimeout(startObserver, 2000);
-  } catch (err) {
-    console.error('[Cuckoo Code] init() 出错:', err);
-    // 兜底：即使出错也强制显示面板
-    forceShowOverlay();
-  }
-
-  // 定期巡检：防止面板被意外隐藏
-  startOverlayWatcher();
 }
 
 /**
