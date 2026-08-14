@@ -848,50 +848,16 @@ function handleSendPrompt() {
     alert('系统提示词内容为空');
     return;
   }
-  const input = findInputArea();
-  if (!input) {
-    alert('未找到输入框，请确保已打开聊天界面');
-    return;
-  }
-  sendSystemPromptToInput(); // fills input
-  // small delay then trigger send
-  setTimeout(() => {
-    triggerSend(input);
-  }, 300);
+  sendSystemPromptToInput();
 }
 
 /**
  * 生成项目说明文档按钮点击处理
  */
 function handleGenerateDoc() {
-  const input = findInputArea();
-  if (!input) {
-    alert('未找到输入框，请确保已打开聊天界面');
-    return;
-  }
-
   const message = '根据当前项目生成一个类似 claude.md 的项目说明文件，并将文件放到当前项目 .cuckooCode/CUCKOO.md';
-
-  // 填入输入框并发送
-  try {
-    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
-      input.focus();
-      input.value = message;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
-      input.focus();
-      document.execCommand('selectAll', false, null);
-      document.execCommand('insertText', false, message);
-    }
-
-    // 触发发送
-    setTimeout(() => {
-      triggerSend(input);
-    }, 300);
-  } catch (err) {
-    console.error('[Cuckoo Code] 发送生成文档消息失败:', err.message);
-    alert('发送消息失败: ' + err.message);
+  if (!sendToChat(message, '生成文档', 300)) {
+    alert('未找到输入框，请确保已打开聊天界面');
   }
 }
 
@@ -2243,16 +2209,12 @@ async function handleToolCall(toolCall) {
 }
 
 /**
- * 将消息填入 DeepSeek 聊天输入框并触发发送（工具结果回传的公共实现）
+ * 将文本填入输入框（React 兼容：使用原生 value setter）
+ * @param {Element} input - 输入框元素
+ * @param {string} msg - 要填入的文本
+ * @returns {boolean} 是否成功填入
  */
-function sendMessageToChat(msg, tag) {
-  const input = findInputArea();
-  if (!input) {
-    console.log('[Cuckoo Code] ❌ 找不到输入框，无法回传结果');
-    return false;
-  }
-
-  // 填入输入框（React 兼容：使用原生 value setter，否则 React 状态不更新）
+function setInputContent(input, msg) {
   try {
     if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
       input.focus();
@@ -2262,27 +2224,54 @@ function sendMessageToChat(msg, tag) {
       ).set;
       nativeSetter.call(input, msg);
       input.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log('[Cuckoo Code] ✅ 已填入 textarea, 当前值长度=' + (input.value || '').length);
-    } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
+      return true;
+    }
+    if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
       input.focus();
       document.execCommand('selectAll', false, null);
       document.execCommand('insertText', false, msg);
-      console.log('[Cuckoo Code] ✅ 已填入 contenteditable');
+      return true;
     }
+    return false;
   } catch (err) {
-    console.error('[Cuckoo Code] ❌ 回传结果到输入框失败:', err.message);
+    console.error('[Cuckoo Code] 设置输入框内容失败:', err.message);
     return false;
   }
+}
 
-  // 触发发送（2-4s 随机等待，模拟人工输入节奏）
-  const sendDelay = randomDelay();
-  console.log('[Cuckoo Code] ⏳ 结果已填入输入框，随机等待 ' + sendDelay + 'ms 后发送...');
-  setTimeout(() => {
-    console.log('[Cuckoo Code] ✅ 等待结束，开始触发发送');
+/**
+ * 将消息填入当前可见输入框并按指定延迟触发发送
+ * @param {string} msg - 要发送的消息
+ * @param {string} [tag] - 日志标记
+ * @param {number} [fixedDelay] - 固定延迟毫秒数；缺省时使用 randomDelay()
+ * @param {Function} [afterSent] - 发送后回调
+ * @returns {boolean} 是否成功
+ */
+function sendToChat(msg, tag, fixedDelay, afterSent) {
+  const input = findInputArea();
+  if (!input) {
+    console.log('[Cuckoo Code] 找不到输入框，无法发送消息');
+    return false;
+  }
+  if (!setInputContent(input, msg)) {
+    return false;
+  }
+  const sendDelay = fixedDelay !== undefined ? fixedDelay : randomDelay();
+  console.log('[Cuckoo Code] 消息已填入输入框，等待 ' + sendDelay + 'ms 后发送...');
+  setTimeout(function() {
+    console.log('[Cuckoo Code] 等待结束，开始触发发送');
     triggerSend(input);
-    console.log('[Cuckoo Code] ✅ 已触发发送, ' + (tag || '') + ', 长度=' + msg.length);
+    console.log('[Cuckoo Code] 已触发发送, ' + (tag || '') + ', 长度=' + msg.length);
+    if (typeof afterSent === 'function') afterSent();
   }, sendDelay);
   return true;
+}
+
+/**
+ * 将消息填入 DeepSeek 聊天输入框并触发发送（工具结果回传的公共实现）
+ */
+function sendMessageToChat(msg, tag) {
+  return sendToChat(msg, tag);
 }
 
 /**
@@ -2431,33 +2420,19 @@ function sendSystemPromptToInput() {
     return false;
   }
 
-  try {
-    // 如果是 textarea，直接设置 value 并派发事件
-    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
-      input.focus();
-      input.value = systemPromptContent;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
-      input.focus();
-      document.execCommand('selectAll', false, null);
-      document.execCommand('insertText', false, systemPromptContent);
-    }
-
-    // 触发发送（2-4s 随机等待，模拟人工输入节奏）
-    const sendDelay = randomDelay();
-    console.log('[Cuckoo Code] ⏳ system prompt 已填入，随机等待 ' + sendDelay + 'ms 后发送...');
-    setTimeout(() => {
-      console.log('[Cuckoo Code] ✅ 等待结束，开始发送 system prompt');
-      triggerSend(input);
-      pendingSystemPrompt = false;
-    }, sendDelay);
-
-    return true;
-  } catch (err) {
-    console.error('[Cuckoo Code] 发送 system prompt 失败:', err.message);
+  if (!setInputContent(input, systemPromptContent)) {
     return false;
   }
+
+  const sendDelay = randomDelay();
+  console.log('[Cuckoo Code] system prompt 已填入，随机等待 ' + sendDelay + 'ms 后发送...');
+  setTimeout(function() {
+    console.log('[Cuckoo Code] 等待结束，开始发送 system prompt');
+    triggerSend(input);
+    pendingSystemPrompt = false;
+  }, sendDelay);
+
+  return true;
 }
 
 /**
@@ -2474,33 +2449,19 @@ function sendInitialPromptToInput() {
     return false;
   }
 
-  try {
-    // 如果是 textarea，直接设置 value 并派发事件
-    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
-      input.focus();
-      input.value = initialPromptContent;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    } else if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
-      input.focus();
-      document.execCommand('selectAll', false, null);
-      document.execCommand('insertText', false, initialPromptContent);
-    }
-
-    // 触发发送（2-4s 随机等待，模拟人工输入节奏）
-    const sendDelay = randomDelay();
-    console.log('[Cuckoo Code] ⏳ 初始提示已填入，随机等待 ' + sendDelay + 'ms 后发送...');
-    setTimeout(() => {
-      console.log('[Cuckoo Code] ✅ 等待结束，开始发送初始提示');
-      triggerSend(input);
-      pendingInitialPrompt = false;
-    }, sendDelay);
-
-    return true;
-  } catch (err) {
-    console.error('[Cuckoo Code] 发送初始提示 失败:', err.message);
+  if (!setInputContent(input, initialPromptContent)) {
     return false;
   }
+
+  const sendDelay = randomDelay();
+  console.log('[Cuckoo Code] 初始提示已填入，随机等待 ' + sendDelay + 'ms 后发送...');
+  setTimeout(function() {
+    console.log('[Cuckoo Code] 等待结束，开始发送初始提示');
+    triggerSend(input);
+    pendingInitialPrompt = false;
+  }, sendDelay);
+
+  return true;
 }
 
 /**
@@ -2648,7 +2609,6 @@ function setupNewSessionListener() {
 
     // 重置状态
     pendingSystemPrompt = true;
-    systemPromptContent = systemPromptContent;
 
     // 等待新会话的输入框出现，然后发送 system prompt
     setTimeout(() => {
