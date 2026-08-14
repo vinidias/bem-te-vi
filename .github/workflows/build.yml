@@ -40,20 +40,3 @@ jobs:
         with:
           name: macOS-build
           path: dist/
-
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - run: npm install
-      - run: npm run build
-        env:
-          DEBUG: electron-builder
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Linux-build
-          path: dist/
