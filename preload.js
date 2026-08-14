@@ -1210,39 +1210,76 @@ async function handleManualParse() {
 // ========== DOM 监测：检测 ```cmd 代码块 ==========
 
 /**
+ * 从代码块元素中提取语言标记（兼容多种 DeepSeek DOM 结构）
+ * 1. pre[data-language] / div[data-language]（旧结构）
+ * 2. language-* class（如 language-cmd）
+ * 3. .md-code-block > .md-code-block-banner 里的语言 span（新结构，语言为纯文本，如 "cuckoo"）
+ * 注意：不依赖 d813de27 这类 hash class，只依赖语义化 class
+ * @param {Element} pre - pre 元素（或其祖先容器）
+ * @returns {string} 小写语言标记，找不到返回 ''
+ */
+function getCodeBlockLanguage(pre) {
+  if (!pre) return '';
+
+  // 1. data-language 属性（旧结构兼容）
+  let lang = pre.getAttribute('data-language') || '';
+  if (!lang) {
+    const parentDiv = pre.closest('div[data-language]');
+    if (parentDiv) lang = parentDiv.getAttribute('data-language') || '';
+  }
+
+  // 2. language-* class
+  if (!lang) {
+    const codeEl = pre.querySelector('code');
+    const els = [codeEl, pre].filter(Boolean);
+    for (const el of els) {
+      const cls = Array.from(el.classList).find((c) => c.startsWith('language-'));
+      if (cls) { lang = cls.replace('language-', ''); break; }
+    }
+  }
+
+  // 3. 新结构：.md-code-block 容器内 banner 的语言 span（跳过按钮内的"复制/下载"文字）
+  if (!lang) {
+    const block = pre.closest('.md-code-block');
+    if (block) {
+      const banner = block.querySelector('.md-code-block-banner');
+      if (banner) {
+        const spans = banner.querySelectorAll('span');
+        for (const span of spans) {
+          if (span.closest('button')) continue;
+          const t = (span.textContent || '').trim();
+          if (/^[a-zA-Z0-9_+#.-]{1,20}$/.test(t)) {
+            lang = t;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return (lang || '').toLowerCase();
+}
+
+/**
  * 从代码块元素中检测并提取 cmd/powershell/batch 命令
- * 支持多种语言标记方式：data-language 属性、language-* class、第一行标记
+ * 支持多种语言标记方式：data-language 属性、language-* class、md-code-block banner、第一行标记
  * @param {Element} element - 要检测的 DOM 元素
  * @returns {string|null} 提取的命令内容，如果未检测到则返回 null
  */
 function detectCmdInCodeBlock(element) {
+  // 新 DOM 结构中代码在 pre > span 里，没有 code 元素
   const codeEl = element.tagName === 'CODE' ? element : element.querySelector('code');
-  if (!codeEl) return null;
+  const pre = codeEl
+    ? codeEl.closest('pre')
+    : (element.tagName === 'PRE' ? element : element.querySelector('pre'));
+  if (!pre) return null;
+  const contentEl = codeEl || pre;
 
-  let language = '';
+  // 统一语言识别
+  let language = getCodeBlockLanguage(pre);
 
-  // 方式 1: 查找 data-language 属性
-  const pre = codeEl.closest('pre');
-  if (pre) {
-    language = pre.getAttribute('data-language') || '';
-    // 也检查父级 div 上的 data-language（DeepSeek 可能的结构）
-    if (!language) {
-      const parentDiv = pre.closest('div[data-language]');
-      if (parentDiv) language = parentDiv.getAttribute('data-language') || '';
-    }
-  }
-
-  // 方式 2: class 名称（如 "language-cmd"）
-  if (!language) {
-    const allElements = [codeEl, pre, codeEl.parentElement].filter(Boolean);
-    for (const el of allElements) {
-      const cls = Array.from(el.classList).find((c) => c.startsWith('language-'));
-      if (cls) { language = cls.replace('language-', ''); break; }
-    }
-  }
-
-  // 方式 3: 代码第一行标记
-  const text = codeEl.textContent || '';
+  // 兜底：代码第一行标记（```cmd 等）
+  const text = contentEl.textContent || '';
   const firstLine = text.split('\n')[0].trim();
   if (!language) {
     const langMatch = firstLine.match(/^(```|;;|#|<!--)\s*(cmd|powershell|pwsh|batch|bat|dos)\s*/i);
@@ -1405,7 +1442,7 @@ function isAIResponseComplete() {
     }
 
     // 找不到停止按钮，说明可能还在生成中，或页面状态不确定
-    console.log('[Cuckoo Code] ⏳ 未找到停止按钮，回复可能未结束');
+    // console.log('[Cuckoo Code] ⏳ 未找到停止按钮，回复可能未结束');
     return false;
   } catch (err) {
     console.error('[Cuckoo Code] ❌ 检测 AI 完成状态出错:', err);
@@ -1473,7 +1510,7 @@ function processLatestAIResponse(retryCount = 0) {
     console.log('[Cuckoo Code] 未找到 .ds-message 节点');
     return;
   }
-
+  //debugger;
   // 取最后一条消息
   const lastMessage = messages[messages.length - 1];
   const markdown = lastMessage.querySelector(':scope > .ds-markdown');
@@ -1520,14 +1557,20 @@ function processLatestAIResponse(retryCount = 0) {
     console.log('[Cuckoo Code] 提取方式: 克隆节点(剔除工具栏)');
   }
 
-  // 完整打印：长度 + 原文 + 转义形式（JSON.stringify 显示 \n 而非真实换行，方便确认完整性）
-  console.log('[Cuckoo Code] 回复文本长度: ' + text.length);
-  console.log('[Cuckoo Code] 回复完整内容(原文):');
-  console.log(text);
-  console.log('[Cuckoo Code] 回复完整内容(转义显示):');
-  console.log(JSON.stringify(text));
-
   if (!text) return;
+  console.log(text);
+  // 是否为疑似工具内容（用于控制详细日志与提示文案）
+  const looksToolish = text.includes(FENCE) ||
+    /toolName|"tool"|file_|await\s+(?:readFile|writeFile|editFile|glob|grep|bash|deleteFile|mysql)\s*\(/.test(text);
+
+  // 长度必打；原文/转义仅在疑似工具内容时打印（普通聊天回复不再刷屏）
+  console.log('[Cuckoo Code] 回复文本长度: ' + text.length + (looksToolish ? '（疑似工具内容）' : '（普通文本）'));
+  if (looksToolish) {
+    console.log('[Cuckoo Code] 回复完整内容(原文):');
+    console.log(text);
+    console.log('[Cuckoo Code] 回复完整内容(转义显示):');
+    console.log(JSON.stringify(text));
+  }
 
   // 内容不完整（疑似流式输出未真正结束）：延迟重试，避免处理截断的 JSON
   if (!isJsonBalanced(text)) {
@@ -1563,14 +1606,21 @@ function processLatestAIResponse(retryCount = 0) {
     notifyToolCallDetected(toolCall);
     handleToolCall(toolCall);
   } else {
-    console.log('[Cuckoo Code] 回复内容不是工具调用 JSON');
-    // 内容疑似工具调用但解析失败 → 回传 AI 提示格式问题，让它修正后重新输出
-    // if (text.includes('tool') || text.includes('file_')) {
-    //   sendToolResultToChat(
-    //     { toolName: '未知', callId: 'parse_failed' },
-    //     { success: false, error: '工具调用 JSON 解析失败，请检查 JSON 格式与转义（换行用\\n、双引号用\\"、反斜杠用\\\\），重新输出完整且合法的工具调用。' }
-    //   );
-    // }
+    if (looksToolish) {
+      // 疑似工具内容但 JS 块检测与 JSON 解析都没命中 → 打印诊断，帮助定位
+      console.log('[Cuckoo Code] ⚠️ 回复疑似工具调用但未被识别（JS 代码块未匹配 / JSON 解析失败）');
+      const pres = markdown.querySelectorAll('pre');
+      if (pres.length > 0) {
+        for (const p of pres) {
+          const lang = getCodeBlockLanguage(p);
+          console.log('[Cuckoo Code] [诊断] 代码块 language=' + (lang || '(无)') + ', 内容前80字符=' + ((p.textContent || '').trim().slice(0, 80)));
+        }
+      } else {
+        console.log('[Cuckoo Code] [诊断] 消息中没有任何 pre 代码块');
+      }
+    } else {
+      console.log('[Cuckoo Code] ℹ️ 正常文本回复，未检测到工具调用（无需处理）');
+    }
   }
 }
 
@@ -1928,8 +1978,8 @@ function hasOnlyCodeContent(root) {
   // 调用方已定位到具体代码块元素时，视为"只有代码"
   if (root.tagName === 'PRE') return true;
   const clone = root.cloneNode(true);
-  // 剔除代码块与 DeepSeek 工具栏（复制/下载等按钮文字）
-  clone.querySelectorAll('pre, button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"], [class*="lang"], [class*="header"]').forEach((el) => el.remove());
+  // 剔除代码块本身、banner（语言标签 + 复制/下载按钮）与工具栏等装饰元素
+  clone.querySelectorAll('pre, .md-code-block-banner-wrap, .md-code-block-banner, button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"], [class*="lang"], [class*="header"]').forEach((el) => el.remove());
   return !(clone.textContent || '').trim();
 }
 
@@ -1938,6 +1988,7 @@ function hasOnlyCodeContent(root) {
  * 规则同 extractJsToolBlocks：js/javascript 块要求整条回复只包含代码块
  */
 function getJsCodeBlocksFromMarkdown(root) {
+  // debugger;
   const blocks = [];
   if (!root) return blocks;
 
@@ -1951,11 +2002,7 @@ function getJsCodeBlocksFromMarkdown(root) {
   }
 
   for (const pre of pres) {
-    let lang = (pre.getAttribute('data-language') || '').toLowerCase();
-    if (!lang) {
-      const parentDiv = pre.closest('div[data-language]');
-      if (parentDiv) lang = (parentDiv.getAttribute('data-language') || '').toLowerCase();
-    }
+    const lang = getCodeBlockLanguage(pre);
     const codeEl = pre.querySelector('code');
     const code = ((codeEl ? codeEl.textContent : pre.textContent) || '').trim();
     if (!code) continue;
@@ -2604,7 +2651,12 @@ console.log('[Cuckoo Code] 安装 API 拦截器（注入主世界）...');
 // 监听来自主世界拦截器的消息
 window.addEventListener('message', (e) => {
   if (e.data && e.data.source === 'cuckoo-interceptor') {
-    console.log('[Cuckoo Code] [拦截] AI回复全文:');
+    // 心跳消息：URL 过滤命中（fetch/xhr/eventsource），只打日志
+    if (e.data.type === 'fetch' || e.data.type === 'xhr' || e.data.type === 'eventsource') {
+      console.log('[Cuckoo Code] [拦截] ✅ URL 过滤命中, type=' + e.data.type + ', url=' + (e.data.url || ''));
+      return;
+    }
+    console.log('[Cuckoo Code] [拦截] AI回复全文 (长度=' + ((e.data.content || '').length) + '):');
     console.log(e.data.content);
     processAIContent(e.data.content);
   }
@@ -2619,11 +2671,13 @@ interceptScript.textContent = `(${function() {
     const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : '');
     const response = await origFetch.call(window, input, init);
     if (url && (url.includes('chat') || url.includes('completion'))) {
+      console.log('[Cuckoo Interceptor] ✅ 命中 fetch: ' + url);
       window.postMessage({ source: 'cuckoo-interceptor', url: url, type: 'fetch' }, '*');
       const cloned = response.clone();
       const ct = response.headers.get('content-type') || '';
       if (ct.includes('text/event-stream')) {
         // SSE streaming
+        console.log('[Cuckoo Interceptor] SSE 流式响应，开始解析...');
         const reader = cloned.body.getReader();
         const decoder = new TextDecoder();
         let buf = '', content = '';
@@ -2632,7 +2686,7 @@ interceptScript.textContent = `(${function() {
             const { done, value } = await reader.read();
             if (done) break;
             buf += decoder.decode(value, { stream: true });
-            const lines = buf.split('\\n');
+            const lines = buf.split('\n');
             buf = lines.pop() || '';
             for (const line of lines) {
               if (line.startsWith('data: ') && line.slice(6) !== '[DONE]') {
@@ -2640,14 +2694,27 @@ interceptScript.textContent = `(${function() {
               }
             }
           }
-          if (content) window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
+          console.log('[Cuckoo Interceptor] SSE 解析完成, 提取内容长度=' + content.length);
+          if (content) {
+            window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
+          } else {
+            console.log('[Cuckoo Interceptor] ⚠️ SSE 内容为空：data 行格式可能已变化（期望 choices[0].delta.content）');
+          }
         })();
       } else {
+        console.log('[Cuckoo Interceptor] 非流式响应, content-type=' + ct);
         cloned.text().then(body => {
           try {
             const c = JSON.parse(body)?.choices?.[0]?.message?.content;
-            if (c) window.postMessage({ source: 'cuckoo-interceptor', content: c }, '*');
-          } catch(e) {}
+            if (c) {
+              console.log('[Cuckoo Interceptor] 非流式提取内容长度=' + c.length);
+              window.postMessage({ source: 'cuckoo-interceptor', content: c }, '*');
+            } else {
+              console.log('[Cuckoo Interceptor] ⚠️ 非流式内容为空, 响应前 200 字符: ' + body.slice(0, 200));
+            }
+          } catch(e) {
+            console.log('[Cuckoo Interceptor] ⚠️ 非流式响应解析失败: ' + e.message);
+          }
         });
       }
     }
@@ -2663,12 +2730,13 @@ interceptScript.textContent = `(${function() {
     xhr.open = function(m, u) { url = u; return origOpen.apply(xhr, arguments); };
     xhr.addEventListener('load', function() {
       if (url && (url.includes('chat') || url.includes('completion'))) {
+        console.log('[Cuckoo Interceptor] ✅ 命中 XHR: ' + url);
         window.postMessage({ source: 'cuckoo-interceptor', url: url, type: 'xhr' }, '*');
         try {
           const text = xhr.responseText;
           // SSE extract
           let content = '';
-          for (const line of text.split('\\n')) {
+          for (const line of text.split('\n')) {
             if (line.startsWith('data: ') && line.slice(6) !== '[DONE]') {
               try { content += JSON.parse(line.slice(6))?.choices?.[0]?.delta?.content || ''; } catch(e) {}
             }
@@ -2677,8 +2745,15 @@ interceptScript.textContent = `(${function() {
           if (!content) {
             try { content = JSON.parse(text)?.choices?.[0]?.message?.content || ''; } catch(e) {}
           }
-          if (content) window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
-        } catch(e) {}
+          console.log('[Cuckoo Interceptor] XHR 提取内容长度=' + content.length);
+          if (content) {
+            window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
+          } else {
+            console.log('[Cuckoo Interceptor] ⚠️ XHR 内容为空：data 行/JSON 格式可能已变化');
+          }
+        } catch(e) {
+          console.log('[Cuckoo Interceptor] ⚠️ XHR 解析异常: ' + e.message);
+        }
       }
     });
     return xhr;
@@ -2688,6 +2763,8 @@ interceptScript.textContent = `(${function() {
   // 在主世界拦截 EventSource
   const OrigES = window.EventSource;
   window.EventSource = function(url, config) {
+    console.log('[Cuckoo Interceptor] ✅ 命中 EventSource: ' + url);
+    window.postMessage({ source: 'cuckoo-interceptor', url: url, type: 'eventsource' }, '*');
     const es = new OrigES(url, config);
     let content = '';
     es.addEventListener('message', function(e) {
@@ -2695,7 +2772,12 @@ interceptScript.textContent = `(${function() {
     });
     const origClose = es.close;
     es.close = function() {
-      if (content) window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
+      console.log('[Cuckoo Interceptor] EventSource 关闭, 提取内容长度=' + content.length);
+      if (content) {
+        window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
+      } else {
+        console.log('[Cuckoo Interceptor] ⚠️ EventSource 内容为空：消息格式可能已变化');
+      }
       return origClose.call(es);
     };
     return es;
