@@ -159,6 +159,8 @@ interface BashResult {
 /**
  * 执行 shell 命令（Windows 使用 cmd.exe），返回 stdout/stderr/exitCode。
  * 可用于查看目录、运行构建、安装依赖（npm install）、git 操作等。
+ * 输出自动按 UTF-8/GBK 智能解码，不会出现乱码；读取文件内容请优先用 readFile，
+ * 若用 PowerShell 读文件必须加 -Encoding UTF8。
  * 危险命令（format、shutdown、taskkill、diskpart、reg delete、cipher /w 等）会被
  * 安全策略拒绝并抛出异常。
  * 命令非零退出不会抛异常——请检查返回值的 exitCode 与 error。

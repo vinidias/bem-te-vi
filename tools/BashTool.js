@@ -1,6 +1,7 @@
 const { Tool, ToolResult } = require('./ToolRegistry');
 const { exec } = require('child_process');
 const path = require('path');
+const { decodeOutput } = require('./decodeOutput');
 
 // 危险命令列表（与 main.js 的 execute-command 一致），匹配的命令会被拒绝
 const DANGEROUS_CMDS = [
@@ -94,19 +95,24 @@ class BashTool extends Tool {
             timeout: timeout,
             maxBuffer: 1024 * 1024, // 1MB
             windowsHide: true,
+            encoding: 'buffer',
           },
           (error, stdout, stderr) => {
+            const out = decodeOutput(stdout);
+            const err = decodeOutput(stderr);
             if (error) {
               resolve(ToolResult.error(
-                `命令执行失败: ${error.message}\nstdout: ${stdout || '(空)'}\nstderr: ${stderr || '(空)'}`
+                '命令执行失败: ' + error.message + String.fromCharCode(10) +
+                'stdout: ' + (out || '(空)') + String.fromCharCode(10) +
+                'stderr: ' + (err || '(空)')
               ));
             } else {
               resolve(ToolResult.success({
                 message: '命令执行成功',
                 command: trimmed,
                 cwd: workDir,
-                stdout: stdout || '',
-                stderr: stderr || '',
+                stdout: out,
+                stderr: err,
                 exitCode: 0,
               }));
             }

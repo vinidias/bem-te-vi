@@ -13,6 +13,7 @@ const vm = require('vm');
 const { exec } = require('child_process');
 const path = require('path');
 const { DANGEROUS_CMDS } = require('./BashTool');
+const { decodeOutput } = require('./decodeOutput');
 
 // 同步执行超时（vm timeout，覆盖无 await 的死循环）
 const SYNC_TIMEOUT = 30 * 1000;
@@ -122,15 +123,17 @@ function runBash(args, projectDir) {
   const cwd = resolveDir(args.cwd, projectDir);
 
   return new Promise((resolve) => {
-    exec(command, { cwd, timeout, maxBuffer: 1024 * 1024, windowsHide: true }, (error, stdout, stderr) => {
+    exec(command, { cwd, timeout, maxBuffer: 1024 * 1024, windowsHide: true, encoding: 'buffer' }, (error, stdout, stderr) => {
+      const out = decodeOutput(stdout);
+      const err = decodeOutput(stderr);
       if (error) {
         resolve({
           success: true,
           data: {
             command,
             cwd,
-            stdout: stdout || '',
-            stderr: stderr || '',
+            stdout: out,
+            stderr: err,
             exitCode: typeof error.code === 'number' ? error.code : 1,
             error: error.killed ? '命令执行超时或被终止' : error.message,
           },
@@ -138,7 +141,7 @@ function runBash(args, projectDir) {
       } else {
         resolve({
           success: true,
-          data: { command, cwd, stdout: stdout || '', stderr: stderr || '', exitCode: 0, error: null },
+          data: { command, cwd, stdout: out, stderr: err, exitCode: 0, error: null },
         });
       }
     });

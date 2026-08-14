@@ -14,6 +14,7 @@ const { BashTool } = require('./tools/BashTool');
 const { MySQLTool } = require('./tools/MySQLTool');
 const { FileDeleteTool } = require('./tools/FileDeleteTool');
 const { JsRunner } = require('./tools/JsRunner');
+const { decodeOutput } = require('./tools/decodeOutput');
 
 // 创建工具注册表并注册工具
 const toolRegistry = new ToolRegistry();
@@ -547,7 +548,7 @@ ipcMain.handle('execute-command', async (_event, { command, id }) => {
     return { id, success: false, error: '用户取消了执行', canceled: true };
   }
 
-  // 步骤 2: 执行命令
+  // 步骤 2: 执行命令（encoding: 'buffer' + 智能解码，避免中文 GBK 乱码）
   return new Promise((resolve) => {
     const child = exec(
       trimmed,
@@ -555,13 +556,14 @@ ipcMain.handle('execute-command', async (_event, { command, id }) => {
         cwd: selectedProjectDir || process.env.USERPROFILE || app.getPath('home'),
         timeout: 30000, // 30 秒超时
         maxBuffer: 1024 * 1024, // 1MB 输出缓冲
+        encoding: 'buffer',
       },
       (error, stdout, stderr) => {
         resolve({
           id,
           success: !error,
-          stdout: stdout || '',
-          stderr: stderr || '',
+          stdout: decodeOutput(stdout),
+          stderr: decodeOutput(stderr),
           error: error ? error.message : null,
         });
       }

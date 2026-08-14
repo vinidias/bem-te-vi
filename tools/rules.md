@@ -33,6 +33,11 @@ await writeFile("src/utils/helper.js", content.replace("formatDate", "formatTime
 > 每个工具函数都是异步的，必须用 await 调用。log() 用于输出中间结果，脚本最后的 return 值也会作为结果返回。
 > 完整的类型声明（每个函数的参数、返回值、抛错行为）见 systemPrompt.md 末尾的「工具 API 类型定义（TypeScript）」。
 
+## 读取文件内容
+
+- **优先使用 readFile 工具**读取文件内容（无编码问题，超过 1MB 返回前 1MB）。
+- 若必须用 bash 执行 PowerShell 读取文件，**必须显式指定 UTF-8 编码**：`Get-Content -Encoding UTF8 <文件>`，否则中文会乱码。
+
 ## 执行流程示例
 
 **你的回复**（仅工具代码）：
