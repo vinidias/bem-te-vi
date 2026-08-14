@@ -1400,7 +1400,7 @@ function isAIResponseComplete() {
 const processedMessages = new WeakSet();
 
 // 内容不完整时的最大重试次数（AI 生成长内容可能需 30 秒+）
-const MAX_RETRY_COUNT = 20;
+const MAX_RETRY_COUNT = 2;
 // 重试间隔（ms）
 const RETRY_INTERVAL = 2000;
 
