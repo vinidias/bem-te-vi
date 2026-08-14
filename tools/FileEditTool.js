@@ -9,42 +9,7 @@ const path = require('path');
 class FileEditTool extends Tool {
   constructor() {
     super(
-      'file_edit',
-      `
-      你是一个可以使用 "file_edit" 工具来编辑文件的助手。
-
-工具说明：
-- 名称：file_edit
-- 用途：在已有文件中精确查找一段文本并替换为新文本。适用于修改文件的部分内容。
-- 参数：
-  - file_path（字符串，必填）：文件的相对路径或绝对路径。 不要用 / , 而是用\ 作为目录分隔符
-  - old_string（字符串，必填）：要查找的旧文本，必须与文件中的内容精确匹配（包括空格、换行）。
-  - new_string（字符串，必填）：要替换成的新文本。
-  - replace_all（布尔值，选填）：如果 old_string 在文件中出现多次，设为 true 则全部替换；默认 false（多次匹配会报错）。
-
-注意事项：
-- old_string 必须精确匹配文件中的现有内容，建议截取足够长的唯一片段，避免匹配到多处。
-- old_string 先使用file_read获取文件，再生成old_string, 注意换行符是\n 还是\r\n
-- 如果替换后想要插入新内容到指定位置，可以把 old_string 设为锚点文本，new_string 设为 锚点+新内容。
-
-使用工具时的回复格式：
-- 不要添加任何解释、前缀或后缀。
-- 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json），并确保内容正确转义：
-
-\`\`\`json
-{"toolName":"file_edit","params":{"file_path":"<路径>","old_string":"<要查找的旧文本>","new_string":"<要替换的新文本>"},"callId":"唯一调用ID"}
-\`\`\`
-
-- old_string/new_string 中的换行转义为 \\n，双引号转义为 \\"，反斜杠转义为 \\\\
-- 输出前检查：JSON 必须合法（括号配对、逗号正确、转义完整）
-
-示例：
-\`\`\`json
-{"toolName":"file_edit","params":{"file_path":"src/utils/helper.js","old_string":"export function formatDate","new_string":"export function formatTime"},"callId":"call_001"}
-\`\`\`
-
-如果用户没有要求修改文件，请像普通助手一样正常回复，不要输出任何 JSON。
-      `,
+      'file_edit', '在文件中精确查找旧文本并替换为新文本（old_string → new_string），用于修改文件的部分内容。',
       {
         type: 'object',
         properties: {
@@ -68,7 +33,8 @@ class FileEditTool extends Tool {
         },
         required: ['file_path', 'old_string', 'new_string'],
         additionalProperties: false
-      }
+      },
+      'editFile(file_path, old_string, new_string, replace_all?)'
     );
   }
 

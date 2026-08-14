@@ -3,6 +3,7 @@
  * 导出所有可用工具
  */
 const { ToolRegistry } = require('./ToolRegistry');
+const { JsRunner } = require('./JsRunner');
 const { FileWriteTool } = require('./FileWriteTool');
 const { FileReadTool } = require('./FileReadTool');
 const { FileEditTool } = require('./FileEditTool');
@@ -24,6 +25,7 @@ registry.register(new BashTool());
 // 导出
 module.exports = {
   ToolRegistry,
+  JsRunner,
   registry,
   FileWriteTool,
   FileReadTool,

@@ -13,6 +13,7 @@ const { GrepTool } = require('./tools/GrepTool');
 const { BashTool } = require('./tools/BashTool');
 const { MySQLTool } = require('./tools/MySQLTool');
 const { FileDeleteTool } = require('./tools/FileDeleteTool');
+const { JsRunner } = require('./tools/JsRunner');
 
 // 创建工具注册表并注册工具
 const toolRegistry = new ToolRegistry();
@@ -25,6 +26,9 @@ toolRegistry.register(new BashTool());
 toolRegistry.register(new MySQLTool());
 toolRegistry.register(new FileDeleteTool());
 // 后续可在此注册更多工具
+
+// JS 工具脚本执行器（AI 生成 JS 代码调用工具函数）
+const jsRunner = new JsRunner(toolRegistry);
 
 let mainWindow = null;
 let sidebarWindow = null;
@@ -314,8 +318,8 @@ function initProject(skipPrompt = false) {
     console.error('[Cuckoo Code] 读取 rules.md 失败:', err.message);
   }
 
-  // 获取工具库描述
-  const toolsDescription = toolRegistry.getFormattedToolsForPrompt();
+  // 获取工具库描述（JS API 格式：AI 通过生成 JS 代码调用这些函数）
+  const toolsDescription = toolRegistry.getFormattedJsApiForPrompt();
 
   // 将 {TOOLS_LIST} 占位符替换为实际工具列表
   const finalRules = rulesContent.replace('{TOOLS_LIST}', toolsDescription);
@@ -588,6 +592,32 @@ ipcMain.handle('execute-tool', async (_event, { toolName, params, callId }) => {
     return { callId, success: result.success, data: result.data, error: result.error };
   } catch (err) {
     console.error(`[Cuckoo Code] 工具 ${toolName} 执行异常:`, err);
+    return { callId, success: false, error: err.message };
+  }
+});
+
+// ========== JS 工具脚本执行 IPC ==========
+
+/**
+ * 执行 AI 生成的 JS 工具代码
+ * 代码在受限的 vm 沙箱中运行，只能调用注入的工具函数（readFile/writeFile/editFile/...）
+ */
+ipcMain.handle('execute-js', async (_event, { code, callId }) => {
+  const preview = String(code || '').replace(/\s+/g, ' ').slice(0, 200);
+  console.log(`[Cuckoo Code] 执行 JS 工具脚本: ${preview}`);
+  if (!code || typeof code !== 'string') {
+    return { callId, success: false, error: '无效的 JS 代码' };
+  }
+  try {
+    const result = await jsRunner.run(code, selectedProjectDir);
+    if (result.success) {
+      console.log('[Cuckoo Code] ✅ JS 工具脚本执行成功, 输出长度=' + ((result.output || '').length));
+    } else {
+      console.log('[Cuckoo Code] ❌ JS 工具脚本执行失败:', result.error);
+    }
+    return { callId, ...result };
+  } catch (err) {
+    console.error('[Cuckoo Code] JS 工具脚本执行异常:', err);
     return { callId, success: false, error: err.message };
   }
 });
