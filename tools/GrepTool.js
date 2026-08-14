@@ -116,34 +116,7 @@ function grepDir(dir, baseDir, regex, fileRegex, outputMode, context, matches, c
 class GrepTool extends Tool {
   constructor() {
     super(
-      'file_grep',
-      `
-      你是一个可以使用 "file_grep" 工具来搜索文件内容的助手。
-
-工具说明：
-- 名称：file_grep
-- 用途：在项目文件中按正则表达式或文本搜索内容，返回匹配的文件、行号和行内容。
-- 参数：
-  - pattern（字符串，必填）：要搜索的正则表达式或纯文本
-  - path（字符串，选填）：搜索的起始目录（相对路径），默认项目根目录
-  - glob（字符串，选填）：限定搜索的文件类型，如 *.java、**/*.js、*.vue
-  - ignore_case（布尔，选填）：忽略大小写，默认 false
-  - output_mode（字符串，选填）：content（默认，输出匹配行）或 count（仅统计每个文件的匹配数量）
-  - context（数字，选填）：匹配行前后各输出的上下文行数，默认 0
-
-自动跳过 node_modules、.git、build、dist、__pycache__ 等目录，以及二进制文件和超过 1MB 的文件。
-匹配结果最多 200 条，超出会截断。
-
-使用工具时的回复格式：
-- 不要添加任何解释、前缀或后缀。
-- 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json），并确保内容正确转义：
-
-\`\`\`json
-{"toolName":"file_grep","params":{"pattern":"TODO","glob":"**/*.js"},"callId":"唯一调用ID"}
-\`\`\`
-
-如果用户没有要求搜索文件内容，请像普通助手一样正常回复，不要输出任何 JSON。
-      `,
+      'file_grep', '在项目文件中按正则表达式或文本搜索，返回匹配的文件、行号与行内容。',
       {
         type: 'object',
         properties: {
@@ -177,7 +150,8 @@ class GrepTool extends Tool {
         },
         required: ['pattern'],
         additionalProperties: false
-      }
+      },
+      'grep(pattern, options?)'
     );
   }
 

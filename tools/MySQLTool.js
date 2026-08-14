@@ -9,7 +9,7 @@ class MySQLTool extends Tool {
   constructor() {
     super(
       'mysql',
-      '连接 MySQL 数据库并执行 SQL 查询。如果缺少连接参数（host, port, user, password, database），应要求用户提供。',
+      '连接 MySQL 数据库并执行 SQL 查询。缺少连接参数时应先询问用户。',
       {
         type: 'object',
         properties: {
@@ -22,7 +22,8 @@ class MySQLTool extends Tool {
           params: { type: 'array', description: 'SQL 参数化查询的参数数组（可选）' }
         },
         required: ['host', 'user', 'password', 'database', 'query']
-      }
+      },
+      'mysql(options)'
     );
   }
 

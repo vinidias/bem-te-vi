@@ -1,6 +1,7 @@
 const { Tool, ToolResult } = require('./ToolRegistry');
 const { exec } = require('child_process');
 const path = require('path');
+const { decodeOutput, normalizeCommand } = require('./decodeOutput');
 
 // 危险命令列表（与 main.js 的 execute-command 一致），匹配的命令会被拒绝
 const DANGEROUS_CMDS = [
@@ -22,32 +23,7 @@ const DANGEROUS_CMDS = [
 class BashTool extends Tool {
   constructor() {
     super(
-      'bash',
-      `
-      你是一个可以使用 "bash" 工具来执行 shell 命令的助手。
-
-工具说明：
-- 名称：bash
-- 用途：执行 shell 命令（Windows 下使用 cmd.exe，Linux/Mac 下使用 sh），返回 stdout/stderr 输出。
-- 参数：
-  - command（字符串，必填）：要执行的命令
-  - cwd（字符串，选填）：命令的工作目录（相对路径），默认项目根目录
-  - timeout（数字，选填）：超时时间（毫秒），默认 30000
-
-可用于：查看目录、运行构建、安装依赖（npm install）、运行测试、git 操作等。
-危险命令（如格式化磁盘、删除系统文件、关机等）会被安全策略拒绝。
-命令输出上限 1MB，执行超时上限 30 秒。
-
-使用工具时的回复格式：
-- 不要添加任何解释、前缀或后缀。
-- 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json），并确保内容正确转义：
-
-\`\`\`json
-{"toolName":"bash","params":{"command":"dir /b"},"callId":"唯一调用ID"}
-\`\`\`
-
-如果用户没有要求执行命令，请像普通助手一样正常回复，不要输出任何 JSON。
-      `,
+      'bash', '执行 shell 命令（Windows 使用 cmd.exe），返回 stdout/stderr/exitCode。危险命令会被安全策略拒绝。',
       {
         type: 'object',
         properties: {
@@ -67,7 +43,8 @@ class BashTool extends Tool {
         },
         required: ['command'],
         additionalProperties: false
-      }
+      },
+      'bash(command, options?)'
     );
   }
 
@@ -84,7 +61,7 @@ class BashTool extends Tool {
         return ToolResult.error('command 不能为空');
       }
 
-      const trimmed = command.trim();
+      const trimmed = normalizeCommand(command.trim());
       if (!trimmed) {
         return ToolResult.error('command 不能为空');
       }
@@ -118,19 +95,24 @@ class BashTool extends Tool {
             timeout: timeout,
             maxBuffer: 1024 * 1024, // 1MB
             windowsHide: true,
+            encoding: 'buffer',
           },
           (error, stdout, stderr) => {
+            const out = decodeOutput(stdout);
+            const err = decodeOutput(stderr);
             if (error) {
               resolve(ToolResult.error(
-                `命令执行失败: ${error.message}\nstdout: ${stdout || '(空)'}\nstderr: ${stderr || '(空)'}`
+                '命令执行失败: ' + error.message + String.fromCharCode(10) +
+                'stdout: ' + (out || '(空)') + String.fromCharCode(10) +
+                'stderr: ' + (err || '(空)')
               ));
             } else {
               resolve(ToolResult.success({
                 message: '命令执行成功',
                 command: trimmed,
                 cwd: workDir,
-                stdout: stdout || '',
-                stderr: stderr || '',
+                stdout: out,
+                stderr: err,
                 exitCode: 0,
               }));
             }
@@ -143,4 +125,4 @@ class BashTool extends Tool {
   }
 }
 
-module.exports = { BashTool };
+module.exports = { BashTool, DANGEROUS_CMDS };

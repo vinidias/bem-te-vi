@@ -3,10 +3,11 @@
  */
 
 class Tool {
-  constructor(name, description, parameters) {
+  constructor(name, description, parameters, jsApi) {
     this.name = name;
     this.description = description;
     this.parameters = parameters; // JSON Schema 格式
+    this.jsApi = jsApi || null; // JS 调用签名，如 'editFile(file_path, old_string, new_string)'
   }
 
   async execute(params) {
@@ -20,7 +21,8 @@ class Tool {
     return {
       name: this.name,
       description: this.description,
-      parameters: this.parameters
+      parameters: this.parameters,
+      jsApi: this.jsApi
     };
   }
 }
@@ -109,6 +111,20 @@ class ToolRegistry {
    */
   listNames() {
     return Array.from(this.tools.keys());
+  }
+
+  /**
+   * 获取格式化的 JS API 列表，用于 Prompt（AI 生成 JS 代码调用这些函数）
+   * @returns {string}
+   */
+  getFormattedJsApiForPrompt() {
+    const descriptions = this.getDescriptions();
+    if (descriptions.length === 0) return '暂无可用工具';
+
+    return descriptions.map((t, i) => {
+      const sig = t.jsApi ? '\`' + t.jsApi + '\`' : '\`' + t.name + '(...)\`';
+      return (i + 1) + '. ' + sig + ' — ' + t.description;
+    }).join('\n');
   }
 }
 

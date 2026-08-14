@@ -10,14 +10,15 @@ class FileDeleteTool extends Tool {
   constructor() {
     super(
       'file_delete',
-      '删除指定的文件。注意：此操作不可恢复，请谨慎使用。',
+      '删除指定文件。不可恢复，请谨慎使用。',
       {
         type: 'object',
         properties: {
           file_path: { type: 'string', description: '要删除的文件的相对路径（相对于项目目录）' }
         },
         required: ['file_path']
-      }
+      },
+      'deleteFile(file_path)'
     );
   }
 

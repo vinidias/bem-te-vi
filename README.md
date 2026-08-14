@@ -15,7 +15,7 @@ Cuckoo Code 是一个 Electron 应用，在 Chromium 窗口中嵌入 [chat.deeps
 
 - 🖥️ **Electron 桌面应用**——跨平台支持，提供原生桌面体验
 - 🛠️ **命令拦截与执行**——自动检测 `cmd`、`powershell`、`bash` 等代码块，弹窗确认后执行
-- 🔧 **工具调用系统**——AI 可通过 JSON 格式调用 `file_write`、`file_read`、`file_edit`、`bash` 等 8+ 种工具
+- 🔧 **工具调用系统**——AI 生成 JavaScript 代码（```cuckoo 代码块）调用 `readFile`、`writeFile`、`editFile`、`bash` 等 8+ 种工具函数，在受限沙箱中执行（兼容旧 JSON 格式）
 - 📂 **项目目录绑定**——每个会话可关联一个项目目录，工具操作以此为基础，实现上下文感知
 - 🎨 **侧边覆盖层面板**——显示命令预览、执行结果和历史记录，支持快捷键 `Ctrl+Shift+C` 切换
 - 🚨 **安全机制**——命令执行前必须用户确认；危险命令（`rm -rf /`、`format` 等）触发额外警告；30 秒超时限制
@@ -52,19 +52,20 @@ npm start
 3. **命令自动检测**——AI 回复中的 `cmd`/`powershell`/`bash` 代码块会被侧边栏捕获
 4. **确认执行**——点击「确认执行」或「忽略」；危险命令会有额外警告
 5. **初始化项目**——点击「初始化项目」选择项目目录，AI 将获得目录树和系统提示词，使其能感知项目结构
-6. **工具调用**——AI 可通过 `jsontool` 代码块调用工具，系统执行后返回结果
+6. **工具调用**——AI 可通过 `cuckoo` 代码块输出 JavaScript 代码调用工具函数，系统在沙箱中执行后把结果回传给 AI
 
 ### 工具调用示例
 
-AI 回复中包含以下格式的代码块时，系统会自动解析并执行：
+AI 回复中包含以下格式的代码块时，系统会自动在沙箱中执行，并把结果回传给 AI：
 
 ````markdown
-```jsontool
-{"toolName":"file_write","params":{"file_path":"hello.txt","content":"Hello World"},"callId":"call_123"}
+```cuckoo
+const content = await readFile("src/utils/helper.js");
+await writeFile("src/utils/helper.js", content.replace("formatDate", "formatTime"));
 ```
 ````
 
-执行结果会返回给 AI，AI 根据结果继续下一步操作。
+执行结果会返回给 AI，AI 根据结果继续下一步操作。旧版 ```jsontool JSON 格式仍受支持。
 
 ---
 
@@ -72,16 +73,17 @@ AI 回复中包含以下格式的代码块时，系统会自动解析并执行�
 
 支持的工具列表（定义在 `tools/` 目录）：
 
-| 工具名称 | 功能描述 |
-|----------|----------|
-| `file_write` | 写入文件（自动创建父目录） |
-| `file_read` | 读取文件内容 |
-| `file_edit` | 精确查找并替换文件内容 |
-| `file_glob` | 按 glob 模式搜索文件 |
-| `file_grep` | 按正则/文本搜索文件内容 |
-| `bash` | 执行 Shell 命令 |
-| `mysql` | 执行 SQL 查询（需配置） |
-| `file_delete` | 删除文件（需确认） |
+| JS 函数（cuckoo 代码块） | JSON 工具名（旧格式） | 功能描述 |
+|----------|----------|----------|
+| `writeFile(file_path, content, encoding?)` | `file_write` | 写入文件（自动创建父目录） |
+| `readFile(file_path, encoding?)` | `file_read` | 读取文件内容 |
+| `editFile(file_path, old_string, new_string, replace_all?)` | `file_edit` | 精确查找并替换文件内容 |
+| `glob(pattern, path?)` | `file_glob` | 按 glob 模式搜索文件 |
+| `grep(pattern, options?)` | `file_grep` | 按正则/文本搜索文件内容 |
+| `bash(command, options?)` | `bash` | 执行 Shell 命令 |
+| `mysql(options)` | `mysql` | 执行 SQL 查询（需配置） |
+| `deleteFile(file_path)` | `file_delete` | 删除文件 |
+| `log(...args)` | - | 输出中间结果到执行结果 |
 
 所有工具操作均相对于当前绑定的项目目录，确保安全性。
 

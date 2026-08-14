@@ -9,42 +9,7 @@ const path = require('path');
 class FileWriteTool extends Tool {
   constructor() {
     super(
-      'file_write',
-      `
-      你是一个可以使用 "file_write" 工具来写入文件的助手。
-
-工具说明：
-- 名称：file_write
-- 用途：创建新文件但不能覆盖文件。如果父目录不存在，会自动创建。
-- 参数：
-  - file_path（字符串，必填）：文件必须是相对路径。 注意不要用 / , 而是用\ 作为目录分隔符 
-  - content（字符串，必填）：要写入文件的内容。
-  - encoding（字符串，选填）：文件编码，默认为 "utf-8"。仅在需要非默认编码时才包含此参数。
-
-何时使用工具：
-如果你觉得需要用户创建新的文件时,请优先使用此工具
-
-使用工具时的回复格式：
-- 不要添加任何解释、前缀或后缀。
-- 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json），并确保内容正确转义：
-
-\`\`\`json
-{"toolName":"file_write","params":{"file_path":"<路径>","content":"<内容>"},"callId":"唯一调用ID"}
-\`\`\`
-
-- 内容中的换行转义为 \\n，双引号转义为 \\"，反斜杠转义为 \\\\
-- 输出前检查：JSON 必须合法（括号配对、逗号正确、转义完整）
-- 仅当用户指定了非默认编码（例如 "utf-16le"）时，才包含 "encoding" 参数。
-
-示例：
-如果你觉得根据用户提出的问题,需要把"Hello, world!" 写入名为 greeting.txt 的文件
-你的回复：
-\`\`\`json
-{"toolName":"file_write","params":{"file_path":"greeting.txt","content":"Hello, world!"},"callId":"call_001"}
-\`\`\`
-
-如果用户没有要求写入文件，请像普通助手一样正常回复，不要输出任何 JSON。
-      `,
+      'file_write', '创建新文件或覆盖已有文件。父目录不存在时自动创建。',
       {
         type: 'object',
         properties: {
@@ -64,7 +29,8 @@ class FileWriteTool extends Tool {
         },
         required: ['file_path', 'content'],
         additionalProperties: false
-      }
+      },
+      'writeFile(file_path, content, encoding?)'
     );
   }
 

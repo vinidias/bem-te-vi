@@ -74,34 +74,7 @@ function walkDir(dir, baseDir, regex, results) {
 class GlobTool extends Tool {
   constructor() {
     super(
-      'file_glob',
-      `
-      你是一个可以使用 "file_glob" 工具来搜索文件的助手。
-
-工具说明：
-- 名称：file_glob
-- 用途：按 glob 模式递归搜索项目中的文件，返回匹配的文件相对路径列表。用于查找文件、了解项目结构。
-- 参数：
-  - pattern（字符串，必填）：glob 匹配模式，如 **/*.java、src/**/*.js、*.json
-  - path（字符串，选填）：搜索的起始目录（相对路径），默认项目根目录
-
-glob 语法：
-- * 匹配单层目录内的任意字符（如 *.js 只匹配根目录下的 js 文件）
-- ** 匹配任意层目录（如 **/*.js 匹配所有层级的 js 文件）
-- ? 匹配单个字符
-
-自动跳过 node_modules、.git、build、dist、__pycache__ 等目录。
-
-使用工具时的回复格式：
-- 不要添加任何解释、前缀或后缀。
-- 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json），并确保内容正确转义：
-
-\`\`\`json
-{"toolName":"file_glob","params":{"pattern":"**/*.java"},"callId":"唯一调用ID"}
-\`\`\`
-
-如果用户没有要求搜索文件，请像普通助手一样正常回复，不要输出任何 JSON。
-      `,
+      'file_glob', '按 glob 模式递归搜索项目文件，返回匹配的相对路径列表（自动跳过 node_modules 等目录）。',
       {
         type: 'object',
         properties: {
@@ -116,7 +89,8 @@ glob 语法：
         },
         required: ['pattern'],
         additionalProperties: false
-      }
+      },
+      'glob(pattern, path?)'
     );
   }
 

@@ -9,34 +9,7 @@ const path = require('path');
 class FileReadTool extends Tool {
   constructor() {
     super(
-      'file_read',
-      `
-      你是一个可以使用 "file_read" 工具来读取文件的助手。
-
-工具说明：
-- 名称：file_read
-- 用途：读取指定文件的内容。如果文件不存在或读取失败，会返回错误信息。
-- 参数：
-  - file_path（字符串，必填）：文件的相对路径或绝对路径。 不要用 / , 而是用\ 作为目录分隔符
-  - encoding（字符串，选填）：文件编码，默认为 "utf-8"。仅在需要非默认编码时才包含此参数。
-  - format（字符串，选填）：输出格式，默认为 "plain"。可选值："plain"（原始内容）、"escaped"（转义为 JSON 字符串格式，便于用于 file_edit 的 old_string）
-- 限制：超过 1MB 的文件只会返回前 1MB 内容。
-
-使用工具时的回复格式：
-- 不要添加任何解释、前缀或后缀。
-- 将 JSON 输出在标准的 Markdown 代码块中（\`\`\`json）：
-
-\`\`\`json
-{"toolName":"file_read","params":{"file_path":"<路径>","format":"escaped"},"callId":"唯一调用ID"}
-\`\`\`
-
-示例（转义模式）：
-\`\`\`json
-{"toolName":"file_read","params":{"file_path":"src/utils/helper.js","format":"escaped"},"callId":"call_001"}
-\`\`\`
-
-如果用户没有要求读取文件，请像普通助手一样正常回复，不要输出任何 JSON。
-      `,
+      'file_read', '读取指定文件的内容，返回字符串。超过 1MB 只返回前 1MB。',
       {
         type: 'object',
         properties: {
@@ -54,11 +27,17 @@ class FileReadTool extends Tool {
             description: '输出格式: plain (原始内容) 或 escaped (转义为JSON字符串)',
             default: 'plain',
             enum: ['plain', 'escaped']
+          },
+          line_numbers: {
+            type: 'boolean',
+            description: '是否在每行前添加行号（用于 AI 阅读），默认 false',
+            default: false
           }
         },
         required: ['file_path'],
         additionalProperties: false
-      }
+      },
+      'readFile(file_path, encoding?)'
     );
   }
 
@@ -68,7 +47,7 @@ class FileReadTool extends Tool {
    * @returns {Promise<ToolResult>}
    */
   async execute(params) {
-    const { file_path, encoding = 'utf-8', projectDir, format = 'plain' } = params;
+    const { file_path, encoding = 'utf-8', projectDir, format = 'plain', line_numbers = false } = params;
 
     try {
       // 规范化路径：将正斜杠转换为反斜杠（Windows兼容）
@@ -112,6 +91,11 @@ class FileReadTool extends Tool {
         content = content.replace(/�/g, '');
       } else {
         content = fs.readFileSync(resolvedPath, encoding);
+      }
+
+      // 可选：添加行号（readFileWithLines 使用）
+      if (line_numbers) {
+        content = content.split(/\r?\n/).map((line, idx) => (idx + 1) + ': ' + line).join('\n');
       }
 
       const absolutePath = path.resolve(resolvedPath);
