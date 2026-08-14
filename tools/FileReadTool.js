@@ -27,6 +27,11 @@ class FileReadTool extends Tool {
             description: '输出格式: plain (原始内容) 或 escaped (转义为JSON字符串)',
             default: 'plain',
             enum: ['plain', 'escaped']
+          },
+          line_numbers: {
+            type: 'boolean',
+            description: '是否在每行前添加行号（用于 AI 阅读），默认 false',
+            default: false
           }
         },
         required: ['file_path'],
@@ -42,7 +47,7 @@ class FileReadTool extends Tool {
    * @returns {Promise<ToolResult>}
    */
   async execute(params) {
-    const { file_path, encoding = 'utf-8', projectDir, format = 'plain' } = params;
+    const { file_path, encoding = 'utf-8', projectDir, format = 'plain', line_numbers = false } = params;
 
     try {
       // 规范化路径：将正斜杠转换为反斜杠（Windows兼容）
@@ -86,6 +91,11 @@ class FileReadTool extends Tool {
         content = content.replace(/�/g, '');
       } else {
         content = fs.readFileSync(resolvedPath, encoding);
+      }
+
+      // 可选：添加行号（readFileWithLines 使用）
+      if (line_numbers) {
+        content = content.split(/\r?\n/).map((line, idx) => (idx + 1) + ': ' + line).join('\n');
       }
 
       const absolutePath = path.resolve(resolvedPath);

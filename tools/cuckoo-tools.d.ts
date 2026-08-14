@@ -35,6 +35,15 @@ declare function log(...args: unknown[]): void;
  */
 declare function readFile(filePath: string, encoding?: string): Promise<string>;
 
+/**
+ * 读取文件内容，返回带行号的字符串（每行前缀为 `行号: 内容`，方便 AI 阅读讨论）。
+ * 超过 1MB 的文件只返回前 1MB。
+ * @param filePath 相对（基于项目根目录）或绝对路径
+ * @param encoding 编码，默认 'utf-8'
+ * @throws 文件不存在、不是文件或读取失败时抛出异常
+ */
+declare function readFileWithLines(filePath: string, encoding?: string): Promise<string>;
+
 /** writeFile 的返回值 */
 interface FileWriteResult {
   /** 成功描述，如：文件已写入: C:\项目\src\index.js */
