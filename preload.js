@@ -1487,7 +1487,7 @@ function processLatestAIResponse(retryCount = 0, force = false) {
           await handleJsToolScript(code);
         }
       })();
-    }, 1200);
+    }, 800);
     return;
   }
 
@@ -1589,15 +1589,11 @@ function startObserver() {
       }
     }
 
-    // 回复结束后处理最新 AI 回复（带 2-4s 随机防抖延迟，确保流式渲染完成）
+    // 回复结束后处理最新 AI 回复（检测到操作按钮组后立即处理）
     if (hasNewContent && isAIResponseComplete()) {
       clearTimeout(responseReadTimer);
-      const delay = randomDelay();
-      console.log('[Cuckoo Code] ⏳ 检测到回复结束，随机等待 ' + delay + 'ms 后读取回复...');
-      responseReadTimer = setTimeout(() => {
-        console.log('[Cuckoo Code] ✅ 等待结束，开始读取回复');
-        processLatestAIResponse();
-      }, delay);
+      console.log('[Cuckoo Code] ✅ 检测到回复结束，立即读取回复');
+      processLatestAIResponse();
     }
   });
 
