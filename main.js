@@ -101,6 +101,13 @@ function extractSessionIdFromUrl(url) {
   return altMatch ? altMatch[1] : null;
 }
 
+// 当前会话ID（从页面URL中提取）
+let currentSessionId = null;
+// 当前选中的项目目录（内存缓存）
+let selectedProjectDir = null;
+// 待绑定的项目目录（当初始化时还未获取到sessionId时暂存）
+let pendingProjectDir = null;
+
 /**
  * 处理URL变化：提取会话ID，并尝试恢复项目目录
  */
@@ -165,12 +172,6 @@ function tryRestoreSessionFromUrl() {
   handleUrlChange(url);
 }
 
-// 当前会话ID（从页面URL中提取）
-let currentSessionId = null;
-// 当前选中的项目目录（内存缓存）
-let selectedProjectDir = null;
-// 待绑定的项目目录（当初始化时还未获取到sessionId时暂存）
-let pendingProjectDir = null;
 
 // ========== 持久化会话配置 ==========
 
