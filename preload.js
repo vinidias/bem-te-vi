@@ -139,6 +139,52 @@ class UnifiedToolManager {
         additionalProperties: false
       }
     });
+    this.register('web_fetch', {
+      name: 'web_fetch',
+      description: '访问网页或 API。使用 Node 内置 fetch 获取 http/https URL 的响应内容。适合获取网页文本、JSON 数据、API 响应等。注意：不执行 JavaScript，若网页内容由 JS 动态渲染，请使用其他浏览器工具。',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: {
+            type: 'string',
+            description: '要访问的网址，支持 http/https'
+          },
+          method: {
+            type: 'string',
+            description: 'HTTP 方法，默认 GET',
+            default: 'GET',
+            enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
+          },
+          headers: {
+            type: 'object',
+            description: '请求头，如 { "Authorization": "Bearer xxx" }',
+            default: {}
+          },
+          body: {
+            type: 'string',
+            description: '请求体（POST/PUT 等使用），字符串'
+          },
+          timeout: {
+            type: 'number',
+            description: '超时毫秒，默认 15000',
+            default: 15000
+          },
+          maxSize: {
+            type: 'number',
+            description: '响应体最大字节数，默认 512000（500KB），超出截断',
+            default: 512000
+          },
+          responseType: {
+            type: 'string',
+            description: '返回格式: auto (根据 content-type 自动)、json、text',
+            default: 'auto',
+            enum: ['auto', 'json', 'text']
+          }
+        },
+        required: ['url'],
+        additionalProperties: false
+      }
+    });
   }
 
   /**
@@ -307,6 +353,20 @@ class UnifiedToolManager {
         command: toolCall.params.command,
         cwd: toolCall.params.cwd,
         timeout: toolCall.params.timeout
+      }, toolCall.callId)
+        .then(r => ({ success: r.success, data: r.data, error: r.error }))
+        .catch(e => ({ success: false, error: e.message }));
+    }
+    if (toolName === 'web_fetch') {
+      // 通过 IPC 执行网页访问
+      return window.electronAPI?.executeTool?.('web_fetch', {
+        url: toolCall.params.url,
+        method: toolCall.params.method,
+        headers: toolCall.params.headers,
+        body: toolCall.params.body,
+        timeout: toolCall.params.timeout,
+        maxSize: toolCall.params.maxSize,
+        responseType: toolCall.params.responseType
       }, toolCall.callId)
         .then(r => ({ success: r.success, data: r.data, error: r.error }))
         .catch(e => ({ success: false, error: e.message }));
@@ -1817,7 +1877,7 @@ function extractJsonObject(str, startPos) {
 const BT = String.fromCharCode(96);
 const FENCE = BT + BT + BT;
 // 工具调用特征：必须出现 "await 工具函数名(" 形式的调用（防止 fs.readFile 等普通示例误判）
-const JS_TOOL_CALL_RE = /\bawait\s+(?:readFile|writeFile|editFile|glob|grep|bash|deleteFile|mysql)\s*\(/;
+const JS_TOOL_CALL_RE = /\bawait\s+(?:readFile|readFileWithLines|writeFile|editFile|glob|grep|bash|deleteFile|mysql|webFetch)\s*\(/;
 // 已执行脚本哈希 -> 执行时间。拦截器通道与 DOM 通道可能先后触发同一回复，靠它去重
 const executedJsScripts = new Map();
 const JS_DEDUP_WINDOW = 15000;

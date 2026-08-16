@@ -13,6 +13,7 @@ const { GrepTool } = require('./tools/GrepTool');
 const { BashTool } = require('./tools/BashTool');
 const { MySQLTool } = require('./tools/MySQLTool');
 const { FileDeleteTool } = require('./tools/FileDeleteTool');
+const { WebFetchTool } = require('./tools/WebFetchTool');
 const { JsRunner } = require('./tools/JsRunner');
 const { decodeOutput, normalizeCommand } = require('./tools/decodeOutput');
 
@@ -26,6 +27,7 @@ toolRegistry.register(new GrepTool());
 toolRegistry.register(new BashTool());
 toolRegistry.register(new MySQLTool());
 toolRegistry.register(new FileDeleteTool());
+toolRegistry.register(new WebFetchTool());
 // 后续可在此注册更多工具
 
 // JS 工具脚本执行器（AI 生成 JS 代码调用工具函数）
