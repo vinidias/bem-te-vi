@@ -1089,7 +1089,7 @@ async function handleInitProject() {
 
 /**
  * 手动解析按钮点击处理
- * 用户点击后，扫描当前页面内容中的工具调用并执行
+ * 用户点击后，仅解析最后一条 AI 回复中的工具调用并执行
  */
 async function handleManualParse() {
   const btn = document.getElementById('cuckoo-btn-manual-parse');
@@ -1099,69 +1099,9 @@ async function handleManualParse() {
   }
 
   try {
-
-    // 获取页面所有文本内容
-    const pageText = document.body.innerText || document.body.textContent || '';
-    console.log(pageText);
-
-    if (!pageText || pageText.trim().length === 0) {
-      alert('页面内容为空，无法解析');
-      return;
-    }
-
-    // 0. 优先扫描 JS 工具代码块（DOM 中的 cuckoo/js 代码块 + 页面文本中的围栏）
-    const jsBlocks = [];
-    const allPres = document.querySelectorAll('pre');
-    for (const pre of allPres) {
-      if (isInsideUserMessage(pre)) continue;
-      const blocks = getJsCodeBlocksFromMarkdown(pre);
-      for (const b of blocks) jsBlocks.push(b);
-    }
-    for (const b of extractJsToolBlocks(pageText)) jsBlocks.push(b);
-    if (jsBlocks.length > 0) {
-      for (const code of jsBlocks) {
-        await handleJsToolScript(code);
-      }
-      alert('手动解析完成，共执行 ' + jsBlocks.length + ' 个 JS 工具脚本');
-      return;
-    }
-
-    // 尝试解析工具调用
-    const toolCalls = [];
-
-    // 1. 尝试直接解析整个页面内容
-    const directParse = tryParseToolCall(document.body.innerText || document.body.textContent || '');
-    if (directParse) {
-      toolCalls.push(directParse);
-    }
-
-    // 2. 如果没有解析到，尝试查找代码块
-    if (toolCalls.length === 0) {
-      const codeBlocks = document.querySelectorAll('pre code, pre');
-      for (let i = 0; i < codeBlocks.length; i++) {
-        const block = codeBlocks[i];
-        const text = block.textContent || block.innerText || '';
-        if (text && (text.includes('toolName') || text.includes('tool') || text.includes('file_write'))) {
-          const parsed = tryParseToolCall(text);
-          if (parsed) {
-            toolCalls.push(parsed);
-          }
-        }
-      }
-    }
-
-    if (toolCalls.length === 0) {
-      alert('未在页面中检测到有效的工具调用（JS 工具脚本或 JSON）');
-      return;
-    }
-
-
-    // 执行所有检测到的工具调用
-    for (const toolCall of toolCalls) {
-      await handleToolCall(toolCall);
-    }
-
-    alert(`手动解析完成，共执行 ${toolCalls.length} 个工具调用`);
+    // 复用自动解析逻辑：仅解析最后一条 AI 回复
+    processLatestAIResponse(0, true);
+    alert('已触发手动解析最后一条 AI 回复');
   } catch (err) {
     console.error('[Cuckoo Code] 手动解析出错:', err);
     alert('手动解析出错: ' + err.message);
@@ -1391,32 +1331,41 @@ function isInsideUserMessage(node) {
 // ========== AI 回复完成检测 ==========
 /**
  * 检测 AI 是否已完成回复
- * 规则：如果能找到停止生成按钮（disabled 状态），则视为回复结束
+ * 规则：检测最后一条 AI 消息中出现操作按钮组（复制/重新生成等），视为回复结束
  * @returns {boolean} true 表示 AI 已完成回复
  */
 const STOP_BTN_SELECTOR =
   '.ds-button.ds-button--primary.ds-button--filled.ds-button--circle.ds-button--m' +
   '.ds-button--icon-relative-m.ds-button--disabled';
 
+const ACTION_BTN_SELECTOR =
+  '[role="button"].ds-button--iconLabelTertiary';
+
 function isAIResponseComplete() {
   try {
-    // 如果能在 DOM 中找到 disabled 的停止按钮，则视为回复结束
+    // 双保险：最后一条 AI 消息出现操作按钮组，或页面存在 disabled 的停止按钮
+    const messages = document.querySelectorAll('.ds-message');
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      const actionButtons = lastMessage.querySelectorAll(ACTION_BTN_SELECTOR);
+      if (actionButtons.length >= 2) {
+        console.log('[Cuckoo Code] ✅ 检测到操作按钮组（' + actionButtons.length + ' 个），回复已完成');
+        return true;
+      }
+    }
+
     const stopBtn = document.querySelector(STOP_BTN_SELECTOR);
     if (stopBtn) {
       console.log('[Cuckoo Code] ✅ 检测到停止按钮(disabled)，回复已结束');
       return true;
     }
 
-    // 找不到停止按钮，说明可能还在生成中，或页面状态不确定
-    // console.log('[Cuckoo Code] ⏳ 未找到停止按钮，回复可能未结束');
     return false;
   } catch (err) {
     console.error('[Cuckoo Code] ❌ 检测 AI 完成状态出错:', err);
-    // 出错时保守返回 true，避免永远不处理
-    return true;
+    return false;
   }
 }
-
 // ========== MutationObserver ==========
 
 // 已处理过的消息节点集合（避免重复处理）
@@ -1472,7 +1421,7 @@ function isJsonBalanced(str) {
  * 回复结束后，获取最新 .ds-message > .ds-markdown 的内容并解析工具调用
  * @param {number} retryCount 当前重试次数（内容不完整时延迟重试）
  */
-function processLatestAIResponse(retryCount = 0) {
+function processLatestAIResponse(retryCount = 0, force = false) {
   const messages = document.querySelectorAll('.ds-message');
   if (messages.length === 0) {
     console.log('[Cuckoo Code] 未找到 .ds-message 节点');
@@ -1487,7 +1436,7 @@ function processLatestAIResponse(retryCount = 0) {
     return;
   }
 
-  if (processedMessages.has(lastMessage)) {
+  if (!force && processedMessages.has(lastMessage)) {
     return; // 已处理过，跳过
   }
 
@@ -1503,7 +1452,7 @@ function processLatestAIResponse(retryCount = 0) {
   if (jsBlocks.length > 0) {
     // 稳定性双读校验：DeepSeek 流式渲染期间代码块只渲染了一半（曾导致 "const content"
     // 这样的残缺代码被执行 → SyntaxError）。间隔 1.2 秒复查内容，仍在变化就重新调度。
-    if (retryCount > JS_STABILITY_MAX_RETRY) {
+    if (!force && retryCount > JS_STABILITY_MAX_RETRY) {
       console.log('[Cuckoo Code] ⚠️ 代码块持续不稳定（' + retryCount + ' 次复查），放弃本次处理');
       processedMessages.add(lastMessage);
       return;
@@ -1511,6 +1460,16 @@ function processLatestAIResponse(retryCount = 0) {
     const snapshot = markdown.textContent || '';
     const snapshotBlocks = jsBlocks.map((b) => b.length).join(',');
     console.log('[Cuckoo Code] ⏳ 检测到 JS 工具代码块，稳定性校验中（' + (retryCount + 1) + '/' + JS_STABILITY_MAX_RETRY + '）...');
+    if (force) {
+      console.log('[Cuckoo Code] 手动解析模式，跳过稳定性校验');
+      (async () => {
+        for (const code of jsBlocks) {
+          await handleJsToolScript(code);
+        }
+      })();
+      return;
+    }
+
     setTimeout(() => {
       const jsBlocksNow = getJsCodeBlocksFromMarkdown(markdown);
       const stable = (markdown.textContent || '') === snapshot &&
@@ -1521,14 +1480,14 @@ function processLatestAIResponse(retryCount = 0) {
         processLatestAIResponse(retryCount + 1);
         return;
       }
-      processedMessages.add(lastMessage);
+      if (!force) processedMessages.add(lastMessage);
       console.log('[Cuckoo Code] ✅ 代码块稳定，检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
       (async () => {
         for (const code of jsBlocks) {
           await handleJsToolScript(code);
         }
       })();
-    }, 1200);
+    }, 800);
     return;
   }
 
@@ -1562,7 +1521,7 @@ function processLatestAIResponse(retryCount = 0) {
   }
 
   // 内容不完整（疑似流式输出未真正结束）：延迟重试，避免处理截断的 JSON
-  if (!isJsonBalanced(text)) {
+  if (!force && !isJsonBalanced(text)) {
     if (retryCount < MAX_RETRY_COUNT) {
       console.log('[Cuckoo Code] ⏳ JSON 不完整(疑似流式未结束)，' + (retryCount + 1) + '/' + MAX_RETRY_COUNT + ' 次延迟重试, 当前长度=' + text.length + '...');
       setTimeout(() => processLatestAIResponse(retryCount + 1), RETRY_INTERVAL);
@@ -1576,7 +1535,7 @@ function processLatestAIResponse(retryCount = 0) {
     );
   }
 
-  processedMessages.add(lastMessage);
+  if (!force) processedMessages.add(lastMessage);
 
   const toolCall = tryParseToolCall(text);
   if (toolCall) {
@@ -1630,15 +1589,11 @@ function startObserver() {
       }
     }
 
-    // 回复结束后处理最新 AI 回复（带 2-4s 随机防抖延迟，确保流式渲染完成）
+    // 回复结束后处理最新 AI 回复（检测到操作按钮组后立即处理）
     if (hasNewContent && isAIResponseComplete()) {
       clearTimeout(responseReadTimer);
-      const delay = randomDelay();
-      console.log('[Cuckoo Code] ⏳ 检测到回复结束，随机等待 ' + delay + 'ms 后读取回复...');
-      responseReadTimer = setTimeout(() => {
-        console.log('[Cuckoo Code] ✅ 等待结束，开始读取回复');
-        processLatestAIResponse();
-      }, delay);
+      console.log('[Cuckoo Code] ✅ 检测到回复结束，立即读取回复');
+      processLatestAIResponse();
     }
   });
 
@@ -2630,213 +2585,6 @@ function setupNewSessionListener() {
 // 启动新建会话监听
 setTimeout(setupNewSessionListener, 3000);
 
-// ========== 拦截 DeepSeek API 响应（注入到主世界） ==========
-
-console.log('[Cuckoo Code] 安装 API 拦截器（注入主世界）...');
-
-// 监听来自主世界拦截器的消息
-window.addEventListener('message', (e) => {
-  if (e.data && e.data.source === 'cuckoo-interceptor') {
-    // 心跳消息：URL 过滤命中（fetch/xhr/eventsource），只打日志
-    if (e.data.type === 'fetch' || e.data.type === 'xhr' || e.data.type === 'eventsource') {
-      console.log('[Cuckoo Code] [拦截] ✅ URL 过滤命中, type=' + e.data.type + ', url=' + (e.data.url || ''));
-      return;
-    }
-    console.log('[Cuckoo Code] [拦截] AI回复全文 (长度=' + ((e.data.content || '').length) + '):');
-    console.log(e.data.content);
-    processAIContent(e.data.content);
-  }
-});
-
-// 注入拦截脚本到主世界（绕过 contextIsolation）
-const interceptScript = document.createElement('script');
-interceptScript.textContent = `(${function() {
-  // 在主世界拦截 fetch
-  const origFetch = window.fetch;
-  window.fetch = async function(input, init) {
-    const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : '');
-    const response = await origFetch.call(window, input, init);
-    if (url && (url.includes('chat') || url.includes('completion'))) {
-      console.log('[Cuckoo Interceptor] ✅ 命中 fetch: ' + url);
-      window.postMessage({ source: 'cuckoo-interceptor', url: url, type: 'fetch' }, '*');
-      const cloned = response.clone();
-      const ct = response.headers.get('content-type') || '';
-      if (ct.includes('text/event-stream')) {
-        // SSE streaming
-        console.log('[Cuckoo Interceptor] SSE 流式响应，开始解析...');
-        const reader = cloned.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = '', content = '';
-        (async () => {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buf += decoder.decode(value, { stream: true });
-            const lines = buf.split('\n');
-            buf = lines.pop() || '';
-            for (const line of lines) {
-              if (line.startsWith('data:')) {
-                const payload = line.slice(5).replace(/^\s/, '');
-                if (payload !== '[DONE]') {
-                  try {
-                    const obj = JSON.parse(payload);
-                    content += obj?.choices?.[0]?.delta?.content ?? obj?.choices?.[0]?.message?.content ?? '';
-                  } catch(e) {}
-                }
-              }
-            }
-          }
-          console.log('[Cuckoo Interceptor] SSE 解析完成, 提取内容长度=' + content.length);
-          if (content) {
-            window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
-          } else {
-            console.log('[Cuckoo Interceptor] ⚠️ SSE 内容为空：data 行格式可能已变化（期望 choices[0].delta.content）');
-          }
-        })();
-      } else {
-        console.log('[Cuckoo Interceptor] 非流式响应, content-type=' + ct);
-        cloned.text().then(body => {
-          try {
-            const c = JSON.parse(body)?.choices?.[0]?.message?.content;
-            if (c) {
-              console.log('[Cuckoo Interceptor] 非流式提取内容长度=' + c.length);
-              window.postMessage({ source: 'cuckoo-interceptor', content: c }, '*');
-            } else {
-              console.log('[Cuckoo Interceptor] ⚠️ 非流式内容为空, 响应前 200 字符: ' + body.slice(0, 200));
-            }
-          } catch(e) {
-            console.log('[Cuckoo Interceptor] ⚠️ 非流式响应解析失败: ' + e.message);
-          }
-        });
-      }
-    }
-    return response;
-  };
-
-  // 在主世界拦截 XHR
-  const OrigXHR = window.XMLHttpRequest;
-  window.XMLHttpRequest = function() {
-    const xhr = new OrigXHR();
-    const origOpen = xhr.open;
-    let url = '';
-    xhr.open = function(m, u) { url = u; return origOpen.apply(xhr, arguments); };
-    xhr.addEventListener('load', function() {
-      if (url && (url.includes('chat') || url.includes('completion'))) {
-        console.log('[Cuckoo Interceptor] ✅ 命中 XHR: ' + url);
-        window.postMessage({ source: 'cuckoo-interceptor', url: url, type: 'xhr' }, '*');
-        try {
-          const text = xhr.responseText;
-          // SSE extract
-          let content = '';
-          for (const line of text.split('\n')) {
-            if (line.startsWith('data:')) {
-              const payload = line.slice(5).replace(/^\s/, '');
-              if (payload !== '[DONE]') {
-                try {
-                  const obj = JSON.parse(payload);
-                  content += obj?.choices?.[0]?.delta?.content ?? obj?.choices?.[0]?.message?.content ?? '';
-                } catch(e) {}
-              }
-            }
-          }
-          // or JSON
-          if (!content) {
-            try { content = JSON.parse(text)?.choices?.[0]?.message?.content || ''; } catch(e) {}
-          }
-          console.log('[Cuckoo Interceptor] XHR 提取内容长度=' + content.length);
-          if (content) {
-            window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
-          } else {
-            console.log('[Cuckoo Interceptor] ⚠️ XHR 内容为空：data 行/JSON 格式可能已变化');
-          }
-        } catch(e) {
-          console.log('[Cuckoo Interceptor] ⚠️ XHR 解析异常: ' + e.message);
-        }
-      }
-    });
-    return xhr;
-  };
-  window.XMLHttpRequest.prototype = OrigXHR.prototype;
-
-  // 在主世界拦截 EventSource
-  const OrigES = window.EventSource;
-  window.EventSource = function(url, config) {
-    console.log('[Cuckoo Interceptor] ✅ 命中 EventSource: ' + url);
-    window.postMessage({ source: 'cuckoo-interceptor', url: url, type: 'eventsource' }, '*');
-    const es = new OrigES(url, config);
-    let content = '';
-    es.addEventListener('message', function(e) {
-      try {
-        const obj = JSON.parse(e.data);
-        content += obj?.choices?.[0]?.delta?.content ?? obj?.choices?.[0]?.message?.content ?? '';
-      } catch(err) {}
-    });
-    const origClose = es.close;
-    es.close = function() {
-      console.log('[Cuckoo Interceptor] EventSource 关闭, 提取内容长度=' + content.length);
-      if (content) {
-        window.postMessage({ source: 'cuckoo-interceptor', content: content }, '*');
-      } else {
-        console.log('[Cuckoo Interceptor] ⚠️ EventSource 内容为空：消息格式可能已变化');
-      }
-      return origClose.call(es);
-    };
-    return es;
-  };
-  window.EventSource.prototype = OrigES.prototype;
-  window.EventSource.CONNECTING = OrigES.CONNECTING;
-  window.EventSource.OPEN = OrigES.OPEN;
-  window.EventSource.CLOSED = OrigES.CLOSED;
-}}.toString())()`;
-
-// 等待 DOM 就绪后再注入
-/**
- * 将 API 拦截脚本注入到主世界（绕过 contextIsolation）
- * 通过 document.documentElement 或 head/body 注入 script 标签
- */
-function injectInterceptor() {
-  const root = document.documentElement || document.head || document.body;
-  if (root) {
-    root.appendChild(interceptScript);
-    interceptScript.remove();
-    console.log('[Cuckoo Code] 拦截器已注入主世界');
-  } else {
-    setTimeout(injectInterceptor, 10);
-  }
-}
-injectInterceptor();
-
-/**
- * 检测 AI 回复中是否包含工具调用（优先 JS 工具代码块，兼容旧的 JSON 格式），如有则执行
- */
-function processAIContent(content) {
-  if (!content || typeof content !== 'string') return;
-
-  // 每次收到新的 AI 回复时清空去重记录：
-  // 拦截器通道与 DOM 通道可能先后触发同一回复，靠哈希去重避免重复执行；
-  // 而 AI 下一轮回复（如重试同一段脚本）到来时清空，保证重试不会被误跳过
-  executedJsScripts.clear();
-
-  // 优先检测 JS 工具代码块
-  const jsBlocks = extractJsToolBlocks(content);
-  if (jsBlocks.length > 0) {
-    console.log('[Cuckoo Code] API拦截: 检测到 ' + jsBlocks.length + ' 个 JS 工具代码块，自动执行');
-    (async () => {
-      for (const code of jsBlocks) {
-        await handleJsToolScript(code);
-      }
-    })();
-    return;
-  }
-
-  // 兼容旧的 JSON 工具调用格式
-  const toolCall = tryParseToolCall(content);
-  if (toolCall) {
-    console.log('[Cuckoo Code] API拦截: 检测到工具调用，自动执行');
-    notifyToolCallDetected(toolCall);
-    handleToolCall(toolCall);
-  }
-}
 
 // ========== 初始化 ==========
 

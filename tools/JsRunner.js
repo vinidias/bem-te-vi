@@ -138,7 +138,7 @@ function runBash(args, projectDir) {
             stdout: out,
             stderr: err,
             exitCode: typeof error.code === 'number' ? error.code : 1,
-            error: error.killed ? '命令执行超时或被终止' : error.message,
+            error: error.killed ? '命令执行超时或被终止' : (err && err.trim() ? err.trim() : ('命令执行失败 (exit code ' + (typeof error.code === 'number' ? error.code : 'unknown') + ')')),
           },
         });
       } else {

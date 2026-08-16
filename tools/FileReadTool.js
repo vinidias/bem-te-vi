@@ -100,8 +100,6 @@ class FileReadTool extends Tool {
 
       const absolutePath = path.resolve(resolvedPath);
       console.log('[FileReadTool] 文件已读取:', absolutePath, '大小:', stat.size, 'bytes, format:', format);
-
-      console.log('[FileReadTool] 文件已读取:', absolutePath, '大小:', stat.size, 'bytes');
       // 直接返回文件内容字符串，不包装额外字段
       // 如果 format 为 'escaped'，返回转义后的字符串（便于在 JSON 中使用）
       if (format === 'escaped') {
