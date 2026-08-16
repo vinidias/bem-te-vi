@@ -1331,32 +1331,41 @@ function isInsideUserMessage(node) {
 // ========== AI 回复完成检测 ==========
 /**
  * 检测 AI 是否已完成回复
- * 规则：如果能找到停止生成按钮（disabled 状态），则视为回复结束
+ * 规则：检测最后一条 AI 消息中出现操作按钮组（复制/重新生成等），视为回复结束
  * @returns {boolean} true 表示 AI 已完成回复
  */
 const STOP_BTN_SELECTOR =
   '.ds-button.ds-button--primary.ds-button--filled.ds-button--circle.ds-button--m' +
   '.ds-button--icon-relative-m.ds-button--disabled';
 
+const ACTION_BTN_SELECTOR =
+  '[role="button"].ds-button--iconLabelTertiary';
+
 function isAIResponseComplete() {
   try {
-    // 如果能在 DOM 中找到 disabled 的停止按钮，则视为回复结束
+    // 双保险：最后一条 AI 消息出现操作按钮组，或页面存在 disabled 的停止按钮
+    const messages = document.querySelectorAll('.ds-message');
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      const actionButtons = lastMessage.querySelectorAll(ACTION_BTN_SELECTOR);
+      if (actionButtons.length >= 2) {
+        console.log('[Cuckoo Code] ✅ 检测到操作按钮组（' + actionButtons.length + ' 个），回复已完成');
+        return true;
+      }
+    }
+
     const stopBtn = document.querySelector(STOP_BTN_SELECTOR);
     if (stopBtn) {
       console.log('[Cuckoo Code] ✅ 检测到停止按钮(disabled)，回复已结束');
       return true;
     }
 
-    // 找不到停止按钮，说明可能还在生成中，或页面状态不确定
-    // console.log('[Cuckoo Code] ⏳ 未找到停止按钮，回复可能未结束');
     return false;
   } catch (err) {
     console.error('[Cuckoo Code] ❌ 检测 AI 完成状态出错:', err);
-    // 出错时保守返回 true，避免永远不处理
-    return true;
+    return false;
   }
 }
-
 // ========== MutationObserver ==========
 
 // 已处理过的消息节点集合（避免重复处理）
