@@ -1892,21 +1892,6 @@ const BT = String.fromCharCode(96);
 const FENCE = BT + BT + BT;
 // 工具调用特征：必须出现 "await 工具函数名(" 形式的调用（防止 fs.readFile 等普通示例误判）
 const JS_TOOL_CALL_RE = /\bawait\s+(?:readFile|readFileWithLines|writeFile|editFile|glob|grep|bash|deleteFile|mysql|webFetch)\s*\(/;
-// 已执行脚本哈希 -> 执行时间。拦截器通道与 DOM 通道可能先后触发同一回复，靠它去重
-const executedJsScripts = new Map();
-const JS_DEDUP_WINDOW = 15000;
-
-/**
- * 简单字符串哈希（去重用途，非密码学）
- */
-function hashCode(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-  }
-  return (h >>> 0).toString(16) + '_' + str.length;
-}
-
 /**
  * 判断一段 JS 代码是否调用了工具函数
  */
@@ -2077,22 +2062,6 @@ function notifyJsScriptDetected(code) {
  * 执行检测到的 JS 工具脚本（带双通道去重）
  */
 async function handleJsToolScript(code) {
-  const hash = hashCode(code);
-  const now = Date.now();
-  const lastRun = executedJsScripts.get(hash);
-  if (lastRun && now - lastRun < JS_DEDUP_WINDOW) {
-    console.log('[Cuckoo Code] ⏭ 跳过重复的 JS 工具脚本（最近已执行）');
-    return null;
-  }
-  executedJsScripts.set(hash, now);
-  // 清理过期条目
-  if (executedJsScripts.size > 50) {
-    const cutoff = now - JS_DEDUP_WINDOW * 2;
-    for (const [k, t] of executedJsScripts) {
-      if (t < cutoff) executedJsScripts.delete(k);
-    }
-  }
-
   showOverlay();
   notifyJsScriptDetected(code);
 
