@@ -88,8 +88,8 @@ class WebFetchTool extends Tool {
     }
 
     // 校验超时和 maxSize
-    const safeTimeout = typeof timeout === 'number' && timeout > 0 ? Math.min(timeout, 60000) : 15000;
-    const safeMaxSize = typeof maxSize === 'number' && maxSize > 0 ? Math.min(maxSize, 5 * 1024 * 1024) : 512000;
+    const safeTimeout = typeof timeout === 'number' && timeout > 0 ? Math.min(timeout, 15000) : 15000;
+    const safeMaxSize = typeof maxSize === 'number' && maxSize > 0 ? Math.min(maxSize, 512000) : 512000;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), safeTimeout);
@@ -107,9 +107,8 @@ class WebFetchTool extends Tool {
       }
 
       const response = await fetch(url, requestOptions);
-      clearTimeout(timeoutId);
 
-      // 流式读取响应体，限制大小
+      // 流式读取响应体，限制大小；整体超时由 AbortController 控制
       const reader = response.body ? response.body.getReader() : null;
       let receivedBytes = 0;
       let chunks = [];
@@ -126,11 +125,14 @@ class WebFetchTool extends Tool {
               chunks.push(value.slice(0, remaining));
             }
             truncated = true;
+            try { await reader.cancel(); } catch (_) { /* 忽略取消错误 */ }
             break;
           }
           chunks.push(value);
         }
       }
+
+      clearTimeout(timeoutId);
 
       const buffer = Buffer.concat(chunks.map(c => Buffer.from(c)));
       const rawText = buffer.toString('utf8');

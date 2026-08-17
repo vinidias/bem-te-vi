@@ -1523,9 +1523,12 @@ function processLatestAIResponse(retryCount = 0, force = false) {
     if (force) {
       console.log('[Cuckoo Code] 手动解析模式，跳过稳定性校验');
       (async () => {
+        const results = [];
         for (const code of jsBlocks) {
-          await handleJsToolScript(code);
+          const r = await handleJsToolScript(code);
+          if (r) results.push(r);
         }
+        if (results.length > 0) sendCombinedJsResultsToChat(results);
       })();
       return;
     }
@@ -1543,9 +1546,12 @@ function processLatestAIResponse(retryCount = 0, force = false) {
       if (!force) processedMessages.add(lastMessage);
       console.log('[Cuckoo Code] ✅ 代码块稳定，检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
       (async () => {
+        const results = [];
         for (const code of jsBlocks) {
-          await handleJsToolScript(code);
+          const r = await handleJsToolScript(code);
+          if (r) results.push(r);
         }
+        if (results.length > 0) sendCombinedJsResultsToChat(results);
       })();
     }, 800);
     return;
@@ -2068,7 +2074,7 @@ async function handleJsToolScript(code) {
   const lastRun = executedJsScripts.get(hash);
   if (lastRun && now - lastRun < JS_DEDUP_WINDOW) {
     console.log('[Cuckoo Code] ⏭ 跳过重复的 JS 工具脚本（最近已执行）');
-    return;
+    return null;
   }
   executedJsScripts.set(hash, now);
   // 清理过期条目
@@ -2124,8 +2130,8 @@ async function handleJsToolScript(code) {
       timestamp: Date.now(),
     });
 
-    // 将执行结果发送回聊天，让 AI 看到结果并继续工作
-    sendJsResultToChat(code, result);
+    // 返回执行结果，由调用方统一合并回传
+    return { code, result };
   } catch (err) {
     console.error('[Cuckoo Code] JS 工具脚本执行异常:', err);
     const resultSection = document.getElementById('cuckoo-result-section');
@@ -2139,7 +2145,7 @@ async function handleJsToolScript(code) {
     if (resultOutput) {
       resultOutput.textContent = err.message || String(err);
     }
-    sendJsResultToChat(code, { success: false, error: '系统异常: ' + (err.message || String(err)) });
+    return { code, result: { success: false, error: '系统异常: ' + (err.message || String(err)) } };
   } finally {
     if (executeBtn) {
       executeBtn.disabled = false;
@@ -2316,20 +2322,33 @@ function sendToolResultToChat(toolCall, result) {
 /**
  * 将 JS 工具脚本执行结果发送回 DeepSeek 聊天，让 AI 看到结果并继续工作
  */
-function sendJsResultToChat(code, result) {
-  let msg;
-  if (result.success) {
-    msg = '【JS 执行结果】成功' + String.fromCharCode(10) + (result.output || '(脚本执行完成，无输出)');
-  } else {
-    // 失败时把"实际执行的代码"前 300 字符附上，便于定位代码在哪一步被截断/损坏
-    msg = '【JS 执行结果】失败' + String.fromCharCode(10) +
-      '错误原因: ' + (result.error || '未知错误') + String.fromCharCode(10) +
-      '本次实际执行的代码(前300字符):' + String.fromCharCode(10) +
-      String(code || '').slice(0, 300) + String.fromCharCode(10) +
-      '请修正 JavaScript 代码后重新输出完整的 ' + BT + BT + BT + 'cuckoo 代码块。';
+function sendCombinedJsResultsToChat(results) {
+  if (!Array.isArray(results) || results.length === 0) return;
+
+  const MAX_OUTPUT = 15000;
+  const sep = String.fromCharCode(10);
+
+  let msg = '【JS 执行结果汇总】(共 ' + results.length + ' 个脚本)' + sep + sep;
+
+  for (let i = 0; i < results.length; i++) {
+    const item = results[i];
+    msg += '—— 脚本 ' + (i + 1) + ' ——' + sep;
+    if (item && item.result && item.result.success) {
+      let out = (item.result.output || '').trim();
+      if (out.length > MAX_OUTPUT) {
+        out = out.slice(0, MAX_OUTPUT) + sep + '...[输出过长已截断]...';
+      }
+      msg += '✅ 成功' + sep + (out || '(脚本执行完成，无输出)');
+    } else {
+      msg += '❌ 失败' + sep + '错误原因: ' + ((item && item.result && item.result.error) || '未知错误') + sep;
+      msg += '本次实际执行的代码(前300字符):' + sep + String((item && item.code) || '').slice(0, 300) + sep;
+      msg += '请修正 JavaScript 代码后重新输出完整的 ' + BT + BT + BT + 'cuckoo 代码块。';
+    }
+    msg += sep + sep;
   }
-  console.log('[Cuckoo Code] 回传 JS 执行结果, 消息长度=' + msg.length);
-  sendMessageToChat(msg, 'JS脚本');
+
+  console.log('[Cuckoo Code] 回传 JS 汇总执行结果, 消息长度=' + msg.length);
+  sendMessageToChat(msg, 'JS汇总');
 }
 
 // 监听主进程发送的 systemPrompt
