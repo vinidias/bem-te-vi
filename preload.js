@@ -1544,6 +1544,11 @@ function processLatestAIResponse(retryCount = 0, force = false) {
           const r = await handleJsToolScript(code);
           if (r) results.push(r);
         }
+        const hasIncompleteFailure = results.some(item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error));
+        if (hasIncompleteFailure) {
+          alert('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试。');
+          return;
+        }
         if (results.length > 0) sendCombinedJsResultsToChat(results);
       })();
       return;
@@ -1568,6 +1573,11 @@ function processLatestAIResponse(retryCount = 0, force = false) {
         for (const code of jsBlocks) {
           const r = await handleJsToolScript(code);
           if (r) results.push(r);
+        }
+        const hasIncompleteFailure = results.some(item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error));
+        if (hasIncompleteFailure) {
+          alert('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试。');
+          return;
         }
         if (results.length > 0) sendCombinedJsResultsToChat(results);
       })();
@@ -1905,6 +1915,11 @@ const JS_TOOL_CALL_RE = /\bawait\s+(?:readFile|readFileWithLines|writeFile|editF
 /**
  * 判断一段 JS 代码是否调用了工具函数
  */
+function looksLikeIncompleteCodeError(error) {
+  if (!error || typeof error !== 'string') return false;
+  return /SyntaxError|Missing initializer|Unexpected end of input|Unexpected token|Unexpected identifier|Unexpected reserved word|Invalid or unexpected token/i.test(error);
+}
+
 function looksLikeToolScript(code) {
   const c = code || '';
   return JS_TOOL_CALL_RE.test(c);
