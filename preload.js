@@ -837,6 +837,7 @@ async function handleExecute() {
 
   const cmdData = currentCommand;
   const id = cmdData.id || generateId();
+  console.log('[Cuckoo Code] [工具执行] Shell命令 id=' + id + ' command=' + cmdData.command);
 
   try {
     const result = await window.electronAPI.executeCommand(cmdData.command, id);
@@ -1421,8 +1422,6 @@ function isAIResponseComplete() {
     const stopBtn = document.querySelector(STOP_BTN_SELECTOR);
     const hasStopBtn = !!stopBtn;
 
-    console.log('[Cuckoo Code] [完成检测] 操作按钮数量=' + btnCount + ' 条件一(≥2)=' + hasActionButtons + ' | 停止按钮=' + (hasStopBtn ? '存在' : '不存在') + ' 条件二=' + hasStopBtn + ' | 综合=' + (hasActionButtons && hasStopBtn));
-
     if (hasActionButtons && hasStopBtn) {
       console.log('[Cuckoo Code] ✅ 回复已完成（操作按钮组 + disabled 停止按钮同时满足）');
       return true;
@@ -1438,6 +1437,9 @@ function isAIResponseComplete() {
 
 // 已处理过的消息节点集合（避免重复处理）
 const processedMessages = new WeakSet();
+
+// 正在做 JS 代码块稳定性校验的消息，防止 800ms 窗口内被重复调度
+const pendingJsChecks = new WeakSet();
 
 // 内容不完整时的最大重试次数（AI 生成长内容可能需 30 秒+）
 const MAX_RETRY_COUNT = 2;
@@ -1520,8 +1522,14 @@ function processLatestAIResponse(retryCount = 0, force = false) {
   if (jsBlocks.length > 0) {
     // 稳定性双读校验：DeepSeek 流式渲染期间代码块只渲染了一半（曾导致 "const content"
     // 这样的残缺代码被执行 → SyntaxError）。间隔 1.2 秒复查内容，仍在变化就重新调度。
+    if (!force && pendingJsChecks.has(lastMessage)) {
+      console.log('[Cuckoo Code] ⏭ 该消息已在稳定性校验中，跳过重复调度');
+      return;
+    }
+    if (!force) pendingJsChecks.add(lastMessage);
     if (!force && retryCount > JS_STABILITY_MAX_RETRY) {
       console.log('[Cuckoo Code] ⚠️ 代码块持续不稳定（' + retryCount + ' 次复查），放弃本次处理');
+      pendingJsChecks.delete(lastMessage);
       processedMessages.add(lastMessage);
       return;
     }
@@ -1548,10 +1556,12 @@ function processLatestAIResponse(retryCount = 0, force = false) {
         jsBlocksNow.map((b) => b.length).join(',') === snapshotBlocks;
       if (!stable) {
         console.log('[Cuckoo Code] ⏳ 代码块仍在流式更新（快照不一致），重新调度');
+        pendingJsChecks.delete(lastMessage);
         processLatestAIResponse(retryCount + 1);
         return;
       }
       if (!force) processedMessages.add(lastMessage);
+      pendingJsChecks.delete(lastMessage);
       console.log('[Cuckoo Code] ✅ 代码块稳定，检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
       (async () => {
         const results = [];
