@@ -1403,20 +1403,28 @@ const ACTION_BTN_SELECTOR =
 
 function isAIResponseComplete() {
   try {
-    // 双保险：最后一条 AI 消息出现操作按钮组，或页面存在 disabled 的停止按钮
-    const messages = document.querySelectorAll('.ds-message');
-    if (messages.length > 0) {
+    // 必须同时满足两个条件才判定为完成：
+    // 1. 最后一条 AI 消息出现操作按钮组（复制/重新生成等，≥2 个）
+    // 2. 页面存在 disabled 的停止按钮
+    let btnCount = 0;
+    const hasActionButtons = (() => {
+      const messages = document.querySelectorAll('.ds-message');
+      if (messages.length === 0) return false;
       const lastMessage = messages[messages.length - 1];
-      const actionButtons = lastMessage.querySelectorAll(ACTION_BTN_SELECTOR);
-      if (actionButtons.length >= 2) {
-        console.log('[Cuckoo Code] ✅ 检测到操作按钮组（' + actionButtons.length + ' 个），回复已完成');
-        return true;
-      }
-    }
+      // 操作按钮组现在位于 .ds-message 的父容器中，不在消息元素内部
+      const scope = lastMessage.parentElement || lastMessage;
+      const actionButtons = scope.querySelectorAll(ACTION_BTN_SELECTOR);
+      btnCount = actionButtons.length;
+      return btnCount >= 2;
+    })();
 
     const stopBtn = document.querySelector(STOP_BTN_SELECTOR);
-    if (stopBtn) {
-      console.log('[Cuckoo Code] ✅ 检测到停止按钮(disabled)，回复已结束');
+    const hasStopBtn = !!stopBtn;
+
+    console.log('[Cuckoo Code] [完成检测] 操作按钮数量=' + btnCount + ' 条件一(≥2)=' + hasActionButtons + ' | 停止按钮=' + (hasStopBtn ? '存在' : '不存在') + ' 条件二=' + hasStopBtn + ' | 综合=' + (hasActionButtons && hasStopBtn));
+
+    if (hasActionButtons && hasStopBtn) {
+      console.log('[Cuckoo Code] ✅ 回复已完成（操作按钮组 + disabled 停止按钮同时满足）');
       return true;
     }
 
