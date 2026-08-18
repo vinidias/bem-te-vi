@@ -342,15 +342,15 @@ function initProject(skipPrompt = false) {
   }
 
   // 获取目录树
-  let directoryTree = '';
-  try {
-    if (fs.existsSync(selectedDir)) {
-      directoryTree = getDirectoryTree(selectedDir);
-      console.log('[Cuckoo Code] 已获取目录树');
-    }
-  } catch (err) {
-    console.error('[Cuckoo Code] 获取目录树失败:', err.message);
-  }
+  // let directoryTree = '';
+  // try {
+  //   if (fs.existsSync(selectedDir)) {
+  //     directoryTree = getDirectoryTree(selectedDir);
+  //     console.log('[Cuckoo Code] 已获取目录树');
+  //   }
+  // } catch (err) {
+  //   console.error('[Cuckoo Code] 获取目录树失败:', err.message);
+  // }
 
   const combined = `
 系统提示词：
