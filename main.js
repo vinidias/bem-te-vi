@@ -422,6 +422,7 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: false, // preload 需要访问 Node.js API
       partition: 'persist:cuckoo-deepseek', // 持久化 session（cookies/localStorage）
+      backgroundThrottling: false, // 最小化/隐藏时不节流渲染进程，避免工具解析时序错乱
     },
   });
 
