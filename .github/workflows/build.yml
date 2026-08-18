@@ -24,6 +24,12 @@ jobs:
         with:
           name: Windows-build
           path: dist/
+      - name: Upload to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          files: dist/*.exe
 
   build-mac:
     runs-on: macos-latest
@@ -40,3 +46,11 @@ jobs:
         with:
           name: macOS-build
           path: dist/
+      - name: Upload to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          files: |
+            dist/*.dmg
+            dist/*.zip
