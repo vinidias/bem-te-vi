@@ -468,16 +468,16 @@ const OVERLAY_HTML = `
       <pre id="cuckoo-cmd-preview" class="cuckoo-cmd-preview">暂无</pre>
     </div>
     <div class="cuckoo-actions">
-      <button id="cuckoo-btn-execute" class="cuckoo-btn cuckoo-btn-primary">▶ 确认执行</button>
-      <button id="cuckoo-btn-ignore" class="cuckoo-btn cuckoo-btn-secondary">✕ 忽略</button>
+      <button id="cuckoo-btn-init" class="cuckoo-btn cuckoo-btn-primary">初始化项目</button>
     </div>
     <div class="cuckoo-actions">
-      <button id="cuckoo-btn-init" class="cuckoo-btn cuckoo-btn-primary">🚀 初始化项目</button>
-      <button id="cuckoo-btn-send-prompt" class="cuckoo-btn cuckoo-btn-secondary">📋 发送系统提示词</button>
-      <button id="cuckoo-btn-manual-parse" class="cuckoo-btn cuckoo-btn-secondary" title="手动触发解析当前页面内容中的工具调用">🔍 手动解析</button>
+      <button id="cuckoo-btn-send-prompt" class="cuckoo-btn cuckoo-btn-secondary">发送系统提示词</button>
     </div>
     <div class="cuckoo-actions">
-      <button id="cuckoo-btn-gen-doc" class="cuckoo-btn cuckoo-btn-primary" title="让 AI 生成项目说明文档 (CUCKOO.md)">📄 生成项目说明</button>
+      <button id="cuckoo-btn-manual-parse" class="cuckoo-btn cuckoo-btn-secondary" title="手动触发解析当前页面内容中的工具调用">手动解析</button>
+    </div>
+    <div class="cuckoo-actions">
+      <button id="cuckoo-btn-gen-doc" class="cuckoo-btn cuckoo-btn-primary" title="让 AI 生成项目说明文档 (CUCKOO.md)">生成项目说明</button>
     </div>
     <div id="cuckoo-result-section" class="cuckoo-section cuckoo-hidden">
       <label class="cuckoo-label">执行结果：</label>
@@ -605,6 +605,12 @@ const OVERLAY_CSS = `
   0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
 }
 .cuckoo-hidden { display: none !important; }
+.cuckoo-home-mode .cuckoo-header .cuckoo-btn-icon,
+.cuckoo-home-mode .cuckoo-body .cuckoo-section,
+.cuckoo-home-mode .cuckoo-body .cuckoo-actions:not(:has(#cuckoo-btn-init)),
+.cuckoo-home-mode .cuckoo-divider {
+  display: none !important;
+}
 .cuckoo-overlay ::-webkit-scrollbar { width: 6px; }
 .cuckoo-overlay ::-webkit-scrollbar-track { background: transparent; }
 .cuckoo-overlay ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
@@ -812,93 +818,22 @@ function displayCommand(cmdData) {
   currentCommand = cmdData;
   const preview = document.getElementById('cuckoo-cmd-preview');
   const resultSection = document.getElementById('cuckoo-result-section');
-  const executeBtn = document.getElementById('cuckoo-btn-execute');
   if (preview) preview.textContent = cmdData.command;
   if (resultSection) resultSection.classList.add('cuckoo-hidden');
-  if (executeBtn) {
-    executeBtn.disabled = false;
-    executeBtn.textContent = '▶ 确认执行';
-  }
   showOverlay();
 }
 /**
  * 确认执行当前显示的命令
- * 通过 IPC 调用主进程执行命令，并显示执行结果
+ * 已移除：确认执行按钮及相关交互。保留空函数以防其他引用。
  */
 async function handleExecute() {
-  if (!currentCommand || isExecuting) return;
-
-  isExecuting = true;
-  const executeBtn = document.getElementById('cuckoo-btn-execute');
-  if (executeBtn) {
-    executeBtn.disabled = true;
-    executeBtn.textContent = '⏳ 执行中...';
-  }
-
-  const cmdData = currentCommand;
-  const id = cmdData.id || generateId();
-  console.log('[Cuckoo Code] [工具执行] Shell命令 id=' + id + ' command=' + cmdData.command);
-
-  try {
-    const result = await window.electronAPI.executeCommand(cmdData.command, id);
-
-    const resultSection = document.getElementById('cuckoo-result-section');
-    const resultStatus = document.getElementById('cuckoo-result-status');
-    const resultOutput = document.getElementById('cuckoo-result-output');
-
-    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
-
-    if (result.canceled) {
-      if (resultStatus) { resultStatus.textContent = '⏹ 已取消'; resultStatus.className = 'cuckoo-result-status'; }
-      if (resultOutput) resultOutput.textContent = '';
-    } else if (result.success) {
-      if (resultStatus) { resultStatus.textContent = '✅ 执行成功'; resultStatus.className = 'cuckoo-result-status success'; }
-      if (resultOutput) {
-        resultOutput.textContent = result.stdout || '(无输出)';
-        if (result.stderr) resultOutput.textContent += '\n\n⚠️ 错误输出:\n' + result.stderr;
-      }
-    } else {
-      if (resultStatus) { resultStatus.textContent = '❌ 执行失败'; resultStatus.className = 'cuckoo-result-status error'; }
-      if (resultOutput) resultOutput.textContent = result.error || result.stderr || '未知错误';
-    }
-
-    addHistory({
-      id, command: cmdData.command, success: result.success,
-      canceled: result.canceled, output: result.stdout || result.stderr || result.error || '',
-      timestamp: cmdData.timestamp || Date.now(),
-    });
-  } catch (err) {
-    const resultSection = document.getElementById('cuckoo-result-section');
-    const resultStatus = document.getElementById('cuckoo-result-status');
-    const resultOutput = document.getElementById('cuckoo-result-output');
-    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
-    if (resultStatus) { resultStatus.textContent = '❌ 系统错误'; resultStatus.className = 'cuckoo-result-status error'; }
-    if (resultOutput) resultOutput.textContent = err.message || String(err);
-  } finally {
-    isExecuting = false;
-    if (executeBtn) {
-      executeBtn.disabled = false;
-      executeBtn.textContent = '▶ 确认执行';
-    }
-    currentCommand = null;
-  }
 }
 
 /**
- * 忽略当前命令，将命令记录为已忽略并隐藏覆盖层
+ * 忽略当前命令
+ * 已移除：忽略按钮及相关交互。保留空函数以防其他引用。
  */
 function handleIgnore() {
-  if (currentCommand) {
-    addHistory({
-      id: currentCommand.id || generateId(),
-      command: currentCommand.command,
-      success: false, canceled: true,
-      output: '(已忽略)',
-      timestamp: currentCommand.timestamp || Date.now(),
-    });
-  }
-  currentCommand = null;
-  hideOverlay();
 }
 
 /**
@@ -986,15 +921,11 @@ function renderHistory() {
  */
 function bindEvents() {
   const minimizeBtn = document.getElementById('cuckoo-btn-minimize');
-  const executeBtn = document.getElementById('cuckoo-btn-execute');
-  const ignoreBtn = document.getElementById('cuckoo-btn-ignore');
   const initBtn = document.getElementById('cuckoo-btn-init');
   const sendPromptBtn = document.getElementById('cuckoo-btn-send-prompt');
   const clearBtn = document.getElementById('cuckoo-btn-clear');
 
   minimizeBtn?.addEventListener('click', hideOverlay);
-  executeBtn?.addEventListener('click', handleExecute);
-  ignoreBtn?.addEventListener('click', handleIgnore);
   initBtn?.addEventListener('click', handleInitProject);
   sendPromptBtn?.addEventListener('click', handleSendPrompt);
   clearBtn?.addEventListener('click', () => {
@@ -1143,7 +1074,7 @@ async function handleInitProject() {
   } finally {
     if (initBtn) {
       initBtn.disabled = false;
-      initBtn.textContent = '🚀 初始化项目';
+      initBtn.textContent = '初始化项目';
     }
   }
 }
@@ -1156,7 +1087,7 @@ async function handleManualParse() {
   const btn = document.getElementById('cuckoo-btn-manual-parse');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '🔍 解析中...';
+    btn.textContent = '解析中...';
   }
 
   try {
@@ -1169,7 +1100,7 @@ async function handleManualParse() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '🔍 手动解析';
+      btn.textContent = '手动解析';
     }
   }
 }
@@ -2090,12 +2021,6 @@ async function handleJsToolScript(code) {
   showOverlay();
   notifyJsScriptDetected(code);
 
-  const executeBtn = document.getElementById('cuckoo-btn-execute');
-  if (executeBtn) {
-    executeBtn.disabled = true;
-    executeBtn.textContent = '⏳ JS 执行中...';
-  }
-
   const callId = 'js_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
   console.log('[Cuckoo Code] [诊断] 即将执行的代码(JSON转义): ' + JSON.stringify(code));
   try {
@@ -2149,10 +2074,6 @@ async function handleJsToolScript(code) {
     }
     return { code, result: { success: false, error: '系统异常: ' + (err.message || String(err)) } };
   } finally {
-    if (executeBtn) {
-      executeBtn.disabled = false;
-      executeBtn.textContent = '▶ 确认执行';
-    }
   }
 }
 
@@ -2165,11 +2086,6 @@ async function handleToolCall(toolCall) {
 
   // 确保覆盖层可见，让用户看到正在处理
   showOverlay();
-  const executeBtn = document.getElementById('cuckoo-btn-execute');
-  if (executeBtn) {
-    executeBtn.disabled = true;
-    executeBtn.textContent = '⏳ 工具执行中...';
-  }
 
   try {
     const result = await window.electronAPI.executeTool(toolName, params, callId);
@@ -2224,10 +2140,6 @@ async function handleToolCall(toolCall) {
     // 系统异常也要回传 AI，让它知道发生了什么
     sendToolResultToChat(toolCall, { success: false, error: '系统异常: ' + (err.message || String(err)) });
   } finally {
-    if (executeBtn) {
-      executeBtn.disabled = false;
-      executeBtn.textContent = '▶ 确认执行';
-    }
   }
 }
 
@@ -2679,6 +2591,14 @@ function init() {
     injectOverlay();
     initProjectDirSection();
     bindEvents();
+    updateHomeMode();
+
+    // 监听 URL 变化（SPA 路由）
+    window.addEventListener('popstate', updateHomeMode);
+    window.addEventListener('hashchange', updateHomeMode);
+    setInterval(updateHomeMode, 1500);
+    // 首次延迟执行，确保 overlay 已注入
+    setTimeout(updateHomeMode, 500);
 
     // 默认显示覆盖层 - 兜底强制显示
     forceShowOverlay();
@@ -2696,6 +2616,23 @@ function init() {
 }
 
 // ========== 项目目录显示与修改功能 ==========
+
+/**
+ * 根据当前 URL 切换覆盖层首页模式
+ * 首页 https://chat.deepseek.com/ 时，只保留「初始化项目」按钮，隐藏其他内容
+ */
+function updateHomeMode() {
+  const url = window.location.href;
+  const isHome = /^https:\/\/chat\.deepseek\.com\/?(\?.*)?$/.test(url);
+  const overlay = document.getElementById('cuckoo-overlay');
+  if (overlay) {
+    if (isHome) {
+      overlay.classList.add('cuckoo-home-mode');
+    } else {
+      overlay.classList.remove('cuckoo-home-mode');
+    }
+  }
+}
 
 /**
  * 初始化项目目录区域：默认隐藏、监听目录更新、绑定修改按钮
