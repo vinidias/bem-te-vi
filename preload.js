@@ -549,7 +549,8 @@ const OVERLAY_CSS = `
   font-size: 12.5px; color: #a7f3c0; line-height: 1.5;
   max-height: 200px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 0;
 }
-.cuckoo-actions { display: flex; gap: 8px; }
+.cuckoo-actions { display: flex; gap: 8px; width: 100%; }
+.cuckoo-actions .cuckoo-btn { flex: 1 1 auto; }
 .cuckoo-btn {
   flex: 1; padding: 11px 16px; border: 1px solid transparent; border-radius: 12px;
   font-size: 13px; font-weight: 600; cursor: pointer;
