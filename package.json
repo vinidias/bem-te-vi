@@ -6,12 +6,12 @@
   "scripts": {
     "start": "chcp 65001 > nul && electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:win:nsis": "electron-builder --win --config.win.target=nsis",
-    "build:win:portable": "electron-builder --win --config.win.target=portable",
-    "build:mac": "electron-builder --mac",
-    "build:mac:dmg": "electron-builder --mac --config.mac.target=dmg"
+    "build": "electron-builder --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:win:nsis": "electron-builder --win --config.win.target=nsis --publish never",
+    "build:win:portable": "electron-builder --win --config.win.target=portable --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:mac:dmg": "electron-builder --mac --config.mac.target=dmg --publish never"
   },
   "keywords": [
     "deepseek",
