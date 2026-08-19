@@ -437,14 +437,14 @@ window.electronAPI = electronAPI;
 const OVERLAY_HTML = `
 <div id="cuckoo-overlay" class="cuckoo-overlay cuckoo-hidden">
   <div class="cuckoo-header">
-    <span class="cuckoo-title">🤖 Cuckoo Code - 命令检测</span>
+    <span class="cuckoo-title">Cuckoo Code - 命令检测</span>
     <button id="cuckoo-btn-minimize" class="cuckoo-btn-icon">—</button>
   </div>
   <div class="cuckoo-body">
     <!-- 当前项目目录展示区域 -->
     <div class="cuckoo-section cuckoo-project-dir-section">
       <div class="cuckoo-project-dir-row">
-        <span class="cuckoo-label">📁 当前项目目录</span>
+        <span class="cuckoo-label">当前项目目录</span>
         <button id="cuckoo-btn-change-dir" class="cuckoo-btn-change-dir" title="点击修改项目目录">🔄 修改</button>
       </div>
       <div id="cuckoo-project-dir-display" class="cuckoo-project-dir-display">
@@ -455,7 +455,7 @@ const OVERLAY_HTML = `
     <!-- 会话列表区域 -->
     <div class="cuckoo-section cuckoo-session-section">
       <div class="cuckoo-session-header">
-        <span class="cuckoo-label">📚 会话列表</span>
+        <span class="cuckoo-label">会话列表</span>
         <button id="cuckoo-btn-refresh-sessions" class="cuckoo-btn-refresh-sessions" title="刷新会话列表">🔄 刷新</button>
       </div>
       <div id="cuckoo-session-list" class="cuckoo-session-list">
@@ -472,12 +472,10 @@ const OVERLAY_HTML = `
     </div>
     <div class="cuckoo-actions">
       <button id="cuckoo-btn-send-prompt" class="cuckoo-btn cuckoo-btn-secondary">发送系统提示词</button>
+      <button id="cuckoo-btn-gen-doc" class="cuckoo-btn cuckoo-btn-primary" title="让 AI 生成项目说明文档 (CUCKOO.md)">生成项目说明</button>
     </div>
     <div class="cuckoo-actions">
       <button id="cuckoo-btn-manual-parse" class="cuckoo-btn cuckoo-btn-secondary" title="手动触发解析当前页面内容中的工具调用">手动解析</button>
-    </div>
-    <div class="cuckoo-actions">
-      <button id="cuckoo-btn-gen-doc" class="cuckoo-btn cuckoo-btn-primary" title="让 AI 生成项目说明文档 (CUCKOO.md)">生成项目说明</button>
     </div>
     <div id="cuckoo-result-section" class="cuckoo-section cuckoo-hidden">
       <label class="cuckoo-label">执行结果：</label>
@@ -486,7 +484,7 @@ const OVERLAY_HTML = `
     </div>
     <div class="cuckoo-section">
       <details id="cuckoo-history">
-        <summary class="cuckoo-label">📋 历史记录</summary>
+        <summary class="cuckoo-label">历史记录</summary>
         <div id="cuckoo-history-list" class="cuckoo-history-list"></div>
         <button id="cuckoo-btn-clear" class="cuckoo-btn-text">清空历史</button>
       </details>
@@ -499,111 +497,117 @@ const OVERLAY_HTML = `
 `;
 
 const OVERLAY_CSS = `
+:root {
+  --ck-bg: rgba(17, 19, 34, 0.97);
+  --ck-surface: rgba(255, 255, 255, 0.04);
+  --ck-surface-hover: rgba(255, 255, 255, 0.08);
+  --ck-border: rgba(255, 255, 255, 0.08);
+  --ck-primary: #8b93ff;
+  --ck-primary-strong: #6d76ff;
+  --ck-text: #dde1ff;
+  --ck-text-dim: #8a90b8;
+  --ck-green: #4ade80;
+  --ck-red: #ff6b7a;
+  --ck-code-bg: rgba(0, 0, 0, 0.35);
+}
 .cuckoo-overlay {
-  position: fixed; top: 0; right: 0; width: 380px; height: 100vh;
-  background: rgba(26, 26, 46, 0.95); backdrop-filter: blur(12px);
-  border-left: 1px solid rgba(255,255,255,0.1); z-index: 2147483647;
+  position: fixed; top: 16px; right: 16px; width: 384px; height: calc(100vh - 32px);
+  background: var(--ck-bg);
+  border: 1px solid var(--ck-border);
+  border-radius: 20px;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  z-index: 2147483647;
   display: flex; flex-direction: column;
-  box-shadow: -4px 0 20px rgba(0,0,0,0.3);
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(139, 147, 255, 0.06);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  color: #e0e0e0; font-size: 14px; line-height: 1.5;
+  color: var(--ck-text); font-size: 13px; line-height: 1.55;
+  overflow: hidden;
 }
-.cuckoo-overlay.cuckoo-hidden {
-  transform: translateX(100%); opacity: 0; pointer-events: none;
-}
+.cuckoo-overlay.cuckoo-hidden { transform: translateX(calc(100% + 32px)); opacity: 0; pointer-events: none; }
 .cuckoo-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; background: rgba(0,0,0,0.3);
-  border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0;
+  padding: 16px 20px 14px; flex-shrink: 0;
+  border-bottom: 1px solid var(--ck-border);
+  background: rgba(255, 255, 255, 0.02);
 }
-.cuckoo-title { font-size: 14px; font-weight: 600; color: #7c83ff; letter-spacing: 0.5px; }
+.cuckoo-title { font-size: 14px; font-weight: 700; color: #c8ccff; letter-spacing: 0.4px; }
 .cuckoo-btn-icon {
-  background: none; border: none; color: #888; cursor: pointer;
-  font-size: 18px; width: 28px; height: 28px; border-radius: 6px;
+  background: var(--ck-surface); border: 1px solid var(--ck-border); color: #8a90b8;
+  cursor: pointer; font-size: 14px; width: 26px; height: 26px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center; transition: all 0.2s;
 }
-.cuckoo-btn-icon:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.cuckoo-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+.cuckoo-btn-icon:hover { background: var(--ck-surface-hover); color: #fff; }
+.cuckoo-body { padding: 16px 18px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
 .cuckoo-section { display: flex; flex-direction: column; gap: 8px; }
-.cuckoo-label { font-size: 12px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.8px; cursor: pointer; }
+.cuckoo-label { font-size: 11px; font-weight: 700; color: var(--ck-text-dim); text-transform: uppercase; letter-spacing: 1px; cursor: pointer; }
 .cuckoo-cmd-preview {
-  background: rgba(0,0,0,0.4); border: 1px solid rgba(124,131,255,0.3);
-  border-radius: 8px; padding: 12px 14px;
-  font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
-  font-size: 13px; color: #7cffb2; line-height: 1.5;
+  background: var(--ck-code-bg); border: 1px solid var(--ck-border);
+  border-radius: 12px; padding: 12px 14px;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 12.5px; color: #a7f3c0; line-height: 1.5;
   max-height: 200px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 0;
 }
-.cuckoo-actions { display: flex; gap: 10px; margin-top: 4px; }
+.cuckoo-actions { display: flex; gap: 8px; }
 .cuckoo-btn {
-  flex: 1; padding: 10px 16px; border: none; border-radius: 8px;
+  flex: 1; padding: 11px 16px; border: 1px solid transparent; border-radius: 12px;
   font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: all 0.2s; letter-spacing: 0.5px;
+  transition: all 0.22s ease; letter-spacing: 0.3px;
 }
-.cuckoo-btn:active { transform: scale(0.97); }
+.cuckoo-btn:active { transform: scale(0.98); }
 .cuckoo-btn-primary {
-  background: linear-gradient(135deg,#7c83ff,#5a63ff); color: #fff;
-  box-shadow: 0 2px 8px rgba(124,131,255,0.3);
+  background: linear-gradient(135deg, #8b93ff, #6d76ff); color: #fff;
+  box-shadow: 0 6px 18px rgba(109, 118, 255, 0.25);
 }
-.cuckoo-btn-primary:hover { box-shadow: 0 4px 14px rgba(124,131,255,0.5); transform: translateY(-1px); }
+.cuckoo-btn-primary:hover { box-shadow: 0 8px 22px rgba(109, 118, 255, 0.4); transform: translateY(-1px); }
 .cuckoo-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 .cuckoo-btn-secondary {
-  background: rgba(255,255,255,0.08); color: #ccc; border: 1px solid rgba(255,255,255,0.1);
+  background: var(--ck-surface); color: #c8ccff;
+  border-color: var(--ck-border);
 }
-.cuckoo-btn-secondary:hover { background: rgba(255,255,255,0.15); color: #fff; }
-#cuckoo-btn-send-prompt {
-  background: rgba(124,131,255,0.2); color: #7c83ff; border: 1px solid rgba(124,131,255,0.3);
-}
-#cuckoo-btn-send-prompt:hover {
-  background: rgba(124,131,255,0.3); color: #fff;
-}
+.cuckoo-btn-secondary:hover { background: var(--ck-surface-hover); color: #fff; border-color: rgba(139, 147, 255, 0.4); }
+#cuckoo-btn-send-prompt { background: rgba(139, 147, 255, 0.16); color: #a8afff; border-color: rgba(139, 147, 255, 0.24); }
+#cuckoo-btn-send-prompt:hover { background: rgba(139, 147, 255, 0.28); color: #fff; }
 .cuckoo-btn-text {
-  background: none; border: none; color: #888; padding: 4px 0;
-  text-align: left; font-size: 12px; cursor: pointer;
+  background: none; border: none; color: var(--ck-text-dim); padding: 4px 0;
+  text-align: left; font-size: 11px; cursor: pointer; transition: color 0.2s;
 }
-.cuckoo-btn-text:hover { color: #ff6b6b; }
-.cuckoo-result-status { font-size: 13px; font-weight: 600; padding: 4px 0; }
-.cuckoo-result-status.success { color: #7cffb2; }
-.cuckoo-result-status.error { color: #ff6b6b; }
+.cuckoo-btn-text:hover { color: var(--ck-red); }
+.cuckoo-result-status { font-size: 12px; font-weight: 600; padding: 2px 0; }
+.cuckoo-result-status.success { color: var(--ck-green); }
+.cuckoo-result-status.error { color: var(--ck-red); }
 .cuckoo-result-output {
-  background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px; padding: 12px 14px;
-  font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
-  font-size: 12px; color: #e0e0e0; line-height: 1.5;
+  background: var(--ck-code-bg); border: 1px solid var(--ck-border);
+  border-radius: 12px; padding: 12px 14px;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 11.5px; color: #c8ccff; line-height: 1.5;
   max-height: 250px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 0;
 }
 .cuckoo-history-list { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .cuckoo-history-item {
-  background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px 10px;
+  background: var(--ck-surface); border-radius: 10px; padding: 8px 10px;
   font-size: 12px; cursor: pointer; transition: background 0.2s;
 }
-.cuckoo-history-item:hover { background: rgba(124,131,255,0.15); }
+.cuckoo-history-item:hover { background: rgba(139, 147, 255, 0.18); }
 .cuckoo-history-item .cuckoo-cmd-text {
-  font-family: 'Consolas',monospace; color: #7cffb2; font-size: 12px;
+  font-family: 'Consolas', monospace; color: #a7f3c0; font-size: 12px;
   display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cuckoo-history-item .cuckoo-cmd-status { font-size: 11px; margin-top: 2px; display: block; }
-.cuckoo-history-item .cuckoo-cmd-status.success { color: #7cffb2; }
-.cuckoo-history-item .cuckoo-cmd-status.error { color: #ff6b6b; }
-.cuckoo-history-item .cuckoo-cmd-time { font-size: 10px; color: #666; margin-top: 2px; display: block; }
+.cuckoo-history-item .cuckoo-cmd-status.success { color: var(--ck-green); }
+.cuckoo-history-item .cuckoo-cmd-status.error { color: var(--ck-red); }
+.cuckoo-history-item .cuckoo-cmd-time { font-size: 10px; color: #5d6280; margin-top: 2px; display: block; }
 #cuckoo-status-badge {
   position: fixed; bottom: 20px; left: 20px; z-index: 2147483647;
-  background: rgba(124,131,255,0.15); border: 1px solid rgba(124,131,255,0.3);
-  border-radius: 20px; padding: 6px 14px; font-size: 11px; color: #7c83ff;
+  background: rgba(139, 147, 255, 0.18); border: 1px solid rgba(139, 147, 255, 0.32);
+  border-radius: 999px; padding: 6px 14px; font-size: 11px; color: #a8afff;
   display: flex; align-items: center; gap: 6px; cursor: pointer;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   transition: background 0.2s, border-color 0.2s;
 }
-#cuckoo-status-badge:hover {
-  background: rgba(124,131,255,0.3);
-  border-color: rgba(124,131,255,0.6);
-}
-#cuckoo-status-dot {
-  width: 6px; height: 6px; border-radius: 50%; background: #7cffb2; animation: cuckoo-pulse 2s infinite;
-}
-@keyframes cuckoo-pulse {
-  0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
-}
+#cuckoo-status-badge:hover { background: rgba(139, 147, 255, 0.3); border-color: rgba(139, 147, 255, 0.6); }
+#cuckoo-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ck-green); animation: cuckoo-pulse 2s infinite; }
+@keyframes cuckoo-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .cuckoo-hidden { display: none !important; }
 .cuckoo-home-mode .cuckoo-header .cuckoo-btn-icon,
 .cuckoo-home-mode .cuckoo-body .cuckoo-section,
@@ -615,112 +619,37 @@ const OVERLAY_CSS = `
 .cuckoo-overlay ::-webkit-scrollbar-track { background: transparent; }
 .cuckoo-overlay ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 .cuckoo-overlay ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
-
-/* 项目目录展示样式 */
 .cuckoo-project-dir-section {
-  background: rgba(0,0,0,0.2);
-  border-radius: 8px;
-  padding: 10px 12px;
-  border: 1px solid rgba(124,131,255,0.2);
+  background: var(--ck-surface); border-radius: 12px;
+  padding: 10px 12px; border: 1px solid var(--ck-border);
 }
-.cuckoo-project-dir-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.cuckoo-project-dir-row { display: flex; justify-content: space-between; align-items: center; }
 .cuckoo-btn-change-dir {
-  background: rgba(124,131,255,0.2);
-  border: none;
-  color: #7c83ff;
-  padding: 2px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
+  background: rgba(139,147,255,0.2); border: none;
+  color: #a8afff; padding: 2px 10px; border-radius: 6px;
+  cursor: pointer; font-size: 11px; font-weight: 600;
 }
-.cuckoo-btn-change-dir:hover {
-  background: rgba(124,131,255,0.4);
-}
-.cuckoo-project-dir-display {
-  margin-top: 4px;
-  font-size: 13px;
-  font-family: 'Consolas', monospace;
-  color: #aaa;
-  word-break: break-all;
-}
-.cuckoo-dir-path {
-  color: #7cffb2;
-}
-.cuckoo-divider {
-  border-top: 1px solid rgba(255,255,255,0.06);
-  margin: 4px 0;
-}
-
-/* 会话列表样式 */
+.cuckoo-btn-change-dir:hover { background: rgba(139,147,255,0.4); }
+.cuckoo-project-dir-display { margin-top: 4px; font-size: 12px; font-family: 'Consolas', monospace; color: #8a90b8; word-break: break-all; }
+.cuckoo-dir-path { color: #a7f3c0; }
+.cuckoo-divider { border-top: 1px solid var(--ck-border); margin: 2px 0; }
 .cuckoo-session-section {
-  background: rgba(0,0,0,0.2);
-  border-radius: 8px;
-  padding: 10px 12px;
-  border: 1px solid rgba(124,131,255,0.2);
+  background: var(--ck-surface); border-radius: 12px;
+  padding: 10px 12px; border: 1px solid var(--ck-border);
 }
-.cuckoo-session-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.cuckoo-session-header { display: flex; justify-content: space-between; align-items: center; }
 .cuckoo-btn-refresh-sessions {
-  background: rgba(124,131,255,0.2);
-  border: none;
-  color: #7c83ff;
-  padding: 2px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
+  background: rgba(139,147,255,0.2); border: none;
+  color: #a8afff; padding: 2px 10px; border-radius: 6px;
+  cursor: pointer; font-size: 11px; font-weight: 600;
 }
-.cuckoo-btn-refresh-sessions:hover {
-  background: rgba(124,131,255,0.4);
-}
-.cuckoo-session-list {
-  max-height: 120px;
-  overflow-y: auto;
-  margin-top: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.cuckoo-session-item {
-  background: rgba(255,255,255,0.05);
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-family: 'Consolas', monospace;
-  color: #ccc;
-  cursor: pointer;
-  transition: background 0.2s;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.cuckoo-session-item:hover {
-  background: rgba(124,131,255,0.2);
-}
-.cuckoo-session-item .session-id {
-  color: #7c83ff;
-  font-size: 11px;
-}
-.cuckoo-session-item .session-action {
-  color: #7cffb2;
-  font-size: 11px;
-  font-weight: 600;
-}
-.cuckoo-session-empty {
-  color: #666;
-  font-size: 12px;
-  font-style: italic;
-  padding: 8px 0;
-  text-align: center;
-}
+.cuckoo-btn-refresh-sessions:hover { background: rgba(139,147,255,0.4); }
+.cuckoo-session-list { max-height: 120px; overflow-y: auto; margin-top: 4px; display: flex; flex-direction: column; gap: 4px; }
+.cuckoo-session-item { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-family: 'Consolas', monospace; color: #ccc; cursor: pointer; transition: background 0.2s; }
+.cuckoo-session-item:hover { background: rgba(139,147,255,0.2); }
+.cuckoo-session-item .session-id { color: #a8afff; font-size: 11px; }
+.cuckoo-session-item .session-action { color: #a7f3c0; font-size: 11px; font-weight: 600; }
+.cuckoo-session-empty { color: #5d6280; font-size: 12px; font-style: italic; padding: 8px 0; text-align: center; }
 `;
 
 // ========== 注入样式 ==========
