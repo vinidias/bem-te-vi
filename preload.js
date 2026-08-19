@@ -464,7 +464,7 @@ const OVERLAY_HTML = `
     </div>
     <div class="cuckoo-divider"></div>
     <div class="cuckoo-section">
-      <label class="cuckoo-label">检测到任务：</label>
+      <label class="cuckoo-label">检测到任务：<span id="cuckoo-task-status" class="cuckoo-task-status cuckoo-hidden"><span class="cuckoo-spinner"></span>执行中</span></label>
       <pre id="cuckoo-cmd-preview" class="cuckoo-cmd-preview">暂无</pre>
     </div>
     <div class="cuckoo-actions">
@@ -607,6 +607,27 @@ const OVERLAY_CSS = `
 }
 #cuckoo-status-badge:hover { background: rgba(139, 147, 255, 0.3); border-color: rgba(139, 147, 255, 0.6); }
 #cuckoo-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ck-green); animation: cuckoo-pulse 2s infinite; }
+.cuckoo-toast {
+  position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-8px);
+  z-index: 2147483648; min-width: 200px; max-width: 380px; text-align: center;
+  background: rgba(22, 24, 44, 0.92); backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(139, 147, 255, 0.28); border-radius: 12px;
+  padding: 10px 16px; font-size: 13px; color: #dde1ff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  opacity: 0; pointer-events: none; transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.cuckoo-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.cuckoo-task-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: #a8afff; font-size: 11px; font-weight: 600;
+}
+.cuckoo-spinner {
+  width: 11px; height: 11px; border-radius: 50%;
+  border: 2px solid rgba(139,147,255,0.25); border-top-color: #8b93ff;
+  animation: cuckoo-spin 0.8s linear infinite;
+}
+@keyframes cuckoo-spin { to { transform: rotate(360deg); } }
 @keyframes cuckoo-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .cuckoo-hidden { display: none !important; }
 .cuckoo-home-mode .cuckoo-header .cuckoo-btn-icon,
@@ -724,6 +745,38 @@ function escapeHtml(text) {
 }
 
 /**
+ * 显示浮动提示弹窗
+ * @param {string} text - 提示文本
+ * @param {number} duration - 显示时长（毫秒），默认 2200
+ */
+function showToast(text, duration = 2200) {
+  let toast = document.getElementById('cuckoo-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'cuckoo-toast';
+    toast.className = 'cuckoo-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = text;
+  requestAnimationFrame(() => toast.classList.add('show'));
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, duration);
+}
+
+/**
+ * 设置任务状态（检测到任务：后面的执行中提示）
+ * @param {boolean} running - 是否执行中
+ */
+function setTaskStatus(running) {
+  const status = document.getElementById('cuckoo-task-status');
+  if (status) {
+    status.classList.toggle('cuckoo-hidden', !running);
+  }
+}
+
+/**
  * 显示覆盖层（移除 hidden 类）
  */
 function showOverlay() {
@@ -749,6 +802,7 @@ function displayCommand(cmdData) {
   const resultSection = document.getElementById('cuckoo-result-section');
   if (preview) preview.textContent = cmdData.command;
   if (resultSection) resultSection.classList.add('cuckoo-hidden');
+  showToast('发现可执行的命令');
   showOverlay();
 }
 /**
@@ -1949,6 +2003,8 @@ function notifyJsScriptDetected(code) {
 async function handleJsToolScript(code) {
   showOverlay();
   notifyJsScriptDetected(code);
+  setTaskStatus(true);
+  showToast('开始执行命令');
 
   const callId = 'js_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
   console.log('[Cuckoo Code] [诊断] 即将执行的代码(JSON转义): ' + JSON.stringify(code));
@@ -2003,6 +2059,7 @@ async function handleJsToolScript(code) {
     }
     return { code, result: { success: false, error: '系统异常: ' + (err.message || String(err)) } };
   } finally {
+    setTaskStatus(false);
   }
 }
 
@@ -2015,6 +2072,8 @@ async function handleToolCall(toolCall) {
 
   // 确保覆盖层可见，让用户看到正在处理
   showOverlay();
+  setTaskStatus(true);
+  showToast('开始执行命令');
 
   try {
     const result = await window.electronAPI.executeTool(toolName, params, callId);
@@ -2069,6 +2128,7 @@ async function handleToolCall(toolCall) {
     // 系统异常也要回传 AI，让它知道发生了什么
     sendToolResultToChat(toolCall, { success: false, error: '系统异常: ' + (err.message || String(err)) });
   } finally {
+    setTaskStatus(false);
   }
 }
 
