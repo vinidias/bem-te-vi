@@ -1,0 +1,458 @@
+/**
+ * 回复解析主流程：MutationObserver、完成检测、工具/JS 脚本执行
+ * 由原 preload.js 拆分而来，逻辑保持不变。
+ */
+const {
+  showOverlay, setTaskStatus, showToast, addHistory, flashBadge, truncate, displayCommand, generateId,
+} = require('../overlay/ui');
+const { getCodeBlockLanguage, isInsideUserMessage, scanForCommands } = require('./detector');
+const { tryParseToolCall } = require('./tool-parser');
+const { getJsCodeBlocksFromMarkdown, looksLikeIncompleteCodeError, FENCE } = require('./js-detector');
+const { sendToolResultToChat, sendCombinedJsResultsToChat } = require('./chat-input');
+const { isAIResponseComplete } = require('./ai-response');
+const { hasTool, toolNamesList } = require('../tool-names');
+
+/**
+ * 手动解析按钮点击处理
+ * 用户点击后，仅解析最后一条 AI 回复中的工具调用并执行
+ */
+async function handleManualParse() {
+  const btn = document.getElementById('cuckoo-btn-manual-parse');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '解析中...';
+  }
+
+  try {
+    // 复用自动解析逻辑：仅解析最后一条 AI 回复
+    processLatestAIResponse(0, true);
+    alert('已触发手动解析最后一条 AI 回复');
+  } catch (err) {
+    console.error('[Cuckoo Code] 手动解析出错:', err);
+    alert('手动解析出错: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '手动解析';
+    }
+  }
+}
+// ========== MutationObserver ==========
+
+// 已处理过的消息节点集合（避免重复处理）
+const processedMessages = new WeakSet();
+
+// 正在做 JS 代码块稳定性校验的消息，防止 800ms 窗口内被重复调度
+const pendingJsChecks = new WeakSet();
+
+// 内容不完整时的最大重试次数（AI 生成长内容可能需 30 秒+）
+const MAX_RETRY_COUNT = 2;
+// 重试间隔（ms）
+const RETRY_INTERVAL = 2000;
+// JS 代码块稳定性校验的最大复查次数（1.2 秒/次，约 48 秒）
+const JS_STABILITY_MAX_RETRY = 40;
+/**
+ * 检查字符串是否为"疑似工具调用但内容不完整"
+ * 规则：文本包含 { 且含工具调用特征（toolName/工具名/大括号开头），
+ * 则从第一个 { 开始检查括号配对；配对不完整返回 false（需要重试）
+ */
+function isJsonBalanced(str) {
+  const trimmed = (str || '').trim();
+  // 不含 { 或没有工具调用特征 → 不是工具调用，直接通过
+  if (!trimmed.includes('{')) return true;
+  if (!/toolName|"tool"|file_|json复制|```/.test(trimmed) && !trimmed.trimStart().startsWith('{')) {
+    return true;
+  }
+  // 从第一个 { 开始检查括号配对
+  const jsonPart = trimmed.substring(trimmed.indexOf('{'));
+  let braceCount = 0;
+  let inString = false;
+  let escapeNext = false;
+  for (const char of jsonPart) {
+    if (escapeNext) { escapeNext = false; continue; }
+    if (char === '\\') { escapeNext = true; continue; }
+    if (char === '"') { inString = !inString; continue; }
+    if (!inString) {
+      if (char === '{') braceCount++;
+      else if (char === '}') {
+        braceCount--;
+        if (braceCount < 0) return true; // 多出的 }，视为异常但不再等
+      }
+    }
+  }
+  return braceCount === 0;
+}
+/**
+ * 回复结束后，获取最新 .ds-message > .ds-markdown 的内容并解析工具调用
+ * @param {number} retryCount 当前重试次数（内容不完整时延迟重试）
+ */
+function processLatestAIResponse(retryCount = 0, force = false) {
+  const messages = document.querySelectorAll('.ds-message');
+  if (messages.length === 0) {
+    console.log('[Cuckoo Code] 未找到 .ds-message 节点');
+    return;
+  }
+
+  // 取最后一条消息
+  const lastMessage = messages[messages.length - 1];
+  const markdown = lastMessage.querySelector(':scope > .ds-markdown');
+  if (!markdown) {
+    console.log('[Cuckoo Code] 最新消息中没有 .ds-markdown');
+    return;
+  }
+
+  if (!force && processedMessages.has(lastMessage)) {
+    return; // 已处理过，跳过
+  }
+
+  // 跳过用户消息（其中包含系统提示词里的示例代码块，不应被执行）
+  if (isInsideUserMessage(lastMessage)) {
+    processedMessages.add(lastMessage);
+    console.log('[Cuckoo Code] ⏭ 跳过用户消息（包含系统提示词示例）');
+    return;
+  }
+
+  // 优先检测 JS 工具代码块（cuckoo 代码块 / 调用工具函数的 js 代码块）
+  const jsBlocks = getJsCodeBlocksFromMarkdown(markdown);
+  if (jsBlocks.length > 0) {
+    // 稳定性双读校验：DeepSeek 流式渲染期间代码块只渲染了一半（曾导致 "const content"
+    // 这样的残缺代码被执行 → SyntaxError）。间隔 1.2 秒复查内容，仍在变化就重新调度。
+    if (!force && pendingJsChecks.has(lastMessage)) {
+      console.log('[Cuckoo Code] ⏭ 该消息已在稳定性校验中，跳过重复调度');
+      return;
+    }
+    if (!force) pendingJsChecks.add(lastMessage);
+    if (!force && retryCount > JS_STABILITY_MAX_RETRY) {
+      console.log('[Cuckoo Code] ⚠️ 代码块持续不稳定（' + retryCount + ' 次复查），放弃本次处理');
+      pendingJsChecks.delete(lastMessage);
+      processedMessages.add(lastMessage);
+      return;
+    }
+    const snapshot = markdown.textContent || '';
+    const snapshotBlocks = jsBlocks.map((b) => b.length).join(',');
+    console.log('[Cuckoo Code] ⏳ 检测到 JS 工具代码块，稳定性校验中（' + (retryCount + 1) + '/' + JS_STABILITY_MAX_RETRY + '）...');
+    if (force) {
+      console.log('[Cuckoo Code] 手动解析模式，跳过稳定性校验');
+      (async () => {
+        const results = [];
+        for (const code of jsBlocks) {
+          const r = await handleJsToolScript(code);
+          if (r) results.push(r);
+        }
+        const hasIncompleteFailure = results.some(item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error));
+        if (hasIncompleteFailure) {
+          alert('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试。');
+          return;
+        }
+        if (results.length > 0) sendCombinedJsResultsToChat(results);
+      })();
+      return;
+    }
+
+    setTimeout(() => {
+      const jsBlocksNow = getJsCodeBlocksFromMarkdown(markdown);
+      const stable = (markdown.textContent || '') === snapshot &&
+        jsBlocksNow.length === jsBlocks.length &&
+        jsBlocksNow.map((b) => b.length).join(',') === snapshotBlocks;
+      if (!stable) {
+        console.log('[Cuckoo Code] ⏳ 代码块仍在流式更新（快照不一致），重新调度');
+        pendingJsChecks.delete(lastMessage);
+        processLatestAIResponse(retryCount + 1);
+        return;
+      }
+      if (!force) processedMessages.add(lastMessage);
+      pendingJsChecks.delete(lastMessage);
+      console.log('[Cuckoo Code] ✅ 代码块稳定，检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
+      (async () => {
+        const results = [];
+        for (const code of jsBlocks) {
+          const r = await handleJsToolScript(code);
+          if (r) results.push(r);
+        }
+        const hasIncompleteFailure = results.some(item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error));
+        if (hasIncompleteFailure) {
+          alert('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试。');
+          return;
+        }
+        if (results.length > 0) sendCombinedJsResultsToChat(results);
+      })();
+    }, 800);
+    return;
+  }
+
+  // 提取文本：优先从 pre code 提取（代码块内容天然不含 json/复制/下载等按钮文字）
+  let text = '';
+  const codeEl = markdown.querySelector('pre code');
+  if (codeEl) {
+    text = (codeEl.textContent || codeEl.innerText || '').trim();
+    console.log('[Cuckoo Code] 提取方式: pre code 元素');
+  } else {
+    // 无代码块：克隆节点并剔除可能的工具栏元素
+    const clone = markdown.cloneNode(true);
+    clone.querySelectorAll('button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"], [class*="lang"], [class*="header"]').forEach(el => el.remove());
+    text = (clone.textContent || clone.innerText || '').trim();
+    console.log('[Cuckoo Code] 提取方式: 克隆节点(剔除工具栏)');
+  }
+
+  if (!text) return;
+  console.log(text);
+  // 是否为疑似工具内容（用于控制详细日志与提示文案）
+  const looksToolish = text.includes(FENCE) ||
+    /toolName|"tool"|file_|await\s+(?:readFile|writeFile|editFile|glob|grep|bash|deleteFile|mysql)\s*\(/.test(text);
+
+  // 长度必打；原文/转义仅在疑似工具内容时打印（普通聊天回复不再刷屏）
+  console.log('[Cuckoo Code] 回复文本长度: ' + text.length + (looksToolish ? '（疑似工具内容）' : '（普通文本）'));
+  if (looksToolish) {
+    console.log('[Cuckoo Code] 回复完整内容(原文):');
+    console.log(text);
+    console.log('[Cuckoo Code] 回复完整内容(转义显示):');
+    console.log(JSON.stringify(text));
+  }
+
+  // 内容不完整（疑似流式输出未真正结束）：延迟重试，避免处理截断的 JSON
+  if (!force && !isJsonBalanced(text)) {
+    if (retryCount < MAX_RETRY_COUNT) {
+      console.log('[Cuckoo Code] ⏳ JSON 不完整(疑似流式未结束)，' + (retryCount + 1) + '/' + MAX_RETRY_COUNT + ' 次延迟重试, 当前长度=' + text.length + '...');
+      setTimeout(() => processLatestAIResponse(retryCount + 1), RETRY_INTERVAL);
+      return; // 不标记 processed，允许重试
+    }
+    console.log('[Cuckoo Code] ⚠️ JSON 持续不完整（20次重试仍截断），放弃本次处理，当前长度=' + text.length);
+    // 回传 AI，让它重新完整输出
+    sendToolResultToChat(
+      { toolName: '未知', callId: 'incomplete' },
+      { success: false, error: '收到不完整的工具调用 JSON（内容被截断），请重新完整输出工具调用。' }
+    );
+  }
+
+  if (!force) processedMessages.add(lastMessage);
+
+  const toolCall = tryParseToolCall(text);
+  if (toolCall) {
+    // 验证 toolName 是否在工具库中
+    const available = hasTool(toolCall.toolName);
+    if (!available) {
+      console.log('[Cuckoo Code] ⚠️ 工具不存在: ' + toolCall.toolName + ', 可用工具: ' + toolNamesList());
+      // 回传 AI，告知工具不存在
+      sendToolResultToChat(
+        toolCall,
+        { success: false, error: '工具 ' + toolCall.toolName + ' 不存在，可用工具: ' + toolNamesList() }
+      );
+      return;
+    }
+    console.log('[Cuckoo Code] ✅ 工具存在: ' + toolCall.toolName + ', 开始执行');
+    notifyToolCallDetected(toolCall);
+    handleToolCall(toolCall);
+  } else {
+    if (looksToolish) {
+      // 疑似工具内容但 JS 块检测与 JSON 解析都没命中 → 打印诊断，帮助定位
+      console.log('[Cuckoo Code] ⚠️ 回复疑似工具调用但未被识别（JS 代码块未匹配 / JSON 解析失败）');
+      const pres = markdown.querySelectorAll('pre');
+      if (pres.length > 0) {
+        for (const p of pres) {
+          const lang = getCodeBlockLanguage(p);
+          console.log('[Cuckoo Code] [诊断] 代码块 language=' + (lang || '(无)') + ', 内容前80字符=' + ((p.textContent || '').trim().slice(0, 80)));
+        }
+      } else {
+        console.log('[Cuckoo Code] [诊断] 消息中没有任何 pre 代码块');
+      }
+    } else {
+      console.log('[Cuckoo Code] ℹ️ 正常文本回复，未检测到工具调用（无需处理）');
+    }
+  }
+}
+// 读取防抖定时器
+let responseReadTimer = null;
+function startObserver() {
+  const observer = new MutationObserver((mutations) => {
+    let hasNewContent = false;
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        // 扫描命令
+        const commands = scanForCommands(mutation.addedNodes);
+        for (const cmd of commands) {
+          displayCommand({ command: cmd, timestamp: Date.now(), id: generateId() });
+        }
+        hasNewContent = true;
+      }
+    }
+
+    // 回复结束后处理最新 AI 回复（检测到操作按钮组后立即处理）
+    if (hasNewContent && isAIResponseComplete()) {
+      clearTimeout(responseReadTimer);
+      console.log('[Cuckoo Code] ✅ 检测到回复结束，立即读取回复');
+      processLatestAIResponse();
+    }
+  });
+
+  const target = document.body || document.documentElement;
+  if (target) {
+    observer.observe(target, { childList: true, subtree: true });
+  }
+}
+/**
+ * 通知用户检测到工具调用（闪烁状态徽章 + 展开覆盖层）
+ */
+function notifyToolCallDetected(toolCall) {
+  showOverlay();
+  // 更新预览区域显示检测到的工具调用
+  const preview = document.getElementById('cuckoo-cmd-preview');
+  if (preview) {
+    preview.textContent = `[工具] ${toolCall.toolName}\n参数: ${JSON.stringify(toolCall.params, null, 2)}`;
+  }
+  // 闪烁状态徽章
+  flashBadge('Cuckoo Code - 工具调用检测到');
+}
+/**
+ * 通知用户检测到 JS 工具脚本（更新预览 + 闪烁徽章）
+ */
+function notifyJsScriptDetected(code) {
+  showOverlay();
+  const preview = document.getElementById('cuckoo-cmd-preview');
+  if (preview) {
+    preview.textContent = '[JS 工具脚本]' + String.fromCharCode(10) + code;
+  }
+  flashBadge('Cuckoo Code - JS 工具脚本检测到');
+}
+/**
+ * 执行检测到的 JS 工具脚本（带双通道去重）
+ */
+async function handleJsToolScript(code) {
+  showOverlay();
+  notifyJsScriptDetected(code);
+  setTaskStatus(true);
+  showToast('开始执行命令');
+
+  const callId = 'js_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+  console.log('[Cuckoo Code] [诊断] 即将执行的代码(JSON转义): ' + JSON.stringify(code));
+  try {
+    const result = await window.electronAPI.executeJs(code, callId);
+
+    const resultSection = document.getElementById('cuckoo-result-section');
+    const resultStatus = document.getElementById('cuckoo-result-status');
+    const resultOutput = document.getElementById('cuckoo-result-output');
+    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
+
+    if (result.success) {
+      if (resultStatus) {
+        resultStatus.textContent = '✅ JS 脚本执行成功';
+        resultStatus.className = 'cuckoo-result-status success';
+      }
+      if (resultOutput) {
+        resultOutput.textContent = result.output || '(脚本执行完成，无输出)';
+      }
+    } else {
+      if (resultStatus) {
+        resultStatus.textContent = '❌ JS 脚本执行失败';
+        resultStatus.className = 'cuckoo-result-status error';
+      }
+      if (resultOutput) {
+        resultOutput.textContent = result.error || '未知错误';
+      }
+    }
+
+    addHistory({
+      id: callId,
+      command: '[JS] ' + truncate((code.split(String.fromCharCode(10))[0] || code), 60),
+      success: result.success,
+      output: result.success ? (result.output || '') : (result.error || '未知错误'),
+      timestamp: Date.now(),
+    });
+
+    // 返回执行结果，由调用方统一合并回传
+    return { code, result };
+  } catch (err) {
+    console.error('[Cuckoo Code] JS 工具脚本执行异常:', err);
+    const resultSection = document.getElementById('cuckoo-result-section');
+    const resultStatus = document.getElementById('cuckoo-result-status');
+    const resultOutput = document.getElementById('cuckoo-result-output');
+    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
+    if (resultStatus) {
+      resultStatus.textContent = '❌ 系统错误';
+      resultStatus.className = 'cuckoo-result-status error';
+    }
+    if (resultOutput) {
+      resultOutput.textContent = err.message || String(err);
+    }
+    return { code, result: { success: false, error: '系统异常: ' + (err.message || String(err)) } };
+  } finally {
+    setTaskStatus(false);
+  }
+}
+/**
+ * 执行工具调用
+ */
+async function handleToolCall(toolCall) {
+  const { toolName, params, callId } = toolCall;
+  console.log(`[Cuckoo Code] 执行工具: ${toolName}`, params);
+
+  // 确保覆盖层可见，让用户看到正在处理
+  showOverlay();
+  setTaskStatus(true);
+  showToast('开始执行命令');
+
+  try {
+    const result = await window.electronAPI.executeTool(toolName, params, callId);
+
+    // 显示执行结果
+    const resultSection = document.getElementById('cuckoo-result-section');
+    const resultStatus = document.getElementById('cuckoo-result-status');
+    const resultOutput = document.getElementById('cuckoo-result-output');
+
+    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
+
+    if (result.success) {
+      if (resultStatus) {
+        resultStatus.textContent = `✅ 工具 ${toolName} 执行成功`;
+        resultStatus.className = 'cuckoo-result-status success';
+      }
+      if (resultOutput) {
+        resultOutput.textContent = JSON.stringify(result.data, null, 2);
+      }
+    } else {
+      if (resultStatus) {
+        resultStatus.textContent = `❌ 工具 ${toolName} 执行失败`;
+        resultStatus.className = 'cuckoo-result-status error';
+      }
+      if (resultOutput) {
+        resultOutput.textContent = result.error || '未知错误';
+      }
+    }
+
+    // 添加到历史
+    addHistory({
+      id: callId,
+      command: `[工具] ${toolName}`,
+      success: result.success,
+      output: result.success ? JSON.stringify(result.data, null, 2) : (result.error || '未知错误'),
+      timestamp: Date.now(),
+    });
+
+    // 将执行结果发送回聊天，让 AI 看到结果并继续工作
+    sendToolResultToChat(toolCall, result);
+  } catch (err) {
+    console.error('[Cuckoo Code] 工具执行异常:', err);
+    const resultSection = document.getElementById('cuckoo-result-section');
+    const resultStatus = document.getElementById('cuckoo-result-status');
+    const resultOutput = document.getElementById('cuckoo-result-output');
+    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
+    if (resultStatus) {
+      resultStatus.textContent = '❌ 系统错误';
+      resultStatus.className = 'cuckoo-result-status error';
+    }
+    if (resultOutput) resultOutput.textContent = err.message || String(err);
+    // 系统异常也要回传 AI，让它知道发生了什么
+    sendToolResultToChat(toolCall, { success: false, error: '系统异常: ' + (err.message || String(err)) });
+  } finally {
+    setTaskStatus(false);
+  }
+}
+
+module.exports = {
+  processLatestAIResponse,
+  startObserver,
+  notifyToolCallDetected,
+  notifyJsScriptDetected,
+  handleJsToolScript,
+  handleToolCall,
+  handleManualParse,
+};

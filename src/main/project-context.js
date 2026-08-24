@@ -1,0 +1,230 @@
+/**
+ * 项目初始化：目录选择、目录树、系统提示词组合与发送
+ * 由原 main.js 拆分而来，逻辑保持不变。
+ */
+const { dialog } = require('electron');
+const fs = require('fs');
+const path = require('path');
+
+const windowState = require('./window');
+const sessionStore = require('./session-store');
+const { toolRegistry } = require('./tool-registry');
+
+// systemPrompt.md 路径
+const SYSTEM_PROMPT_PATH = path.join(__dirname, '..', '..', 'systemPrompt.md');
+
+/**
+ * 递归获取目录树结构字符串
+ * @param {string} dir 目录路径
+ * @param {number} depth 当前深度
+ * @returns {string} 目录树字符串
+ */
+// 需要忽略的目录（依赖、构建产物、版本控制等）
+const IGNORED_DIRS = new Set([
+  'node_modules', 'target', 'build', 'dist', 'out',
+  '.git', '.svn', '.hg',
+  '__pycache__', '.pytest_cache', '.coverage',
+  'vendor', 'bower_components', 'jspm_packages',
+  '.idea', '.vscode', '.vs',
+  'logs', 'tmp', 'temp',
+  'bin', 'obj',
+]);
+
+/**
+ * 递归获取目录树结构字符串（类似 Windows tree 命令风格）
+ * @param {string} dir 目录路径
+ * @param {string} prefix 当前行前缀（用于绘制树形结构）
+ * @returns {string} 目录树字符串
+ */
+function getDirectoryTree(dir, prefix = '') {
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    // 过滤：跳过隐藏文件和忽略的目录
+    const visibleEntries = entries
+      .filter(e => !e.name.startsWith('.'))
+      .filter(e => !e.isDirectory() || !IGNORED_DIRS.has(e.name))
+      .sort((a, b) => {
+        // 目录优先，然后按名称排序
+        if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+
+    let tree = '';
+
+    visibleEntries.forEach((entry, index) => {
+      const isLast = index === visibleEntries.length - 1;
+      const connector = isLast ? '└── ' : '├── ';
+      const childPrefix = prefix + (isLast ? '    ' : '│   ');
+
+      tree += `${prefix}${connector}${entry.name}${entry.isDirectory() ? '/' : ''}\n`;
+
+      if (entry.isDirectory()) {
+        tree += getDirectoryTree(path.join(dir, entry.name), childPrefix);
+      }
+    });
+
+    return tree;
+  } catch (err) {
+    console.error('[Cuckoo Code] 读取目录失败:', err.message);
+    return `${prefix}└── [无法读取目录: ${dir}]\n`;
+  }
+}
+
+/**
+ * 初始化项目：选择目录并发送目录树 + systemPrompt
+ * 供 IPC 调用（用户点击初始化按钮时触发）
+ * @param {boolean} skipPrompt - 如果为true，只更新目录映射，不发送初始提示（用于修改目录）
+ */
+function initProject(skipPrompt = false) {
+  const mainWindow = windowState.getMainWindow();
+
+  // 先让用户选择目录
+  const result = dialog.showOpenDialogSync(mainWindow, {
+    properties: ['openDirectory'],
+    buttonLabel: '选择目录',
+    title: '请选择要分析的项目目录',
+  });
+
+  if (!result || result.length === 0) {
+    console.log('[Cuckoo Code] 用户取消了目录选择');
+    return { success: false, message: '用户取消了目录选择' };
+  }
+
+  const selectedDir = result[0];
+  console.log('[Cuckoo Code] 用户选择目录:', selectedDir);
+
+  // 保存选中的项目目录
+  sessionStore.state.selectedProjectDir = selectedDir;
+
+  // ========== 持久化存储会话-目录映射 ==========
+  // 如果当前有会话ID，保存映射
+  if (sessionStore.state.currentSessionId) {
+    sessionStore.saveSessionDirMapping(sessionStore.state.currentSessionId, selectedDir);
+    console.log(`[Cuckoo Code] 已保存会话 ${sessionStore.state.currentSessionId} -> ${selectedDir}`);
+  } else {
+    // 如果未能获取会话ID，尝试从当前URL提取
+    let sessionId = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const url = mainWindow.webContents.getURL();
+      sessionId = sessionStore.extractSessionIdFromUrl(url);
+    }
+    if (sessionId) {
+      sessionStore.state.currentSessionId = sessionId;
+      sessionStore.saveSessionDirMapping(sessionId, selectedDir);
+      console.log(`[Cuckoo Code] 从URL提取会话ID并保存: ${sessionId} -> ${selectedDir}`);
+    } else {
+      // 无法获取会话ID，暂存项目目录，等待URL变化后绑定
+      sessionStore.state.pendingProjectDir = selectedDir;
+      console.log(`[Cuckoo Code] 暂存项目目录 ${selectedDir}，等待会话ID出现后绑定`);
+    }
+  }
+
+  // 发送目录更新事件到渲染进程
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('project-dir-updated', selectedDir);
+  }
+
+  // 如果只是修改目录，跳过发送初始提示
+  if (skipPrompt) {
+    return { success: true, message: '项目目录已更新' };
+  }
+
+  // 初始化项目时发送系统提示词和工具规则（不含目录树）
+  // 读取系统提示词
+  let promptContent = '';
+  try {
+    if (fs.existsSync(SYSTEM_PROMPT_PATH)) {
+      promptContent = fs.readFileSync(SYSTEM_PROMPT_PATH, 'utf-8');
+    } else {
+      console.warn('[Cuckoo Code] systemPrompt.md 不存在');
+    }
+  } catch (err) {
+    console.error('[Cuckoo Code] 读取 systemPrompt.md 失败:', err.message);
+  }
+
+  // 读取工具使用规则
+  let rulesContent = '';
+  const RULES_PATH = path.join(__dirname, '..', '..', 'tools', 'rules.md');
+  try {
+    if (fs.existsSync(RULES_PATH)) {
+      rulesContent = fs.readFileSync(RULES_PATH, 'utf-8');
+    }
+  } catch (err) {
+    console.error('[Cuckoo Code] 读取 rules.md 失败:', err.message);
+  }
+
+  // 获取工具库描述（JS API 格式：AI 通过生成 JS 代码调用这些函数）
+  const toolsDescription = toolRegistry.getFormattedJsApiForPrompt();
+
+  // 将 {TOOLS_LIST} 占位符替换为实际工具列表
+  const finalRules = rulesContent.replace('{TOOLS_LIST}', toolsDescription);
+  const finalPrompt = promptContent.replace('{TOOLS_LIST}', toolsDescription);
+
+  // 组合内容（包含目录树）
+  let projectIntro = '';
+  const cuckooMdPath = path.join(selectedDir, '.cuckooCode', 'CUCKOO.md');
+  if (fs.existsSync(cuckooMdPath)) {
+    try {
+      projectIntro = fs.readFileSync(cuckooMdPath, 'utf-8');
+      console.log('[Cuckoo Code] 已读取 CUCKOO.md 内容');
+    } catch (err) {
+      console.error('[Cuckoo Code] 读取 CUCKOO.md 失败:', err.message);
+    }
+  }
+
+  // 获取目录树
+  // let directoryTree = '';
+  // try {
+  //   if (fs.existsSync(selectedDir)) {
+  //     directoryTree = getDirectoryTree(selectedDir);
+  //     console.log('[Cuckoo Code] 已获取目录树');
+  //   }
+  // } catch (err) {
+  //   console.error('[Cuckoo Code] 获取目录树失败:', err.message);
+  // }
+
+  const combined = `
+系统提示词：
+${finalPrompt}
+---
+工具使用规则：
+${finalRules}
+${projectIntro ? `---
+## 项目介绍
+${projectIntro}` : ''}
+---
+## 当前项目目录
+当前项目路径: ${selectedDir}
+---
+如果你觉得需要使用工具，请直接回答工具指令及入参，其他内容不需要回复`;
+
+  console.log('[Cuckoo Code] 准备发送初始提示（不含目录树），长度:', combined.length);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('initial-prompt', combined);
+  }
+
+  return { success: true, message: '初始化完成，已发送系统提示词、工具规则和工具库' };
+}
+
+/**
+ * 读取 systemPrompt.md 并发送到 preload
+ */
+function sendSystemPrompt() {
+  const mainWindow = windowState.getMainWindow();
+  try {
+    if (fs.existsSync(SYSTEM_PROMPT_PATH)) {
+      const content = fs.readFileSync(SYSTEM_PROMPT_PATH, 'utf-8');
+      console.log('[Cuckoo Code] systemPrompt.md 已读取，长度:', content.length, '字节');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('system-prompt', content);
+      }
+    } else {
+      console.log('[Cuckoo Code] systemPrompt.md 不存在，跳过');
+    }
+  } catch (err) {
+    console.error('[Cuckoo Code] 读取 systemPrompt.md 失败:', err.message);
+  }
+}
+
+module.exports = { SYSTEM_PROMPT_PATH, IGNORED_DIRS, getDirectoryTree, initProject, sendSystemPrompt };
