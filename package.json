@@ -39,9 +39,6 @@
     "electron": "^33.0.0",
     "electron-builder": "^24.13.3"
   },
-  "dependencies": {
-    "mysql2": "^3.23.2"
-  },
   "engines": {
     "node": ">=16.0.0"
   },

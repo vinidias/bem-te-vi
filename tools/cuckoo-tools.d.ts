@@ -191,39 +191,6 @@ interface FileDeleteResult {
  */
 declare function deleteFile(filePath: string): Promise<FileDeleteResult>;
 
-// ================= MySQL =================
-
-/** mysql 的连接与查询参数 */
-interface MysqlOptions {
-  host: string;
-  /** 端口，默认 3306 */
-  port?: number;
-  user: string;
-  password: string;
-  database: string;
-  /** 要执行的 SQL（支持 ? 参数化） */
-  query: string;
-  /** 参数化查询的参数数组 */
-  params?: unknown[];
-}
-
-/** mysql 的返回值 */
-interface MysqlResult {
-  /** 结果行数 */
-  rowCount: number;
-  /** 列名 */
-  fields: string[];
-  /** 查询结果（最多返回 1000 行） */
-  rows: Record<string, unknown>[];
-}
-
-/**
- * 连接 MySQL 数据库并执行 SQL 查询。
- * 缺少连接参数（host/user/password/database）时应先向用户询问。
- * @throws 连接失败或 SQL 错误时抛出异常
- */
-declare function mysql(options: MysqlOptions): Promise<MysqlResult>;
-
 // ================= WebFetch =================
 
 /** webFetch 的选项 */

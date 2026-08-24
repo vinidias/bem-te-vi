@@ -6,7 +6,7 @@
 - 初始版本发布
 - Electron 桌面应用，嵌入 DeepSeek 网页版
 - 自动检测 AI 回复中的 `cmd`/`powershell` 代码块，弹窗确认后执行
-- 工具调用系统：支持 `file_write`、`file_read`、`file_edit`、`file_glob`、`file_grep`、`bash`、`mysql`、`file_delete` 等工具
+- 工具调用系统：支持 `file_write`、`file_read`、`file_edit`、`file_glob`、`file_grep`、`bash`、`file_delete` 等工具
 - 会话级项目目录绑定，工具操作以项目目录为基础
 - 侧边覆盖层面板，显示命令预览、执行结果和历史记录
 - `Ctrl+Shift+C` 快捷键切换覆盖层

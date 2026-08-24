@@ -4,7 +4,7 @@
  * 设计要点：
  * - 通过 vm.createContext 创建沙箱，禁用字符串代码生成（eval / Function 构造器均被禁用）
  * - AI 代码无法访问 require / process / global 等 Node 能力，只能使用注入的工具函数
- * - 工具函数（readFile / readFileWithLines / writeFile / editFile / glob / grep / bash / deleteFile / mysql / log）
+ * - 工具函数（readFile / readFileWithLines / writeFile / editFile / glob / grep / bash / deleteFile / log）
  *   通过唯一的 __hostBridge 桥接函数回到主进程执行，宿主函数从不向沙箱抛出宿主对象
  * - 每个工具调用都带执行截止时间检查，防止死循环；整体运行有 60 秒超时
  */
@@ -88,11 +88,7 @@ const BOOTSTRAP = [
 "  globalThis.deleteFile = async function (filePath) {",
 "    return await __call('file_delete', { file_path: filePath });",
 "  };",
-"  globalThis.mysql = async function (options) {",
-"    options = options || {};",
-"    return await __call('mysql', options);",
-"  };",
-"  globalThis.webFetch = async function (url, options) {",
+""  globalThis.webFetch = async function (url, options) {",
 "    options = options || {};",
 "    var args = Object.assign({}, options, { url: url });",
 "    return await __call('web_fetch', args);",

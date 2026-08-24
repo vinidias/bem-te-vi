@@ -10,7 +10,7 @@ const { getCodeBlockLanguage } = require('./detector');
 const BT = String.fromCharCode(96);
 const FENCE = BT + BT + BT;
 // 工具调用特征：必须出现 "await 工具函数名(" 形式的调用（防止 fs.readFile 等普通示例误判）
-const JS_TOOL_CALL_RE = /\bawait\s+(?:readFile|readFileWithLines|writeFile|editFile|glob|grep|bash|deleteFile|mysql|webFetch)\s*\(/;
+const JS_TOOL_CALL_RE = /\bawait\s+(?:readFile|readFileWithLines|writeFile|editFile|glob|grep|bash|deleteFile|webFetch)\s*\(/;
 /**
  * 判断一段 JS 代码是否调用了工具函数
  */

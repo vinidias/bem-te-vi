@@ -24,7 +24,7 @@
 
 - 桌面应用：跨平台 Electron 原生窗口，体验接近本地工具
 - 命令拦截：自动检测 cmd / powershell / bash 代码块，确认后执行
-- 工具调用系统：AI 可调用 readFile、writeFile、editFile、glob、grep、bash、mysql、deleteFile 等工具
+- 工具调用系统：AI 可调用 readFile、writeFile、editFile、glob、grep、bash、deleteFile 等工具
 - 项目目录绑定：初始化项目后，AI 获得目录树和系统提示词，操作基于真实项目上下文
 - 覆盖层面板：显示命令预览、执行结果和历史记录，支持 Ctrl+Shift+C 或 Esc 切换
 - 安全机制：30 秒命令超时、60 秒沙箱超时、1MB 输出缓冲区
@@ -107,7 +107,7 @@ await writeFile("src/utils/helper.js", content.replace("formatDate", "formatTime
 | glob(pattern, path?) | file_glob | 按 glob 模式搜索文件 |
 | grep(pattern, options?) | file_grep | 按正则或文本搜索文件内容 |
 | bash(command, options?) | bash | 执行 Shell 命令 |
-| mysql(options) | mysql | 执行 SQL 查询，需配置连接参数 |
+
 | deleteFile(file_path) | file_delete | 删除文件 |
 | webFetch(url, options?) | web_fetch | 访问网页或 API，获取文本/JSON/响应 |
 | log(...args) | - | 输出中间结果到执行日志 |
