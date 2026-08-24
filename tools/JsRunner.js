@@ -88,7 +88,7 @@ const BOOTSTRAP = [
 "  globalThis.deleteFile = async function (filePath) {",
 "    return await __call('file_delete', { file_path: filePath });",
 "  };",
-""  globalThis.webFetch = async function (url, options) {",
+"  globalThis.webFetch = async function (url, options) {",
 "    options = options || {};",
 "    var args = Object.assign({}, options, { url: url });",
 "    return await __call('web_fetch', args);",
