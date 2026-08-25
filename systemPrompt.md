@@ -58,7 +58,7 @@
 
 - 所有函数都是异步的，调用时必须使用 await
 - 相对路径基于当前项目根目录（projectDir）解析
-- 工具出错时抛出异常（Error.message 为错误描述）；唯一例外是 bash()：非零退出不抛异常，通过返回文本中的 [exit code] 标记报告
+- 工具出错时抛出异常（Error.message 为错误描述）；唯一例外是 bash()/pwsh()：非零退出不抛异常，通过返回文本中的 [exit code] 标记报告
 - 此部分与 tools/cuckoo-tools.d.ts 保持一致
 
 ```typescript
@@ -75,7 +75,7 @@
  * - 相对路径基于全局变量 projectDir（当前项目根目录）解析
  * - 多行文本使用反引号（`）模板字符串，不需要任何转义
  * - 工具出错时抛出异常（Error.message 为错误描述），可用 try/catch 处理；
- *   唯一例外是 bash()：非零退出不抛异常，通过返回文本中的 [exit code] 标记报告
+ *   唯一例外是 bash()/pwsh()：非零退出不抛异常，通过返回文本中的 [exit code] 标记报告
  * - 用 log() 输出中间过程；脚本最后可用 return 返回结果值
  */
 
