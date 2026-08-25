@@ -17,6 +17,7 @@ const TOOL_NAMES = [
   'grep',
   'todo_write',
   'bash',
+  'pwsh',
   'web_fetch',
 ];
 

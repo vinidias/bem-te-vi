@@ -209,6 +209,24 @@ interface TodoItem {
  */
 declare function todoWrite(todos: TodoItem[]): Promise<string>;
 
+/** pwsh 的选项 */
+interface PwshOptions {
+  /** 命令用途说明 */
+  description?: string;
+  /** 工作目录（相对路径基于项目根目录），默认项目根目录 */
+  workdir?: string;
+  /** 超时毫秒数，默认 30000 */
+  timeoutMs?: number;
+}
+
+/**
+ * 执行 PowerShell 命令（powershell -NoProfile -Command）。
+ * 返回纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）。
+ * 非零退出不抛异常，通过 [exit code] 标记报告。
+ * 危险命令会被安全策略拒绝并抛异常。
+ */
+declare function pwsh(command: string, options?: PwshOptions): Promise<string>;
+
 // ================= 删除 =================
 
 /** deleteFile 的返回值 */

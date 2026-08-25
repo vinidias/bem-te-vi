@@ -58,6 +58,7 @@ AI 在 ```cuckoo 代码块中编写 JS，可用工具函数：
 - `grep(pattern, options?)` — 按 ripgrep 正则搜索文件内容（仿 dsh grep）
 - `todoWrite(todos)` — 全量替换任务列表（仿 dsh todo_write）
 - `bash(command, options?)` — 执行 shell 命令，非零退出以 [exit code] 标记返回
+- `pwsh(command, options?)` — 执行 PowerShell 命令，非零退出以 [exit code] 标记返回
 - `deleteFile(filePath)` — 删除文件
 - `webFetch(url)` — 获取 HTTP(S) URL 内容，HTML 转 Markdown
 - `log(...args)` — 输出中间结果

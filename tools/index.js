@@ -16,6 +16,7 @@ const { GrepTool } = require('./GrepTool');
 const { GrepToolNew } = require('./GrepToolNew');
 const { TodoWriteTool } = require('./TodoWriteTool');
 const { BashTool } = require('./BashTool');
+const { PwshTool } = require('./PwshTool');
 const { FileDeleteTool } = require('./FileDeleteTool');
 const { WebFetchTool } = require('./WebFetchTool');
 
@@ -35,6 +36,7 @@ registry.register(new GrepTool());
 registry.register(new GrepToolNew());
 registry.register(new TodoWriteTool());
 registry.register(new BashTool());
+registry.register(new PwshTool());
 registry.register(new FileDeleteTool());
 registry.register(new WebFetchTool());
 
@@ -54,6 +56,7 @@ module.exports = {
   GrepToolNew,
   TodoWriteTool,
   BashTool,
+  PwshTool,
   FileDeleteTool,
   WebFetchTool,
   // 便捷方法
