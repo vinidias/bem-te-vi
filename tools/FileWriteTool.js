@@ -30,7 +30,7 @@ class FileWriteTool extends Tool {
         required: ['file_path', 'content'],
         additionalProperties: false
       },
-      'writeFile(file_path, content, encoding?)'
+      null
     );
   }
 

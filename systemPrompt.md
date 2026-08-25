@@ -98,20 +98,6 @@ interface ReadOptions {
   limit?: number;
 }
 
-/** read 的返回值 */
-interface ReadResult {
-  /** 文件显示路径 */
-  path: string;
-  /** 1-based 起始行号 */
-  offset: number;
-  /** 返回的行列表，每行包含行号与文本 */
-  lines: { number: number; text: string }[];
-  /** 文件总行数 */
-  totalLines: number;
-  /** 选中输出是否因字节上限被截断 */
-  truncatedByBytes: boolean;
-}
-
 /**
  * 读取 UTF-8 文本文件并返回带行号的内容窗口。
  * 通过 offset 和 limit 分段读取大文件。输出为格式化文本：
@@ -128,44 +114,26 @@ interface ReadResult {
  */
 declare function read(filePath: string, options?: ReadOptions): Promise<string>;
 
-/** writeFile 的返回值 */
-interface FileWriteResult {
-  /** 成功描述，如：文件已写入: C:\项目\src\index.js */
-  message: string;
-  /** 写入文件的绝对路径 */
-  path: string;
-  /** 写入的字节数 */
-  bytes: number;
-}
-
 /**
- * 创建新文件或覆盖已有文件（父目录不存在时自动创建）。
+ * 创建或完全覆盖 UTF-8 文本文件。
+ * 返回格式化 envelope：<path>...</path><type>file</type><content>Created/Updated file</content>
  * @param filePath 相对（基于项目根目录）或绝对路径
- * @param content 文件内容；多行内容请使用模板字符串
- * @param encoding 编码，默认 'utf-8'
+ * @param content 完整 UTF-8 文本内容；空字符串合法（写入空文件）
+ * @throws 路径为空、写入失败时抛出异常
  */
-declare function writeFile(filePath: string, content: string, encoding?: string): Promise<FileWriteResult>;
-
-/** editFile 的返回值 */
-interface FileEditResult {
-  message: string;
-  /** 编辑后文件的绝对路径 */
-  path: string;
-  /** 实际替换的处数 */
-  replacedCount: number;
-  /** 新文件字节数 */
-  bytes: number;
-}
+declare function write(filePath: string, content: string): Promise<string>;
 
 /**
- * 在文件中精确查找 oldString 并替换为 newString（类似 Claude Code 的 Edit）。
- * 注意：
- * - oldString 必须与文件内容精确匹配（包括空格与换行），建议先用 read 确认
- * - oldString 出现多处且未传 replaceAll 时会报错，请截取更长的唯一片段
- * - 需要插入内容时，可把 oldString 设为锚点，newString 设为“锚点 + 新内容”
- * @throws 文件不存在、oldString 未找到、匹配多处（未 replaceAll）时抛出异常
+ * 在现有 UTF-8 文本文件中精确替换 old_string 为 new_string。
+ * 默认 old_string 必须唯一匹配；多匹配需设置 replaceAll。
+ * 返回 Claude-style 确认消息。
+ * @param filePath 相对或绝对路径
+ * @param oldString 要替换的字面文本
+ * @param newString 替换后的字面文本（可空字符串删除匹配）
+ * @param replaceAll 是否替换所有匹配，默认 false
+ * @throws 文件不存在、old_string 未找到、多匹配未设置 replaceAll、old_string===new_string 时抛出异常
  */
-declare function editFile(filePath: string, oldString: string, newString: string, replaceAll?: boolean): Promise<FileEditResult>;
+declare function edit(filePath: string, oldString: string, newString: string, replaceAll?: boolean): Promise<string>;
 
 // ================= 搜索 =================
 

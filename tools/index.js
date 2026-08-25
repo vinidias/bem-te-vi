@@ -5,9 +5,11 @@
 const { ToolRegistry } = require('./ToolRegistry');
 const { JsRunner } = require('./JsRunner');
 const { FileWriteTool } = require('./FileWriteTool');
+const { WriteTool } = require('./WriteTool');
 const { FileReadTool } = require('./FileReadTool');
 const { ReadTool } = require('./ReadTool');
 const { FileEditTool } = require('./FileEditTool');
+const { EditTool } = require('./EditTool');
 const { GlobTool } = require('./GlobTool');
 const { GrepTool } = require('./GrepTool');
 const { BashTool } = require('./BashTool');
@@ -19,9 +21,11 @@ const registry = new ToolRegistry();
 
 // 注册所有工具
 registry.register(new FileWriteTool());
+registry.register(new WriteTool());
 registry.register(new FileReadTool());
 registry.register(new ReadTool());
 registry.register(new FileEditTool());
+registry.register(new EditTool());
 registry.register(new GlobTool());
 registry.register(new GrepTool());
 registry.register(new BashTool());
@@ -34,8 +38,10 @@ module.exports = {
   JsRunner,
   registry,
   FileWriteTool,
+  WriteTool,
   FileReadTool,
   FileEditTool,
+  EditTool,
   GlobTool,
   GrepTool,
   BashTool,

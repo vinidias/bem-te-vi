@@ -13,7 +13,7 @@
 
 ```cuckoo
 const content = await read("src/utils/helper.js");
-await writeFile("src/utils/helper.js", content.replace("formatDate", "formatTime"));
+await write("src/utils/helper.js", content.replace("formatDate", "formatTime"));
 ```
 
 ### 输出前自查清单
@@ -43,18 +43,18 @@ await writeFile("src/utils/helper.js", content.replace("formatDate", "formatTime
 **你的回复**（仅工具代码）：
 
 ```cuckoo
-await writeFile("src/greeting.txt", "Hello, world!");
+await write("src/greeting.txt", "Hello, world!");
 ```
 
 **系统返回**：
 
 ```
 【JS 执行结果】成功
-{
-  "message": "文件已写入: ...",
-  "bytes": 13,
-  "path": "..."
-}
+<path>src/greeting.txt</path>
+<type>file</type>
+<content>
+Created file
+</content>
 ```
 
 ## 多步任务示例
@@ -69,7 +69,7 @@ log(content);
 **第二步 - 基于读取结果编辑文件**：
 
 ```cuckoo
-const r = await editFile("src/index.js", "const a = 1;", "const a = 2;");
+const r = await edit("src/index.js", "const a = 1;", "const a = 2;");
 log(r);
 ```
 

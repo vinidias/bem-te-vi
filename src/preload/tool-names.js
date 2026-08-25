@@ -6,9 +6,11 @@
  */
 const TOOL_NAMES = [
   'file_write',
+  'write',
   'file_read',
   'read',
   'file_edit',
+  'edit',
   'file_glob',
   'file_grep',
   'bash',

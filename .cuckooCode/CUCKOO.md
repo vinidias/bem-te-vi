@@ -36,7 +36,7 @@ node tools/test_js_runner.js
 
 AI 在 ```cuckoo 代码块中编写 JS，可用工具函数：
 
-- readFile / writeFile / editFile / glob / grep
+- read / write / edit / glob / grep
 - bash（执行 shell 命令）
 - mysql（SQL 查询）
 - webFetch（访问网页/API）

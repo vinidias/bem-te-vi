@@ -34,7 +34,7 @@ class FileEditTool extends Tool {
         required: ['file_path', 'old_string', 'new_string'],
         additionalProperties: false
       },
-      'editFile(file_path, old_string, new_string, replace_all?)'
+      null
     );
   }
 
