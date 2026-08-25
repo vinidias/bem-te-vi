@@ -6,6 +6,7 @@ const { ToolRegistry } = require('./ToolRegistry');
 const { JsRunner } = require('./JsRunner');
 const { FileWriteTool } = require('./FileWriteTool');
 const { FileReadTool } = require('./FileReadTool');
+const { ReadTool } = require('./ReadTool');
 const { FileEditTool } = require('./FileEditTool');
 const { GlobTool } = require('./GlobTool');
 const { GrepTool } = require('./GrepTool');
@@ -19,6 +20,7 @@ const registry = new ToolRegistry();
 // 注册所有工具
 registry.register(new FileWriteTool());
 registry.register(new FileReadTool());
+registry.register(new ReadTool());
 registry.register(new FileEditTool());
 registry.register(new GlobTool());
 registry.register(new GrepTool());

@@ -118,11 +118,11 @@ class ToolRegistry {
    * @returns {string}
    */
   getFormattedJsApiForPrompt() {
-    const descriptions = this.getDescriptions();
+    const descriptions = this.getDescriptions().filter((t) => t.jsApi);
     if (descriptions.length === 0) return '暂无可用工具';
 
     return descriptions.map((t, i) => {
-      const sig = t.jsApi ? '\`' + t.jsApi + '\`' : '\`' + t.name + '(...)\`';
+      const sig = '\`' + t.jsApi + '\`';
       return (i + 1) + '. ' + sig + ' — ' + t.description;
     }).join('\n');
   }

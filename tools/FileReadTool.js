@@ -37,7 +37,7 @@ class FileReadTool extends Tool {
         required: ['file_path'],
         additionalProperties: false
       },
-      'readFile(file_path, encoding?)'
+      null
     );
   }
 

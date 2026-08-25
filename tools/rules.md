@@ -12,7 +12,7 @@
 将 JavaScript 代码输出在 ```cuckoo 代码块中，代码块外不要有任何文字：
 
 ```cuckoo
-const content = await readFile("src/utils/helper.js");
+const content = await read("src/utils/helper.js");
 await writeFile("src/utils/helper.js", content.replace("formatDate", "formatTime"));
 ```
 
@@ -35,7 +35,7 @@ await writeFile("src/utils/helper.js", content.replace("formatDate", "formatTime
 
 ## 读取文件内容
 
-- **优先使用 readFile 工具**读取文件内容（无编码问题，超过 1MB 返回前 1MB）。
+- **优先使用 read 工具**读取文件内容。它返回带行号的窗口，支持 offset/limit 分段读取大文件；读取后根据 footer 提示决定是否继续。
 - 若必须用 bash 执行 PowerShell 读取文件，系统会自动为 `Get-Content` 补充 `-Encoding UTF8`（也可以手动写），避免中文乱码。
 
 ## 执行流程示例
@@ -62,7 +62,7 @@ await writeFile("src/greeting.txt", "Hello, world!");
 **第一步 - 读取文件**：
 
 ```cuckoo
-const content = await readFile("src/index.js");
+const content = await read("src/index.js");
 log(content);
 ```
 

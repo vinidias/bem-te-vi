@@ -26,23 +26,22 @@ declare function log(...args: unknown[]): void;
 
 // ================= 文件读写 =================
 
-/**
- * 读取文件内容，返回字符串。
- * 超过 1MB 的文件只返回前 1MB。
- * @param filePath 相对（基于项目根目录）或绝对路径
- * @param encoding 编码，默认 'utf-8'
- * @throws 文件不存在、不是文件或读取失败时抛出异常
- */
-declare function readFile(filePath: string, encoding?: string): Promise<string>;
+/** read 的选项 */
+interface ReadOptions {
+  /** 1-based 起始行号，默认 1 */
+  offset?: number;
+  /** 最大返回行数，默认 2000，上限 2000 */
+  limit?: number;
+}
 
 /**
- * 读取文件内容，返回带行号的字符串（每行前缀为 `行号: 内容`，方便 AI 阅读讨论）。
- * 超过 1MB 的文件只返回前 1MB。
+ * 读取 UTF-8 文本文件并返回带行号的内容窗口。
+ * 通过 offset 和 limit 分段读取大文件。返回格式化 envelope 文本。
  * @param filePath 相对（基于项目根目录）或绝对路径
- * @param encoding 编码，默认 'utf-8'
- * @throws 文件不存在、不是文件或读取失败时抛出异常
+ * @param options 可选，offset/limit
+ * @throws 文件不存在、不是文件、offset 越界或读取失败时抛出异常
  */
-declare function readFileWithLines(filePath: string, encoding?: string): Promise<string>;
+declare function read(filePath: string, options?: ReadOptions): Promise<string>;
 
 /** writeFile 的返回值 */
 interface FileWriteResult {

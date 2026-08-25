@@ -90,32 +90,43 @@ declare function log(...args: unknown[]): void;
 
 // ================= 文件读写 =================
 
-/**
- * 读取文件内容，返回字符串。
- * 超过 1MB 的文件只返回前 1MB。
- * @param filePath 相对（基于项目根目录）或绝对路径
- * @param encoding 编码，默认 'utf-8'
- * @throws 文件不存在、不是文件或读取失败时抛出异常
- */
-declare function readFile(filePath: string, encoding?: string): Promise<string>;
+/** read 的选项 */
+interface ReadOptions {
+  /** 1-based 起始行号，默认 1 */
+  offset?: number;
+  /** 最大返回行数，默认 2000，上限 2000 */
+  limit?: number;
+}
+
+/** read 的返回值 */
+interface ReadResult {
+  /** 文件显示路径 */
+  path: string;
+  /** 1-based 起始行号 */
+  offset: number;
+  /** 返回的行列表，每行包含行号与文本 */
+  lines: { number: number; text: string }[];
+  /** 文件总行数 */
+  totalLines: number;
+  /** 选中输出是否因字节上限被截断 */
+  truncatedByBytes: boolean;
+}
 
 /**
- * 读取文件内容，返回带行号的字符串（每行前缀为 `行号: 内容`，方便 AI 阅读讨论）。
- * 超过 1MB 的文件只返回前 1MB。
+ * 读取 UTF-8 文本文件并返回带行号的内容窗口。
+ * 通过 offset 和 limit 分段读取大文件。输出为格式化文本：
+ * <path>...</path>
+ * <type>file</type>
+ * <content>
+ * 行号: 内容
+ * ...
+ * (footer 提示是否继续读取)
+ * </content>
  * @param filePath 相对（基于项目根目录）或绝对路径
- * @param encoding 编码，默认 'utf-8'
- * @throws 文件不存在、不是文件或读取失败时抛出异常
+ * @param options 可选，offset/limit
+ * @throws 文件不存在、不是文件、offset 越界或读取失败时抛出异常
  */
-declare function readFileWithLines(filePath: string, encoding?: string): Promise<string>;
-
-/**
- * 读取文件内容，返回带行号的字符串（每行前缀为 `行号: 内容`，方便 AI 阅读讨论）。
- * 超过 1MB 的文件只返回前 1MB。
- * @param filePath 相对（基于项目根目录）或绝对路径
- * @param encoding 编码，默认 'utf-8'
- * @throws 文件不存在、不是文件或读取失败时抛出异常
- */
-declare function readFileWithLines(filePath: string, encoding?: string): Promise<string>;
+declare function read(filePath: string, options?: ReadOptions): Promise<string>;
 
 /** writeFile 的返回值 */
 interface FileWriteResult {
@@ -149,7 +160,7 @@ interface FileEditResult {
 /**
  * 在文件中精确查找 oldString 并替换为 newString（类似 Claude Code 的 Edit）。
  * 注意：
- * - oldString 必须与文件内容精确匹配（包括空格与换行），建议先用 readFile 确认
+ * - oldString 必须与文件内容精确匹配（包括空格与换行），建议先用 read 确认
  * - oldString 出现多处且未传 replaceAll 时会报错，请截取更长的唯一片段
  * - 需要插入内容时，可把 oldString 设为锚点，newString 设为“锚点 + 新内容”
  * @throws 文件不存在、oldString 未找到、匹配多处（未 replaceAll）时抛出异常
@@ -241,7 +252,7 @@ interface BashResult {
 /**
  * 执行 shell 命令（Windows 使用 cmd.exe），返回 stdout/stderr/exitCode。
  * 可用于查看目录、运行构建、安装依赖（npm install）、git 操作等。
- * 输出自动按 UTF-8/GBK 智能解码，不会出现乱码；读取文件内容请优先用 readFile，
+ * 输出自动按 UTF-8/GBK 智能解码，不会出现乱码；读取文件内容请优先用 read，
  * 若用 PowerShell 读文件必须加 -Encoding UTF8。
  * 危险命令（format、shutdown、taskkill、diskpart、reg delete、cipher /w 等）会被
  * 安全策略拒绝并抛出异常。
