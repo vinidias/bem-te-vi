@@ -90,7 +90,7 @@ class GlobTool extends Tool {
         required: ['pattern'],
         additionalProperties: false
       },
-      'glob(pattern, path?)'
+      null
     );
   }
 

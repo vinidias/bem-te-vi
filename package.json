@@ -92,5 +92,8 @@
         ]
       }
     ]
+  },
+  "dependencies": {
+    "@vscode/ripgrep": "^1.18.0"
   }
 }

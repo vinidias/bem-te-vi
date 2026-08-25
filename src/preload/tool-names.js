@@ -12,6 +12,7 @@ const TOOL_NAMES = [
   'file_edit',
   'edit',
   'file_glob',
+  'glob',
   'file_grep',
   'bash',
   'web_fetch',

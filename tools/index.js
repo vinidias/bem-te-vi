@@ -11,6 +11,7 @@ const { ReadTool } = require('./ReadTool');
 const { FileEditTool } = require('./FileEditTool');
 const { EditTool } = require('./EditTool');
 const { GlobTool } = require('./GlobTool');
+const { GlobToolNew } = require('./GlobToolNew');
 const { GrepTool } = require('./GrepTool');
 const { BashTool } = require('./BashTool');
 const { FileDeleteTool } = require('./FileDeleteTool');
@@ -27,6 +28,7 @@ registry.register(new ReadTool());
 registry.register(new FileEditTool());
 registry.register(new EditTool());
 registry.register(new GlobTool());
+registry.register(new GlobToolNew());
 registry.register(new GrepTool());
 registry.register(new BashTool());
 registry.register(new FileDeleteTool());
@@ -43,6 +45,7 @@ module.exports = {
   FileEditTool,
   EditTool,
   GlobTool,
+  GlobToolNew,
   GrepTool,
   BashTool,
   FileDeleteTool,

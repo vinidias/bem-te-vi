@@ -67,11 +67,15 @@ declare function edit(filePath: string, oldString: string, newString: string, re
 // ================= 搜索 =================
 
 /**
- * 按 glob 模式递归搜索项目文件，返回相对路径数组（以 / 分隔，如 "src/utils/a.js"）。
+ * 按 glob 模式查找文件路径，返回纯文本路径列表（以 / 分隔，如 "src/utils/a.js"）。
  * 自动跳过 node_modules、.git、dist、build 等目录。
  * glob 语法：* 匹配单层内任意字符，** 匹配任意层级目录，? 匹配单个字符。
+ * 结果包含 footer：未超限时 "(Found N files)"，超限时 "(Showing M of N paths...)"。
+ * @param pattern glob 匹配模式，如 **/*.js、src/**/*.ts、*.json
+ * @param searchPath 搜索起始目录（相对路径），默认项目根目录
+ * @throws pattern 为空、搜索目录不存在或不是目录时抛出异常
  */
-declare function glob(pattern: string, searchPath?: string): Promise<string[]>;
+declare function glob(pattern: string, searchPath?: string): Promise<string>;
 
 /** grep 的选项 */
 interface GrepOptions {
