@@ -3,7 +3,7 @@ const { exec } = require('child_process');
 const path = require('path');
 const { decodeOutput, normalizeCommand } = require('./decodeOutput');
 
-// 危险命令列表（与 main.js 的 execute-command 一致），匹配的命令会被拒绝
+// 危险命令列表（保持不变）
 const DANGEROUS_CMDS = [
   /^rm\s+-rf\s+\//i,
   /^format\s+/i,
@@ -17,13 +17,13 @@ const DANGEROUS_CMDS = [
 ];
 
 /**
- * Bash 执行工具 - 仿照 Claude Code 的 Bash 工具
- * 执行 shell 命令并返回输出（Windows 使用 cmd.exe，Linux/Mac 使用 sh，跨平台）
+ * Bash 执行工具 - 最小移植 dsh 风格。
+ * 非零退出正常返回，附 [exit code] 标记；输出纯文本。
  */
 class BashTool extends Tool {
   constructor() {
     super(
-      'bash', '执行 shell 命令（Windows 使用 cmd.exe），返回 stdout/stderr/exitCode。危险命令会被安全策略拒绝。',
+      'bash', '执行 bash 命令。非零退出以 [exit code] 标记返回，不视为错误。',
       {
         type: 'object',
         properties: {
@@ -31,13 +31,17 @@ class BashTool extends Tool {
             type: 'string',
             description: '要执行的 shell 命令'
           },
-          cwd: {
+          description: {
             type: 'string',
-            description: '命令的工作目录（相对路径），默认项目根目录'
+            description: '命令用途说明'
           },
-          timeout: {
+          workdir: {
+            type: 'string',
+            description: '工作目录（相对路径基于项目根目录），默认项目根目录'
+          },
+          timeoutMs: {
             type: 'number',
-            description: '超时时间（毫秒），默认 30000',
+            description: '超时毫秒数，默认 30000',
             default: 30000
           }
         },
@@ -48,34 +52,33 @@ class BashTool extends Tool {
     );
   }
 
-  /**
-   * 执行 shell 命令
-   * @param {Object} params - { command, cwd?, timeout?, projectDir? }
-   * @returns {Promise<ToolResult>}
-   */
   async execute(params) {
-    const { command, cwd, timeout = 30000, projectDir } = params;
+    const { command, description, workdir, timeoutMs, projectDir } = params;
 
     try {
       if (!command || typeof command !== 'string') {
-        return ToolResult.error('command 不能为空');
+        return ToolResult.error('invalid command: expected a non-empty string');
+      }
+
+      const trimmedDesc = String(description || '').trim();
+      if (!trimmedDesc) {
+        return ToolResult.error('invalid description: expected a non-empty string');
       }
 
       const trimmed = normalizeCommand(command.trim());
       if (!trimmed) {
-        return ToolResult.error('command 不能为空');
+        return ToolResult.error('invalid command: expected a non-empty string');
       }
 
       // 危险命令检查
       if (DANGEROUS_CMDS.some((p) => p.test(trimmed))) {
-        console.log('[BashTool] ⚠️ 拒绝危险命令:', trimmed);
-        return ToolResult.error('命令被安全策略拒绝（匹配危险命令列表）: ' + trimmed);
+        return ToolResult.error('命令被安全策略拒绝（危险命令）: ' + trimmed);
       }
 
       // 确定工作目录
       let workDir;
-      if (cwd) {
-        const normalized = cwd.replace(/\//g, path.sep);
+      if (workdir) {
+        const normalized = workdir.replace(/\//g, path.sep);
         workDir = path.isAbsolute(normalized)
           ? normalized
           : (projectDir ? path.join(projectDir, normalized) : path.resolve(normalized));
@@ -85,42 +88,48 @@ class BashTool extends Tool {
         workDir = process.env.USERPROFILE || process.env.HOME || 'C:\\';
       }
 
-      console.log(`[BashTool] 执行命令: ${trimmed}, cwd=${workDir}`);
+      const timeout = typeof timeoutMs === 'number' && timeoutMs > 0 ? timeoutMs : 30000;
+
+      console.log('[BashTool] 执行命令: ' + trimmed + ', cwd=' + workDir);
 
       return await new Promise((resolve) => {
         exec(
           trimmed,
-          {
-            cwd: workDir,
-            timeout: timeout,
-            maxBuffer: 1024 * 1024, // 1MB
-            windowsHide: true,
-            encoding: 'buffer',
-          },
+          { cwd: workDir, timeout, maxBuffer: 1024 * 1024, windowsHide: true, encoding: 'buffer' },
           (error, stdout, stderr) => {
             const out = decodeOutput(stdout);
             const err = decodeOutput(stderr);
-            if (error) {
-              resolve(ToolResult.error(
-                '命令执行失败: ' + error.message + String.fromCharCode(10) +
-                'stdout: ' + (out || '(空)') + String.fromCharCode(10) +
-                'stderr: ' + (err || '(空)')
-              ));
-            } else {
-              resolve(ToolResult.success({
-                message: '命令执行成功',
-                command: trimmed,
-                cwd: workDir,
-                stdout: out,
-                stderr: err,
-                exitCode: 0,
-              }));
+
+            // dsh 风格渲染
+            let body = out;
+            if (err && err.length > 0) {
+              if (body.length > 0 && !body.endsWith('\n')) body += '\n';
+              body += '[stderr]\n' + err;
             }
+            if (body.length === 0) body = '(no output)';
+
+            const markers = [];
+            if (error) {
+              if (error.killed) {
+                markers.push('[timed out after ' + timeout + 'ms]');
+              } else if (typeof error.code === 'number') {
+                markers.push('[exit code: ' + error.code + ']');
+              } else {
+                markers.push('[exit code: 1]');
+              }
+            }
+
+            if (markers.length > 0) {
+              if (!body.endsWith('\n')) body += '\n';
+              body += markers.join('\n');
+            }
+
+            resolve(ToolResult.success(body));
           }
         );
       });
     } catch (err) {
-      return ToolResult.error(`命令执行异常: ${err.message}`);
+      return ToolResult.error('命令执行异常: ' + err.message);
     }
   }
 }

@@ -58,7 +58,7 @@
 
 - 所有函数都是异步的，调用时必须使用 await
 - 相对路径基于当前项目根目录（projectDir）解析
-- 工具出错时抛出异常（Error.message 为错误描述）；唯一例外是 bash()，它不抛异常，通过返回值的 exitCode/error 报告失败
+- 工具出错时抛出异常（Error.message 为错误描述）；唯一例外是 bash()：非零退出不抛异常，通过返回文本中的 [exit code] 标记报告
 - 此部分与 tools/cuckoo-tools.d.ts 保持一致
 
 ```typescript
@@ -75,7 +75,7 @@
  * - 相对路径基于全局变量 projectDir（当前项目根目录）解析
  * - 多行文本使用反引号（`）模板字符串，不需要任何转义
  * - 工具出错时抛出异常（Error.message 为错误描述），可用 try/catch 处理；
- *   唯一例外是 bash()：不抛异常，通过返回值的 exitCode/error 报告失败
+ *   唯一例外是 bash()：非零退出不抛异常，通过返回文本中的 [exit code] 标记报告
  * - 用 log() 输出中间过程；脚本最后可用 return 返回结果值
  */
 
@@ -139,7 +139,7 @@ declare function edit(filePath: string, oldString: string, newString: string, re
 
 /**
  * 按 glob 模式查找文件路径，返回纯文本路径列表（以 / 分隔，如 "src/utils/a.js"）。
- * 自动跳过 node_modules、.git、dist、build 等目录。
+ * 使用 ripgrep，包含隐藏文件和已忽略文件，只排除 VCS 元数据目录（.git、.svn 等）。
  * glob 语法：* 匹配单层内任意字符，** 匹配任意层级目录，? 匹配单个字符。
  * 结果包含 footer：未超限时 "(Found N files)"，超限时 "(Showing M of N paths...)"。
  * @param pattern glob 匹配模式，如 **/*.js、src/**/*.ts、*.json
@@ -150,87 +150,64 @@ declare function glob(pattern: string, searchPath?: string): Promise<string>;
 
 /** grep 的选项 */
 interface GrepOptions {
-  /** 搜索起始目录（相对路径），默认项目根目录 */
+  /** 搜索起始文件或目录（相对路径基于项目根目录），默认项目根目录 */
   path?: string;
-  /** 文件名过滤（glob 模式，语法同 glob 函数的 pattern），如 "*.js" */
-  glob?: string;
-  /** 忽略大小写，默认 false */
-  ignoreCase?: boolean;
-  /** "content"（默认，返回匹配行）或 "count"（只统计每个文件的匹配数） */
-  outputMode?: 'content' | 'count';
-  /** 匹配行前后各输出的上下文行数，默认 0 */
-  context?: number;
-}
-
-/** 单个文件中的匹配结果 */
-interface GrepFileMatches {
-  /** 匹配文件的相对路径 */
-  file: string;
-  /** 匹配行列表 */
-  matches: { line: number; content: string; context?: boolean }[];
-}
-
-/** grep 的返回值（outputMode='content'，默认） */
-interface GrepContentResult {
-  message: string;
-  pattern: string;
-  baseDir: string;
-  matches: GrepFileMatches[];
-  /** 结果数达到上限 200 被截断时为 true */
-  truncated: boolean;
-}
-
-/** grep 的返回值（outputMode='count'） */
-interface GrepCountResult {
-  message: string;
-  pattern: string;
-  baseDir: string;
-  /** 文件相对路径 -> 匹配行数 */
-  counts: Record<string, number>;
-  /** 匹配总行数 */
-  totalMatches: number;
+  /** 过滤文件，单个正向 glob（如 "*.ts"、"*.{js,jsx}"），不支持否定和逗号列表 */
+  include?: string;
 }
 
 /**
- * 在项目文件中按正则表达式或文本搜索，返回匹配的文件、行号与行内容。
- * 自动跳过二进制文件、超过 1MB 的文件与 node_modules 等目录。
- * @param pattern 正则表达式或纯文本（搜索纯文本时请转义正则特殊字符）
- * @throws pattern 非法正则时抛出异常
+ * 用 ripgrep 正则表达式搜索文件内容。
+ * 返回纯文本：header（Found N matches）+ 按文件分组的 "Line N: 内容"。
+ * 无匹配返回 "No matches found"。
+ * @param pattern ripgrep 正则表达式
+ * @param options 可选，path/include
+ * @throws pattern 为空、include 非法、ripgrep 执行失败时抛出异常
  */
-declare function grep(pattern: string, options?: GrepOptions): Promise<GrepContentResult | GrepCountResult>;
+declare function grep(pattern: string, options?: GrepOptions): Promise<string>;
 
 // ================= 命令执行 =================
 
 /** bash 的选项 */
 interface BashOptions {
+  /** 命令用途说明（dsh 风格） */
+  description?: string;
   /** 工作目录（相对路径基于项目根目录），默认项目根目录 */
-  cwd?: string;
+  workdir?: string;
   /** 超时毫秒数，默认 30000 */
-  timeout?: number;
-}
-
-/** bash 的返回值。注意：bash 不抛异常，失败信息通过 exitCode/error 字段报告。 */
-interface BashResult {
-  command: string;
-  cwd: string;
-  stdout: string;
-  stderr: string;
-  /** 0 表示成功；非 0 为命令退出码 */
-  exitCode: number;
-  /** 失败原因（非零退出、超时等），成功时为 null */
-  error: string | null;
+  timeoutMs?: number;
 }
 
 /**
- * 执行 shell 命令（Windows 使用 cmd.exe），返回 stdout/stderr/exitCode。
- * 可用于查看目录、运行构建、安装依赖（npm install）、git 操作等。
- * 输出自动按 UTF-8/GBK 智能解码，不会出现乱码；读取文件内容请优先用 read，
- * 若用 PowerShell 读文件必须加 -Encoding UTF8。
- * 危险命令（format、shutdown、taskkill、diskpart、reg delete、cipher /w 等）会被
- * 安全策略拒绝并抛出异常。
- * 命令非零退出不会抛异常——请检查返回值的 exitCode 与 error。
+ * 执行 shell 命令（Windows 使用 cmd.exe）。
+ * 返回纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）。
+ * 非零退出不抛异常，通过 [exit code] 标记报告。
+ * 危险命令会被安全策略拒绝并抛异常。
  */
-declare function bash(command: string, options?: BashOptions): Promise<BashResult>;
+declare function bash(command: string, options?: BashOptions): Promise<string>;
+
+// ================= 任务管理 =================
+
+/** todo 条目状态 */
+type TodoStatus = 'pending' | 'in_progress' | 'completed';
+
+/** todo 条目 */
+interface TodoItem {
+  /** 任务内容，简短的祈使句 */
+  content: string;
+  /** pending（未开始）| in_progress（进行中）| completed（已完成） */
+  status: TodoStatus;
+}
+
+/**
+ * 记录并更新当前工作的结构化任务列表。
+ * 每次发送完整列表，替换之前的列表（无部分更新）。
+ * 串行模式：最多一条 in_progress。
+ * @param todos 完整任务列表
+ * @returns 统计确认消息，如 "Updated todo list: 2 pending, 1 in progress, 0 completed."
+ * @throws content 为空、重复、状态非法、超过一条 in_progress 时抛出异常
+ */
+declare function todoWrite(todos: TodoItem[]): Promise<string>;
 
 // ================= 删除 =================
 

@@ -13,6 +13,8 @@ const { EditTool } = require('./EditTool');
 const { GlobTool } = require('./GlobTool');
 const { GlobToolNew } = require('./GlobToolNew');
 const { GrepTool } = require('./GrepTool');
+const { GrepToolNew } = require('./GrepToolNew');
+const { TodoWriteTool } = require('./TodoWriteTool');
 const { BashTool } = require('./BashTool');
 const { FileDeleteTool } = require('./FileDeleteTool');
 const { WebFetchTool } = require('./WebFetchTool');
@@ -30,6 +32,8 @@ registry.register(new EditTool());
 registry.register(new GlobTool());
 registry.register(new GlobToolNew());
 registry.register(new GrepTool());
+registry.register(new GrepToolNew());
+registry.register(new TodoWriteTool());
 registry.register(new BashTool());
 registry.register(new FileDeleteTool());
 registry.register(new WebFetchTool());
@@ -47,6 +51,8 @@ module.exports = {
   GlobTool,
   GlobToolNew,
   GrepTool,
+  GrepToolNew,
+  TodoWriteTool,
   BashTool,
   FileDeleteTool,
   WebFetchTool,

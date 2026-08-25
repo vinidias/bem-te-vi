@@ -85,18 +85,23 @@ const BOOTSTRAP = [
 "  };",
 "  globalThis.grep = async function (pattern, options) {",
 "    options = options || {};",
-"    return await __call('file_grep', {",
+"    return await __call('grep', {",
 "      pattern: pattern,",
 "      path: options.path,",
-"      glob: options.glob,",
-"      ignore_case: options.ignoreCase === true,",
-"      output_mode: options.outputMode || 'content',",
-"      context: options.context || 0",
+"      include: options.include",
 "    });",
+"  };",
+"  globalThis.todoWrite = async function (todos) {",
+"    return await __call('todo_write', { todos: todos });",
 "  };",
 "  globalThis.bash = async function (command, options) {",
 "    options = options || {};",
-"    return await __call('__bash', { command: command, cwd: options.cwd, timeout: options.timeout });",
+"    return await __call('__bash', {",
+"      command: command,",
+"      description: options.description,",
+"      workdir: options.workdir || options.cwd,",
+"      timeoutMs: options.timeoutMs || options.timeout",
+"    });",
 "  };",
 "  globalThis.deleteFile = async function (filePath) {",
 "    return await __call('file_delete', { file_path: filePath });",
@@ -132,35 +137,46 @@ function resolveDir(dir, projectDir) {
  */
 function runBash(args, projectDir) {
   const command = normalizeCommand(String(args.command || '').trim());
-  if (!command) return Promise.resolve({ success: false, error: 'command 不能为空' });
+  if (!command) return Promise.resolve({ success: false, error: 'invalid command: expected a non-empty string' });
+  const description = String(args.description || '').trim();
+  if (!description) return Promise.resolve({ success: false, error: 'invalid description: expected a non-empty string' });
   if (DANGEROUS_CMDS.some((pattern) => pattern.test(command))) {
     return Promise.resolve({ success: false, error: '命令被安全策略拒绝（危险命令）: ' + command });
   }
-  const timeout = typeof args.timeout === 'number' && args.timeout > 0 ? args.timeout : 30000;
-  const cwd = resolveDir(args.cwd, projectDir);
+  const timeout = typeof args.timeoutMs === 'number' && args.timeoutMs > 0 ? args.timeoutMs : 30000;
+  const cwd = resolveDir(args.workdir || args.cwd, projectDir);
 
   return new Promise((resolve) => {
     exec(command, { cwd, timeout, maxBuffer: 1024 * 1024, windowsHide: true, encoding: 'buffer' }, (error, stdout, stderr) => {
       const out = decodeOutput(stdout);
       const err = decodeOutput(stderr);
-      if (error) {
-        resolve({
-          success: true,
-          data: {
-            command,
-            cwd,
-            stdout: out,
-            stderr: err,
-            exitCode: typeof error.code === 'number' ? error.code : 1,
-            error: error.killed ? '命令执行超时或被终止' : (err && err.trim() ? err.trim() : ('命令执行失败 (exit code ' + (typeof error.code === 'number' ? error.code : 'unknown') + ')')),
-          },
-        });
-      } else {
-        resolve({
-          success: true,
-          data: { command, cwd, stdout: out, stderr: err, exitCode: 0, error: null },
-        });
+
+      // dsh 风格渲染：stdout + [stderr] 分节 + 状态标记
+      let body = out;
+      if (err && err.length > 0) {
+        if (body.length > 0 && !body.endsWith('\n')) body += '\n';
+        body += '[stderr]\n' + err;
       }
+      if (body.length === 0) body = '(no output)';
+
+      const markers = [];
+      if (error) {
+        if (error.killed) {
+          markers.push('[timed out after ' + timeout + 'ms]');
+        } else if (typeof error.code === 'number') {
+          markers.push('[exit code: ' + error.code + ']');
+        } else {
+          markers.push('[exit code: 1]');
+        }
+      }
+
+      if (markers.length > 0) {
+        if (!body.endsWith('\n')) body += '\n';
+        body += markers.join('\n');
+      }
+
+      // 非零退出也正常返回（success:true），模型看到标记自行判断
+      resolve({ success: true, data: body });
     });
   });
 }

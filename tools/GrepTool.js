@@ -151,7 +151,7 @@ class GrepTool extends Tool {
         required: ['pattern'],
         additionalProperties: false
       },
-      'grep(pattern, options?)'
+      null
     );
   }
 

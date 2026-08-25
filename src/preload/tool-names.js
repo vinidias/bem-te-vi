@@ -14,6 +14,8 @@ const TOOL_NAMES = [
   'file_glob',
   'glob',
   'file_grep',
+  'grep',
+  'todo_write',
   'bash',
   'web_fetch',
 ];
