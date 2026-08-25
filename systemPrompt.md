@@ -226,42 +226,16 @@ declare function deleteFile(filePath: string): Promise<FileDeleteResult>;
 
 // ================= WebFetch =================
 
-/** webFetch 的选项 */
-interface WebFetchOptions {
-  /** HTTP 方法，默认 GET */
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
-  /** 请求头，如 { "Authorization": "Bearer xxx" } */
-  headers?: Record<string, string>;
-  /** 请求体（POST/PUT 等使用），字符串 */
-  body?: string;
-  /** 超时毫秒，默认 15000 */
-  timeout?: number;
-  /** 响应体最大字节数，默认 512000（500KB） */
-  maxSize?: number;
-  /** 返回格式：auto / json / text */
-  responseType?: 'auto' | 'json' | 'text';
-}
-
-/** webFetch 的返回值 */
-interface WebFetchResult {
-  url: string;
-  status: number;
-  statusText: string;
-  headers: Record<string, string>;
-  body: unknown;
-  finalUrl: string;
-  truncated: boolean;
-  elapsedMs: number;
-}
-
 /**
- * 访问 http/https 网页或 API，返回结构化结果。
- * 注意：仅支持 http/https，不会执行网页中的 JavaScript。
- * @param url 目标 URL
- * @param options 请求选项
- * @throws URL 非法、超时或请求失败
+ * 获取指定 HTTP(S) URL 的内容并解码为文本。
+ * HTML 会转换为 Markdown（turndown + GFM）。
+ * 返回纯文本：Fetched <url> (HTTP <status>) + 正文。
+ * 截断时附 footer。
+ * @param url 要获取的 HTTP(S) URL
+ * @throws URL 为空、非 http/https、请求超时或失败时抛出异常
  */
-declare function webFetch(url: string, options?: WebFetchOptions): Promise<WebFetchResult>;
+declare function webFetch(url: string): Promise<string>;
+
 ```
 
 

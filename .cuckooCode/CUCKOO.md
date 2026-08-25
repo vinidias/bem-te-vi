@@ -59,7 +59,7 @@ AI 在 ```cuckoo 代码块中编写 JS，可用工具函数：
 - `todoWrite(todos)` — 全量替换任务列表（仿 dsh todo_write）
 - `bash(command, options?)` — 执行 shell 命令，非零退出以 [exit code] 标记返回
 - `deleteFile(filePath)` — 删除文件
-- `webFetch(url, options?)` — 访问网页/API
+- `webFetch(url)` — 获取 HTTP(S) URL 内容，HTML 转 Markdown
 - `log(...args)` — 输出中间结果
 
 所有工具异步，需 await。相对路径基于当前项目根目录。

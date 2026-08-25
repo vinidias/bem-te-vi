@@ -94,6 +94,8 @@
     ]
   },
   "dependencies": {
-    "@vscode/ripgrep": "^1.18.0"
+    "@joplin/turndown-plugin-gfm": "^1.0.67",
+    "@vscode/ripgrep": "^1.18.0",
+    "turndown": "^7.2.4"
   }
 }
