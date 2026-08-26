@@ -228,6 +228,14 @@ class GrepToolNew extends Tool {
     );
   }
 
+  getPromptSection() {
+    return {
+      name: 'tool:grep',
+      order: 104,
+      text: '使用 grep 工具（而不是 shell grep 或 rg）搜索文件内容。需要查看匹配行的上下文时，对匹配文件使用 read。'
+    };
+  }
+
   async execute(params) {
     const { pattern, path: searchPath, include, projectDir } = params;
 

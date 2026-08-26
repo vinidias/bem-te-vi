@@ -52,6 +52,14 @@ class BashTool extends Tool {
     );
   }
 
+  getPromptSection() {
+    return {
+      name: 'tool:bash',
+      order: 105,
+      text: '执行 bash 命令并返回 stdout/stderr。每次调用在全新 shell 中运行：状态（cwd、变量、函数）不会跨调用保留——请用 workdir 参数而非 cd。非零退出以 [exit code: N] 标记报告。长输出会截断为尾部。'
+    };
+  }
+
   async execute(params) {
     const { command, description, workdir, timeoutMs, projectDir } = params;
 

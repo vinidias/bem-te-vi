@@ -1,5 +1,7 @@
 # Cuckoo Code
 
+[![codecov](https://codecov.io/gh/wangyongpeng90/cuckoo-code/branch/master/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/wangyongpeng90/cuckoo-code)
+
 [下载最新版本](https://github.com/wangyongpeng90/cuckoo-code/releases/latest)
 
 **Cuckoo Code** 是一个零 Token 成本的 AI Agent 桌面端。

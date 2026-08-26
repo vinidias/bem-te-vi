@@ -4,7 +4,6 @@
  * 本文件描述 ```cuckoo 代码块中可以调用的全部全局函数与数据类型。
  * 运行时由 tools/JsRunner.js 在受限沙箱中注入这些函数；本声明用于帮助
  * AI 理解调用方式，与运行时行为保持一致。
- * 本文件内容与 systemPrompt.md 末尾的「工具 API 类型定义」章节保持同步。
  *
  * 使用规则速览：
  * - 所有工具函数都是异步的，调用时必须写 await
@@ -36,7 +35,14 @@ interface ReadOptions {
 
 /**
  * 读取 UTF-8 文本文件并返回带行号的内容窗口。
- * 通过 offset 和 limit 分段读取大文件。返回格式化 envelope 文本。
+ * 通过 offset 和 limit 分段读取大文件。输出为格式化文本：
+ * <path>...</path>
+ * <type>file</type>
+ * <content>
+ * 行号: 内容
+ * ...
+ * (footer 提示是否继续读取)
+ * </content>
  * @param filePath 相对（基于项目根目录）或绝对路径
  * @param options 可选，offset/limit
  * @throws 文件不存在、不是文件、offset 越界或读取失败时抛出异常
@@ -99,7 +105,7 @@ declare function grep(pattern: string, options?: GrepOptions): Promise<string>;
 
 /** bash 的选项 */
 interface BashOptions {
-  /** 命令用途说明（dsh 风格） */
+  /** 命令用途说明（清晰、简洁、主动语态，5-10 词） */
   description?: string;
   /** 工作目录（相对路径基于项目根目录），默认项目根目录 */
   workdir?: string;
@@ -114,6 +120,24 @@ interface BashOptions {
  * 危险命令会被安全策略拒绝并抛异常。
  */
 declare function bash(command: string, options?: BashOptions): Promise<string>;
+
+/** pwsh 的选项 */
+interface PwshOptions {
+  /** 命令用途说明（清晰、简洁、主动语态，5-10 词） */
+  description?: string;
+  /** 工作目录（相对路径基于项目根目录），默认项目根目录 */
+  workdir?: string;
+  /** 超时毫秒数，默认 30000 */
+  timeoutMs?: number;
+}
+
+/**
+ * 执行 PowerShell 命令（powershell -NoProfile -Command）。
+ * 返回纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）。
+ * 非零退出不抛异常，通过 [exit code] 标记报告。
+ * 危险命令会被安全策略拒绝并抛异常。
+ */
+declare function pwsh(command: string, options?: PwshOptions): Promise<string>;
 
 // ================= 任务管理 =================
 
@@ -137,24 +161,6 @@ interface TodoItem {
  * @throws content 为空、重复、状态非法、超过一条 in_progress 时抛出异常
  */
 declare function todoWrite(todos: TodoItem[]): Promise<string>;
-
-/** pwsh 的选项 */
-interface PwshOptions {
-  /** 命令用途说明 */
-  description?: string;
-  /** 工作目录（相对路径基于项目根目录），默认项目根目录 */
-  workdir?: string;
-  /** 超时毫秒数，默认 30000 */
-  timeoutMs?: number;
-}
-
-/**
- * 执行 PowerShell 命令（powershell -NoProfile -Command）。
- * 返回纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）。
- * 非零退出不抛异常，通过 [exit code] 标记报告。
- * 危险命令会被安全策略拒绝并抛异常。
- */
-declare function pwsh(command: string, options?: PwshOptions): Promise<string>;
 
 // ================= 删除 =================
 

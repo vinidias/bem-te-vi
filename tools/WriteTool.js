@@ -53,6 +53,14 @@ class WriteTool extends Tool {
     );
   }
 
+  getPromptSection() {
+    return {
+      name: 'tool:write',
+      order: 101,
+      text: '使用 write 工具创建文件或完全替换文件内容。已有文件会被覆盖，所以覆盖前先 read 文件，针对局部修改优先用 edit。'
+    };
+  }
+
   async execute(params) {
     const { file_path, content, projectDir } = params;
 

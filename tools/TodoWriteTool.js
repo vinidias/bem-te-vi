@@ -87,6 +87,14 @@ class TodoWriteTool extends Tool {
     );
   }
 
+  getPromptSection() {
+    return {
+      name: 'tool:todo_write',
+      order: 110,
+      text: '记录并更新当前工作的结构化任务列表。每次调用发送完整列表——它替换之前的列表（没有部分更新）。完成任务后立即标记为 completed。对于简单的单步任务可跳过列表。'
+    };
+  }
+
   async execute(params) {
     const { todos, projectDir } = params;
 

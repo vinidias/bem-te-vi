@@ -157,6 +157,9 @@ function initProject(skipPrompt = false) {
   // 获取工具库描述（JS API 格式：AI 通过生成 JS 代码调用这些函数）
   const toolsDescription = toolRegistry.getFormattedJsApiForPrompt();
 
+  // 获取工具使用指导（section 机制，仿 dsh）
+  const promptSections = toolRegistry.getFormattedPromptSections();
+
   // 将 {TOOLS_LIST} 占位符替换为实际工具列表
   const finalRules = rulesContent.replace('{TOOLS_LIST}', toolsDescription);
   const finalPrompt = promptContent.replace('{TOOLS_LIST}', toolsDescription);
@@ -187,6 +190,9 @@ function initProject(skipPrompt = false) {
   const combined = `
 系统提示词：
 ${finalPrompt}
+---
+工具使用指导：
+${promptSections}
 ---
 工具使用规则：
 ${finalRules}

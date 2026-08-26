@@ -25,6 +25,15 @@ class Tool {
       jsApi: this.jsApi
     };
   }
+
+  /**
+   * 获取工具的系统提示词 section（仿 dsh 的 ctx.systemPrompt.section）。
+   * 返回 { name, order, text } 或 null（默认无 section）。
+   * 子类可覆写此方法贡献工具使用指导。
+   */
+  getPromptSection() {
+    return null;
+  }
 }
 
 class ToolRegistry {
@@ -122,9 +131,40 @@ class ToolRegistry {
     if (descriptions.length === 0) return '暂无可用工具';
 
     return descriptions.map((t, i) => {
-      const sig = '\`' + t.jsApi + '\`';
+      const sig = '`' + t.jsApi + '`';
       return (i + 1) + '. ' + sig + ' — ' + t.description;
     }).join('\n');
+  }
+
+  /**
+   * 收集所有工具的系统提示词 section，按 order 升序排列。
+   * 仿 dsh 的 systemPrompt section 机制。
+   * @returns {Array<{name: string, order: number, text: string}>}
+   */
+  getPromptSections() {
+    const sections = [];
+    for (const tool of this.tools.values()) {
+      const section = tool.getPromptSection();
+      if (section && typeof section.text === 'string' && section.text.trim().length > 0) {
+        sections.push({
+          name: section.name || ('tool:' + tool.name),
+          order: typeof section.order === 'number' ? section.order : 100,
+          text: section.text
+        });
+      }
+    }
+    sections.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+    return sections;
+  }
+
+  /**
+   * 获取格式化后的工具使用指导（所有 section 文本拼接）。
+   * @returns {string}
+   */
+  getFormattedPromptSections() {
+    const sections = this.getPromptSections();
+    if (sections.length === 0) return '';
+    return sections.map(s => s.text).join('\n\n');
   }
 }
 

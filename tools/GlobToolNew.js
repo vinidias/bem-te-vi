@@ -119,6 +119,14 @@ class GlobToolNew extends Tool {
     );
   }
 
+  getPromptSection() {
+    return {
+      name: 'tool:glob',
+      order: 103,
+      text: '使用 glob 工具（而不是 shell find）按路径模式查找文件。不含 "/" 的模式匹配任意深度的 basename，所以 "*" 匹配树中所有文件而非仅顶层。结果只包含文件，永不包含目录，且包含隐藏和已忽略文件。'
+    };
+  }
+
   async execute(params) {
     const { pattern, path: searchPath, projectDir } = params;
 

@@ -75,6 +75,14 @@ class EditTool extends Tool {
     );
   }
 
+  getPromptSection() {
+    return {
+      name: 'tool:edit',
+      order: 102,
+      text: '使用 edit 工具对现有 UTF-8 文本文件做定向修改。它用 new_string 替换字面量 old_string；默认 old_string 必须唯一匹配。如果 old_string 出现多次，请提供更具体的 old_string 或设置 replace_all 为 true。除非你刚在本会话中创建或编辑过该文件，否则先 read 文件。'
+    };
+  }
+
   async execute(params) {
     const { file_path, old_string, new_string, replace_all, projectDir } = params;
 
@@ -102,8 +110,16 @@ class EditTool extends Tool {
       // 读取文件内容
       const content = fs.readFileSync(resolvedPath, 'utf-8');
 
-      // 统计 old_string 出现次数
-      const occurrences = content.split(input.oldString).length - 1;
+      // 保留原 FileEditTool 的 CRLF 适配能力：
+      // 先原样匹配，失败后把 old_string 转 CRLF 再试；new_string 统一转 CRLF
+      let oldString = input.oldString;
+      let newString = input.newString.replace(/\r?\n/g, '\r\n');
+
+      let occurrences = content.split(oldString).length - 1;
+      if (occurrences === 0) {
+        oldString = oldString.replace(/\r?\n/g, '\r\n');
+        occurrences = content.split(oldString).length - 1;
+      }
       if (occurrences === 0) {
         return ToolResult.error('未找到要替换的文本，请检查 old_string 是否与文件内容精确匹配。文件路径: ' + resolvedPath);
       }
@@ -113,8 +129,8 @@ class EditTool extends Tool {
 
       // 执行替换
       const newContent = input.replaceAll
-        ? content.split(input.oldString).join(input.newString)
-        : content.replace(input.oldString, input.newString);
+        ? content.split(oldString).join(newString)
+        : content.replace(oldString, newString);
 
       fs.writeFileSync(resolvedPath, newContent, 'utf-8');
 

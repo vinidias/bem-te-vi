@@ -22,6 +22,14 @@ class FileDeleteTool extends Tool {
     );
   }
 
+  getPromptSection() {
+    return {
+      name: 'tool:deleteFile',
+      order: 112,
+      text: '使用 deleteFile 工具永久删除文件。此操作不可撤销。删除前请仔细确认路径。'
+    };
+  }
+
   async execute(params) {
     const { file_path, projectDir } = params;
     if (!file_path) {

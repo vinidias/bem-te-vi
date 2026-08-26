@@ -5,7 +5,9 @@
   "main": "main.js",
   "scripts": {
     "start": "chcp 65001 > nul && electron .",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test test/tools/*.test.js test/main/*.test.js test/preload/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage --test-reporter=lcov test/tools/*.test.js test/main/*.test.js test/preload/*.test.js > coverage.lcov",
+    "test:ci": "node --test test/tools/*.test.js test/main/*.test.js test/preload/*.test.js",
     "build": "electron-builder --publish never",
     "build:win": "electron-builder --win --publish never",
     "build:win:nsis": "electron-builder --win --config.win.target=nsis --publish never",

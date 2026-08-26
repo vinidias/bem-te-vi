@@ -58,6 +58,14 @@ class PwshTool extends Tool {
     );
   }
 
+  getPromptSection() {
+    return {
+      name: 'tool:pwsh',
+      order: 106,
+      text: '执行 PowerShell 命令（powershell -NoProfile -Command）并返回 stdout/stderr。每次调用在全新 pwsh 进程中运行：状态不会跨调用保留——请用 workdir 参数而非 cd。路径使用 Windows 原生形式（C:\\...）；用 $env:NAME 读取环境变量。非零退出以 [exit code: N] 标记报告。'
+    };
+  }
+
   async execute(params) {
     const { command, description, workdir, timeoutMs, projectDir } = params;
 

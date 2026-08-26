@@ -40,7 +40,7 @@ node tools/test_js_runner.js
 - **tools/**：工具实现目录。
   - `ToolRegistry.js`：工具注册表与 Tool 基类
   - `JsRunner.js`：JS 沙箱执行器（AI 生成的工具代码在此运行）
-  - 新工具（提示词中展示）：`ReadTool`、`WriteTool`、`EditTool`、`GlobToolNew`、`GrepToolNew`、`TodoWriteTool`、`BashTool`、`FileDeleteTool`、`WebFetchTool`
+  - 新工具（提示词中展示）：`ReadTool`、`WriteTool`、`EditTool`、`GlobToolNew`、`GrepToolNew`、`TodoWriteTool`、`BashTool`、`PwshTool`、`FileDeleteTool`、`WebFetchTool`
   - 旧工具（运行时保留但提示词中隐藏）：`FileReadTool`、`FileWriteTool`、`FileEditTool`、`GlobTool`、`GrepTool`
   - `rules.md`：工具调用规则（发给 AI）
   - `decodeOutput.js`：输出智能解码（UTF-8/GBK）
