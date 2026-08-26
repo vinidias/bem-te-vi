@@ -157,8 +157,6 @@ function resolveDir(dir, projectDir) {
 function runBash(args, projectDir) {
   const command = normalizeCommand(String(args.command || '').trim());
   if (!command) return Promise.resolve({ success: false, error: 'invalid command: expected a non-empty string' });
-  const description = String(args.description || '').trim();
-  if (!description) return Promise.resolve({ success: false, error: 'invalid description: expected a non-empty string' });
   if (DANGEROUS_CMDS.some((pattern) => pattern.test(command))) {
     return Promise.resolve({ success: false, error: '命令被安全策略拒绝（危险命令）: ' + command });
   }

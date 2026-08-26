@@ -74,11 +74,6 @@ class PwshTool extends Tool {
         return ToolResult.error('invalid command: expected a non-empty string');
       }
 
-      const trimmedDesc = String(description || '').trim();
-      if (!trimmedDesc) {
-        return ToolResult.error('invalid description: expected a non-empty string');
-      }
-
       const trimmed = command.trim();
       if (!trimmed) {
         return ToolResult.error('invalid command: expected a non-empty string');
