@@ -172,7 +172,7 @@ class GlobToolNew extends Tool {
       // 解析路径并按字母序排序（保持 cuckoo 现状）
       const allResults = stdout
         .split(/\r?\n/)
-        .map(p => p.replace(/\\/g, '/'))
+        .map(p => p.replace(/\\/g, '/').replace(/^\.\//, ''))
         .filter(p => p.length > 0)
         .sort((a, b) => a.localeCompare(b));
 

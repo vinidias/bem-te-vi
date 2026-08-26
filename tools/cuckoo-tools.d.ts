@@ -20,6 +20,7 @@ declare const projectDir: string | null;
 /**
  * 输出中间结果到执行日志（不中断脚本）。
  * 日志内容随执行结果一起回传给 AI。
+ * 注意：log() 只在 cuckoo 代码块的 JS 层可用。不要在 bash()/pwsh() 的命令字符串内部调用它——那些命令是独立的 shell 脚本，无法访问 JS 函数。
  */
 declare function log(...args: unknown[]): void;
 
