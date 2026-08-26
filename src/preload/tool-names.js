@@ -19,6 +19,8 @@ const TOOL_NAMES = [
   'bash',
   'pwsh',
   'web_fetch',
+  'open_browser_window',
+  'inject_js',
 ];
 
 /** 判断工具名是否存在（原 toolManager.tools.has(name)） */

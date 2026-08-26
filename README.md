@@ -1,6 +1,6 @@
 # Cuckoo Code
 
-[![codecov](https://codecov.io/gh/wangyongpeng90/cuckoo-code/branch/master/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/wangyongpeng90/cuckoo-code)
+[![codecov](https://codecov.io/gh/wangyongpeng90/cuckoo-code/branch/master/graph/badge.svg?token=41fa2f2a-6d7e-4a6d-84b8-7971ce615668)](https://codecov.io/gh/wangyongpeng90/cuckoo-code)
 
 [下载最新版本](https://github.com/wangyongpeng90/cuckoo-code/releases/latest)
 

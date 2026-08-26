@@ -188,3 +188,19 @@ declare function deleteFile(filePath: string): Promise<FileDeleteResult>;
  * @throws URL 为空、非 http/https、请求超时或失败时抛出异常
  */
 declare function webFetch(url: string): Promise<string>;
+
+/**
+ * 打开一个 Electron 浏览器窗口并返回窗口 ID。
+ * @param url 要打开的网页 URL
+ * @param options 可选，{ id?: string, width?: number, height?: number }
+ * @returns 返回 { ok: true, windowId: string, message: string }
+ */
+declare function openBrowserWindow(url: string, options?: { id?: string; width?: number; height?: number }): Promise<any>;
+
+/**
+ * 向指定窗口注入 JS 代码并返回执行结果（支持 async/await）。
+ * @param windowId 目标窗口 ID
+ * @param code 要注入的 JS 代码（支持 await，返回值会被返回）
+ * @returns JS 执行结果
+ */
+declare function injectJS(windowId: string, code: string): Promise<any>;
