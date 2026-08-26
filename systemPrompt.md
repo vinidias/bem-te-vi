@@ -261,7 +261,7 @@ declare function webFetch(url: string): Promise<string>;
  * 打开一个 Electron 浏览器窗口并返回窗口 ID。
  * @param url 要打开的网页 URL
  * @param options 可选，{ id?: string, width?: number, height?: number }
- * @returns 返回 { ok: true, windowId: string, message: string }
+ * @returns 返回 { windowId: string, message: string }，用返回的 windowId 传给 injectJS
  */
 declare function openBrowserWindow(url: string, options?: { id?: string; width?: number; height?: number }): Promise<any>;
 

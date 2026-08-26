@@ -5,7 +5,7 @@ class OpenBrowserWindowTool extends Tool {
   constructor() {
     super(
       'open_browser_window',
-      '打开一个 Electron 浏览器窗口并返回窗口 ID，后续可通过该 ID 注入 JS 调试',
+      '打开一个 Electron 浏览器窗口，返回 { windowId, message }，用返回的 windowId 传给 injectJS(windowId, code) 注入 JS 调试',
       {
         type: 'object',
         properties: {

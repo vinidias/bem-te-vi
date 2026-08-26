@@ -40,7 +40,7 @@ node tools/test_js_runner.js
 - **tools/**：工具实现目录。
   - `ToolRegistry.js`：工具注册表与 Tool 基类
   - `JsRunner.js`：JS 沙箱执行器（AI 生成的工具代码在此运行）
-  - 新工具（提示词中展示）：`ReadTool`、`WriteTool`、`EditTool`、`GlobToolNew`、`GrepToolNew`、`TodoWriteTool`、`BashTool`、`PwshTool`、`FileDeleteTool`、`WebFetchTool`
+  - 新工具（提示词中展示）：`ReadTool`、`WriteTool`、`EditTool`、`GlobToolNew`、`GrepToolNew`、`TodoWriteTool`、`BashTool`、`PwshTool`、`FileDeleteTool`、`WebFetchTool`、`OpenBrowserWindowTool`、`InjectJSTool`
   - 旧工具（运行时保留但提示词中隐藏）：`FileReadTool`、`FileWriteTool`、`FileEditTool`、`GlobTool`、`GrepTool`
   - `rules.md`：工具调用规则（发给 AI）
   - `decodeOutput.js`：输出智能解码（UTF-8/GBK）
@@ -61,6 +61,8 @@ AI 在 ```cuckoo 代码块中编写 JS，可用工具函数：
 - `pwsh(command, options?)` — 执行 PowerShell 命令，非零退出以 [exit code] 标记返回
 - `deleteFile(filePath)` — 删除文件
 - `webFetch(url)` — 获取 HTTP(S) URL 内容，HTML 转 Markdown
+- `openBrowserWindow(url, options?)` — 打开 Electron 浏览器窗口，返回 `{ windowId, message }`
+- `injectJS(windowId, code)` — 向指定窗口注入 JS 并返回执行结果（支持 async/await）
 - `log(...args)` — 输出中间结果
 
 所有工具异步，需 await。相对路径基于当前项目根目录。

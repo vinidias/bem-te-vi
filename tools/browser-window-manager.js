@@ -34,6 +34,15 @@ class BrowserWindowManager {
   async injectJS(id, jsCode) {
     const win = this.windows.get(id);
     if (!win) throw new Error(`窗口 ID "${id}" 不存在`);
+
+    // 先检查语法错误（解析阶段错误无法被 try-catch 捕获）
+    // 包裹为 async 函数体，避免 await 被误报
+    try {
+      new Function('return (async () => {\n' + jsCode + '\n})');
+    } catch (err) {
+      throw new Error(`JS 语法错误: ${err.message}`);
+    }
+
     const wrapped = `(async () => {
   try {
     const __result = await (async () => {
