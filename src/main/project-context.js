@@ -160,9 +160,21 @@ function initProject(skipPrompt = false) {
   // 获取工具使用指导（section 机制，仿 dsh）
   const promptSections = toolRegistry.getFormattedPromptSections();
 
+  // 动态生成平台信息（不硬编码，根据实际运行环境）
+  const platform = process.platform;
+  const arch = process.arch;
+  let platformInfo = '';
+  if (platform === 'win32') {
+    platformInfo = '- 操作系统：Windows（' + arch + '）\n  - bash 使用 cmd.exe（Windows 命令：cd / dir / echo %cd% / type / findstr）\n  - pwsh 使用 PowerShell（Get-Location / $env:VAR / Get-ChildItem）\n  - 路径分隔符为反斜杠 \\，传给工具的相对路径统一用正斜杠 /';
+  } else if (platform === 'darwin') {
+    platformInfo = '- 操作系统：macOS（' + arch + '）\n  - bash 使用 zsh/bash（Unix 命令：pwd / ls / cat / grep）\n  - 路径分隔符为正斜杠 /';
+  } else {
+    platformInfo = '- 操作系统：Linux（' + arch + '）\n  - bash 使用 bash（Unix 命令：pwd / ls / cat / grep）\n  - 路径分隔符为正斜杠 /';
+  }
+
   // 将 {TOOLS_LIST} 占位符替换为实际工具列表
   const finalRules = rulesContent.replace('{TOOLS_LIST}', toolsDescription);
-  const finalPrompt = promptContent.replace('{TOOLS_LIST}', toolsDescription);
+  const finalPrompt = promptContent.replace('{TOOLS_LIST}', toolsDescription).replace('{PLATFORM_INFO}', platformInfo);
 
   // 组合内容（包含目录树）
   let projectIntro = '';

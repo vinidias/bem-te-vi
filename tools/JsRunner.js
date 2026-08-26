@@ -338,7 +338,7 @@ class JsRunner {
         output = output.slice(0, OUTPUT_LIMIT) + '\n...[输出过长已截断]...';
       }
 
-      return { success: true, output: output || '(脚本执行完成，无输出)' };
+      return { success: true, output: output || '(脚本执行完成，无输出)\n如需输出请使用 log() 方法' };
     } catch (err) {
       console.error('[JsRunner] 脚本执行失败:', err && err.stack ? err.stack : String(err));
       console.error('[JsRunner] [诊断] 失败代码(JSON转义): ' + JSON.stringify(code));

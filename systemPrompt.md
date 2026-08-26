@@ -8,7 +8,8 @@
 
 - 当前工作目录：由系统初始化时注入（通过 projectDir 变量提供）
 - 工作目录与项目根目录可能不同；相对路径基于 projectDir 解析
-- 若需确认当前目录，请使用 cd 命令（Windows cmd 无 pwd 命令；echo %cd% 也可用）
+{PLATFORM_INFO}
+- 若需确认当前目录，请使用 pwd 命令（Unix/macOS）或 cd 命令（Windows cmd 无 pwd；echo %cd% 也可用）
 
 ## 回复风格
 
