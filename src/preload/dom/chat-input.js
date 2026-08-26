@@ -7,10 +7,13 @@ const state = require('./state');
 const { BT } = require('./js-detector');
 
 /**
- * 生成 2-4 秒的随机等待时间（ms）
+ * 生成随机等待时间（ms），范围由 state 配置（默认 2-4 秒）
  */
 function randomDelay() {
-  return Math.floor(Math.random() * 2000) + 2000; // 2000-3999ms
+  const min = typeof state.sendDelayMin === 'number' ? state.sendDelayMin : 2000;
+  const max = typeof state.sendDelayMax === 'number' ? state.sendDelayMax : 4000;
+  if (min >= max) return min;
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 /**
  * 将文本填入输入框（React 兼容：使用原生 value setter）

@@ -6,6 +6,19 @@
 
 **Cuckoo Code** 是一个 Electron 桌面应用，将 chat.deepseek.com 嵌入浏览器窗口，并注入覆盖层面板。AI 通过系统提示词被引导生成 JavaScript 工具调用（```cuckoo 代码块），在受限沙箱中执行文件读写、命令执行、搜索、任务管理等操作，结果回传 AI，形成 Agent 循环。
 
+## 依赖安装
+
+```bash
+# 安装依赖
+npm install
+
+# 如果 npm 提示 electron postinstall 脚本被阻止（allowScripts），先批准：
+#   npm install-scripts ls
+#   npm install-scripts approve electron
+#   npm install
+# 否则 electron 二进制不会下载，启动会报错
+```
+
 ## 常用命令
 
 ```bash

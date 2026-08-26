@@ -11,4 +11,7 @@ module.exports = {
   pendingInitialPrompt: false,
   // 待执行的工具调用
   pendingToolCall: null,
+  // 发送延迟配置（毫秒）
+  sendDelayMin: 2000,
+  sendDelayMax: 4000,
 };

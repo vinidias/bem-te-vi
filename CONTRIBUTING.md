@@ -11,6 +11,10 @@
 
 1. Fork 本仓库并克隆到本地
 2. 安装依赖：`npm install`
+   - 如果 npm 提示 electron postinstall 脚本被阻止（allowScripts），执行：
+     - `npm install-scripts approve electron`
+     - 再 `npm install`
+   - 否则 electron 二进制不会下载，启动会报错
 3. 启动应用：`npm start`
 
 ## 代码规范

@@ -59,6 +59,12 @@ cd cuckoo-code
 # 安装依赖
 npm install
 
+# 如果 npm 提示 electron postinstall 脚本被阻止（allowScripts），先批准：
+#   npm install-scripts ls
+#   npm install-scripts approve electron
+#   npm install
+# 否则 electron 二进制不会下载，启动会报错
+
 # 启动应用
 npm start
 ```

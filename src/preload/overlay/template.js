@@ -32,6 +32,17 @@ const OVERLAY_HTML = `
     </div>
     <div class="cuckoo-divider"></div>
     <div class="cuckoo-section">
+      <label class="cuckoo-label">发送延迟设置</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="cuckoo-delay-min" type="number" min="0" max="10000" step="100" value="2000" style="width:70px;background:var(--ck-code-bg);border:1px solid var(--ck-border);border-radius:6px;padding:4px 8px;color:var(--ck-text);font-size:12px;" />
+        <span style="color:var(--ck-text-dim);font-size:12px;">至</span>
+        <input id="cuckoo-delay-max" type="number" min="0" max="10000" step="100" value="4000" style="width:70px;background:var(--ck-code-bg);border:1px solid var(--ck-border);border-radius:6px;padding:4px 8px;color:var(--ck-text);font-size:12px;" />
+        <span style="color:var(--ck-text-dim);font-size:12px;">ms</span>
+      </div>
+      <button id="cuckoo-btn-save-delay" class="cuckoo-btn-text" style="align-self:flex-end;">保存延迟设置</button>
+    </div>
+    <div class="cuckoo-divider"></div>
+    <div class="cuckoo-section">
       <label class="cuckoo-label">检测到任务：<span id="cuckoo-task-status" class="cuckoo-task-status cuckoo-hidden"><span class="cuckoo-spinner"></span>执行中</span></label>
       <pre id="cuckoo-cmd-preview" class="cuckoo-cmd-preview">暂无</pre>
     </div>

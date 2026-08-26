@@ -34,6 +34,19 @@ function handleGenerateDoc() {
  * 包括按钮点击、键盘快捷键、状态徽章点击等
  */
 function bindEvents() {
+  // 从 localStorage 恢复延迟配置
+  try {
+    const savedMin = localStorage.getItem('cuckoo-send-delay-min');
+    const savedMax = localStorage.getItem('cuckoo-send-delay-max');
+    if (savedMin) state.sendDelayMin = parseInt(savedMin, 10) || 2000;
+    if (savedMax) state.sendDelayMax = parseInt(savedMax, 10) || 4000;
+    // 同步到输入框
+    const minInput = document.getElementById('cuckoo-delay-min');
+    const maxInput = document.getElementById('cuckoo-delay-max');
+    if (minInput) minInput.value = state.sendDelayMin;
+    if (maxInput) maxInput.value = state.sendDelayMax;
+  } catch (e) {}
+
   const minimizeBtn = document.getElementById('cuckoo-btn-minimize');
   const initBtn = document.getElementById('cuckoo-btn-init');
   const sendPromptBtn = document.getElementById('cuckoo-btn-send-prompt');
@@ -58,6 +71,26 @@ function bindEvents() {
   // 刷新会话列表按钮
   const refreshSessionsBtn = document.getElementById('cuckoo-btn-refresh-sessions');
   refreshSessionsBtn?.addEventListener('click', renderSessions);
+
+  // 保存延迟设置按钮
+  const saveDelayBtn = document.getElementById('cuckoo-btn-save-delay');
+  const delayMinInput = document.getElementById('cuckoo-delay-min');
+  const delayMaxInput = document.getElementById('cuckoo-delay-max');
+  saveDelayBtn?.addEventListener('click', () => {
+    const min = parseInt(delayMinInput?.value, 10);
+    const max = parseInt(delayMaxInput?.value, 10);
+    if (Number.isNaN(min) || min < 0) { alert('最小延迟必须是非负整数'); return; }
+    if (Number.isNaN(max) || max < min) { alert('最大延迟不能小于最小延迟'); return; }
+    if (max > 10000) { alert('最大延迟不能超过 10000ms'); return; }
+    state.sendDelayMin = min;
+    state.sendDelayMax = max;
+    // 保存到 localStorage
+    try {
+      localStorage.setItem('cuckoo-send-delay-min', String(min));
+      localStorage.setItem('cuckoo-send-delay-max', String(max));
+    } catch (e) {}
+    alert('延迟设置已保存：' + min + ' - ' + max + ' ms');
+  });
 
   // 状态徽章点击显示覆盖层
   const statusBadge = document.getElementById('cuckoo-status-badge');
