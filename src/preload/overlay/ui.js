@@ -24,7 +24,6 @@ function injectOverlay() {
   container.id = 'cuckoo-root';
   container.innerHTML = OVERLAY_HTML;
   document.body.appendChild(container);
-  document.getElementById('cuckoo-status-badge')?.remove();
 }
 
 // ========== 覆盖层逻辑 ==========
@@ -134,7 +133,6 @@ function displayCommand(cmdData) {
   if (preview) preview.textContent = cmdData.command;
   if (resultSection) resultSection.classList.add('cuckoo-hidden');
   showToast('发现可执行的命令');
-  showOverlay();
 }
 
 /**
@@ -212,18 +210,15 @@ function renderHistory() {
 /**
  * 闪烁状态徽章提示
  */
-function flashBadge(text) {
+function flashBadge() {
   const badge = document.getElementById('cuckoo-status-badge');
   const dot = document.getElementById('cuckoo-status-dot');
   if (badge) {
     badge.style.background = 'rgba(124,255,178,0.25)';
     badge.style.borderColor = 'rgba(124,255,178,0.6)';
-    const label = badge.querySelector('span:last-child');
-    if (label) label.textContent = text;
     setTimeout(() => {
-      badge.style.background = 'rgba(124,131,255,0.15)';
-      badge.style.borderColor = 'rgba(124,131,255,0.3)';
-      if (label) label.textContent = 'Cuckoo Code 运行中';
+      badge.style.background = 'rgba(139, 147, 255, 0.22)';
+      badge.style.borderColor = 'rgba(139, 147, 255, 0.4)';
     }, 3000);
   }
   if (dot) {
@@ -272,12 +267,7 @@ function forceShowOverlay() {
  * 每 5 秒检查一次，如果被隐藏则自动恢复
  */
 function startOverlayWatcher() {
-  setInterval(() => {
-    const overlay = document.getElementById('cuckoo-overlay');
-    if (overlay && overlay.classList.contains('cuckoo-hidden')) {
-      forceShowOverlay();
-    }
-  }, 5000);
+  // 方向 C：不再定期强制弹出面板，避免遮挡主界面。
 }
 
 module.exports = {

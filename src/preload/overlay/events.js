@@ -92,12 +92,15 @@ function bindEvents() {
     alert('延迟设置已保存：' + min + ' - ' + max + ' ms');
   });
 
-  // 状态徽章点击显示覆盖层
+  // 悬浮球点击切换面板显隐
   const statusBadge = document.getElementById('cuckoo-status-badge');
   statusBadge?.addEventListener('click', () => {
     const overlay = document.getElementById('cuckoo-overlay');
-    if (overlay && overlay.classList.contains('cuckoo-hidden')) {
+    if (!overlay) return;
+    if (overlay.classList.contains('cuckoo-hidden')) {
       showOverlay();
+    } else {
+      hideOverlay();
     }
   });
 

@@ -293,7 +293,7 @@ function startObserver() {
  * 通知用户检测到工具调用（闪烁状态徽章 + 展开覆盖层）
  */
 function notifyToolCallDetected(toolCall) {
-  showOverlay();
+  // 方向 C：不强制弹面板，只更新预览和徽章
   // 更新预览区域显示检测到的工具调用
   const preview = document.getElementById('cuckoo-cmd-preview');
   if (preview) {
@@ -306,7 +306,7 @@ function notifyToolCallDetected(toolCall) {
  * 通知用户检测到 JS 工具脚本（更新预览 + 闪烁徽章）
  */
 function notifyJsScriptDetected(code) {
-  showOverlay();
+  // 方向 C：不强制弹面板
   const preview = document.getElementById('cuckoo-cmd-preview');
   if (preview) {
     preview.textContent = '[JS 工具脚本]' + String.fromCharCode(10) + code;
@@ -317,7 +317,7 @@ function notifyJsScriptDetected(code) {
  * 执行检测到的 JS 工具脚本（带双通道去重）
  */
 async function handleJsToolScript(code) {
-  showOverlay();
+  // 方向 C：不强制弹面板
   notifyJsScriptDetected(code);
   setTaskStatus(true);
   showToast('开始执行命令');
@@ -385,8 +385,7 @@ async function handleToolCall(toolCall) {
   const { toolName, params, callId } = toolCall;
   console.log(`[Cuckoo Code] 执行工具: ${toolName}`, params);
 
-  // 确保覆盖层可见，让用户看到正在处理
-  showOverlay();
+  // 方向 C：不强制弹面板
   setTaskStatus(true);
   showToast('开始执行命令');
 
