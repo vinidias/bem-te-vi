@@ -44,19 +44,25 @@ await write("src/utils/helper.js", content.replace("formatDate", "formatTime"));
 **你的回复**（仅工具代码）：
 
 ```cuckoo
-await write("src/greeting.txt", "Hello, world!");
+const r = await write("src/greeting.txt", "Hello, world!");
+log(r);
 ```
 
 **系统返回**：
 
 ```
-【JS 执行结果】成功
+【JS 执行结果汇总】(共 1 个脚本)
+
+—— 脚本 1 ——
+✅ 成功
 <path>src/greeting.txt</path>
 <type>file</type>
 <content>
 Created file
 </content>
 ```
+
+> 若脚本中未调用 log() 打印返回值，系统只会提示“(脚本执行完成，无输出) 如需输出请使用 log() 方法”，不会自动显示工具的返回内容。
 
 ## 多步任务示例
 

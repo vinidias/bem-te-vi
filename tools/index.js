@@ -19,6 +19,7 @@ const { BashTool } = require('./BashTool');
 const { PwshTool } = require('./PwshTool');
 const { FileDeleteTool } = require('./FileDeleteTool');
 const { WebFetchTool } = require('./WebFetchTool');
+const { MySQLTool } = require('./MySQLTool');
 const { OpenBrowserWindowTool } = require('./OpenBrowserWindowTool');
 const { InjectJSTool } = require('./InjectJSTool');
 
@@ -41,6 +42,7 @@ registry.register(new BashTool());
 registry.register(new PwshTool());
 registry.register(new FileDeleteTool());
 registry.register(new WebFetchTool());
+registry.register(new MySQLTool());
 registry.register(new OpenBrowserWindowTool());
 registry.register(new InjectJSTool());
 

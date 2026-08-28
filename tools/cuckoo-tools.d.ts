@@ -117,8 +117,13 @@ interface BashOptions {
 /**
  * 执行 shell 命令（Windows 使用 cmd.exe）。
  * 返回纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）。
+ * 必须用 log() 方法打印才能看到返回内容。
  * 非零退出不抛异常，通过 [exit code] 标记报告。
  * 危险命令会被安全策略拒绝并抛异常。
+ * @param command 要执行的 shell 命令
+ * @param options 可选，{ description?: string, workdir?: string, timeoutMs?: number }
+ * @returns 纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）
+ * @throws 危险命令被安全策略拒绝时抛出异常
  */
 declare function bash(command: string, options?: BashOptions): Promise<string>;
 
@@ -135,8 +140,13 @@ interface PwshOptions {
 /**
  * 执行 PowerShell 命令（powershell -NoProfile -Command）。
  * 返回纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）。
+ * 必须用 log() 方法打印才能看到返回内容。
  * 非零退出不抛异常，通过 [exit code] 标记报告。
  * 危险命令会被安全策略拒绝并抛异常。
+ * @param command 要执行的 PowerShell 命令
+ * @param options 可选，{ description?: string, workdir?: string, timeoutMs?: number }
+ * @returns 纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）
+ * @throws 危险命令被安全策略拒绝时抛出异常
  */
 declare function pwsh(command: string, options?: PwshOptions): Promise<string>;
 
@@ -178,13 +188,43 @@ interface FileDeleteResult {
  */
 declare function deleteFile(filePath: string): Promise<FileDeleteResult>;
 
+// ================= MySQL =================
+
+/** MySQL 连接与查询参数 */
+interface MySQLOptions {
+  /** MySQL 主机地址，默认 localhost */
+  host?: string;
+  /** MySQL 端口，默认 3306 */
+  port?: number;
+  /** 用户名 */
+  user: string;
+  /** 密码 */
+  password?: string;
+  /** 数据库名 */
+  database: string;
+  /** 要执行的 SQL 语句 */
+  sql: string;
+  /** SELECT 返回行数上限，默认 100，最大 1000 */
+  limit?: number;
+}
+
+/**
+ * 执行 MySQL SQL 语句。
+ * SELECT/SHOW/DESCRIBE/EXPLAIN 等查询返回纯文本表格；
+ * INSERT/UPDATE/DELETE/DDL 返回 affectedRows 等执行统计。
+ * @param options 连接参数 + sql
+ * @returns 纯文本表格（查询）或执行统计（写操作）
+ * @throws 连接失败、SQL 错误时抛出异常
+ */
+declare function mysql(options: MySQLOptions): Promise<string>;
+
 // ================= WebFetch =================
 
 /**
  * 获取指定 HTTP(S) URL 的内容并解码为文本。
  * HTML 会转换为 Markdown（turndown + GFM）。
  * 返回纯文本：Fetched <url> (HTTP <status>) + 正文。
- * 截断时附 footer。
+ * 内容超过上限（约 20000 字符）会截断并附 footer。
  * @param url 要获取的 HTTP(S) URL
  * @throws URL 为空、非 http/https、请求超时或失败时抛出异常
  */
