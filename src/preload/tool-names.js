@@ -18,6 +18,7 @@ const TOOL_NAMES = [
   'todo_write',
   'bash',
   'pwsh',
+  'mysql',
   'web_fetch',
   'open_browser_window',
   'inject_js',

@@ -98,6 +98,7 @@
   "dependencies": {
     "@joplin/turndown-plugin-gfm": "^1.0.67",
     "@vscode/ripgrep": "^1.18.0",
+    "mysql2": "^3.24.2",
     "turndown": "^7.2.4"
   },
   "allowScripts": {

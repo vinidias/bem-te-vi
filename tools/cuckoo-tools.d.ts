@@ -117,8 +117,13 @@ interface BashOptions {
 /**
  * 执行 shell 命令（Windows 使用 cmd.exe）。
  * 返回纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）。
+ * 必须用 log() 方法打印才能看到返回内容。
  * 非零退出不抛异常，通过 [exit code] 标记报告。
  * 危险命令会被安全策略拒绝并抛异常。
+ * @param command 要执行的 shell 命令
+ * @param options 可选，{ description?: string, workdir?: string, timeoutMs?: number }
+ * @returns 纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）
+ * @throws 危险命令被安全策略拒绝时抛出异常
  */
 declare function bash(command: string, options?: BashOptions): Promise<string>;
 
@@ -135,8 +140,13 @@ interface PwshOptions {
 /**
  * 执行 PowerShell 命令（powershell -NoProfile -Command）。
  * 返回纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）。
+ * 必须用 log() 方法打印才能看到返回内容。
  * 非零退出不抛异常，通过 [exit code] 标记报告。
  * 危险命令会被安全策略拒绝并抛异常。
+ * @param command 要执行的 PowerShell 命令
+ * @param options 可选，{ description?: string, workdir?: string, timeoutMs?: number }
+ * @returns 纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）
+ * @throws 危险命令被安全策略拒绝时抛出异常
  */
 declare function pwsh(command: string, options?: PwshOptions): Promise<string>;
 
@@ -177,6 +187,36 @@ interface FileDeleteResult {
  * @throws 文件不存在或路径不是文件时抛出异常
  */
 declare function deleteFile(filePath: string): Promise<FileDeleteResult>;
+
+// ================= MySQL =================
+
+/** MySQL 连接与查询参数 */
+interface MySQLOptions {
+  /** MySQL 主机地址，默认 localhost */
+  host?: string;
+  /** MySQL 端口，默认 3306 */
+  port?: number;
+  /** 用户名 */
+  user: string;
+  /** 密码 */
+  password?: string;
+  /** 数据库名 */
+  database: string;
+  /** 要执行的 SQL 语句 */
+  sql: string;
+  /** SELECT 返回行数上限，默认 100，最大 1000 */
+  limit?: number;
+}
+
+/**
+ * 执行 MySQL SQL 语句。
+ * SELECT/SHOW/DESCRIBE 等查询返回纯文本表格；
+ * INSERT/UPDATE/DELETE/DDL 返回 affectedRows 等执行统计。
+ * @param options 连接参数 + sql
+ * @returns 纯文本表格（查询）或执行统计（写操作）
+ * @throws 连接失败、SQL 错误时抛出异常
+ */
+declare function mysql(options: MySQLOptions): Promise<string>;
 
 // ================= WebFetch =================
 
