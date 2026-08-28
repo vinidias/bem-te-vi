@@ -93,10 +93,10 @@ AI 在 ```cuckoo 代码块中编写 JS，可用工具函数（13 个）：
 
 ## 当前开发状态
 
-- 当前分支：`feature/mysql-tool-20260828`
-- MySQL 工具（`mysql`）正在开发中，已完成基础实现和连接测试
+- 当前分支：`fix/injectjs-iife-return`
+- MySQL 工具（`mysql`）已完成实现、测试并提交
 - 交接文档：`HANDOFF_MYSQL.md`
-- 有未提交改动（MySQLTool.js 新建 + 7 个文件修改）
+- 未跟踪文件：`HANDOFF_MYSQL.md`、`doc/`、`src/greeting.txt`、`tools/test_mysql_full.js`
 
 ## 关键约定
 
