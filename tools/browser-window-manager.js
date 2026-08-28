@@ -43,7 +43,11 @@ class BrowserWindowManager {
       throw new Error(`JS 语法错误: ${err.message}`);
     }
 
-    const wrapped = `(async () => {
+    const hasReturn = /^\s*return\b/.test(jsCode);
+    let wrapped;
+    if (hasReturn) {
+      // 用户代码以 return 开头，保持原来的函数体包装
+      wrapped = `(async () => {
   try {
     const __result = await (async () => {
 ${jsCode}
@@ -53,6 +57,17 @@ ${jsCode}
     return { ok: false, error: err && err.message ? err.message : String(err) };
   }
 })()`;
+    } else {
+      // 用户代码是表达式（如 IIFE），直接 await 表达式捕获返回值
+      wrapped = `(async () => {
+  try {
+    const __result = await (${jsCode});
+    return { ok: true, value: __result };
+  } catch (err) {
+    return { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+})()`;
+    }
     const result = await win.webContents.executeJavaScript(wrapped, true);
     if (result && result.ok === false) {
       throw new Error(result.error);

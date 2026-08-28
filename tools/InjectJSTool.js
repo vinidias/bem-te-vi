@@ -23,7 +23,7 @@ class InjectJSTool extends Tool {
     return {
       name: 'tool:inject_js',
       order: 113,
-      text: '使用 injectJS(windowId, code) 向指定窗口注入 JS。代码自动包装为 async 函数，用 return 返回同步值、用 await 等待异步结果。执行出错会抛出异常。'
+      text: '使用 injectJS(windowId, code) 向指定窗口注入 JS。code 支持两种写法：以 return 开头的语句块，或表达式（如 IIFE，其返回值会被捕获）。执行出错会抛出异常。'
     };
   }
 

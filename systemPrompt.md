@@ -269,8 +269,12 @@ declare function openBrowserWindow(url: string, options?: { id?: string; width?:
 
 /**
  * 向指定窗口注入 JS 代码并返回执行结果（支持 async/await）。
+ * code 支持两种写法：
+ *   1. 以 return 开头的语句块：例如 `return document.title;`
+ *   2. 表达式（如 IIFE）：例如 `(function(){ return ... })()`
+ *      表达式的返回值会被捕获并返回。
  * @param windowId 目标窗口 ID
- * @param code 要注入的 JS 代码（支持 await，返回值会被返回）
+ * @param code 要注入的 JS 代码
  * @returns JS 执行结果
  */
 declare function injectJS(windowId: string, code: string): Promise<any>;
