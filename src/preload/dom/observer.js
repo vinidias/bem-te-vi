@@ -3,7 +3,7 @@
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
 const {
-  showOverlay, setTaskStatus, showToast, addHistory, flashBadge, truncate, displayCommand, generateId,
+  showOverlay, setTaskStatus, showToast, showConfirmDialog, addHistory, flashBadge, truncate, displayCommand, generateId,
 } = require('../overlay/ui');
 const { getCodeBlockLanguage, isInsideUserMessage, scanForCommands } = require('./detector');
 const { tryParseToolCall } = require('./tool-parser');
@@ -16,6 +16,20 @@ const { hasTool, toolNamesList } = require('../tool-names');
  * 手动解析按钮点击处理
  * 用户点击后，仅解析最后一条 AI 回复中的工具调用并执行
  */
+async function triggerManualParseAttention() {
+  const btn = document.getElementById('cuckoo-btn-manual-parse');
+  if (btn) {
+    btn.classList.remove('cuckoo-btn-attention');
+    // 强制回流以重新触发动画
+    void btn.offsetWidth;
+    btn.classList.add('cuckoo-btn-attention');
+    // 动画结束后移除类，避免状态残留
+    setTimeout(() => {
+      btn.classList.remove('cuckoo-btn-attention');
+    }, 3500);
+  }
+}
+
 async function handleManualParse() {
   const btn = document.getElementById('cuckoo-btn-manual-parse');
   if (btn) {
@@ -26,10 +40,10 @@ async function handleManualParse() {
   try {
     // 复用自动解析逻辑：仅解析最后一条 AI 回复
     processLatestAIResponse(0, true);
-    alert('已触发手动解析最后一条 AI 回复');
+    showToast('已触发手动解析最后一条 AI 回复', 3000);
   } catch (err) {
     console.error('[Cuckoo Code] 手动解析出错:', err);
-    alert('手动解析出错: ' + err.message);
+    showToast('手动解析出错: ' + err.message, 3000);
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -141,7 +155,8 @@ function processLatestAIResponse(retryCount = 0, force = false) {
         }
         const hasIncompleteFailure = results.some(item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error));
         if (hasIncompleteFailure) {
-          alert('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试。');
+          showConfirmDialog('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试');
+          triggerManualParseAttention();
           return;
         }
         if (results.length > 0) sendCombinedJsResultsToChat(results);
@@ -171,7 +186,8 @@ function processLatestAIResponse(retryCount = 0, force = false) {
         }
         const hasIncompleteFailure = results.some(item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error));
         if (hasIncompleteFailure) {
-          alert('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试。');
+          showConfirmDialog('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试');
+          triggerManualParseAttention();
           return;
         }
         if (results.length > 0) sendCombinedJsResultsToChat(results);
@@ -198,7 +214,7 @@ function processLatestAIResponse(retryCount = 0, force = false) {
   console.log(text);
   // 是否为疑似工具内容（用于控制详细日志与提示文案）
   const looksToolish = text.includes(FENCE) ||
-    /toolName|"tool"|file_|await\s+(?:readFile|writeFile|editFile|glob|grep|bash|deleteFile)\s*\(/.test(text);
+    /toolName|"tool"|file_|await\s+(?:read|write|edit|glob|grep|bash|pwsh|todoWrite|deleteFile|webFetch|openBrowserWindow|injectJS|readFile|writeFile|editFile)\s*\(/.test(text);
 
   // 长度必打；原文/转义仅在疑似工具内容时打印（普通聊天回复不再刷屏）
   console.log('[Cuckoo Code] 回复文本长度: ' + text.length + (looksToolish ? '（疑似工具内容）' : '（普通文本）'));

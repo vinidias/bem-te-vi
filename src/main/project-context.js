@@ -86,6 +86,12 @@ function initProject(skipPrompt = false) {
     title: '请选择要分析的项目目录',
   });
 
+  // 无论用户是否选择目录，对话框关闭后都恢复主窗口焦点（避免输入框失效）
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.focus();
+    mainWindow.webContents.focus();
+  }
+
   if (!result || result.length === 0) {
     console.log('[Cuckoo Code] 用户取消了目录选择');
     return { success: false, message: '用户取消了目录选择' };

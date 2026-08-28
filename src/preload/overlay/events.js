@@ -3,7 +3,7 @@
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
 const state = require('../dom/state');
-const { hideOverlay, showOverlay, renderHistory, commandHistory } = require('./ui');
+const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
 const { handleManualParse } = require('../dom/observer');
 const { sendSystemPromptToInput, sendToChat } = require('../dom/chat-input');
@@ -13,7 +13,7 @@ const { sendSystemPromptToInput, sendToChat } = require('../dom/chat-input');
  */
 function handleSendPrompt() {
   if (!state.systemPromptContent) {
-    alert('系统提示词内容为空');
+    showToast('系统提示词内容为空', 3000);
     return;
   }
   sendSystemPromptToInput();
@@ -25,7 +25,7 @@ function handleSendPrompt() {
 function handleGenerateDoc() {
   const message = '根据当前项目生成一个类似 claude.md 的项目说明文件，并将文件放到当前项目 .cuckooCode/CUCKOO.md';
   if (!sendToChat(message, '生成文档', 300)) {
-    alert('未找到输入框，请确保已打开聊天界面');
+    showToast('未找到输入框，请确保已打开聊天界面', 3000);
   }
 }
 
@@ -79,9 +79,9 @@ function bindEvents() {
   saveDelayBtn?.addEventListener('click', () => {
     const min = parseInt(delayMinInput?.value, 10);
     const max = parseInt(delayMaxInput?.value, 10);
-    if (Number.isNaN(min) || min < 0) { alert('最小延迟必须是非负整数'); return; }
-    if (Number.isNaN(max) || max < min) { alert('最大延迟不能小于最小延迟'); return; }
-    if (max > 10000) { alert('最大延迟不能超过 10000ms'); return; }
+    if (Number.isNaN(min) || min < 0) { showToast('最小延迟必须是非负整数', 3000); return; }
+    if (Number.isNaN(max) || max < min) { showToast('最大延迟不能小于最小延迟', 3000); return; }
+    if (max > 10000) { showToast('最大延迟不能超过 10000ms', 3000); return; }
     state.sendDelayMin = min;
     state.sendDelayMax = max;
     // 保存到 localStorage
@@ -89,7 +89,7 @@ function bindEvents() {
       localStorage.setItem('cuckoo-send-delay-min', String(min));
       localStorage.setItem('cuckoo-send-delay-max', String(max));
     } catch (e) {}
-    alert('延迟设置已保存：' + min + ' - ' + max + ' ms');
+    showToast('延迟设置已保存：' + min + ' - ' + max + ' ms', 3000);
   });
 
   // 悬浮球点击切换面板显隐

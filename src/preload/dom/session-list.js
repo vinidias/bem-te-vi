@@ -2,7 +2,7 @@
  * 会话列表功能（渲染、导航、初始化项目按钮）
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-const { escapeHtml } = require('../overlay/ui');
+const { escapeHtml, showToast } = require('../overlay/ui');
 
 // ========== 会话列表功能 ==========
 
@@ -59,7 +59,7 @@ async function handleNavigateSession(sessionId) {
 
   try {
     if (!window.electronAPI || !window.electronAPI.navigateSession) {
-      alert('导航 API 不可用');
+      showToast('导航 API 不可用', 3000);
       return;
     }
 
@@ -70,11 +70,11 @@ async function handleNavigateSession(sessionId) {
       // 小延迟后刷新会话列表
       setTimeout(renderSessions, 2000);
     } else {
-      alert('导航失败: ' + (result.error || '未知错误'));
+      showToast('导航失败: ' + (result.error || '未知错误'), 3000);
     }
   } catch (err) {
     console.error('[Cuckoo Code] 导航到会话失败:', err);
-    alert('导航失败: ' + err.message);
+    showToast('导航失败: ' + err.message, 3000);
   }
 }
 
@@ -95,11 +95,11 @@ async function handleInitProject() {
     }
     const result = await window.electronAPI.initProject();
     if (result && !result.success) {
-      alert(result.message || '初始化失败');
+      showToast(result.message || '初始化失败', 3000);
     }
   } catch (err) {
     console.error('[Cuckoo Code] 初始化项目失败:', err);
-    alert('初始化失败: ' + err.message);
+    showToast('初始化失败: ' + err.message, 3000);
   } finally {
     if (initBtn) {
       initBtn.disabled = false;
