@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     strategy:
+      max-parallel: 1
       matrix:
         include:
           - os: windows-latest
@@ -36,43 +37,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build and Publish
         run: npm run ${{ matrix.command }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-${{ matrix.os }}
-          path: |
-            dist/*.exe
-            dist/*.dmg
-            dist/*.zip
-            dist/*.blockmap
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: List artifacts
-        run: find artifacts -type f -maxdepth 3
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            artifacts/*/*.exe
-            artifacts/*/*.dmg
-            artifacts/*/*.zip
-            artifacts/*/*.blockmap
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

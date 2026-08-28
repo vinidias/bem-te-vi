@@ -3,7 +3,7 @@
  * 由项目根目录 main.js 薄壳加载。
  * 职责：应用生命周期、主窗口创建；其余职责分散在 src/main/ 各模块。
  */
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -11,6 +11,7 @@ const windowState = require('./window');
 // 注意：session-store 必须先于下方 app.setPath('userData', ...) 加载 ——
 // 其中的 STORE_FILE 在模块加载时即按默认 userData 路径计算（历史行为，见该文件注释）。
 const sessionStore = require('./session-store');
+const updater = require('./updater');
 
 // ========== 持久化会话配置 ==========
 
@@ -37,6 +38,9 @@ function createWindow() {
     },
   });
   windowState.setMainWindow(mainWindow);
+
+  // 初始化自动更新（仅生产环境生效）
+  updater.initAutoUpdater(mainWindow);
 
   // 检查 preload 文件是否存在
   const preloadPath = path.join(__dirname, '..', '..', 'preload.js');
@@ -97,12 +101,42 @@ function createWindow() {
   });
 }
 
+// ========== 应用菜单 ==========
+function setupAppMenu() {
+  const template = [
+    {
+      label: '文件',
+      submenu: [
+        { role: 'quit', label: '退出' }
+      ]
+    },
+    {
+      label: '帮助',
+      submenu: [
+        {
+          label: '检查更新',
+          click: () => {
+            updater.checkForUpdates();
+          }
+        },
+        { type: 'separator' },
+        { role: 'about', label: '关于 Cuckoo Code' }
+      ]
+    }
+  ];
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
 // ========== IPC 处理器 ==========
 registerIpcHandlers();
 
 // ========== 应用生命周期 ==========
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  setupAppMenu();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   app.quit();

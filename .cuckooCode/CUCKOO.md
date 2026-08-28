@@ -112,6 +112,7 @@ AI 在 ```cuckoo 代码块中编写 JS，可用工具函数（13 个）：
 - 用户数据目录固定为 %APPDATA%/cuckoo-ai-pro-session
 - Git 远程：github（SSH）+ origin/codeup（SSH）
 - 版本发布：npm version patch/minor/major 自动同步并打 tag
+- 自动更新与发布方案：见 `.cuckooCode/AUTO_UPDATE_RELEASE.md`（含每步原因、故障排查）
 
 ## 注意事项
 
