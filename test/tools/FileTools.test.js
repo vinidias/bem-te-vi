@@ -196,7 +196,7 @@ test('EditTool 多次匹配需要 replace_all', async () => {
 test('EditTool replace_all', async () => {
   fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'x x x');
   const tool = new EditTool();
-  const r = await tool.execute({ file_path: 'd.txt', old_string: 'x', new_string: 'y', replace_all: true, projectDir: tmpRoot });
+  const r = await tool.execute({ file_path: 'd.txt', old_string: 'x', new_string: 'y', replaceAll: true, projectDir: tmpRoot });
   assert.strictEqual(r.success, true);
   assert.strictEqual(fs.readFileSync(path.join(tmpRoot, 'd.txt'), 'utf8'), 'y y y');
 });

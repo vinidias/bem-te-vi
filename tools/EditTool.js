@@ -46,7 +46,7 @@ class EditTool extends Tool {
   constructor() {
     super(
       'edit',
-      '对现有 UTF-8 文本文件做精确替换（old_string → new_string）。默认 old_string 必须唯一匹配；多匹配可设置 replace_all。',
+      '对现有 UTF-8 文本文件做精确替换（old_string → new_string）。默认 old_string 必须唯一匹配；多匹配可设置 replaceAll。',
       {
         type: 'object',
         properties: {
@@ -62,7 +62,7 @@ class EditTool extends Tool {
             type: 'string',
             description: '替换后的字面文本。可用空字符串删除匹配内容'
           },
-          replace_all: {
+          replaceAll: {
             type: 'boolean',
             description: '是否替换所有匹配。默认 false；false 时 old_string 必须唯一匹配',
             default: false
@@ -79,15 +79,15 @@ class EditTool extends Tool {
     return {
       name: 'tool:edit',
       order: 102,
-      text: '使用 edit 工具对现有 UTF-8 文本文件做定向修改。它用 new_string 替换字面量 old_string；默认 old_string 必须唯一匹配。如果 old_string 出现多次，请提供更具体的 old_string 或设置 replace_all 为 true。除非你刚在本会话中创建或编辑过该文件，否则先 read 文件。'
+      text: '使用 edit 工具对现有 UTF-8 文本文件做定向修改。它用 new_string 替换字面量 old_string；默认 old_string 必须唯一匹配。如果 old_string 出现多次，请提供更具体的 old_string 或设置 replaceAll 为 true。除非你刚在本会话中创建或编辑过该文件，否则先 read 文件。'
     };
   }
 
   async execute(params) {
-    const { file_path, old_string, new_string, replace_all, projectDir } = params;
+    const { file_path, old_string, new_string, replaceAll, projectDir } = params;
 
     try {
-      const input = parseEditArgs(file_path, old_string, new_string, replace_all);
+      const input = parseEditArgs(file_path, old_string, new_string, replaceAll);
 
       // 路径解析：相对路径基于 projectDir
       const normalizedPath = input.filePath.replace(/\//g, path.sep);
@@ -124,7 +124,7 @@ class EditTool extends Tool {
         return ToolResult.error('未找到要替换的文本，请检查 old_string 是否与文件内容精确匹配。文件路径: ' + resolvedPath);
       }
       if (occurrences > 1 && !input.replaceAll) {
-        return ToolResult.error('old_string 在文件中出现 ' + occurrences + ' 次，请提供更长的唯一片段，或设置 replace_all: true');
+        return ToolResult.error('old_string 在文件中出现 ' + occurrences + ' 次，请提供更长的唯一片段，或设置 replaceAll: true');
       }
 
       // 执行替换

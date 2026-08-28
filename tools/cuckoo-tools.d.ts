@@ -210,7 +210,7 @@ interface MySQLOptions {
 
 /**
  * 执行 MySQL SQL 语句。
- * SELECT/SHOW/DESCRIBE 等查询返回纯文本表格；
+ * SELECT/SHOW/DESCRIBE/EXPLAIN 等查询返回纯文本表格；
  * INSERT/UPDATE/DELETE/DDL 返回 affectedRows 等执行统计。
  * @param options 连接参数 + sql
  * @returns 纯文本表格（查询）或执行统计（写操作）
@@ -224,7 +224,7 @@ declare function mysql(options: MySQLOptions): Promise<string>;
  * 获取指定 HTTP(S) URL 的内容并解码为文本。
  * HTML 会转换为 Markdown（turndown + GFM）。
  * 返回纯文本：Fetched <url> (HTTP <status>) + 正文。
- * 截断时附 footer。
+ * 内容超过上限（约 20000 字符）会截断并附 footer。
  * @param url 要获取的 HTTP(S) URL
  * @throws URL 为空、非 http/https、请求超时或失败时抛出异常
  */

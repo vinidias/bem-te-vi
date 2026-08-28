@@ -75,7 +75,7 @@ class WebFetchTool extends Tool {
   constructor() {
     super(
       'web_fetch',
-      '获取指定 HTTP(S) URL 的内容并解码为文本。HTML 会转换为 Markdown。',
+      '获取指定 HTTP(S) URL 的内容并解码为文本。HTML 会转换为 Markdown（turndown + GFM）。返回纯文本：Fetched <url> (HTTP <status>) + 正文。内容超过上限（约 20000 字符）会截断并附 footer。',
       {
         type: 'object',
         properties: {

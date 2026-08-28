@@ -10,7 +10,7 @@ class FileDeleteTool extends Tool {
   constructor() {
     super(
       'file_delete',
-      '删除指定文件。不可恢复，请谨慎使用。',
+      '删除指定文件（不可恢复，请谨慎使用）。返回 { message, path }，其中 path 为被删除文件的绝对路径。',
       {
         type: 'object',
         properties: {
@@ -26,7 +26,7 @@ class FileDeleteTool extends Tool {
     return {
       name: 'tool:deleteFile',
       order: 112,
-      text: '使用 deleteFile 工具永久删除文件。此操作不可撤销。删除前请仔细确认路径。'
+      text: '使用 deleteFile 工具永久删除文件。此操作不可撤销。返回 { message, path }，path 为被删除文件的绝对路径。删除前请仔细确认路径。'
     };
   }
 
