@@ -10,13 +10,20 @@ const fakeElectron = {
       return path.join(process.cwd(), 'test', 'tmp');
     },
     setPath: () => {},
+    isPackaged: false,
+    whenReady: () => Promise.resolve(),
+    on: () => {},
+    quit: () => {},
   },
   dialog: {
     showOpenDialogSync: () => null,
     showMessageBox: async () => ({ response: 1 }),
   },
-  ipcMain: { handle: () => {} },
+  ipcMain: { handle: () => {}, on: () => {} },
   BrowserWindow: function BrowserWindow() {},
+  Notification: {
+    isSupported: () => false,
+  },
 };
 
 function installElectronMock() {

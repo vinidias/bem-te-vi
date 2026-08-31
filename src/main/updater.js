@@ -268,4 +268,6 @@ module.exports = {
   initAutoUpdater,
   checkForUpdates,
   setMainWindow,
+  isNetworkError,
+  isGitHubAccessError,
 };
