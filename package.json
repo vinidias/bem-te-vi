@@ -110,17 +110,10 @@
       "!node_modules/.bin",
       "!dist",
       "!build",
-      "!*.md",
-      "!LICENSE"
-    ],
-    "extraResources": [
-      {
-        "from": "tools",
-        "to": "tools",
-        "filter": [
-          "**/*"
-        ]
-      }
+      "!**/*.md",
+      "!LICENSE",
+      "systemPrompt.md",
+      "tools/rules.md"
     ]
   },
   "dependencies": {
