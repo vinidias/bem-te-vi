@@ -1,0 +1,80 @@
+/**
+ * Profile 管理模块
+ * 每个 profile 对应一个独立的 partition，实现类似 Chrome 的多用户隔离。
+ * profile 列表持久化在 userData/profile-list.json。
+ */
+const { app } = require('electron');
+const fs = require('fs');
+const path = require('path');
+
+let PROFILE_FILE = null;
+
+function getProfileFile() {
+  if (!PROFILE_FILE) {
+    PROFILE_FILE = path.join(app.getPath('userData'), 'profile-list.json');
+  }
+  return PROFILE_FILE;
+}
+
+function readProfiles() {
+  try {
+    const file = getProfileFile();
+    if (fs.existsSync(file)) {
+      return JSON.parse(fs.readFileSync(file, 'utf-8'));
+    }
+  } catch (err) {
+    console.error('[Profile] 读取 profile 列表失败:', err.message);
+  }
+  return [];
+}
+
+function writeProfiles(profiles) {
+  try {
+    const file = getProfileFile();
+    fs.writeFileSync(file, JSON.stringify(profiles, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[Profile] 写入 profile 列表失败:', err.message);
+  }
+}
+
+/**
+ * 创建新 profile
+ */
+function createProfile(name) {
+  const profiles = readProfiles();
+  const id = 'profile-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  const profile = {
+    id,
+    name: name || ('用户' + (profiles.length + 1)),
+    partition: 'persist:' + id,
+    createdAt: new Date().toISOString(),
+  };
+  profiles.push(profile);
+  writeProfiles(profiles);
+  console.log('[Profile] 已创建:', profile.id, profile.name);
+  return profile;
+}
+
+/**
+ * 获取默认 profile，若不存在则创建
+ */
+function getDefaultProfile() {
+  const profiles = readProfiles();
+  if (profiles.length > 0) return profiles[0];
+  return createProfile('默认用户');
+}
+
+/**
+ * 根据 id 获取 profile
+ */
+function getProfileById(id) {
+  return readProfiles().find(p => p.id === id) || null;
+}
+
+module.exports = {
+  readProfiles,
+  writeProfiles,
+  createProfile,
+  getDefaultProfile,
+  getProfileById,
+};

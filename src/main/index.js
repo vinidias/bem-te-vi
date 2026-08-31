@@ -1,95 +1,100 @@
 /**
- * Cuckoo Code 主进程入口
+ * Cuckoo Code 主进程入口（多窗口多 profile 版）
  * 由项目根目录 main.js 薄壳加载。
- * 职责：应用生命周期、主窗口创建；其余职责分散在 src/main/ 各模块。
  */
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 const windowState = require('./window');
-// 注意：session-store 必须先于下方 app.setPath('userData', ...) 加载 ——
-// 其中的 STORE_FILE 在模块加载时即按默认 userData 路径计算（历史行为，见该文件注释）。
-const sessionStore = require('./session-store');
+const profileManager = require('./profile-manager');
+const { createSessionStore } = require('./session-store');
 const updater = require('./updater');
 
 // ========== 持久化会话配置 ==========
-
-// 固定 userData 路径，确保 session 数据（cookies/localStorage 等）持久保存
 const SESSION_DIR = 'cuckoo-ai-pro-session';
 app.setPath('userData', path.join(app.getPath('appData'), SESSION_DIR));
-
 console.log('[Cuckoo Code] Session 数据目录:', app.getPath('userData'));
 
 const { registerIpcHandlers } = require('./ipc');
 
-function createWindow() {
+// 退出前需要 flush 的 sessions
+const sessionsToFlush = new Set();
+
+async function flushAllSessions() {
+  const promises = [];
+  for (const ses of sessionsToFlush) {
+    promises.push(ses.flushStorageData().catch(err => {
+      console.error('[Cuckoo Code] 刷新 session 失败:', err.message);
+    }));
+  }
+  await Promise.all(promises);
+  console.log('[Cuckoo Code] 全部 session 数据已刷新到磁盘');
+}
+
+/**
+ * 创建窗口（绑定指定 profile）
+ * @param {object|null} profile profile 对象，null 则使用默认 profile
+ */
+function createWindow(profile) {
+  const profileData = profile || profileManager.getDefaultProfile();
+  const storeDir = app.getPath('userData');
+  const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
+
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
-    title: 'Cuckoo Code Pro - DeepSeek CMD',
+    title: 'Cuckoo Code Pro - ' + profileData.name,
     webPreferences: {
       preload: path.join(__dirname, '..', '..', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false, // preload 需要访问 Node.js API
-      partition: 'persist:cuckoo-deepseek', // 持久化 session（cookies/localStorage）
-      backgroundThrottling: false, // 最小化/隐藏时不节流渲染进程，避免工具解析时序错乱
+      sandbox: false,
+      partition: profileData.partition, // 每个 profile 独立持久化 session
+      backgroundThrottling: false,
     },
   });
+
+  // 注册窗口上下文
+  windowState.addWindow(mainWindow, profileData.id, sessionStore);
+  sessionsToFlush.add(mainWindow.webContents.session);
+
+  // 更新主窗口引用
   windowState.setMainWindow(mainWindow);
 
-  // 初始化自动更新（仅生产环境生效）
-  updater.initAutoUpdater(mainWindow);
-
-  // 检查 preload 文件是否存在
-  const preloadPath = path.join(__dirname, '..', '..', 'preload.js');
-  console.log('[Cuckoo Code Main] preload 路径:', preloadPath);
-  console.log('[Cuckoo Code Main] preload 存在:', fs.existsSync(preloadPath));
+  // 初始化自动更新（仅第一个窗口时初始化）
+  if (windowState.getAllWindows().length === 1) {
+    updater.initAutoUpdater(mainWindow);
+  }
 
   // 转发渲染进程的 console.log 到主进程
   mainWindow.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
-    console.log('[Renderer Console]', message);
+    console.log('[Renderer Console][' + profileData.name + ']', message);
   });
 
-  // 窗口最大化
   mainWindow.maximize();
 
-  // 设置 User-Agent，避免被识别为自动化工具
   const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   mainWindow.webContents.setUserAgent(userAgent);
 
-  // 加载 DeepSeek
   mainWindow.loadURL('https://chat.deepseek.com/');
 
-  // 页面加载完成后通知渲染进程
   mainWindow.webContents.on('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('page-loaded');
-      // 尝试恢复会话-目录映射
-      sessionStore.tryRestoreSessionFromUrl();
+      sessionStore.tryRestoreSessionFromUrl(mainWindow);
     }
   });
 
-  // 监听导航事件，检测URL变化（页面跳转/新会话）
   mainWindow.webContents.on('did-navigate', (_event, url) => {
-    console.log('[Cuckoo Code] 页面导航:', url);
-    sessionStore.handleUrlChange(url);
+    sessionStore.handleUrlChange(url, mainWindow);
   });
 
-  // 监听页面内导航（SPA路由变化）
   mainWindow.webContents.on('did-navigate-in-page', (_event, url) => {
-    console.log('[Cuckoo Code] 页面内导航:', url);
-    sessionStore.handleUrlChange(url);
+    sessionStore.handleUrlChange(url, mainWindow);
   });
 
-  // 当 webContents 销毁时停止监听
-  mainWindow.webContents.on('will-destroy', () => {
-    // cleanup if needed
-  });
-
-  // F12 打开 DevTools
   mainWindow.webContents.on('before-input-event', (_event, input) => {
     if (input.key === 'F12') {
       mainWindow.webContents.toggleDevTools();
@@ -97,7 +102,8 @@ function createWindow() {
   });
 
   mainWindow.on('closed', () => {
-    windowState.setMainWindow(null);
+    sessionsToFlush.delete(mainWindow.webContents.session);
+    windowState.removeWindow(mainWindow.id);
   });
 }
 
@@ -107,6 +113,19 @@ function setupAppMenu() {
     {
       label: '文件',
       submenu: [
+        {
+          label: '新建用户窗口',
+          click: () => {
+            const profiles = profileManager.readProfiles();
+            if (profiles.length === 0) {
+              createWindow(profileManager.createProfile('默认用户'));
+            } else {
+              // 简单起见：创建新 profile 并开窗口（后续可改为选择已有 profile）
+              createWindow(profileManager.createProfile('用户' + (profiles.length + 1)));
+            }
+          }
+        },
+        { type: 'separator' },
         { role: 'quit', label: '退出' }
       ]
     },
@@ -131,19 +150,42 @@ function setupAppMenu() {
 // ========== IPC 处理器 ==========
 registerIpcHandlers();
 
-// ========== 应用生命周期 ==========
+// ========== 单实例锁 ==========
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const mainWindow = windowState.getMainWindow();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
 
-app.whenReady().then(() => {
-  setupAppMenu();
-  createWindow();
-});
+  app.whenReady().then(() => {
+    setupAppMenu();
+    createWindow(null);
+  });
+}
 
 app.on('window-all-closed', () => {
   app.quit();
 });
 
+// 退出前刷新所有 session 数据
+let quitFlushed = false;
+app.on('before-quit', (event) => {
+  if (quitFlushed) return;
+  event.preventDefault();
+  quitFlushed = true;
+  flushAllSessions().finally(() => {
+    app.quit();
+  });
+});
+
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+  if (windowState.getAllWindows().length === 0) {
+    createWindow(null);
   }
 });
