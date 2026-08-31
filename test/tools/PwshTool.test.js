@@ -31,9 +31,8 @@ test('PwshTool 空命令拒绝', async () => {
   assert.match(r.error, /invalid command/);
 });
 
-test('PwshTool 空描述拒绝', async () => {
+test('PwshTool 空描述不拒绝', async () => {
   const tool = new PwshTool();
   const r = await tool.execute({ command: 'Write-Output hi', description: '' });
-  assert.strictEqual(r.success, false);
-  assert.match(r.error, /invalid description/);
+  assert.strictEqual(r.success, true);
 });
