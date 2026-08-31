@@ -11,7 +11,7 @@ const log = require('electron-log');
 // electron-updater 内部使用 electron-log 输出日志
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
-autoUpdater.autoDownload = true; // 自动下载更新
+autoUpdater.autoDownload = false; // 检测到更新后不自动下载，等用户确认
 autoUpdater.autoInstallOnAppQuit = true; // 退出时自动安装（支持 NSIS）
 
 // ========== 状态标志 ==========
@@ -158,12 +158,28 @@ autoUpdater.on('checking-for-update', () => {
   }
 });
 
-autoUpdater.on('update-available', (info) => {
+autoUpdater.on('update-available', async (info) => {
   console.log('[Updater] 发现新版本:', info.version);
-  if (isManualCheck) {
-    showNotification('发现新版本', '新版本 v' + info.version + ' 正在下载...');
+  const options = {
+    type: 'info',
+    title: '发现新版本',
+    message: '发现新版本 v' + info.version,
+    detail: '是否现在下载更新？下载完成后可在退出时自动安装。',
+    buttons: ['立即下载', '暂不下载'],
+    defaultId: 0,
+    cancelId: 1,
+  };
+  const parent = mainWindowRef && !mainWindowRef.isDestroyed() ? mainWindowRef : null;
+  const result = parent
+    ? await dialog.showMessageBox(parent, options)
+    : await dialog.showMessageBox(options);
+  if (result.response === 0) {
+    showNotification('开始下载', '正在下载 v' + info.version + '...');
+    autoUpdater.downloadUpdate().catch((err) => {
+      console.error('[Updater] 下载失败:', err);
+    });
   } else {
-    showNotification('发现新版本', '正在后台下载 v' + info.version + '...');
+    isManualCheck = false;
   }
 });
 
