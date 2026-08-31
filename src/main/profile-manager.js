@@ -39,19 +39,23 @@ function writeProfiles(profiles) {
 
 /**
  * 创建新 profile
+ * @param {string} name 显示名称
+ * @param {string} providerId 平台 id（默认 deepseek）
  */
-function createProfile(name) {
+function createProfile(name, providerId) {
   const profiles = readProfiles();
+  const pid = providerId || 'deepseek';
   const id = 'profile-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
   const profile = {
     id,
+    providerId: pid,
     name: name || ('窗口' + (profiles.length + 1)),
-    partition: 'persist:' + id,
+    partition: 'persist:' + pid + ':' + id,
     createdAt: new Date().toISOString(),
   };
   profiles.push(profile);
   writeProfiles(profiles);
-  console.log('[Profile] 已创建:', profile.id, profile.name);
+  console.log('[Profile] 已创建:', profile.id, profile.name, 'provider=' + pid);
   return profile;
 }
 

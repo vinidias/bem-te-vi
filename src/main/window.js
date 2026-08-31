@@ -2,11 +2,11 @@
  * 窗口管理（多窗口 + 每窗口 profile 上下文）
  * 每个窗口关联一个 profileId，拥有独立的 sessionStore 实例。
  */
-const windows = new Map(); // windowId -> { win, profileId, sessionStore }
+const windows = new Map(); // windowId -> { win, profileId, providerId, sessionStore }
 let lastActiveWindowId = null;
 
-function addWindow(win, profileId, sessionStore) {
-  windows.set(win.id, { win, profileId, sessionStore });
+function addWindow(win, profileId, providerId, sessionStore) {
+  windows.set(win.id, { win, profileId, providerId, sessionStore });
   lastActiveWindowId = win.id;
   win.on('closed', () => {
     windows.delete(win.id);

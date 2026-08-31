@@ -9,6 +9,7 @@ const fs = require('fs');
 const windowState = require('./window');
 const profileManager = require('./profile-manager');
 const { createSessionStore } = require('./session-store');
+const { getProvider } = require('../providers');
 const updater = require('./updater');
 
 // ========== 持久化会话配置 ==========
@@ -38,13 +39,14 @@ async function flushAllSessions() {
  */
 function createWindow(profile) {
   const profileData = profile || profileManager.getDefaultProfile();
+  const provider = getProvider(profileData.providerId || 'deepseek') || getProvider('deepseek');
   const storeDir = app.getPath('userData');
   const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
 
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
-    title: 'Cuckoo Code Pro - ' + profileData.name,
+    title: 'Cuckoo Code Pro - ' + provider.name + ' - ' + profileData.name,
     webPreferences: {
       preload: path.join(__dirname, '..', '..', 'preload.js'),
       contextIsolation: true,
@@ -58,8 +60,8 @@ function createWindow(profile) {
   // 保存 session 引用（窗口销毁后 webContents 不可访问）
   const winSession = mainWindow.webContents.session;
 
-  // 注册窗口上下文
-  windowState.addWindow(mainWindow, profileData.id, sessionStore);
+  // 注册窗口上下文（记录 providerId）
+  windowState.addWindow(mainWindow, profileData.id, provider.id, sessionStore);
   sessionsToFlush.add(winSession);
 
   // 更新主窗口引用
@@ -81,7 +83,7 @@ function createWindow(profile) {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   mainWindow.webContents.setUserAgent(userAgent);
 
-  mainWindow.loadURL('https://chat.deepseek.com/');
+  mainWindow.loadURL(provider.homeUrl);
 
   mainWindow.webContents.on('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -157,9 +159,10 @@ registerIpcHandlers();
 
 // 覆盖层"新建窗口"按钮触发
 const { ipcMain: ipcMainForProfile } = require('electron');
-ipcMainForProfile.handle('create-profile-window', async () => {
+ipcMainForProfile.handle('create-profile-window', async (_event, { providerId } = {}) => {
   const profiles = profileManager.readProfiles();
-  createWindow(profileManager.createProfile('窗口' + (profiles.length + 1)));
+  const pid = providerId || 'deepseek';
+  createWindow(profileManager.createProfile('窗口' + (profiles.length + 1), pid));
   return { success: true };
 });
 
