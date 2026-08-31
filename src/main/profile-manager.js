@@ -45,7 +45,7 @@ function createProfile(name) {
   const id = 'profile-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
   const profile = {
     id,
-    name: name || ('用户' + (profiles.length + 1)),
+    name: name || ('窗口' + (profiles.length + 1)),
     partition: 'persist:' + id,
     createdAt: new Date().toISOString(),
   };
@@ -61,7 +61,7 @@ function createProfile(name) {
 function getDefaultProfile() {
   const profiles = readProfiles();
   if (profiles.length > 0) return profiles[0];
-  return createProfile('默认用户');
+  return createProfile('默认窗口');
 }
 
 /**
@@ -71,10 +71,23 @@ function getProfileById(id) {
   return readProfiles().find(p => p.id === id) || null;
 }
 
+/**
+ * 更新 profile 显示名称
+ */
+function updateProfileName(id, name) {
+  const profiles = readProfiles();
+  const p = profiles.find(x => x.id === id);
+  if (!p || !name || !name.trim()) return null;
+  p.name = name.trim();
+  writeProfiles(profiles);
+  return p;
+}
+
 module.exports = {
   readProfiles,
   writeProfiles,
   createProfile,
   getDefaultProfile,
   getProfileById,
+  updateProfileName,
 };

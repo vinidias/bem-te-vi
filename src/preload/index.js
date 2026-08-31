@@ -54,6 +54,20 @@ function init() {
 
   // 定期巡检：防止面板被意外隐藏
   ui.startOverlayWatcher();
+
+  // 定期提取 DeepSeek 用户信息并更新窗口名
+  let lastSentUserName = '';
+  setInterval(() => {
+    try {
+      // 优先匹配脱敏手机号格式，其次找用户信息容器
+      const maskedPhoneEl = document.querySelector('._9d8da05');
+      const text = maskedPhoneEl ? maskedPhoneEl.textContent.trim() : '';
+      if (text && text !== lastSentUserName) {
+        lastSentUserName = text;
+        window.electronAPI.updateWindowName(text).catch(() => {});
+      }
+    } catch (_) {}
+  }, 3000);
 }
 
 if (document.readyState === 'loading') {

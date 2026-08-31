@@ -28,6 +28,18 @@ let electronAPI = {
   navigateSession: (sessionId) => {
     return ipcRenderer.invoke('navigate-session', { sessionId });
   },
+  createProfileWindow: () => {
+    return ipcRenderer.invoke('create-profile-window');
+  },
+  listProfiles: () => {
+    return ipcRenderer.invoke('list-profiles');
+  },
+  openProfileWindow: (profileId) => {
+    return ipcRenderer.invoke('open-profile-window', { profileId });
+  },
+  updateWindowName: (displayName) => {
+    return ipcRenderer.invoke('update-window-name', { displayName });
+  },
 };
 
 try {

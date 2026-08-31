@@ -63,6 +63,13 @@ function getAllContexts() {
   return Array.from(windows.values());
 }
 
+function getWindowByProfileId(profileId) {
+  for (const ctx of windows.values()) {
+    if (ctx.profileId === profileId) return ctx;
+  }
+  return null;
+}
+
 module.exports = {
   addWindow,
   removeWindow,
@@ -73,4 +80,5 @@ module.exports = {
   setMainWindow,
   getAllWindows,
   getAllContexts,
+  getWindowByProfileId,
 };

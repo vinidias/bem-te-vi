@@ -55,9 +55,12 @@ function createWindow(profile) {
     },
   });
 
+  // 保存 session 引用（窗口销毁后 webContents 不可访问）
+  const winSession = mainWindow.webContents.session;
+
   // 注册窗口上下文
   windowState.addWindow(mainWindow, profileData.id, sessionStore);
-  sessionsToFlush.add(mainWindow.webContents.session);
+  sessionsToFlush.add(winSession);
 
   // 更新主窗口引用
   windowState.setMainWindow(mainWindow);
@@ -102,7 +105,7 @@ function createWindow(profile) {
   });
 
   mainWindow.on('closed', () => {
-    sessionsToFlush.delete(mainWindow.webContents.session);
+    sessionsToFlush.delete(winSession);
     windowState.removeWindow(mainWindow.id);
   });
 }
@@ -113,19 +116,6 @@ function setupAppMenu() {
     {
       label: '文件',
       submenu: [
-        {
-          label: '新建用户窗口',
-          click: () => {
-            const profiles = profileManager.readProfiles();
-            if (profiles.length === 0) {
-              createWindow(profileManager.createProfile('默认用户'));
-            } else {
-              // 简单起见：创建新 profile 并开窗口（后续可改为选择已有 profile）
-              createWindow(profileManager.createProfile('用户' + (profiles.length + 1)));
-            }
-          }
-        },
-        { type: 'separator' },
         { role: 'quit', label: '退出' }
       ]
     },
@@ -149,6 +139,46 @@ function setupAppMenu() {
 
 // ========== IPC 处理器 ==========
 registerIpcHandlers();
+
+// 覆盖层"新建窗口"按钮触发
+const { ipcMain: ipcMainForProfile } = require('electron');
+ipcMainForProfile.handle('create-profile-window', async () => {
+  const profiles = profileManager.readProfiles();
+  createWindow(profileManager.createProfile('窗口' + (profiles.length + 1)));
+  return { success: true };
+});
+
+// 列出所有 profiles
+ipcMainForProfile.handle('list-profiles', async () => {
+  return { success: true, profiles: profileManager.readProfiles() };
+});
+
+// 打开指定 profile 的窗口（若已存在则聚焦）
+ipcMainForProfile.handle('open-profile-window', async (_event, { profileId }) => {
+  const existing = windowState.getWindowByProfileId(profileId);
+  if (existing && existing.win && !existing.win.isDestroyed()) {
+    const win = existing.win;
+    if (win.isMinimized()) win.restore();
+    win.focus();
+    return { success: true, focused: true };
+  }
+  const profile = profileManager.getProfileById(profileId);
+  if (!profile) return { success: false, error: '窗口不存在' };
+  createWindow(profile);
+  return { success: true, focused: false };
+});
+
+// 更新窗口名称（提取到 DeepSeek 用户信息后）
+ipcMainForProfile.handle('update-window-name', async (event, { displayName }) => {
+  if (!displayName || !displayName.trim()) return { success: false };
+  const ctx = windowState.getContextByWebContents(event.sender);
+  if (!ctx) return { success: false, error: '窗口上下文不存在' };
+  const updated = profileManager.updateProfileName(ctx.profileId, displayName);
+  if (updated && ctx.win && !ctx.win.isDestroyed()) {
+    ctx.win.setTitle('Cuckoo Code Pro - ' + updated.name);
+  }
+  return { success: !!updated, name: updated ? updated.name : null };
+});
 
 // ========== 单实例锁 ==========
 const gotSingleInstanceLock = app.requestSingleInstanceLock();

@@ -20,6 +20,65 @@ function handleSendPrompt() {
 }
 
 /**
+ * 渲染窗口列表（浮动管理面板内）
+ */
+async function renderWindowList() {
+  const list = document.getElementById('cuckoo-window-list');
+  if (!list) return;
+  try {
+    const res = await window.electronAPI.listProfiles();
+    const profiles = res && res.success ? res.profiles : [];
+    if (!profiles || profiles.length === 0) {
+      list.innerHTML = '<div class="cuckoo-session-empty">暂无窗口</div>';
+      return;
+    }
+    list.innerHTML = profiles.map(p => {
+      return '<div class="cuckoo-window-item" data-profile-id="' + p.id + '">' +
+        '<span class="cuckoo-window-name">' + p.name + '</span>' +
+        '<span class="cuckoo-window-status">点击打开/切换</span>' +
+      '</div>';
+    }).join('');
+    list.querySelectorAll('.cuckoo-window-item').forEach(el => {
+      el.addEventListener('click', async () => {
+        const profileId = el.dataset.profileId;
+        try {
+          const r = await window.electronAPI.openProfileWindow(profileId);
+          if (r && r.success) {
+            showToast(r.focused ? '已切换到该窗口' : '已打开窗口', 2000);
+            closeWindowManager();
+          } else {
+            showToast((r && r.error) || '打开失败', 3000);
+          }
+        } catch (err) {
+          showToast('打开窗口失败: ' + (err.message || err), 3000);
+        }
+      });
+    });
+  } catch (err) {
+    list.innerHTML = '<div class="cuckoo-session-empty">加载失败</div>';
+  }
+}
+
+/**
+ * 打开窗口管理浮动面板
+ */
+function openWindowManager() {
+  const panel = document.getElementById('cuckoo-window-manager');
+  if (panel) {
+    panel.classList.remove('cuckoo-hidden');
+    renderWindowList();
+  }
+}
+
+/**
+ * 关闭窗口管理浮动面板
+ */
+function closeWindowManager() {
+  const panel = document.getElementById('cuckoo-window-manager');
+  if (panel) panel.classList.add('cuckoo-hidden');
+}
+
+/**
  * 生成项目说明文档按钮点击处理
  */
 function handleGenerateDoc() {
@@ -63,6 +122,32 @@ function bindEvents() {
   // 手动解析按钮
   const manualParseBtn = document.getElementById('cuckoo-btn-manual-parse');
   manualParseBtn?.addEventListener('click', handleManualParse);
+
+  // 窗口管理按钮：打开浮动管理面板
+  const windowManagerBtn = document.getElementById('cuckoo-btn-window-manager');
+  windowManagerBtn?.addEventListener('click', () => {
+    openWindowManager();
+  });
+
+  // 浮动面板：新建窗口
+  const wmNewWindowBtn = document.getElementById('cuckoo-wm-new-window');
+  wmNewWindowBtn?.addEventListener('click', async () => {
+    try {
+      await window.electronAPI.createProfileWindow();
+      showToast('已创建新窗口', 2200);
+      await renderWindowList();
+    } catch (err) {
+      showToast('创建新窗口失败: ' + (err.message || err), 3000);
+    }
+  });
+
+  // 浮动面板：关闭
+  const wmCloseBtn = document.getElementById('cuckoo-wm-close');
+  wmCloseBtn?.addEventListener('click', closeWindowManager);
+
+  // 浮动面板：刷新列表
+  const wmRefreshBtn = document.getElementById('cuckoo-wm-refresh');
+  wmRefreshBtn?.addEventListener('click', renderWindowList);
 
   // 生成项目说明文档按钮
   const genDocBtn = document.getElementById('cuckoo-btn-gen-doc');
@@ -118,9 +203,10 @@ function bindEvents() {
         }
       }
     }
-    // Esc 隐藏覆盖层
+    // Esc 隐藏覆盖层和窗口管理面板
     if (e.key === 'Escape') {
       hideOverlay();
+      closeWindowManager();
     }
   });
 }

@@ -7,7 +7,6 @@ const fs = require('fs');
 const path = require('path');
 
 const windowState = require('./window');
-const sessionStore = require('./session-store');
 const { toolRegistry } = require('./tool-registry');
 
 // systemPrompt.md 路径
@@ -76,8 +75,10 @@ function getDirectoryTree(dir, prefix = '') {
  * 供 IPC 调用（用户点击初始化按钮时触发）
  * @param {boolean} skipPrompt - 如果为true，只更新目录映射，不发送初始提示（用于修改目录）
  */
-function initProject(skipPrompt = false) {
-  const mainWindow = windowState.getMainWindow();
+function initProject(skipPrompt = false, windowContext = null) {
+  const ctx = windowContext || windowState.getMainContext();
+  const mainWindow = ctx ? ctx.win : windowState.getMainWindow();
+  const sessionStore = ctx ? ctx.sessionStore : null;
 
   // 先让用户选择目录
   const result = dialog.showOpenDialogSync(mainWindow, {
@@ -100,29 +101,31 @@ function initProject(skipPrompt = false) {
   const selectedDir = result[0];
   console.log('[Cuckoo Code] 用户选择目录:', selectedDir);
 
-  // 保存选中的项目目录
-  sessionStore.state.selectedProjectDir = selectedDir;
+  // 保存选中的项目目录（若该窗口有独立的 sessionStore）
+  if (sessionStore) {
+    sessionStore.state.selectedProjectDir = selectedDir;
 
-  // ========== 持久化存储会话-目录映射 ==========
-  // 如果当前有会话ID，保存映射
-  if (sessionStore.state.currentSessionId) {
-    sessionStore.saveSessionDirMapping(sessionStore.state.currentSessionId, selectedDir);
-    console.log(`[Cuckoo Code] 已保存会话 ${sessionStore.state.currentSessionId} -> ${selectedDir}`);
-  } else {
-    // 如果未能获取会话ID，尝试从当前URL提取
-    let sessionId = null;
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      const url = mainWindow.webContents.getURL();
-      sessionId = sessionStore.extractSessionIdFromUrl(url);
-    }
-    if (sessionId) {
-      sessionStore.state.currentSessionId = sessionId;
-      sessionStore.saveSessionDirMapping(sessionId, selectedDir);
-      console.log(`[Cuckoo Code] 从URL提取会话ID并保存: ${sessionId} -> ${selectedDir}`);
+    // ========== 持久化存储会话-目录映射 ==========
+    // 如果当前有会话ID，保存映射
+    if (sessionStore.state.currentSessionId) {
+      sessionStore.saveSessionDirMapping(sessionStore.state.currentSessionId, selectedDir);
+      console.log(`[Cuckoo Code] 已保存会话 ${sessionStore.state.currentSessionId} -> ${selectedDir}`);
     } else {
-      // 无法获取会话ID，暂存项目目录，等待URL变化后绑定
-      sessionStore.state.pendingProjectDir = selectedDir;
-      console.log(`[Cuckoo Code] 暂存项目目录 ${selectedDir}，等待会话ID出现后绑定`);
+      // 如果未能获取会话ID，尝试从当前URL提取
+      let sessionId = null;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const url = mainWindow.webContents.getURL();
+        sessionId = sessionStore.extractSessionIdFromUrl(url);
+      }
+      if (sessionId) {
+        sessionStore.state.currentSessionId = sessionId;
+        sessionStore.saveSessionDirMapping(sessionId, selectedDir);
+        console.log(`[Cuckoo Code] 从URL提取会话ID并保存: ${sessionId} -> ${selectedDir}`);
+      } else {
+        // 无法获取会话ID，暂存项目目录，等待URL变化后绑定
+        sessionStore.state.pendingProjectDir = selectedDir;
+        console.log(`[Cuckoo Code] 暂存项目目录 ${selectedDir}，等待会话ID出现后绑定`);
+      }
     }
   }
 
