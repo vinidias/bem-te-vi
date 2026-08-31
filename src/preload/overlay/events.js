@@ -153,6 +153,17 @@ function bindEvents() {
   const genDocBtn = document.getElementById('cuckoo-btn-gen-doc');
   genDocBtn?.addEventListener('click', handleGenerateDoc);
 
+  // 沉浸式交流按钮
+  const immersiveBtn = document.getElementById('cuckoo-btn-immersive');
+  immersiveBtn?.addEventListener('click', () => {
+    const message = '现在你的任何疑问,或没有疑问的选择都需要和我确认 , 确认的方式是 你问一个问题我回答一个问题,然后你再问下一个问题, 最好给我选项, 也要给我个其他的选项, 谢谢 爱你哦';
+    if (!sendToChat(message, '沉浸式交流', 300)) {
+      showToast('未找到输入框，请确保已打开聊天界面', 3000);
+    } else {
+      showToast('已发送沉浸式交流提示', 2200);
+    }
+  });
+
   // 刷新会话列表按钮
   const refreshSessionsBtn = document.getElementById('cuckoo-btn-refresh-sessions');
   refreshSessionsBtn?.addEventListener('click', renderSessions);
