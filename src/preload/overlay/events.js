@@ -193,6 +193,7 @@ function closeMcpManager() {
  * 包括按钮点击、键盘快捷键、状态徽章点击等
  */
 let eventsBound = false;
+let mcpSending = false; // 防止 MCP 信息重复发送
 
 function bindEvents() {
   // 防止重复绑定（SPA 导航或 preload 重载时可能导致多次执行）
@@ -296,6 +297,10 @@ function bindEvents() {
   // MCP 面板：发送 MCP 信息给 AI
   const mcpSendBtn = document.getElementById('cuckoo-mcp-send');
   mcpSendBtn?.addEventListener('click', async () => {
+    // 防重复发送
+    if (mcpSending) return;
+    mcpSending = true;
+    mcpSendBtn.disabled = true;
     try {
       const res = await window.electronAPI.getMcpTools();
       const tools = res && res.success ? res.tools : [];
@@ -324,6 +329,11 @@ function bindEvents() {
       }
     } catch (err) {
       showToast('发送失败: ' + (err.message || err), 3000);
+    } finally {
+      setTimeout(() => {
+        mcpSending = false;
+        if (mcpSendBtn) mcpSendBtn.disabled = false;
+      }, 1000);
     }
   });
 
