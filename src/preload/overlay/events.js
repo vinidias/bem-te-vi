@@ -163,18 +163,12 @@ function bindEvents() {
     openWindowManager();
   });
 
-  // 浮动面板：新建窗口
+  // 浮动面板：新建窗口（不指定平台，让窗口显示平台选择页）
   const wmNewWindowBtn = document.getElementById('cuckoo-wm-new-window');
   wmNewWindowBtn?.addEventListener('click', async () => {
     try {
-      // 获取平台列表，目前只有 DeepSeek 就默认用
-      let providerId = 'deepseek';
-      const pvRes = await window.electronAPI.listProviders();
-      if (pvRes && pvRes.success && pvRes.providers && pvRes.providers.length === 1) {
-        providerId = pvRes.providers[0].id;
-      }
-      await window.electronAPI.createProfileWindowWithProvider(providerId);
-      showToast('已创建新窗口', 2200);
+      await window.electronAPI.createProfileWindow();
+      showToast('已打开平台选择', 2200);
       await renderWindowList();
     } catch (err) {
       showToast('创建新窗口失败: ' + (err.message || err), 3000);

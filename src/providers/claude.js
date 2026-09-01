@@ -32,7 +32,7 @@ module.exports = {
   userInfoSelector: '.df-user-menu-btn span.whitespace-nowrap.text-secondary',
 
   // 首页判断正则（https://claude.ai/new 或 https://claude.ai/）
-  homeUrlPattern: /^https:\/\/claude\.ai(\/new)?\/?(?.*)?$/,
+  homeUrlPattern: /^https:\/\/claude\.ai(\/new)?\/?(\?.*)?$/,
 
   // 从 URL 提取会话 ID（Claude 是 /chat/xxx 格式）
   extractSessionId(url) {

@@ -171,7 +171,8 @@ registerIpcHandlers();
 const { ipcMain: ipcMainForProfile } = require('electron');
 ipcMainForProfile.handle('create-profile-window', async (_event, { providerId } = {}) => {
   const profiles = profileManager.readProfiles();
-  const pid = providerId || 'deepseek';
+  // 不指定平台时创建"未确定平台"的 profile，窗口会显示平台选择页
+  const pid = providerId || '';
   createWindow(profileManager.createProfile('窗口' + (profiles.length + 1), pid));
   return { success: true };
 });
