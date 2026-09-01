@@ -44,12 +44,18 @@ async function renderWindowList() {
     list.innerHTML = profiles.map(p => {
       const pname = providerMap[p.providerId] || '平台';
       return '<div class="cuckoo-window-item" data-profile-id="' + p.id + '">' +
-        '<span class="cuckoo-window-name">' + p.name + '</span>' +
-        '<span class="cuckoo-window-status">' + pname + ' · 点击切换</span>' +
+        '<span class="cuckoo-window-left">' +
+          '<span class="cuckoo-window-name">' + p.name + '</span>' +
+          '<span class="cuckoo-window-sep">|</span>' +
+          '<span class="cuckoo-window-status">' + pname + '</span>' +
+        '</span>' +
+        '<span class="cuckoo-window-del" data-profile-id="' + p.id + '" title="删除窗口">删除</span>' +
       '</div>';
     }).join('');
     list.querySelectorAll('.cuckoo-window-item').forEach(el => {
-      el.addEventListener('click', async () => {
+      el.addEventListener('click', async (e) => {
+        // 点击删除按钮不触发切换
+        if (e.target.classList.contains('cuckoo-window-del')) return;
         const profileId = el.dataset.profileId;
         try {
           const r = await window.electronAPI.openProfileWindow(profileId);
@@ -61,6 +67,24 @@ async function renderWindowList() {
           }
         } catch (err) {
           showToast('打开窗口失败: ' + (err.message || err), 3000);
+        }
+      });
+    });
+    // 绑定删除按钮
+    list.querySelectorAll('.cuckoo-window-del').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const profileId = btn.dataset.profileId;
+        try {
+          const r = await window.electronAPI.deleteProfileWindow(profileId);
+          if (r && r.success) {
+            showToast('已删除窗口', 2000);
+            await renderWindowList();
+          } else {
+            showToast((r && r.error) || '删除失败', 3000);
+          }
+        } catch (err) {
+          showToast('删除失败: ' + (err.message || err), 3000);
         }
       });
     });

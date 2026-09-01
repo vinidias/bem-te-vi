@@ -43,6 +43,8 @@ function createWindow(profile) {
   const storeDir = app.getPath('userData');
   const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
   const hasExplicitProfile = !!profile;
+  // providerId 已确定 → 直接打开；未确定 → 显示平台选择页
+  const providerChosen = !!profileData.providerId;
 
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -61,8 +63,8 @@ function createWindow(profile) {
   // 保存 session 引用（窗口销毁后 webContents 不可访问）
   const winSession = mainWindow.webContents.session;
 
-  // 注册窗口上下文（记录 providerId）
-  windowState.addWindow(mainWindow, profileData.id, provider.id, sessionStore);
+  // 注册窗口上下文（记录 providerId，未确定时为空字符串）
+  windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore);
   sessionsToFlush.add(winSession);
 
   // 更新主窗口引用
@@ -84,11 +86,11 @@ function createWindow(profile) {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   mainWindow.webContents.setUserAgent(userAgent);
 
-  if (hasExplicitProfile) {
-    // 明确指定了 profile（如窗口管理里打开已有窗口），直接进入平台首页
+  if (providerChosen) {
+    // 平台已确定，直接进入平台首页
     mainWindow.loadURL(provider.homeUrl);
   } else {
-    // 首次启动或新建窗口，先显示平台选择页
+    // 平台未确定，显示平台选择页
     const selectPage = path.join(__dirname, '..', 'ui', 'platform-select.html');
     mainWindow.loadFile(selectPage);
   }
@@ -179,6 +181,17 @@ ipcMainForProfile.handle('list-profiles', async () => {
   return { success: true, profiles: profileManager.readProfiles() };
 });
 
+// 删除指定 profile（会关闭其窗口）
+ipcMainForProfile.handle('delete-profile', async (_event, { profileId }) => {
+  if (!profileId) return { success: false, error: '缺少窗口ID' };
+  const ctx = windowState.getWindowByProfileId(profileId);
+  if (ctx && ctx.win && !ctx.win.isDestroyed()) {
+    ctx.win.close();
+  }
+  const ok = profileManager.deleteProfile(profileId);
+  return { success: ok, error: ok ? null : '窗口不存在' };
+});
+
 // 列出所有内置平台
 ipcMainForProfile.handle('list-providers', async () => {
   const { getAllProviders } = require('../providers');
@@ -195,17 +208,7 @@ ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
   if (!provider) return { success: false, error: '平台不存在: ' + providerId };
 
   // 更新该窗口 profile 的 providerId 和 partition
-  const profile = profileManager.getProfileById(ctx.profileId);
-  if (profile) {
-    profile.providerId = providerId;
-    // 注意：partition 在窗口创建时已定，这里 profile 数据更新用于展示，窗口保持原 partition（首次启动无登录态问题）
-    const profiles = profileManager.readProfiles();
-    const target = profiles.find(p => p.id === profile.id);
-    if (target) {
-      target.providerId = providerId;
-      profileManager.writeProfiles(profiles);
-    }
-  }
+  profileManager.updateProfileProvider(ctx.profileId, providerId);
 
   // 记录窗口上下文 providerId
   ctx.providerId = providerId;

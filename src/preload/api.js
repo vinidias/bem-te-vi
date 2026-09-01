@@ -37,6 +37,9 @@ let electronAPI = {
   openProfileWindow: (profileId) => {
     return ipcRenderer.invoke('open-profile-window', { profileId });
   },
+  deleteProfileWindow: (profileId) => {
+    return ipcRenderer.invoke('delete-profile', { profileId });
+  },
   updateWindowName: (displayName) => {
     return ipcRenderer.invoke('update-window-name', { displayName });
   },
