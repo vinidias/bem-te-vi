@@ -192,7 +192,13 @@ function closeMcpManager() {
  * 绑定覆盖层所有 UI 事件
  * 包括按钮点击、键盘快捷键、状态徽章点击等
  */
+let eventsBound = false;
+
 function bindEvents() {
+  // 防止重复绑定（SPA 导航或 preload 重载时可能导致多次执行）
+  if (eventsBound) return;
+  eventsBound = true;
+
   // 从 localStorage 恢复延迟配置
   try {
     const savedMin = localStorage.getItem('cuckoo-send-delay-min');
@@ -240,14 +246,6 @@ function bindEvents() {
   // MCP 面板：刷新
   const mcpRefreshBtn = document.getElementById('cuckoo-mcp-refresh');
   mcpRefreshBtn?.addEventListener('click', renderMcpList);
-
-  // MCP 面板：打开时加载配置到 JSON 框（不阻断初始化）
-  try {
-    openMcpManager();
-    loadMcpConfigToJson();
-  } catch (e) {
-    console.error('[Cuckoo Code] MCP 初始化失败:', e);
-  }
 
   // MCP 面板：保存配置
   const mcpSaveBtn = document.getElementById('cuckoo-mcp-save');
