@@ -1,7 +1,16 @@
 /**
  * MCP 配置管理
- * 配置文件位置：%APPDATA%/cuckoo-ai-pro-session/mcp.json
- * 结构：{ servers: [ { name, type: 'stdio'|'http', enabled, ... } ] }
+ *
+ * mcp.json 采用主流 Claude Desktop 格式（可直接分享/导入）：
+ * {
+ *   "mcpServers": {
+ *     "filesystem": { "command": "npx", "args": [...] },          // stdio
+ *     "remote-db":  { "url": "https://..." }                       // http（扩展）
+ *   }
+ * }
+ *
+ * 启用/禁用状态单独存 mcp-state.json（不污染主流格式）：
+ * { "filesystem": true, "remote-db": false }
  */
 const { app } = require('electron');
 const fs = require('fs');
@@ -9,6 +18,10 @@ const path = require('path');
 
 function getConfigFile() {
   return path.join(app.getPath('userData'), 'mcp.json');
+}
+
+function getStateFile() {
+  return path.join(app.getPath('userData'), 'mcp-state.json');
 }
 
 function readConfig() {
@@ -20,7 +33,7 @@ function readConfig() {
   } catch (err) {
     console.error('[MCP] 读取配置失败:', err.message);
   }
-  return { servers: [] };
+  return { mcpServers: {} };
 }
 
 function writeConfig(config) {
@@ -35,8 +48,47 @@ function writeConfig(config) {
   }
 }
 
+function readState() {
+  try {
+    const file = getStateFile();
+    if (fs.existsSync(file)) {
+      return JSON.parse(fs.readFileSync(file, 'utf-8'));
+    }
+  } catch (err) {}
+  return {};
+}
+
+function writeState(state) {
+  try {
+    fs.writeFileSync(getStateFile(), JSON.stringify(state, null, 2), 'utf-8');
+    return true;
+  } catch (err) {
+    console.error('[MCP] 写入状态失败:', err.message);
+    return false;
+  }
+}
+
+/**
+ * 把 mcpServers 对象转成数组（带 name / type / enabled），便于 UI 和 client 使用。
+ * type 判断：有 url 就是 http，否则 stdio。
+ */
 function getServers() {
-  return readConfig().servers || [];
+  const config = readConfig();
+  const state = readState();
+  const servers = [];
+  for (const [name, def] of Object.entries(config.mcpServers || {})) {
+    servers.push({
+      name,
+      type: def && def.url ? 'http' : 'stdio',
+      command: def && def.command,
+      args: def && def.args || [],
+      url: def && def.url,
+      headers: def && def.headers,
+      env: def && def.env,
+      enabled: state[name] !== false, // 默认启用
+    });
+  }
+  return servers;
 }
 
 function getEnabledServers() {
@@ -45,37 +97,46 @@ function getEnabledServers() {
 
 function upsertServer(server) {
   const config = readConfig();
-  const servers = config.servers || [];
-  const idx = servers.findIndex(s => s.name === server.name);
-  if (idx >= 0) {
-    servers[idx] = { ...servers[idx], ...server };
-  } else {
-    servers.push(server);
+  if (!config.mcpServers || typeof config.mcpServers !== 'object') {
+    config.mcpServers = {};
   }
-  config.servers = servers;
+  const def = {};
+  if (server.type === 'http') {
+    if (server.url) def.url = server.url;
+    if (server.headers) def.headers = server.headers;
+  } else {
+    if (server.command) def.command = server.command;
+    if (server.args && server.args.length) def.args = server.args;
+    if (server.env) def.env = server.env;
+  }
+  config.mcpServers[server.name] = def;
   writeConfig(config);
   return server;
 }
 
 function setServerEnabled(name, enabled) {
-  const config = readConfig();
-  const servers = config.servers || [];
-  const target = servers.find(s => s.name === name);
-  if (!target) return false;
-  target.enabled = !!enabled;
-  writeConfig(config);
+  const state = readState();
+  state[name] = !!enabled;
+  writeState(state);
   return true;
 }
 
 function removeServer(name) {
   const config = readConfig();
-  config.servers = (config.servers || []).filter(s => s.name !== name);
+  if (!config.mcpServers || typeof config.mcpServers !== 'object') {
+    config.mcpServers = {};
+  }
+  delete config.mcpServers[name];
   writeConfig(config);
+  const state = readState();
+  delete state[name];
+  writeState(state);
   return true;
 }
 
 module.exports = {
   getConfigFile,
+  getStateFile,
   readConfig,
   writeConfig,
   getServers,

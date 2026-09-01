@@ -89,6 +89,30 @@ function handleGenerateDoc() {
 }
 
 /**
+ * 加载配置到 JSON 框
+ */
+async function loadMcpConfigToJson() {
+  const res = await window.electronAPI.listMcpServers();
+  const servers = res && res.success ? res.servers : [];
+  // 转成主流 mcpServers 格式
+  const mcpServers = {};
+  for (const s of servers) {
+    const def = {};
+    if (s.type === 'http') {
+      if (s.url) def.url = s.url;
+      if (s.headers) def.headers = s.headers;
+    } else {
+      if (s.command) def.command = s.command;
+      if (s.args && s.args.length) def.args = s.args;
+      if (s.env) def.env = s.env;
+    }
+    mcpServers[s.name] = def;
+  }
+  const jsonInput = document.getElementById('cuckoo-mcp-json');
+  if (jsonInput) jsonInput.value = JSON.stringify({ mcpServers }, null, 2);
+}
+
+/**
  * 渲染 MCP server 列表
  */
 async function renderMcpList() {
@@ -104,32 +128,38 @@ async function renderMcpList() {
     list.innerHTML = servers.map(s => {
       const status = s.connected ? '已连接' : (s.enabled ? '未连接' : '已禁用');
       const statusColor = s.connected ? '#4ade80' : (s.enabled ? '#ffc107' : '#5d6280');
-      return '<div class="cuckoo-window-item" data-mcp-name="' + s.name + '">' +
-        '<span class="cuckoo-window-left">' +
-          '<span class="cuckoo-window-name">' + s.name + '</span>' +
-          '<span class="cuckoo-window-sep">|</span>' +
-          '<span class="cuckoo-window-status">' + (s.type || '') + '</span>' +
-        '</span>' +
-        '<span style="color:' + statusColor + ';font-size:11px;flex-shrink:0;">' + status + '</span>' +
+      return '<div class="cuckoo-window-item cuckoo-mcp-item" data-mcp-name="' + s.name + '">' +
+        '<span class="cuckoo-window-name">' + s.name + '</span>' +
+        '<span class="cuckoo-mcp-dot" style="width:8px;height:8px;border-radius:50%;background:' + statusColor + ';flex-shrink:0;" title="' + status + '"></span>' +
       '</div>';
     }).join('');
 
-    list.querySelectorAll('.cuckoo-window-item').forEach(el => {
+    list.querySelectorAll('.cuckoo-mcp-item').forEach(el => {
       el.addEventListener('click', async () => {
         const name = el.dataset.mcpName;
-        // 点击切换启用/禁用
         const server = servers.find(s => s.name === name);
+        if (!server) return;
+
+        // 点击后立即显示 loading
+        const dot = el.querySelector('.cuckoo-mcp-dot');
+        if (dot) dot.style.background = '#ffc107';
+        el.style.pointerEvents = 'none';
+
         try {
-          if (server.enabled) {
+          if (server.connected || server.enabled) {
+            // 已连接或已启用 → 断开/禁用
             await window.electronAPI.disableMcpServer(name);
-            showToast('已禁用 ' + name, 2000);
+            showToast('已断开 ' + name, 2000);
           } else {
+            // 未启用 → 连接
             await window.electronAPI.enableMcpServer(name);
-            showToast('已启用 ' + name, 2000);
+            showToast('已连接 ' + name, 2000);
           }
           await renderMcpList();
+          await loadMcpConfigToJson();
         } catch (err) {
           showToast('操作失败: ' + (err.message || err), 3000);
+          await renderMcpList();
         }
       });
     });
@@ -146,6 +176,7 @@ function openMcpManager() {
   if (panel) {
     panel.classList.remove('cuckoo-hidden');
     renderMcpList();
+    loadMcpConfigToJson();
   }
 }
 
@@ -210,26 +241,42 @@ function bindEvents() {
   const mcpRefreshBtn = document.getElementById('cuckoo-mcp-refresh');
   mcpRefreshBtn?.addEventListener('click', renderMcpList);
 
-  // MCP 面板：添加/更新 server
-  const mcpAddBtn = document.getElementById('cuckoo-mcp-add');
-  mcpAddBtn?.addEventListener('click', async () => {
+  // MCP 面板：打开时加载配置到 JSON 框
+  openMcpManager();
+  loadMcpConfigToJson();
+
+  // MCP 面板：保存配置
+  const mcpSaveBtn = document.getElementById('cuckoo-mcp-save');
+  mcpSaveBtn?.addEventListener('click', async () => {
     const jsonInput = document.getElementById('cuckoo-mcp-json');
     if (!jsonInput || !jsonInput.value.trim()) {
-      showToast('请输入 MCP server 的 JSON 配置', 3000);
+      showToast('请输入配置', 3000);
       return;
     }
     try {
-      const server = JSON.parse(jsonInput.value);
-      if (!server.name || !server.type) {
-        showToast('配置需要 name 和 type 字段', 3000);
+      const parsed = JSON.parse(jsonInput.value);
+      if (!parsed.mcpServers || typeof parsed.mcpServers !== 'object') {
+        showToast('配置格式错误，需要 mcpServers 对象', 3000);
         return;
       }
-      await window.electronAPI.upsertMcpServer(server);
-      showToast('已添加/更新: ' + server.name, 2200);
-      jsonInput.value = '';
+      // 逐个 upsert
+      for (const [name, def] of Object.entries(parsed.mcpServers)) {
+        const server = {
+          name,
+          type: def && def.url ? 'http' : 'stdio',
+          command: def && def.command,
+          args: def && def.args || [],
+          url: def && def.url,
+          headers: def && def.headers,
+          env: def && def.env,
+        };
+        await window.electronAPI.upsertMcpServer(server);
+      }
+      showToast('配置已保存', 2200);
       await renderMcpList();
+      await loadMcpConfigToJson();
     } catch (err) {
-      showToast('JSON 解析失败: ' + (err.message || err), 3000);
+      showToast('保存失败: ' + (err.message || err), 3000);
     }
   });
 
