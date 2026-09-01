@@ -55,7 +55,7 @@ module.exports = {
   userInfoSelector: '._9d8da05',
 
   // 首页判断正则（用于覆盖层首页模式）
-  homeUrlPattern: /^https:\/\/chat\.deepseek\.com\/?(?.*)?$/,
+  homeUrlPattern: /^https:\/\/chat\.deepseek\.com\/?(\?.*)?$/,
 
   // 从 URL 提取会话 ID
   extractSessionId(url) {
