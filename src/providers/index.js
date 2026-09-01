@@ -3,8 +3,9 @@
  * 加载所有内置的 AI 平台 Provider 定义。
  */
 const deepseek = require('./deepseek');
+const claude = require('./claude');
 
-const providers = [deepseek];
+const providers = [deepseek, claude];
 
 function getProvider(id) {
   return providers.find((p) => p.id === id) || null;
