@@ -301,9 +301,7 @@ function bindEvents() {
     try {
       const res = await window.electronAPI.getMcpTools();
       const tools = res && res.success ? res.tools : [];
-      let msg = '【MCP 工具更新】
-
-';
+      let msg = '【MCP 工具更新】\n\n';
       if (tools.length === 0) {
         msg += '当前没有已连接的 MCP 工具。';
       } else {
@@ -313,14 +311,11 @@ function bindEvents() {
           byServer[t.server].push(t);
         }
         for (const [serverName, list] of Object.entries(byServer)) {
-          msg += '### ' + serverName + '
-';
+          msg += '### ' + serverName + '\n';
           for (const t of list) {
-            msg += '- ' + t.name + (t.description ? ' - ' + t.description : '') + '
-';
+            msg += '- ' + t.name + (t.description ? ' - ' + t.description : '') + '\n';
           }
-          msg += '
-';
+          msg += '\n';
         }
         msg += '使用 mcpCall(server, tool, args) 调用这些工具。';
       }
