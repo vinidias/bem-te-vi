@@ -29,18 +29,16 @@ test('BashTool 空命令拒绝', async () => {
   assert.match(r.error, /invalid command/);
 });
 
-test('BashTool 空描述拒绝', async () => {
+test('BashTool 空描述不拒绝', async () => {
   const tool = new BashTool();
   const r = await tool.execute({ command: 'echo hi', description: '' });
-  assert.strictEqual(r.success, false);
-  assert.match(r.error, /invalid description/);
+  assert.strictEqual(r.success, true);
 });
 
-test('BashTool 缺失描述拒绝', async () => {
+test('BashTool 缺失描述不拒绝', async () => {
   const tool = new BashTool();
   const r = await tool.execute({ command: 'echo hi' });
-  assert.strictEqual(r.success, false);
-  assert.match(r.error, /invalid description/);
+  assert.strictEqual(r.success, true);
 });
 
 test('BashTool 非字符串命令拒绝', async () => {
