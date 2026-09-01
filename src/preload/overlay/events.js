@@ -89,6 +89,75 @@ function handleGenerateDoc() {
 }
 
 /**
+ * 渲染 MCP server 列表
+ */
+async function renderMcpList() {
+  const list = document.getElementById('cuckoo-mcp-list');
+  if (!list) return;
+  try {
+    const res = await window.electronAPI.listMcpServers();
+    const servers = res && res.success ? res.servers : [];
+    if (!servers || servers.length === 0) {
+      list.innerHTML = '<div class="cuckoo-session-empty">暂无 MCP Server</div>';
+      return;
+    }
+    list.innerHTML = servers.map(s => {
+      const status = s.connected ? '已连接' : (s.enabled ? '未连接' : '已禁用');
+      const statusColor = s.connected ? '#4ade80' : (s.enabled ? '#ffc107' : '#5d6280');
+      return '<div class="cuckoo-window-item" data-mcp-name="' + s.name + '">' +
+        '<span class="cuckoo-window-left">' +
+          '<span class="cuckoo-window-name">' + s.name + '</span>' +
+          '<span class="cuckoo-window-sep">|</span>' +
+          '<span class="cuckoo-window-status">' + (s.type || '') + '</span>' +
+        '</span>' +
+        '<span style="color:' + statusColor + ';font-size:11px;flex-shrink:0;">' + status + '</span>' +
+      '</div>';
+    }).join('');
+
+    list.querySelectorAll('.cuckoo-window-item').forEach(el => {
+      el.addEventListener('click', async () => {
+        const name = el.dataset.mcpName;
+        // 点击切换启用/禁用
+        const server = servers.find(s => s.name === name);
+        try {
+          if (server.enabled) {
+            await window.electronAPI.disableMcpServer(name);
+            showToast('已禁用 ' + name, 2000);
+          } else {
+            await window.electronAPI.enableMcpServer(name);
+            showToast('已启用 ' + name, 2000);
+          }
+          await renderMcpList();
+        } catch (err) {
+          showToast('操作失败: ' + (err.message || err), 3000);
+        }
+      });
+    });
+  } catch (err) {
+    list.innerHTML = '<div class="cuckoo-session-empty">加载失败</div>';
+  }
+}
+
+/**
+ * 打开 MCP 管理面板
+ */
+function openMcpManager() {
+  const panel = document.getElementById('cuckoo-mcp-manager');
+  if (panel) {
+    panel.classList.remove('cuckoo-hidden');
+    renderMcpList();
+  }
+}
+
+/**
+ * 关闭 MCP 管理面板
+ */
+function closeMcpManager() {
+  const panel = document.getElementById('cuckoo-mcp-manager');
+  if (panel) panel.classList.add('cuckoo-hidden');
+}
+
+/**
  * 绑定覆盖层所有 UI 事件
  * 包括按钮点击、键盘快捷键、状态徽章点击等
  */
@@ -127,6 +196,41 @@ function bindEvents() {
   const windowManagerBtn = document.getElementById('cuckoo-btn-window-manager');
   windowManagerBtn?.addEventListener('click', () => {
     openWindowManager();
+  });
+
+  // MCP 按钮：打开 MCP 管理面板
+  const mcpBtn = document.getElementById('cuckoo-btn-mcp');
+  mcpBtn?.addEventListener('click', openMcpManager);
+
+  // MCP 面板：关闭
+  const mcpCloseBtn = document.getElementById('cuckoo-mcp-close');
+  mcpCloseBtn?.addEventListener('click', closeMcpManager);
+
+  // MCP 面板：刷新
+  const mcpRefreshBtn = document.getElementById('cuckoo-mcp-refresh');
+  mcpRefreshBtn?.addEventListener('click', renderMcpList);
+
+  // MCP 面板：添加/更新 server
+  const mcpAddBtn = document.getElementById('cuckoo-mcp-add');
+  mcpAddBtn?.addEventListener('click', async () => {
+    const jsonInput = document.getElementById('cuckoo-mcp-json');
+    if (!jsonInput || !jsonInput.value.trim()) {
+      showToast('请输入 MCP server 的 JSON 配置', 3000);
+      return;
+    }
+    try {
+      const server = JSON.parse(jsonInput.value);
+      if (!server.name || !server.type) {
+        showToast('配置需要 name 和 type 字段', 3000);
+        return;
+      }
+      await window.electronAPI.upsertMcpServer(server);
+      showToast('已添加/更新: ' + server.name, 2200);
+      jsonInput.value = '';
+      await renderMcpList();
+    } catch (err) {
+      showToast('JSON 解析失败: ' + (err.message || err), 3000);
+    }
   });
 
   // 浮动面板：新建窗口
@@ -218,6 +322,7 @@ function bindEvents() {
     if (e.key === 'Escape') {
       hideOverlay();
       closeWindowManager();
+      closeMcpManager();
     }
   });
 }

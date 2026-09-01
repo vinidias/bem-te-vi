@@ -195,6 +195,56 @@ ipcMainForProfile.handle('update-window-name', async (event, { displayName }) =>
   return { success: !!updated, name: updated ? updated.name : null };
 });
 
+// ========== MCP 相关 IPC ==========
+const mcpConfig = require('./mcp-config');
+const mcpClient = require('./mcp-client');
+
+// 列出所有 MCP server（含启用状态）
+ipcMainForProfile.handle('list-mcp-servers', async () => {
+  const servers = mcpConfig.getServers();
+  const connected = new Set(mcpClient.getConnectedServers().map(s => s.name));
+  return { success: true, servers: servers.map(s => ({ ...s, connected: connected.has(s.name) })) };
+});
+
+// 添加或更新 MCP server 配置
+ipcMainForProfile.handle('upsert-mcp-server', async (_event, { server }) => {
+  if (!server || !server.name || !server.type) {
+    return { success: false, error: 'server 配置不完整（需要 name 和 type）' };
+  }
+  mcpConfig.upsertServer(server);
+  return { success: true };
+});
+
+// 删除 MCP server
+ipcMainForProfile.handle('remove-mcp-server', async (_event, { name }) => {
+  await mcpClient.disconnectServerByName(name);
+  mcpConfig.removeServer(name);
+  return { success: true };
+});
+
+// 启用 MCP server（连接并拉取工具）
+ipcMainForProfile.handle('enable-mcp-server', async (_event, { name }) => {
+  try {
+    mcpConfig.setServerEnabled(name, true);
+    await mcpClient.connectServerByName(name);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 禁用 MCP server（断开连接）
+ipcMainForProfile.handle('disable-mcp-server', async (_event, { name }) => {
+  mcpConfig.setServerEnabled(name, false);
+  await mcpClient.disconnectServerByName(name);
+  return { success: true };
+});
+
+// 获取已启用 server 的工具列表（用于注入提示词）
+ipcMainForProfile.handle('get-mcp-tools', async () => {
+  return { success: true, tools: mcpClient.getMcpToolList() };
+});
+
 // ========== 单实例锁 ==========
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
