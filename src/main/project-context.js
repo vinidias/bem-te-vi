@@ -8,6 +8,7 @@ const path = require('path');
 
 const windowState = require('./window');
 const { toolRegistry } = require('./tool-registry');
+const mcpClient = require('./mcp-client');
 
 // systemPrompt.md 路径
 const SYSTEM_PROMPT_PATH = path.join(__dirname, '..', '..', 'systemPrompt.md');
@@ -169,6 +170,36 @@ function initProject(skipPrompt = false, windowContext = null) {
   // 获取工具使用指导（section 机制，仿 dsh）
   const promptSections = toolRegistry.getFormattedPromptSections();
 
+  // 获取 MCP 工具列表（已连接的 server 提供的工具）
+  const mcpTools = mcpClient.getMcpToolList();
+  let mcpSection = '';
+  if (mcpTools.length > 0) {
+    const byServer = {};
+    for (const t of mcpTools) {
+      if (!byServer[t.server]) byServer[t.server] = [];
+      byServer[t.server].push(t);
+    }
+    const lines = [];
+    lines.push('## MCP 工具');
+    lines.push('');
+    lines.push('以下是通过 MCP 连接的外部工具。使用 mcpCall(server, tool, args) 调用：');
+    lines.push('');
+    for (const [serverName, tools] of Object.entries(byServer)) {
+      lines.push('### ' + serverName);
+      for (const t of tools) {
+        lines.push('- **' + t.name + '**' + (t.description ? ' - ' + t.description : ''));
+        const schema = t.inputSchema && t.inputSchema.properties;
+        if (schema && Object.keys(schema).length > 0) {
+          const props = Object.entries(schema).map(([k, v]) => {
+            return k + ': ' + (v.type || 'any') + (v.description ? ' (' + v.description + ')' : '');
+          });
+          lines.push('  args: ' + props.join(', '));
+        }
+      }
+    }
+    mcpSection = lines.join('\n');
+  }
+
   // 动态生成平台信息（不硬编码，根据实际运行环境）
   const platform = process.platform;
   const arch = process.arch;
@@ -214,6 +245,8 @@ ${finalPrompt}
 ---
 工具使用指导：
 ${promptSections}
+${mcpSection ? '---
+' + mcpSection : ''}
 ---
 工具使用规则：
 ${finalRules}
