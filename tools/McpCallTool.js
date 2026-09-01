@@ -41,10 +41,27 @@ class McpCallTool extends Tool {
       }
       const mcpClient = require('../src/main/mcp-client');
       const result = await mcpClient.callMcpTool(server, tool, args || {});
-      return ToolResult.success({
-        content: result.content || [],
-        isError: result.isError || false,
-      });
+
+      // 提取纯文本内容
+      const content = result.content || [];
+      let text = '';
+      let hasNonText = false;
+      for (const item of content) {
+        if (item && item.type === 'text' && typeof item.text === 'string') {
+          text += (text ? '\n' : '') + item.text;
+        } else if (item) {
+          hasNonText = true;
+        }
+      }
+
+      if (result.isError) {
+        // 错误友好化：把错误信息作为失败返回
+        const errText = text || 'MCP 工具返回错误';
+        return ToolResult.error(server + '.' + tool + ': ' + errText);
+      }
+
+      // 成功：返回纯文本，若有非文本内容则附带提示
+      return ToolResult.success(text);
     } catch (err) {
       return ToolResult.error('MCP 调用失败: ' + (err.message || String(err)));
     }

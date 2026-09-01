@@ -259,7 +259,18 @@ function bindEvents() {
         showToast('配置格式错误，需要 mcpServers 对象', 3000);
         return;
       }
-      // 逐个 upsert
+
+      // 先删除 JSON 里不存在的旧 server
+      const oldRes = await window.electronAPI.listMcpServers();
+      const oldServers = (oldRes && oldRes.success && oldRes.servers) || [];
+      const newNames = new Set(Object.keys(parsed.mcpServers));
+      for (const old of oldServers) {
+        if (!newNames.has(old.name)) {
+          await window.electronAPI.removeMcpServer(old.name);
+        }
+      }
+
+      // 逐个 upsert 新配置
       for (const [name, def] of Object.entries(parsed.mcpServers)) {
         const server = {
           name,
@@ -272,11 +283,50 @@ function bindEvents() {
         };
         await window.electronAPI.upsertMcpServer(server);
       }
-      showToast('配置已保存', 2200);
+      showToast('配置已保存。如果更改了 MCP 配置，请点击「发送 MCP 信息给 AI」让 AI 知晓', 4000);
       await renderMcpList();
       await loadMcpConfigToJson();
     } catch (err) {
       showToast('保存失败: ' + (err.message || err), 3000);
+    }
+  });
+
+  // MCP 面板：发送 MCP 信息给 AI
+  const mcpSendBtn = document.getElementById('cuckoo-mcp-send');
+  mcpSendBtn?.addEventListener('click', async () => {
+    try {
+      const res = await window.electronAPI.getMcpTools();
+      const tools = res && res.success ? res.tools : [];
+      let msg = '【MCP 工具更新】
+
+';
+      if (tools.length === 0) {
+        msg += '当前没有已连接的 MCP 工具。';
+      } else {
+        const byServer = {};
+        for (const t of tools) {
+          if (!byServer[t.server]) byServer[t.server] = [];
+          byServer[t.server].push(t);
+        }
+        for (const [serverName, list] of Object.entries(byServer)) {
+          msg += '### ' + serverName + '
+';
+          for (const t of list) {
+            msg += '- ' + t.name + (t.description ? ' - ' + t.description : '') + '
+';
+          }
+          msg += '
+';
+        }
+        msg += '使用 mcpCall(server, tool, args) 调用这些工具。';
+      }
+      if (!sendToChat(msg, 'MCP信息', 300)) {
+        showToast('未找到输入框，请确保已打开聊天界面', 3000);
+      } else {
+        showToast('已发送 MCP 信息给 AI', 2200);
+      }
+    } catch (err) {
+      showToast('发送失败: ' + (err.message || err), 3000);
     }
   });
 

@@ -172,17 +172,19 @@ function initProject(skipPrompt = false, windowContext = null) {
 
   // 获取 MCP 工具列表（已连接的 server 提供的工具）
   const mcpTools = mcpClient.getMcpToolList();
-  let mcpSection = '';
+  const lines = [];
+  lines.push('## MCP 能力');
+  lines.push('');
+  lines.push('本应用支持 MCP（Model Context Protocol）外部工具扩展。通过 mcpCall(server, tool, args) 调用。');
+  lines.push('');
+
   if (mcpTools.length > 0) {
     const byServer = {};
     for (const t of mcpTools) {
       if (!byServer[t.server]) byServer[t.server] = [];
       byServer[t.server].push(t);
     }
-    const lines = [];
-    lines.push('## MCP 工具');
-    lines.push('');
-    lines.push('以下是通过 MCP 连接的外部工具。使用 mcpCall(server, tool, args) 调用：');
+    lines.push('当前已连接以下 MCP 工具：');
     lines.push('');
     for (const [serverName, tools] of Object.entries(byServer)) {
       lines.push('### ' + serverName);
@@ -197,8 +199,11 @@ function initProject(skipPrompt = false, windowContext = null) {
         }
       }
     }
-    mcpSection = lines.join('\n');
+  } else {
+    lines.push('当前未连接任何 MCP 工具。');
+    lines.push('如果用户需要额外的工具能力，请引导用户打开覆盖层的 MCP 面板进行配置。');
   }
+  const mcpSection = lines.join('\n');
 
   // 动态生成平台信息（不硬编码，根据实际运行环境）
   const platform = process.platform;
@@ -239,25 +244,13 @@ function initProject(skipPrompt = false, windowContext = null) {
   //   console.error('[Cuckoo Code] 获取目录树失败:', err.message);
   // }
 
-  const combined = `
-系统提示词：
-${finalPrompt}
----
-工具使用指导：
-${promptSections}
-${mcpSection ? '---
-' + mcpSection : ''}
----
-工具使用规则：
-${finalRules}
-${projectIntro ? `---
-## 项目介绍
-${projectIntro}` : ''}
----
-## 当前项目目录
-当前项目路径: ${selectedDir}
----
-如果你觉得需要使用工具，请直接回答工具指令及入参，其他内容不需要回复`;
+  const combined = '系统提示词：\n' + finalPrompt +
+    '\n---\n工具使用指导：\n' + promptSections +
+    (mcpSection ? '\n---\n' + mcpSection : '') +
+    '\n---\n工具使用规则：\n' + finalRules +
+    (projectIntro ? '\n---\n## 项目介绍\n' + projectIntro : '') +
+    '\n---\n## 当前项目目录\n当前项目路径: ' + selectedDir +
+    '\n---\n如果你觉得需要使用工具，请直接回答工具指令及入参，其他内容不需要回复';
 
   console.log('[Cuckoo Code] 准备发送初始提示（不含目录树），长度:', combined.length);
   if (mainWindow && !mainWindow.isDestroyed()) {
