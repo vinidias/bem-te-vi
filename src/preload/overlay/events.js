@@ -241,9 +241,13 @@ function bindEvents() {
   const mcpRefreshBtn = document.getElementById('cuckoo-mcp-refresh');
   mcpRefreshBtn?.addEventListener('click', renderMcpList);
 
-  // MCP 面板：打开时加载配置到 JSON 框
-  openMcpManager();
-  loadMcpConfigToJson();
+  // MCP 面板：打开时加载配置到 JSON 框（不阻断初始化）
+  try {
+    openMcpManager();
+    loadMcpConfigToJson();
+  } catch (e) {
+    console.error('[Cuckoo Code] MCP 初始化失败:', e);
+  }
 
   // MCP 面板：保存配置
   const mcpSaveBtn = document.getElementById('cuckoo-mcp-save');
