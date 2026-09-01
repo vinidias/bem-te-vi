@@ -40,6 +40,15 @@ let electronAPI = {
   updateWindowName: (displayName) => {
     return ipcRenderer.invoke('update-window-name', { displayName });
   },
+  listProviders: () => {
+    return ipcRenderer.invoke('list-providers');
+  },
+  selectPlatform: (providerId) => {
+    return ipcRenderer.invoke('select-platform', { providerId });
+  },
+  createProfileWindowWithProvider: (providerId) => {
+    return ipcRenderer.invoke('create-profile-window', { providerId });
+  },
 };
 
 try {

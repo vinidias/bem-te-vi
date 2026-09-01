@@ -42,6 +42,7 @@ function createWindow(profile) {
   const provider = getProvider(profileData.providerId || 'deepseek') || getProvider('deepseek');
   const storeDir = app.getPath('userData');
   const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
+  const hasExplicitProfile = !!profile;
 
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -83,7 +84,14 @@ function createWindow(profile) {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   mainWindow.webContents.setUserAgent(userAgent);
 
-  mainWindow.loadURL(provider.homeUrl);
+  if (hasExplicitProfile) {
+    // 明确指定了 profile（如窗口管理里打开已有窗口），直接进入平台首页
+    mainWindow.loadURL(provider.homeUrl);
+  } else {
+    // 首次启动或新建窗口，先显示平台选择页
+    const selectPage = path.join(__dirname, '..', 'ui', 'platform-select.html');
+    mainWindow.loadFile(selectPage);
+  }
 
   mainWindow.webContents.on('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -169,6 +177,44 @@ ipcMainForProfile.handle('create-profile-window', async (_event, { providerId } 
 // 列出所有 profiles
 ipcMainForProfile.handle('list-profiles', async () => {
   return { success: true, profiles: profileManager.readProfiles() };
+});
+
+// 列出所有内置平台
+ipcMainForProfile.handle('list-providers', async () => {
+  const { getAllProviders } = require('../providers');
+  return { success: true, providers: getAllProviders().map(p => ({ id: p.id, name: p.name })) };
+});
+
+// 用户在平台选择页选择平台后，绑定 profile 并加载平台首页
+ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
+  if (!providerId) return { success: false, error: '缺少平台ID' };
+  const ctx = windowState.getContextByWebContents(event.sender);
+  if (!ctx) return { success: false, error: '窗口上下文不存在' };
+
+  const provider = getProvider(providerId);
+  if (!provider) return { success: false, error: '平台不存在: ' + providerId };
+
+  // 更新该窗口 profile 的 providerId 和 partition
+  const profile = profileManager.getProfileById(ctx.profileId);
+  if (profile) {
+    profile.providerId = providerId;
+    // 注意：partition 在窗口创建时已定，这里 profile 数据更新用于展示，窗口保持原 partition（首次启动无登录态问题）
+    const profiles = profileManager.readProfiles();
+    const target = profiles.find(p => p.id === profile.id);
+    if (target) {
+      target.providerId = providerId;
+      profileManager.writeProfiles(profiles);
+    }
+  }
+
+  // 记录窗口上下文 providerId
+  ctx.providerId = providerId;
+
+  // 原地跳转到平台首页
+  if (ctx.win && !ctx.win.isDestroyed()) {
+    await ctx.win.loadURL(provider.homeUrl);
+  }
+  return { success: true };
 });
 
 // 打开指定 profile 的窗口（若已存在则聚焦）

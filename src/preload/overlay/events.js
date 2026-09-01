@@ -32,10 +32,20 @@ async function renderWindowList() {
       list.innerHTML = '<div class="cuckoo-session-empty">暂无窗口</div>';
       return;
     }
+    // 获取平台名映射
+    const providerMap = {};
+    try {
+      const pvRes = await window.electronAPI.listProviders();
+      if (pvRes && pvRes.success) {
+        (pvRes.providers || []).forEach(pv => { providerMap[pv.id] = pv.name; });
+      }
+    } catch (_) {}
+
     list.innerHTML = profiles.map(p => {
+      const pname = providerMap[p.providerId] || '平台';
       return '<div class="cuckoo-window-item" data-profile-id="' + p.id + '">' +
         '<span class="cuckoo-window-name">' + p.name + '</span>' +
-        '<span class="cuckoo-window-status">点击打开/切换</span>' +
+        '<span class="cuckoo-window-status">' + pname + ' · 点击切换</span>' +
       '</div>';
     }).join('');
     list.querySelectorAll('.cuckoo-window-item').forEach(el => {
@@ -133,7 +143,13 @@ function bindEvents() {
   const wmNewWindowBtn = document.getElementById('cuckoo-wm-new-window');
   wmNewWindowBtn?.addEventListener('click', async () => {
     try {
-      await window.electronAPI.createProfileWindow();
+      // 获取平台列表，目前只有 DeepSeek 就默认用
+      let providerId = 'deepseek';
+      const pvRes = await window.electronAPI.listProviders();
+      if (pvRes && pvRes.success && pvRes.providers && pvRes.providers.length === 1) {
+        providerId = pvRes.providers[0].id;
+      }
+      await window.electronAPI.createProfileWindowWithProvider(providerId);
       showToast('已创建新窗口', 2200);
       await renderWindowList();
     } catch (err) {
