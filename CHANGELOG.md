@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.2.5-beta.1] - 2026-09-02
+
+### Added
+- 新增 MCP（Model Context Protocol）按需查询能力
+  - mcpListServers() 查看已配置的 MCP server（名称/类型/状态/工具数/工具名）
+  - mcpGetTools(serverName) 查看指定 server 的工具详情（描述+参数）
+  - mcpCall(server, tool, args) 调用 MCP 工具
+- MCP 启动时自动连接已启用的 server，初始化项目时等待连接（8 秒超时）
+- MCP 配置保存前完整 JSON 结构校验（错误时明确提示且不覆盖输入）
+- MCP 配置保存后弹确认框，由用户决定是否通知 AI（避免打断 AI 操作）
+- showConfirmDialog 扩展支持确认/取消双按钮 + Promise 返回（向后兼容）
+- 新增 McpCallTool、McpQueryTools 单元测试
+
+### Changed
+- MCP 提示词改为按需查看模式，不再全量注入工具列表（节省 token）
+- MCP 保存后的自动通知改为简短格式，引导 AI 按需查询
+- 移除 .cuckooCode/CUCKOO.md 作为全局项目介绍（避免干扰其他项目场景）
+
+### Fixed
+- 修复 connectEnabledServers 从未被调用导致 MCP 启动后未连接的问题
+- 修复 initProject 同步逻辑中 MCP 连接时序竞态（改为 async + 等待）
+
+---
+
 ## [0.2.0] - 2026-08-27
 
 ### Breaking Changes
