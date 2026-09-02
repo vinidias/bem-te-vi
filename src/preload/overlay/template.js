@@ -114,7 +114,6 @@ const OVERLAY_HTML = [
 '      <textarea id="cuckoo-mcp-json" class="cuckoo-cmd-preview cuckoo-mcp-json" rows="14" style="font-size:11px;" placeholder="{\n  \"mcpServers\": {\n    \"filesystem\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@modelcontextprotocol/server-filesystem\", \"C:/my-project\"]\n    }\n  }\n}"></textarea>',
 '      <div class="cuckoo-actions">',
 '        <button id="cuckoo-mcp-save" type="button" class="cuckoo-btn cuckoo-btn-primary">保存配置</button>',
-'        <button id="cuckoo-mcp-send" type="button" class="cuckoo-btn cuckoo-btn-secondary" title="把当前 MCP 工具信息发送给 AI">发送 MCP 信息给 AI</button>',
 '      </div>',
 '    </div>',
 '  </div>',

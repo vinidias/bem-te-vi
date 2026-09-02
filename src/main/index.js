@@ -203,6 +203,8 @@ const mcpClient = require('./mcp-client');
 ipcMainForProfile.handle('list-mcp-servers', async () => {
   const servers = mcpConfig.getServers();
   const connected = new Set(mcpClient.getConnectedServers().map(s => s.name));
+  console.log('[MCP DEBUG] servers:', JSON.stringify(servers.map(s => ({ name: s.name, enabled: s.enabled }))));
+  console.log('[MCP DEBUG] connected:', JSON.stringify(Array.from(connected)));
   return { success: true, servers: servers.map(s => ({ ...s, connected: connected.has(s.name) })) };
 });
 
@@ -227,8 +229,10 @@ ipcMainForProfile.handle('enable-mcp-server', async (_event, { name }) => {
   try {
     mcpConfig.setServerEnabled(name, true);
     await mcpClient.connectServerByName(name);
+    console.log('[MCP DEBUG] enable 完成, connections:', JSON.stringify(Array.from(mcpClient.getConnectedServers().map(s => s.name))));
     return { success: true };
   } catch (err) {
+    console.error('[MCP DEBUG] enable 失败:', err);
     return { success: false, error: err.message };
   }
 });
