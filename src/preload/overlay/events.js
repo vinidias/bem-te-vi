@@ -3,7 +3,7 @@
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
 const state = require('../dom/state');
-const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast } = require('./ui');
+const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
 const { handleManualParse } = require('../dom/observer');
 const { sendSystemPromptToInput, sendToChat } = require('../dom/chat-input');
@@ -263,6 +263,46 @@ function bindEvents() {
         return;
       }
 
+      // 校验每个 server 定义是否完整合法（发现错误立即中止，不删旧配置、不覆盖编辑框）
+      for (const [name, def] of Object.entries(parsed.mcpServers)) {
+        if (!def || typeof def !== 'object' || Array.isArray(def)) {
+          showToast('配置错误：server "' + name + '" 的定义必须是对象', 4000);
+          return;
+        }
+        const hasUrl = def.url !== undefined;
+        const hasCommand = def.command !== undefined;
+        if (hasUrl) {
+          if (typeof def.url !== 'string' || !def.url.trim()) {
+            showToast('配置错误：server "' + name + '" 的 url 必须是非空字符串', 4000);
+            return;
+          }
+          if (hasCommand) {
+            showToast('配置错误：server "' + name + '" 不能同时指定 url 和 command', 4000);
+            return;
+          }
+        } else if (hasCommand) {
+          if (typeof def.command !== 'string' || !def.command.trim()) {
+            showToast('配置错误：server "' + name + '" 的 command 必须是非空字符串', 4000);
+            return;
+          }
+        } else {
+          showToast('配置错误：server "' + name + '" 缺少 command 或 url', 4000);
+          return;
+        }
+        if (def.args !== undefined && !Array.isArray(def.args)) {
+          showToast('配置错误：server "' + name + '" 的 args 必须是数组', 4000);
+          return;
+        }
+        if (def.env !== undefined && (typeof def.env !== 'object' || def.env === null || Array.isArray(def.env))) {
+          showToast('配置错误：server "' + name + '" 的 env 必须是对象', 4000);
+          return;
+        }
+        if (def.headers !== undefined && (typeof def.headers !== 'object' || def.headers === null || Array.isArray(def.headers))) {
+          showToast('配置错误：server "' + name + '" 的 headers 必须是对象', 4000);
+          return;
+        }
+      }
+
       // 先删除 JSON 里不存在的旧 server
       const oldRes = await window.electronAPI.listMcpServers();
       const oldServers = (oldRes && oldRes.success && oldRes.servers) || [];
@@ -289,31 +329,27 @@ function bindEvents() {
       showToast('配置已保存', 2200);
       await renderMcpList();
       await loadMcpConfigToJson();
-      // 自动发送 MCP 工具信息给 AI（只发一次）
+      // 询问用户是否将 MCP 更新通知发给 AI（不自动发送）
       try {
+        const confirmed = await showConfirmDialog(
+          'MCP 配置已保存。\n\n是否告诉 AI 配置已更新？\n（请确保 AI 当前没有正在进行其他操作）',
+          { okText: '发送', showCancel: true, cancelText: '取消' }
+        );
+        if (!confirmed) return;
+
         const res = await window.electronAPI.getMcpTools();
         const tools = res && res.success ? res.tools : [];
-        let msg = '【MCP 工具更新】\n\n';
-        if (tools.length === 0) {
-          msg += '当前没有已连接的 MCP 工具。';
+        const serverNames = Array.from(new Set(tools.map(t => t.server)));
+        let msg = '【MCP 配置已更新】\n\n';
+        if (serverNames.length === 0) {
+          msg += '当前没有已连接的 MCP server。';
         } else {
-          const byServer = {};
-          for (const t of tools) {
-            if (!byServer[t.server]) byServer[t.server] = [];
-            byServer[t.server].push(t);
-          }
-          for (const [serverName, list] of Object.entries(byServer)) {
-            msg += '### ' + serverName + '\n';
-            for (const t of list) {
-              msg += '- ' + t.name + (t.description ? ' - ' + t.description : '') + '\n';
-            }
-            msg += '\n';
-          }
-          msg += '使用 mcpCall(server, tool, args) 调用这些工具。';
+          msg += '可用的 MCP server：' + serverNames.join('、') + '。\n';
+          msg += '需要时用 mcpListServers() 查看概览，或用 mcpGetTools(serverName) 查看具体工具。';
         }
         sendToChat(msg, 'MCP信息', 300);
       } catch (err) {
-        console.error('[Cuckoo Code] 自动发送 MCP 信息失败:', err);
+        console.error('[Cuckoo Code] 发送 MCP 信息失败:', err);
       }
     } catch (err) {
       showToast('保存失败: ' + (err.message || err), 3000);

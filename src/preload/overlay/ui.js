@@ -96,44 +96,75 @@ function showToast(text, duration = 2200) {
 }
 
 /**
- * 显示带确认按钮的持久提示框（不点击就一直存在）
+ * 显示带确认/取消按钮的持久提示框（不点击就一直存在）
  * @param {string} text - 提示文本
+ * @param {object} [options] - 可选配置
+ * @param {string} [options.okText] - 确定按钮文字，默认「确定」
+ * @param {boolean} [options.showCancel] - 是否显示取消按钮，默认 false
+ * @param {string} [options.cancelText] - 取消按钮文字，默认「取消」
+ * @returns {Promise<boolean>} 用户点确定 resolve(true)，点取消 resolve(false)
  */
-function showConfirmDialog(text) {
+function showConfirmDialog(text, options) {
+  const opts = options || {};
+  const okText = opts.okText || '确定';
+  const showCancel = !!opts.showCancel;
+  const cancelText = opts.cancelText || '取消';
+
   // 移除旧弹窗
   const old = document.getElementById('cuckoo-confirm-dialog');
   if (old) old.remove();
 
-  const dialog = document.createElement('div');
-  dialog.id = 'cuckoo-confirm-dialog';
-  dialog.style.cssText = `
-    position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 2147483648;
-    min-width: 280px; max-width: 380px;
-    background: rgba(22, 24, 44, 0.96);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border: 1px solid rgba(139, 147, 255, 0.35);
-    border-radius: 14px;
-    padding: 20px 18px 16px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    color: #dde1ff; font-size: 13px; line-height: 1.6;
-    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55);
-    text-align: center;
-  `;
-  dialog.innerHTML = `
-    <div style="margin-bottom:16px;white-space:pre-wrap;word-break:break-word;">${text}</div>
-    <button id="cuckoo-confirm-ok" style="
-      padding: 9px 28px; border: none; border-radius: 10px;
-      background: linear-gradient(135deg, #8b93ff, #6d76ff); color: #fff;
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      transition: all 0.2s;
-    ">确定</button>
-  `;
-  document.body.appendChild(dialog);
-  dialog.querySelector('#cuckoo-confirm-ok').addEventListener('click', () => {
-    dialog.remove();
+  return new Promise((resolve) => {
+    const dialog = document.createElement('div');
+    dialog.id = 'cuckoo-confirm-dialog';
+    dialog.style.cssText = `
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2147483648;
+      min-width: 280px; max-width: 380px;
+      background: rgba(22, 24, 44, 0.96);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(139, 147, 255, 0.35);
+      border-radius: 14px;
+      padding: 20px 18px 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      color: #dde1ff; font-size: 13px; line-height: 1.6;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55);
+      text-align: center;
+    `;
+    const cancelBtnHtml = showCancel
+      ? `<button id="cuckoo-confirm-cancel" style="
+          padding: 9px 24px; border: 1px solid rgba(139,147,255,0.4); border-radius: 10px;
+          background: transparent; color: #aab0ff;
+          font-size: 13px; font-weight: 600; cursor: pointer;
+          margin-right: 10px; transition: all 0.2s;
+        ">${cancelText}</button>`
+      : '';
+    dialog.innerHTML = `
+      <div style="margin-bottom:16px;white-space:pre-wrap;word-break:break-word;">${text}</div>
+      <div>${cancelBtnHtml}
+        <button id="cuckoo-confirm-ok" style="
+          padding: 9px 28px; border: none; border-radius: 10px;
+          background: linear-gradient(135deg, #8b93ff, #6d76ff); color: #fff;
+          font-size: 13px; font-weight: 600; cursor: pointer;
+          transition: all 0.2s;
+        ">${okText}</button>
+      </div>
+    `;
+    document.body.appendChild(dialog);
+
+    const cleanup = () => dialog.remove();
+    dialog.querySelector('#cuckoo-confirm-ok').addEventListener('click', () => {
+      cleanup();
+      resolve(true);
+    });
+    if (showCancel) {
+      dialog.querySelector('#cuckoo-confirm-cancel').addEventListener('click', () => {
+        cleanup();
+        resolve(false);
+      });
+    }
   });
 }
 
