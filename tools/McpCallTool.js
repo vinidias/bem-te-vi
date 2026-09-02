@@ -26,7 +26,7 @@ class McpCallTool extends Tool {
     return {
       name: 'tool:mcp',
       order: 118,
-      text: '调用 MCP 工具时使用 mcpCall(server, tool, args)。可用的 MCP server 和工具列表在系统提示词的「MCP 工具」部分。'
+      text: '调用 MCP 工具时使用 mcpCall(server, tool, args)。使用前先通过 mcpListServers() 和 mcpGetTools() 查询可用能力。'
     };
   }
 

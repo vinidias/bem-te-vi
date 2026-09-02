@@ -265,6 +265,11 @@ if (!gotSingleInstanceLock) {
   app.whenReady().then(() => {
     setupAppMenu();
     createWindow(null);
+
+    // 后台连接已启用的 MCP server，不阻塞窗口创建
+    mcpClient.connectEnabledServers().catch(err => {
+      console.error('[MCP] 初始化连接失败:', err.message);
+    });
   });
 }
 

@@ -76,7 +76,7 @@ function getDirectoryTree(dir, prefix = '') {
  * 供 IPC 调用（用户点击初始化按钮时触发）
  * @param {boolean} skipPrompt - 如果为true，只更新目录映射，不发送初始提示（用于修改目录）
  */
-function initProject(skipPrompt = false, windowContext = null) {
+async function initProject(skipPrompt = false, windowContext = null) {
   const ctx = windowContext || windowState.getMainContext();
   const mainWindow = ctx ? ctx.win : windowState.getMainWindow();
   const sessionStore = ctx ? ctx.sessionStore : null;
@@ -170,40 +170,29 @@ function initProject(skipPrompt = false, windowContext = null) {
   // 获取工具使用指导（section 机制，仿 dsh）
   const promptSections = toolRegistry.getFormattedPromptSections();
 
-  // 获取 MCP 工具列表（已连接的 server 提供的工具）
-  const mcpTools = mcpClient.getMcpToolList();
-  const lines = [];
-  lines.push('## MCP 能力');
-  lines.push('');
-  lines.push('本应用支持 MCP（Model Context Protocol）外部工具扩展。通过 mcpCall(server, tool, args) 调用。');
-  lines.push('');
-
-  if (mcpTools.length > 0) {
-    const byServer = {};
-    for (const t of mcpTools) {
-      if (!byServer[t.server]) byServer[t.server] = [];
-      byServer[t.server].push(t);
-    }
-    lines.push('当前已连接以下 MCP 工具：');
-    lines.push('');
-    for (const [serverName, tools] of Object.entries(byServer)) {
-      lines.push('### ' + serverName);
-      for (const t of tools) {
-        lines.push('- **' + t.name + '**' + (t.description ? ' - ' + t.description : ''));
-        const schema = t.inputSchema && t.inputSchema.properties;
-        if (schema && Object.keys(schema).length > 0) {
-          const props = Object.entries(schema).map(([k, v]) => {
-            return k + ': ' + (v.type || 'any') + (v.description ? ' (' + v.description + ')' : '');
-          });
-          lines.push('  args: ' + props.join(', '));
-        }
-      }
-    }
-  } else {
-    lines.push('当前未连接任何 MCP 工具。');
-    lines.push('如果用户需要额外的工具能力，请引导用户打开覆盖层的 MCP 面板进行配置。');
+  // 确保已启用的 MCP server 已连接（8 秒超时，避免阻塞初始化）
+  try {
+    await Promise.race([
+      mcpClient.connectEnabledServers(),
+      new Promise(resolve => setTimeout(resolve, 8000))
+    ]);
+  } catch (err) {
+    console.error('[MCP] 初始化时连接失败:', err.message);
   }
-  const mcpSection = lines.join('\n');
+
+  // MCP 章节：按需查看模式，不在提示词中全量注入工具列表
+  const mcpSection = [
+    '## MCP 能力',
+    '',
+    '本应用支持 MCP（Model Context Protocol）外部工具扩展。',
+    '',
+    '使用 MCP 前，请先查询可用能力：',
+    '1. 调用 mcpListServers() 查看当前已配置的 MCP server 列表（含启用/连接状态）',
+    '2. 调用 mcpGetTools(serverName) 查看指定 server 提供的工具和参数',
+    '3. 确认后通过 mcpCall(server, tool, args) 调用具体工具',
+    '',
+    '注意：MCP server 可能未连接或未启用，以 mcpListServers() 的实时返回为准。'
+  ].join('\n');
 
   // 动态生成平台信息（不硬编码，根据实际运行环境）
   const platform = process.platform;

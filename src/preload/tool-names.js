@@ -22,6 +22,8 @@ const TOOL_NAMES = [
   'web_fetch',
   'open_browser_window',
   'inject_js',
+  'mcp_list_servers',
+  'mcp_get_tools',
 ];
 
 /** 判断工具名是否存在（原 toolManager.tools.has(name)） */

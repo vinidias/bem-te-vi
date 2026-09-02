@@ -126,6 +126,41 @@ function getMcpToolList() {
   return out;
 }
 
+/**
+ * 列出所有已配置的 MCP server（含启用状态和连接状态）
+ * @returns {Array<{name, type, enabled, connected, toolCount}>}
+ */
+function listConfiguredServers() {
+  const servers = mcpConfig.getServers();
+  return servers.map(s => {
+    const entry = connections.get(s.name);
+    return {
+      name: s.name,
+      type: s.type,
+      enabled: s.enabled,
+      connected: !!(entry && entry.connected),
+      toolCount: entry ? entry.tools.length : 0,
+    };
+  });
+}
+
+/**
+ * 获取指定 server 的工具列表（按需连接）
+ * @param {string} name server 名称
+ * @returns {Array<{name, description, inputSchema}>}
+ */
+async function getToolsByServer(name) {
+  let entry = connections.get(name);
+  if (!entry) {
+    entry = await connectServerByName(name);
+  }
+  return entry.tools.map(t => ({
+    name: t.name,
+    description: t.description || '',
+    inputSchema: t.inputSchema || {},
+  }));
+}
+
 module.exports = {
   connectServer,
   disconnectServer,
@@ -136,4 +171,6 @@ module.exports = {
   callMcpTool,
   getConnectedServers,
   getMcpToolList,
+  listConfiguredServers,
+  getToolsByServer,
 };
