@@ -58,9 +58,8 @@ function init() {
   setInterval(() => {
     try {
       const provider = getProviderByUrl(window.location.href);
-      if (!provider || !provider.userInfoSelector) return;
-      const userEl = document.querySelector(provider.userInfoSelector);
-      const text = userEl ? userEl.textContent.trim() : '';
+      if (!provider || typeof provider.extractUserInfo !== 'function') return;
+      const text = provider.extractUserInfo();
       if (text && text !== lastSentUserName) {
         lastSentUserName = text;
         window.electronAPI.updateWindowName(text).catch(() => {});

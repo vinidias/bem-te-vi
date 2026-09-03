@@ -145,15 +145,9 @@ function sendCombinedJsResultsToChat(results) {
  */
 function findInputArea() {
   const provider = getCurrentProvider();
-
-  if (provider) {
-    // 按 provider 定义的选择器查找
-    for (const sel of provider.inputSelectors || []) {
-      try {
-        const el = document.querySelector(sel);
-        if (el && isInputVisible(el)) return el;
-      } catch (_) {}
-    }
+  if (provider && typeof provider.findInput === 'function') {
+    const el = provider.findInput();
+    if (el) return el;
   }
 
   // 通用兜底：找所有可见 textarea
@@ -230,17 +224,13 @@ function waitForInitialPromptAndSend() {
 function triggerSend(input) {
   const provider = getCurrentProvider();
 
-  // 方法 1: 按 provider 定义的发送按钮选择器查找
-  if (provider) {
-    for (const sel of provider.sendButtonSelectors || []) {
-      try {
-        const btn = document.querySelector(sel);
-        if (btn && isInputVisible(btn) && !btn.disabled) {
-          btn.click();
-          console.log('[Cuckoo Code] 已点击发送按钮: ' + sel);
-          return;
-        }
-      } catch (_) {}
+  // 方法 1: 调用平台 Provider 查找发送按钮
+  if (provider && typeof provider.findSendButton === 'function') {
+    const btn = provider.findSendButton();
+    if (btn) {
+      btn.click();
+      console.log('[Cuckoo Code] 已点击发送按钮');
+      return;
     }
   }
 

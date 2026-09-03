@@ -197,13 +197,18 @@ function initProject(skipPrompt = false, windowContext = null) {
     ? '---\n## 项目介绍\n' + projectIntro
     : '';
 
-  // 统一替换模板中的双花括号占位符
-  const combined = templateContent
-    .replace('{{TOOLS_LIST}}', toolsDescription)
-    .replace('{{TOOL_SECTIONS}}', promptSections)
-    .replace('{{PLATFORM_INFO}}', platformInfo)
-    .replace('{{PROJECT_DIR}}', selectedDir)
-    .replace('{{PROJECT_INTRO_SECTION}}', projectIntroSection);
+  // 统一替换模板中的双花括号占位符（全量替换，支持同一占位符多次出现）
+  const placeholders = {
+    '{{TOOLS_LIST}}': toolsDescription,
+    '{{TOOL_SECTIONS}}': promptSections,
+    '{{PLATFORM_INFO}}': platformInfo,
+    '{{PROJECT_DIR}}': selectedDir,
+    '{{PROJECT_INTRO_SECTION}}': projectIntroSection,
+  };
+  let combined = templateContent;
+  for (const [key, value] of Object.entries(placeholders)) {
+    combined = combined.split(key).join(value);
+  }
 
   console.log('[Cuckoo Code] 准备发送初始提示（不含目录树），长度:', combined.length);
   if (mainWindow && !mainWindow.isDestroyed()) {

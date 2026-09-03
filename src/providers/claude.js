@@ -8,28 +8,52 @@ module.exports = {
   homeUrl: 'https://claude.ai/new',
   sessionUrlBase: 'https://claude.ai/chat/',
 
-  // 输入框选择器（Claude 用 ProseMirror contenteditable，不是 textarea）
-  inputSelectors: [
-    'div[role="textbox"].tiptap',
-    'div[role="textbox"]',
-    'div.ProseMirror',
-    'div[contenteditable="true"]',
-    'textarea',
-  ],
+  // 判断元素是否可见（offsetWidth/offsetHeight > 0）
+  isElementVisible(el) {
+    if (!el) return false;
+    return el.offsetWidth > 0 && el.offsetHeight > 0;
+  },
 
-  // 输入框关键词兜底匹配
-  inputKeywords: ['claude', 'message', 'ask', 'send', '输入', '提问', '发送'],
+  // 查找可见的聊天输入框（Claude 用 ProseMirror contenteditable）
+  findInput() {
+    const selectors = [
+      'div[role="textbox"].tiptap',
+      'div[role="textbox"]',
+      'div.ProseMirror',
+      'div[contenteditable="true"]',
+      'textarea',
+    ];
+    for (const sel of selectors) {
+      try {
+        const el = document.querySelector(sel);
+        if (this.isElementVisible(el)) return el;
+      } catch (_) {}
+    }
+    return null;
+  },
 
-  // 发送按钮选择器
-  sendButtonSelectors: [
-    'button[aria-label="Send message"]',
-    '[data-testid="chat-input-send"]',
-    'button[aria-label*="send"]',
-    'button[aria-label*="Send"]',
-  ],
+  // 查找可见且未禁用的发送按钮
+  findSendButton() {
+    const selectors = [
+      'button[aria-label="Send message"]',
+      '[data-testid="chat-input-send"]',
+      'button[aria-label*="send"]',
+      'button[aria-label*="Send"]',
+    ];
+    for (const sel of selectors) {
+      try {
+        const btn = document.querySelector(sel);
+        if (this.isElementVisible(btn) && !btn.disabled) return btn;
+      } catch (_) {}
+    }
+    return null;
+  },
 
-  // 用户信息选择器（左下角账号名）
-  userInfoSelector: '.df-user-menu-btn span.whitespace-nowrap.text-secondary',
+  // 提取当前用户信息文本（左下角账号名）
+  extractUserInfo() {
+    const el = document.querySelector('.df-user-menu-btn span.whitespace-nowrap.text-secondary');
+    return el ? el.textContent.trim() : '';
+  },
 
   // 首页判断正则（https://claude.ai/new 或 https://claude.ai/）
   homeUrlPattern: /^https:\/\/claude\.ai(\/new)?\/?(\?.*)?$/,
@@ -45,5 +69,57 @@ module.exports = {
   // 判断 URL 是否属于本平台
   matchesUrl(url) {
     return url.includes('claude.ai');
+  },
+
+  // ========== 自动解析相关方法 ==========
+
+  // 判断 AI 是否已完成回复（官方完成信号：chat-footer-spark）
+  isResponseComplete() {
+    const spark = document.querySelector('[data-testid="chat-footer-spark"]');
+    if (!spark) return false;
+    return !spark.classList.contains('invisible');
+  },
+
+  // 获取当前页面所有 AI 消息容器（排除用户消息）
+  getMessageCandidates() {
+    return Array.from(document.querySelectorAll('[class*="message-row"]')).filter(el => !this.isUserMessage(el));
+  },
+
+  // 从消息容器中取回复内容根节点
+  getMessageMarkdown(messageEl) {
+    return messageEl.querySelector('[class*="standard-markdown"]') ||
+      messageEl.querySelector('div[class*="prose"]') ||
+      messageEl;
+  },
+
+  // 判断节点是否位于用户消息区域内
+  isUserMessage(node) {
+    let current = node;
+    while (current) {
+      const testid = current.getAttribute?.('data-testid') || '';
+      if (testid === 'user-message') return true;
+      const role = current.getAttribute?.('data-role') || current.getAttribute?.('data-author') || '';
+      if (role === 'user' || role === 'human') return true;
+      current = current.parentElement;
+    }
+    const rowEl = node && node.closest ? node.closest('[class*="message-row"]') : null;
+    if (rowEl && rowEl.querySelector('[data-testid="user-message"]')) return true;
+    const text = (node.textContent || node.innerText || '').substring(0, 200);
+    return text.includes('我已选择目录：') || text.includes('系统提示词：') || text.includes('工具使用规则：');
+  },
+
+  // 提取代码块的语言标记（Claude 使用 code[class*="language-"]）
+  getCodeBlockLanguage(pre) {
+    if (!pre) return '';
+    const codeEl = pre.querySelector('code');
+    const els = [codeEl, pre].filter(Boolean);
+    for (const el of els) {
+      const cls = el.className || '';
+      if (typeof cls === 'string') {
+        const langMatch = cls.match(/language-([\w-]+)/);
+        if (langMatch) return langMatch[1].toLowerCase();
+      }
+    }
+    return '';
   },
 };
