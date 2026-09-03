@@ -5,6 +5,14 @@
 const { ipcRenderer } = require('electron');
 const state = require('./state');
 const { BT } = require('./js-detector');
+const { getProviderByUrl } = require('../../../src/providers');
+
+/**
+ * 根据当前 URL 获取 provider
+ */
+function getCurrentProvider() {
+  return getProviderByUrl(window.location.href);
+}
 
 /**
  * 生成随机等待时间（ms），范围由 state 配置（默认 2-4 秒）
@@ -136,40 +144,26 @@ function sendCombinedJsResultsToChat(results) {
  * 查找 DeepSeek 的输入框元素
  */
 function findInputArea() {
-  // 尝试多种常见的 textarea 选择器
-  const selectors = [
-    'textarea[placeholder*="message"]',
-    'textarea[placeholder*="Message"]',
-    'textarea[placeholder*="输入"]',
-    'textarea[placeholder*="输入消息"]',
-    'textarea[placeholder*="ask"]',
-    'textarea[placeholder*="Ask"]',
-    'textarea[placeholder*="提问"]',
-    'textarea[placeholder*="发送"]',
-    'textarea[placeholder*="send"]',
-    'textarea[placeholder*="deepseek"]',
-    'textarea[placeholder*="DeepSeek"]',
-    'textarea.chat-input',
-    'textarea',
-    'div[contenteditable="true"]',
-    '[role="textbox"]',
-  ];
+  const provider = getCurrentProvider();
 
-  for (const sel of selectors) {
-    const el = document.querySelector(sel);
-    if (el && isInputVisible(el)) {
-      return el;
+  if (provider) {
+    // 按 provider 定义的选择器查找
+    for (const sel of provider.inputSelectors || []) {
+      try {
+        const el = document.querySelector(sel);
+        if (el && isInputVisible(el)) return el;
+      } catch (_) {}
     }
   }
 
-  // 额外搜索：查找包含特定文字的输入框
+  // 通用兜底：找所有可见 textarea
   const allTextareas = document.querySelectorAll('textarea');
   for (const ta of allTextareas) {
-    const placeholder = (ta.placeholder || '').toLowerCase();
-    if (placeholder && (placeholder.includes('deepseek') || placeholder.includes('message') || placeholder.includes('ask') || placeholder.includes('send'))) {
-      return ta;
-    }
+    if (isInputVisible(ta)) return ta;
   }
+  // 再找 contenteditable 或 textbox
+  const editable = document.querySelector('div[contenteditable="true"], [role="textbox"]');
+  if (editable && isInputVisible(editable)) return editable;
 
   return null;
 }
@@ -283,31 +277,19 @@ function waitForInitialPromptAndSend() {
  * 触发发送消息
  */
 function triggerSend(input) {
-  // 方法 1: 查找发送按钮（按钮仅在输入框有内容时才可用）
-  const sendSelectors = [
-    'button[type="submit"]',
-    'button[aria-label*="send"]',
-    'button[aria-label*="发送"]',
-    'button[title*="send"]',
-    'button[title*="发送"]',
-    'button[data-action="send"]',
-    'button[data-type="send"]',
-    '.send-btn',
-    '.submit-btn',
-    'button svg[data-icon="send"]',
-    '[data-testid="send"]',
-    '[data-testid="send-button"]',
-    'button:has(svg[data-icon="arrow"])',
-    'button:has(> svg)',
-    'button:has(svg[data-icon="send"])',
-  ];
+  const provider = getCurrentProvider();
 
-  for (const sel of sendSelectors) {
-    const btn = document.querySelector(sel);
-    if (btn && isInputVisible(btn) && !btn.disabled) {
-      btn.click();
-      console.log('[Cuckoo Code] 已点击发送按钮: ' + sel);
-      return;
+  // 方法 1: 按 provider 定义的发送按钮选择器查找
+  if (provider) {
+    for (const sel of provider.sendButtonSelectors || []) {
+      try {
+        const btn = document.querySelector(sel);
+        if (btn && isInputVisible(btn) && !btn.disabled) {
+          btn.click();
+          console.log('[Cuckoo Code] 已点击发送按钮: ' + sel);
+          return;
+        }
+      } catch (_) {}
     }
   }
 

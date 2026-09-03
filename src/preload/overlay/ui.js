@@ -3,6 +3,7 @@
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
 const { OVERLAY_HTML, OVERLAY_CSS } = require('./template');
+const { getProviderByUrl } = require('../../../src/providers');
 
 // ========== 注入样式 ==========
 /**
@@ -279,7 +280,8 @@ function flashBadge() {
  */
 function updateHomeMode() {
   const url = window.location.href;
-  const isHome = /^https:\/\/chat\.deepseek\.com\/?(\?.*)?$/.test(url);
+  const provider = getProviderByUrl(url);
+  const isHome = provider && provider.homeUrlPattern ? provider.homeUrlPattern.test(url) : false;
   const overlay = document.getElementById('cuckoo-overlay');
   if (overlay) {
     if (isHome) {
