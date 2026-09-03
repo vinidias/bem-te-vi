@@ -8,7 +8,7 @@ const path = require('path');
  * - old_string 非空
  * - old_string !== new_string（避免 no-op）
  */
-function parseEditArgs(filePath, oldString, newString, replaceAll) {
+function parseEditArgs(filePath, oldString, newString, replaceAll, dryRun) {
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
     throw new Error('file_path must be a non-empty string');
   }
@@ -26,16 +26,29 @@ function parseEditArgs(filePath, oldString, newString, replaceAll) {
     oldString,
     newString,
     replaceAll: replaceAll === true,
+    dryRun: dryRun === true,
   };
 }
 
 /**
  * 对齐 dsh formatEditOutput：Claude-style 确认语。
  */
-function formatEditOutput(displayPath, replaceAll) {
+function formatEditOutput(displayPath, replaceAll, occurrences = 1) {
+  const noun = occurrences === 1 ? 'occurrence' : 'occurrences';
   return replaceAll
-    ? 'The file ' + displayPath + ' has been updated. All occurrences were successfully replaced.'
-    : 'The file ' + displayPath + ' has been updated successfully.';
+    ? 'The file ' + displayPath + ' has been updated. Replaced ' + occurrences + ' ' + noun + ' successfully.'
+    : 'The file ' + displayPath + ' has been updated successfully. Replaced 1 occurrence.';
+}
+
+/**
+ * dry-run 预览输出：不写文件，只返回将要替换的信息。
+ */
+function formatDryRunOutput(displayPath, oldString, newString, occurrences, replaceAll) {
+  const action = replaceAll
+    ? '将全部替换 ' + occurrences + ' 处'
+    : '将替换 1 处';
+  return '[DRY-RUN] 文件未修改。' + displayPath + '：' + action +
+    '。old: ' + JSON.stringify(oldString) + ' → new: ' + JSON.stringify(newString);
 }
 
 /**
@@ -66,12 +79,17 @@ class EditTool extends Tool {
             type: 'boolean',
             description: '是否替换所有匹配。默认 false；false 时 old_string 必须唯一匹配',
             default: false
+          },
+          dryRun: {
+            type: 'boolean',
+            description: '是否只预览不写入。true 时返回将替换的处数和内容，不修改文件',
+            default: false
           }
         },
         required: ['file_path', 'old_string', 'new_string'],
         additionalProperties: false
       },
-      'edit(filePath, oldString, newString, replaceAll?)'
+      'edit(filePath, oldString, newString, replaceAll?, dryRun?)'
     );
   }
 
@@ -79,15 +97,15 @@ class EditTool extends Tool {
     return {
       name: 'tool:edit',
       order: 102,
-      text: '使用 edit 工具对现有 UTF-8 文本文件做定向修改。它用 new_string 替换字面量 old_string；默认 old_string 必须唯一匹配。如果 old_string 出现多次，请提供更具体的 old_string 或设置 replaceAll 为 true。除非你刚在本会话中创建或编辑过该文件，否则先 read 文件。'
+      text: '使用 edit 工具对现有 UTF-8 文本文件做定向修改。它用 new_string 替换字面量 old_string；默认 old_string 必须唯一匹配。如果 old_string 出现多次，请提供更具体的 old_string 或设置 replaceAll 为 true。批量替换同一文本时优先用 replaceAll: true 一次完成，避免读全文后整体写回；返回结果会包含实际替换处数，可用于自我校验。批量修改前可用 dryRun: true 预览，确认无误后再真实写入。除非你刚在本会话中创建或编辑过该文件，否则先 read 文件。注意：read 输出的内容带行号，old_string/new_string 必须是文件原始文本，不要包含行号或 footer 提示。'
     };
   }
 
   async execute(params) {
-    const { file_path, old_string, new_string, replaceAll, projectDir } = params;
+    const { file_path, old_string, new_string, replaceAll, dryRun, projectDir } = params;
 
     try {
-      const input = parseEditArgs(file_path, old_string, new_string, replaceAll);
+      const input = parseEditArgs(file_path, old_string, new_string, replaceAll, dryRun);
 
       // 路径解析：相对路径基于 projectDir
       const normalizedPath = input.filePath.replace(/\//g, path.sep);
@@ -124,7 +142,7 @@ class EditTool extends Tool {
         return ToolResult.error('未找到要替换的文本，请检查 old_string 是否与文件内容精确匹配。文件路径: ' + resolvedPath);
       }
       if (occurrences > 1 && !input.replaceAll) {
-        return ToolResult.error('old_string 在文件中出现 ' + occurrences + ' 次，请提供更长的唯一片段，或设置 replaceAll: true');
+        return ToolResult.error('old_string 在文件中出现 ' + occurrences + ' 次。若要全部替换，请设置 replaceAll: true；若只替换其中一处，请提供更长的唯一片段（更多上下文）。');
       }
 
       // 执行替换
@@ -132,14 +150,20 @@ class EditTool extends Tool {
         ? content.split(oldString).join(newString)
         : content.replace(oldString, newString);
 
+      // dry-run：只预览，不写文件
+      if (input.dryRun) {
+        console.log('[EditTool] dry-run 预览:', resolvedPath, '将替换', occurrences, '处');
+        return ToolResult.success(formatDryRunOutput(input.filePath, input.oldString, input.newString, occurrences, input.replaceAll));
+      }
+
       fs.writeFileSync(resolvedPath, newContent, 'utf-8');
 
       console.log('[EditTool] 已编辑:', resolvedPath, '替换', occurrences, '处');
-      return ToolResult.success(formatEditOutput(input.filePath, input.replaceAll));
+      return ToolResult.success(formatEditOutput(input.filePath, input.replaceAll, occurrences));
     } catch (err) {
       return ToolResult.error('编辑文件失败: ' + err.message);
     }
   }
 }
 
-module.exports = { EditTool, parseEditArgs, formatEditOutput };
+module.exports = { EditTool, parseEditArgs, formatEditOutput, formatDryRunOutput };

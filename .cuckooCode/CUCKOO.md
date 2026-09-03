@@ -64,7 +64,7 @@ AI 在 ```cuckoo 代码块中编写 JS，可用工具函数（13 个）：
 ### 文件操作
 - `read(filePath, options?)` — 读取 UTF-8 文本文件，支持 offset/limit 分段
 - `write(filePath, content)` — 创建或完全覆盖文件，返回 Created/Updated envelope
-- `edit(filePath, oldString, newString, replaceAll?)` — 精确字符串替换
+- `edit(filePath, oldString, newString, replaceAll?, dryRun?)` — 精确字符串替换，dryRun 可预览
 - `deleteFile(filePath)` — 删除文件
 
 ### 搜索

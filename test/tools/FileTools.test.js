@@ -200,3 +200,33 @@ test('EditTool replace_all', async () => {
   assert.strictEqual(r.success, true);
   assert.strictEqual(fs.readFileSync(path.join(tmpRoot, 'd.txt'), 'utf8'), 'y y y');
 });
+
+test('EditTool dry-run 预览不写入', async () => {
+  fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'x x x');
+  const tool = new EditTool();
+  const r = await tool.execute({ file_path: 'd.txt', old_string: 'x', new_string: 'y', replaceAll: true, dryRun: true, projectDir: tmpRoot });
+  assert.strictEqual(r.success, true);
+  assert.match(r.data, /DRY-RUN/);
+  assert.match(r.data, /将全部替换 3 处/);
+  assert.strictEqual(fs.readFileSync(path.join(tmpRoot, 'd.txt'), 'utf8'), 'x x x');
+});
+
+test('EditTool dry-run 唯一替换预览', async () => {
+  fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'hello world');
+  const tool = new EditTool();
+  const r = await tool.execute({ file_path: 'd.txt', old_string: 'world', new_string: 'cuckoo', dryRun: true, projectDir: tmpRoot });
+  assert.strictEqual(r.success, true);
+  assert.match(r.data, /DRY-RUN/);
+  assert.match(r.data, /将替换 1 处/);
+  assert.strictEqual(fs.readFileSync(path.join(tmpRoot, 'd.txt'), 'utf8'), 'hello world');
+});
+
+test('EditTool dry-run 删除预览', async () => {
+  fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'remove me');
+  const tool = new EditTool();
+  const r = await tool.execute({ file_path: 'd.txt', old_string: 'remove', new_string: '', dryRun: true, projectDir: tmpRoot });
+  assert.strictEqual(r.success, true);
+  assert.match(r.data, /DRY-RUN/);
+  assert.match(r.data, /old: "remove" → new: ""/);
+  assert.strictEqual(fs.readFileSync(path.join(tmpRoot, 'd.txt'), 'utf8'), 'remove me');
+});

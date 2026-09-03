@@ -136,9 +136,10 @@ declare function write(filePath: string, content: string): Promise<string>;
  * @param oldString 要替换的字面文本
  * @param newString 替换后的字面文本（可空字符串删除匹配）
  * @param replaceAll 是否替换所有匹配，默认 false
+ * @param dryRun 是否只预览不写入，默认 false；true 时返回将替换的处数和内容，不修改文件
  * @throws 文件不存在、old_string 未找到、多匹配未设置 replaceAll、old_string===new_string 时抛出异常
  */
-declare function edit(filePath: string, oldString: string, newString: string, replaceAll?: boolean): Promise<string>;
+declare function edit(filePath: string, oldString: string, newString: string, replaceAll?: boolean, dryRun?: boolean): Promise<string>;
 
 // ================= 搜索 =================
 
