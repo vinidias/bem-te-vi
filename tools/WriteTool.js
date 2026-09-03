@@ -57,7 +57,7 @@ class WriteTool extends Tool {
     return {
       name: 'tool:write',
       order: 101,
-      text: '使用 write 工具创建文件或完全替换文件内容。已有文件会被覆盖，所以覆盖前先 read 文件，针对局部修改优先用 edit。'
+      text: '使用 write 工具创建文件或完全替换文件内容。已有文件会被覆盖，所以覆盖前先 read 文件，针对局部修改优先用 edit。注意：read 输出的内容带行号和 footer，写入的 content 必须是文件原始内容，不要包含行号、<path>/<content> 包装或 footer 提示。'
     };
   }
 
