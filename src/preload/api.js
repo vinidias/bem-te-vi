@@ -40,8 +40,8 @@ let electronAPI = {
   updateWindowName: (displayName) => {
     return ipcRenderer.invoke('update-window-name', { displayName });
   },
-  showAiNotification: (title, body) => {
-    return ipcRenderer.invoke('show-ai-notification', { title, body });
+  showAiNotification: () => {
+    return ipcRenderer.invoke('show-ai-notification');
   },
 };
 
