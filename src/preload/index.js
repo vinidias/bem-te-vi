@@ -18,9 +18,6 @@ const { getProviderByUrl } = require('../providers');
 // 注册主进程消息监听（与原 preload.js 顶层注册时机一致）
 chatInput.registerIpcListeners();
 
-// 启动新建会话监听
-setTimeout(chatInput.setupNewSessionListener, 3000);
-
 // ========== 初始化 ==========
 
 /**

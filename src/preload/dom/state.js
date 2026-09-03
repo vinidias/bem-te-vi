@@ -3,11 +3,8 @@
  * 由原 preload.js 中的模块级变量拆分而来，各模块通过同一对象共享。
  */
 module.exports = {
-  systemPromptContent: '',
   initialPromptContent: '',
-  // 是否有待发送的 system prompt
-  pendingSystemPrompt: false,
-  // 是否有待发送的初始提示（目录树+systemPrompt）
+  // 是否有待发送的初始提示
   pendingInitialPrompt: false,
   // 待执行的工具调用
   pendingToolCall: null,

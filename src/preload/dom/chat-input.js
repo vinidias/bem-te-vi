@@ -176,34 +176,6 @@ function isInputVisible(el) {
   return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
 }
 /**
- * 发送 system prompt 到输入框
- */
-function sendSystemPromptToInput() {
-  if (!state.systemPromptContent) {
-    state.pendingSystemPrompt = false;
-    return false;
-  }
-
-  const input = findInputArea();
-  if (!input) {
-    return false;
-  }
-
-  if (!setInputContent(input, state.systemPromptContent)) {
-    return false;
-  }
-
-  const sendDelay = randomDelay();
-  console.log('[Cuckoo Code] system prompt 已填入，随机等待 ' + sendDelay + 'ms 后发送...');
-  setTimeout(function() {
-    console.log('[Cuckoo Code] 等待结束，开始发送 system prompt');
-    triggerSend(input);
-    state.pendingSystemPrompt = false;
-  }, sendDelay);
-
-  return true;
-}
-/**
  * 发送初始提示（目录树+systemPrompt）到输入框
  */
 function sendInitialPromptToInput() {
@@ -230,27 +202,6 @@ function sendInitialPromptToInput() {
   }, sendDelay);
 
   return true;
-}
-/**
- * 等待输入框出现后再发送 system prompt
- */
-function waitForInputAndSend() {
-  let attempts = 0;
-  const maxAttempts = 30;
-
-  const checkInterval = setInterval(() => {
-    attempts++;
-    if (attempts > maxAttempts) {
-      clearInterval(checkInterval);
-      state.pendingSystemPrompt = false;
-      return;
-    }
-
-    if (findInputArea()) {
-      clearInterval(checkInterval);
-      sendSystemPromptToInput();
-    }
-  }, 500);
 }
 /**
  * 等待输入框出现后再发送初始提示
@@ -303,106 +254,11 @@ function triggerSend(input) {
   }
 }
 /**
- * 查找新建会话按钮并监听点击
- */
-function findNewSessionButton() {
-  const selectors = [
-    'button[title*="新建"]',
-    'button[title*="New"]',
-    'button[aria-label*="新建"]',
-    'button[aria-label*="New"]',
-    'button[data-action*="new"]',
-    'button[data-action*="chat"]',
-    '.new-chat-btn',
-    '.new-session-btn',
-    '.sidebar-new-btn',
-    '[data-testid="new-chat"]',
-    'button:has(svg[data-icon="plus"])',
-    'button:has(svg[data-icon="add"])',
-    'button:has(svg[data-icon="new"])',
-    '.nav-new-chat',
-    'div:has(> span[data-icon="plus"])',
-  ];
-
-  for (const sel of selectors) {
-    const el = document.querySelector(sel);
-    if (el && isInputVisible(el)) {
-      return el;
-    }
-  }
-
-  // 搜索包含"新建"文字的元素
-  const allButtons = document.querySelectorAll('button, [role="button"]');
-  for (const btn of allButtons) {
-    const text = (btn.textContent || '').trim();
-    const title = (btn.getAttribute('title') || '').trim();
-    const aria = (btn.getAttribute('aria-label') || '').trim();
-    if ((text.includes('新建') || title.includes('新建') || aria.includes('新建')) && isInputVisible(btn)) {
-      return btn;
-    }
-  }
-
-  return null;
-}
-/**
- * 监听新建会话按钮点击
- */
-function setupNewSessionListener() {
-  const btn = findNewSessionButton();
-  if (!btn) {
-    setTimeout(setupNewSessionListener, 5000);
-    return;
-  }
-
-
-  // 监听点击事件
-  const clickHandler = () => {
-
-    // 重置状态
-    state.pendingSystemPrompt = true;
-
-    // 等待新会话的输入框出现，然后发送 system prompt
-    setTimeout(() => {
-      waitForInputAndSend();
-    }, 1500);
-  };
-
-  // 使用 event capture 确保在页面脚本之前捕获点击
-  btn.addEventListener('click', clickHandler, true);
-
-  // 使用 MutationObserver 重新绑定（按钮可能被替换）
-  const observer = new MutationObserver(() => {
-    btn.removeEventListener('click', clickHandler, true);
-    setTimeout(() => setupNewSessionListener(), 1000);
-  });
-  observer.observe(btn.parentElement || document.body, { childList: true, subtree: true });
-}
-
-/**
- * 注册主进程消息监听（system-prompt / initial-prompt）
+ * 注册主进程消息监听（initial-prompt）
  * 与原 preload.js 顶层注册时机一致：preload 入口加载时同步调用。
  */
 function registerIpcListeners() {
-// 监听主进程发送的 systemPrompt
-ipcRenderer.on('system-prompt', (_event, content) => {
-  state.systemPromptContent = content || '';
-  state.pendingSystemPrompt = true;
-  // 如果当前已有新的空会话输入框，立即发送
-  if (state.pendingSystemPrompt && state.systemPromptContent) {
-    try {
-      const input = findInputArea();
-      if (input) {
-        sendSystemPromptToInput();
-      } else {
-        // 等待输入框出现
-        waitForInputAndSend();
-      }
-    } catch (e) {
-    }
-  }
-});
-
-// 监听主进程发送的初始提示（目录树+systemPrompt）
+// 监听主进程发送的初始提示
 ipcRenderer.on('initial-prompt', (_event, content) => {
   state.initialPromptContent = content || '';
   state.pendingInitialPrompt = true;
@@ -432,12 +288,8 @@ module.exports = {
   sendCombinedJsResultsToChat,
   findInputArea,
   isInputVisible,
-  sendSystemPromptToInput,
   sendInitialPromptToInput,
-  waitForInputAndSend,
   waitForInitialPromptAndSend,
   triggerSend,
-  findNewSessionButton,
-  setupNewSessionListener,
   registerIpcListeners,
 };

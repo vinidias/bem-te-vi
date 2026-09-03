@@ -6,18 +6,7 @@ const state = require('../dom/state');
 const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
 const { handleManualParse } = require('../dom/observer');
-const { sendSystemPromptToInput, sendToChat } = require('../dom/chat-input');
-
-/**
- * 发送系统提示词按钮点击处理
- */
-function handleSendPrompt() {
-  if (!state.systemPromptContent) {
-    showToast('系统提示词内容为空', 3000);
-    return;
-  }
-  sendSystemPromptToInput();
-}
+const { sendToChat } = require('../dom/chat-input');
 
 /**
  * 渲染窗口列表（浮动管理面板内）
@@ -142,12 +131,10 @@ function bindEvents() {
 
   const minimizeBtn = document.getElementById('cuckoo-btn-minimize');
   const initBtn = document.getElementById('cuckoo-btn-init');
-  const sendPromptBtn = document.getElementById('cuckoo-btn-send-prompt');
   const clearBtn = document.getElementById('cuckoo-btn-clear');
 
   minimizeBtn?.addEventListener('click', hideOverlay);
   initBtn?.addEventListener('click', handleInitProject);
-  sendPromptBtn?.addEventListener('click', handleSendPrompt);
   clearBtn?.addEventListener('click', () => {
     commandHistory.length = 0;
     renderHistory();
