@@ -2,6 +2,8 @@
  * Claude Provider 定义
  * 基于 claude.ai 页面结构，输入框为 ProseMirror（contenteditable）。
  */
+let stopBtnVisible = false;
+
 module.exports = {
   id: 'claude',
   name: 'Claude',
@@ -73,11 +75,28 @@ module.exports = {
 
   // ========== 自动解析相关方法 ==========
 
-  // 判断 AI 是否已完成回复（官方完成信号：chat-footer-spark）
-  isResponseComplete() {
-    const spark = document.querySelector('[data-testid="chat-footer-spark"]');
-    if (!spark) return false;
-    return !spark.classList.contains('invisible');
+  // 判断 AI 是否已完成回复（基于停止按钮的边沿触发）
+  // 回答中：button[aria-label="Stop response"] 存在
+  // 回答完成：该按钮消失；从存在到消失的边沿才返回 true，避免持续触发
+  async isResponseComplete() {
+    const stopBtn = document.querySelector('button[aria-label="Stop response"]');
+    const visible = !!stopBtn;
+
+    if (visible) {
+      stopBtnVisible = true;
+      return false;
+    }
+
+    // 上一次可见、本次不可见 → 回答刚结束
+    if (stopBtnVisible) {
+      stopBtnVisible = false;
+      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] Claude 回复完成，等待 500ms 后解析');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] Claude 500ms 等待结束');
+      return true;
+    }
+
+    return false;
   },
 
   // 获取当前页面所有 AI 消息容器（排除用户消息）

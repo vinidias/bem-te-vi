@@ -128,16 +128,32 @@ function getMessageMarkdown(messageEl) {
  */
 function processLatestAIResponse(retryCount = 0, force = false) {
   const messages = getMessageCandidates();
+  const nowIso = new Date().toISOString();
+  console.log('[' + nowIso + '] [DEBUG] messages count=' + messages.length);
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
+    console.log('[' + nowIso + '] [DEBUG] [' + i + '] cls=' + ((m.className || m.tagName || '').toString().slice(0, 60)) + ' text=' + ((m.textContent || '').trim().slice(0, 50)));
+  }
   if (messages.length === 0) {
     console.log('[Cuckoo Code] 未找到 AI 消息节点');
     return;
   }
 
-  // 取最后一条消息
-  const lastMessage = messages[messages.length - 1];
-  const markdown = getMessageMarkdown(lastMessage);
-  if (!markdown) {
-    console.log('[Cuckoo Code] 最新消息中没有回复内容');
+  // 从后往前找第一条有实际内容的 AI 消息，跳过空消息
+  let lastMessage = null;
+  let markdown = null;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const candidate = messages[i];
+    const md = getMessageMarkdown(candidate);
+    const hasContent = md && (md.textContent || '').trim().length > 0;
+    if (hasContent) {
+      lastMessage = candidate;
+      markdown = md;
+      break;
+    }
+  }
+  if (!lastMessage || !markdown) {
+    console.log('[Cuckoo Code] 未找到有内容的 AI 回复');
     return;
   }
 
@@ -317,11 +333,17 @@ function processLatestAIResponse(retryCount = 0, force = false) {
 }
 // 读取防抖定时器（已弃用，改用 Promise sleep + 处理中标志位）
 let isProcessingResponse = false;
+let lastObserverRun = 0;
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 function startObserver() {
   const observer = new MutationObserver((mutations) => {
+    // 100ms 节流：避免页面高频 DOM 变化导致日志与检测刷屏
+    const now = Date.now();
+    if (now - lastObserverRun < 100) return;
+    lastObserverRun = now;
+
     let hasNewContent = false;
     const mutationStats = { childList: 0, characterData: 0, attributes: 0 };
     for (const mutation of mutations) {
@@ -340,19 +362,21 @@ function startObserver() {
       }
     }
 
-    console.log('[DEBUG][observer] mutations childList=' + mutationStats.childList +
-      ' characterData=' + mutationStats.characterData +
-      ' attributes=' + mutationStats.attributes +
-      ' hasNewContent=' + hasNewContent);
+    // 回复结束后读取最新 AI 回复；完成判定内部已含必要等待
+    if (hasNewContent && !isProcessingResponse) {
+      // 若最后一条 AI 消息已处理过，则跳过，避免反复打印和等待
+      const candidates = getMessageCandidates();
+      const lastMsg = candidates.length > 0 ? candidates[candidates.length - 1] : null;
+      if (lastMsg && processedMessages.has(lastMsg)) {
+        return;
+      }
 
-    // 回复结束后延迟 500ms 再读取，等待代码块完全渲染
-    // 使用处理中标志位防止多个异步等待并发执行
-    if (hasNewContent && isAIResponseComplete() && !isProcessingResponse) {
       isProcessingResponse = true;
       (async () => {
         try {
-          await sleep(500);
-          processLatestAIResponse();
+          if (await isAIResponseComplete()) {
+            processLatestAIResponse();
+          }
         } finally {
           isProcessingResponse = false;
         }

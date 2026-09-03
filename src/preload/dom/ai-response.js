@@ -4,15 +4,14 @@
  */
 const { getProviderByUrl } = require('../../../src/providers');
 
-function isAIResponseComplete() {
+async function isAIResponseComplete() {
   try {
     const provider = getProviderByUrl(window.location.href);
     if (!provider || typeof provider.isResponseComplete !== 'function') {
       console.warn('[Cuckoo Code] 当前平台未提供 isResponseComplete 方法');
       return false;
     }
-    const result = provider.isResponseComplete();
-    console.log('[DEBUG][isAIResponseComplete] provider=' + (provider && provider.id) + ' => ' + result);
+    const result = await provider.isResponseComplete();
     return result;
   } catch (err) {
     console.error('[Cuckoo Code] ❌ 检测 AI 完成状态出错:', err);
