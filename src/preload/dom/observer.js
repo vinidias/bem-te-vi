@@ -54,10 +54,16 @@ async function handleManualParse() {
 // ========== MutationObserver ==========
 
 // 已处理过的消息节点集合（避免重复处理）
-const processedMessages = new WeakSet();
+let processedMessages = new WeakSet();
 
 // 正在做 JS 代码块稳定性校验的消息，防止 800ms 窗口内被重复调度
-const pendingJsChecks = new WeakSet();
+let pendingJsChecks = new WeakSet();
+
+// 重置已处理状态（URL 切换/新会话时调用）
+function resetProcessedState() {
+  processedMessages = new WeakSet();
+  pendingJsChecks = new WeakSet();
+}
 
 // 内容不完整时的最大重试次数（AI 生成长内容可能需 30 秒+）
 const MAX_RETRY_COUNT = 2;
@@ -273,6 +279,7 @@ function processLatestAIResponse(retryCount = 0, force = false) {
       }
     } else {
       console.log('[Cuckoo Code] ℹ️ 正常文本回复，未检测到工具调用（无需处理）');
+      showAICompleteNotification(text).catch(() => {});
     }
   }
 }
@@ -305,6 +312,58 @@ function startObserver() {
     observer.observe(target, { childList: true, subtree: true });
   }
 }
+
+/**
+ * AI 回复完成（非任务）时发送 Windows 通知
+ * 标题包含账号，内容区分正常完成 / 疑似乱码
+ */
+async function showAICompleteNotification(text) {
+  try {
+    const account = getAccountName();
+    const garbled = looksLikeGarbled(text);
+    const title = account + ' - AI任务已完成';
+    const body = garbled
+      ? 'AI 回复可能包含乱码，请前往窗口查看'
+      : 'AI 已完成回复，请前往窗口查看';
+    const result = await window.electronAPI.showAiNotification(title, body);
+    console.log('[Cuckoo Code] 🔔 已请求 Windows 通知: ' + title + ' / ' + body + ' ->', result);
+  } catch (err) {
+    console.error('[Cuckoo Code] ❌ 发送 Windows 通知失败:', err);
+  }
+}
+
+/**
+ * 提取当前账号名：优先取页面脱敏账号元素，其次取窗口标题中 " - " 后的部分
+ */
+function getAccountName() {
+  try {
+    const accountEl = document.querySelector('._9d8da05');
+    const accountText = accountEl && accountEl.textContent ? accountEl.textContent.trim() : '';
+    if (accountText) return accountText;
+    const title = document.title || '';
+    const idx = title.lastIndexOf(' - ');
+    if (idx >= 0) {
+      const name = title.slice(idx + 3).trim();
+      if (name) return name;
+    }
+  } catch (_) {}
+  return 'Cuckoo Code';
+}
+
+/**
+ * 简单判断文本是否疑似乱码：
+ * 包含替换字符 �，或异常 Latin-1 区块字符比例过高
+ */
+function looksLikeGarbled(text) {
+  if (!text) return false;
+  const sample = text.slice(0, 2000);
+  const replacementCount = (sample.match(/\uFFFD/g) || []).length;
+  if (replacementCount > 0) return true;
+  const oddMatches = sample.match(/[\u0080-\u00FF]{4,}/g) || [];
+  const oddLength = oddMatches.join('').length;
+  return oddLength / Math.max(sample.length, 1) > 0.3;
+}
+
 /**
  * 通知用户检测到工具调用（闪烁状态徽章 + 展开覆盖层）
  */

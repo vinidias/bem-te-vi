@@ -2,7 +2,7 @@
  * IPC 处理器注册（渲染进程 → 主进程）
  * 多窗口版：按 event.sender 路由到对应窗口的 profile 上下文。
  */
-const { app, dialog, ipcMain } = require('electron');
+const { app, dialog, ipcMain, Notification } = require('electron');
 const { exec } = require('child_process');
 
 const windowState = require('./window');
@@ -103,6 +103,28 @@ function registerIpcHandlers() {
       return { callId, success: result.success, data: result.data, error: result.error };
     } catch (err) {
       return { callId, success: false, error: err.message };
+    }
+  });
+
+  // 显示 AI 回复完成通知（弹通知 + 任务栏/Dock 吸引注意）
+  ipcMain.handle('show-ai-notification', async (event, { title, body }) => {
+    if (!title || !body) return { success: false, error: '通知内容缺失' };
+    try {
+      const notification = new Notification({ title, body });
+      notification.show();
+
+      const ctx = windowState.getContextByWebContents(event.sender);
+      const win = ctx ? ctx.win : windowState.getMainWindow();
+      if (win && !win.isDestroyed()) {
+        win.flashFrame(true);
+        win.once('focus', () => {
+          if (!win.isDestroyed()) win.flashFrame(false);
+        });
+      }
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
   });
 
