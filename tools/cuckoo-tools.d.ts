@@ -50,6 +50,34 @@ interface ReadOptions {
  */
 declare function read(filePath: string, options?: ReadOptions): Promise<string>;
 
+/** readLines 返回的单行数据 */
+interface ReadLine {
+  /** 1-based 行号 */
+  number: number;
+  /** 行文本（不含换行符） */
+  text: string;
+}
+
+/** readLines 的返回结果 */
+interface ReadLinesResult {
+  /** 窗口内的行数据 */
+  lines: ReadLine[];
+  /** 文件总行数 */
+  totalLines: number;
+  /** 本次起始行号 */
+  offset: number;
+  /** 是否因字节上限被截断 */
+  truncatedByBytes: boolean;
+}
+
+/**
+ * 读取 UTF-8 文本文件并返回结构化行数组，供 AI 在内存中精确处理。
+ * @param filePath 相对（基于项目根目录）或绝对路径
+ * @param options 可选，offset/limit
+ * @throws 文件不存在、不是文件、offset 越界或读取失败时抛出异常
+ */
+declare function readLines(filePath: string, options?: ReadOptions): Promise<ReadLinesResult>;
+
 /**
  * 创建或完全覆盖 UTF-8 文本文件。
  * 返回格式化 envelope：<path>...</path><type>file</type><content>Created/Updated file</content>

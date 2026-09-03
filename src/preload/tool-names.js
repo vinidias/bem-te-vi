@@ -9,6 +9,7 @@ const TOOL_NAMES = [
   'write',
   'file_read',
   'read',
+  'read_lines',
   'file_edit',
   'edit',
   'file_glob',

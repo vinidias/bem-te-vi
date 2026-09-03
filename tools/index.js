@@ -8,6 +8,7 @@ const { FileWriteTool } = require('./FileWriteTool');
 const { WriteTool } = require('./WriteTool');
 const { FileReadTool } = require('./FileReadTool');
 const { ReadTool } = require('./ReadTool');
+const { ReadLinesTool } = require('./ReadLinesTool');
 const { FileEditTool } = require('./FileEditTool');
 const { EditTool } = require('./EditTool');
 const { GlobTool } = require('./GlobTool');
@@ -31,6 +32,7 @@ registry.register(new FileWriteTool());
 registry.register(new WriteTool());
 registry.register(new FileReadTool());
 registry.register(new ReadTool());
+registry.register(new ReadLinesTool());
 registry.register(new FileEditTool());
 registry.register(new EditTool());
 registry.register(new GlobTool());
@@ -54,6 +56,7 @@ module.exports = {
   FileWriteTool,
   WriteTool,
   FileReadTool,
+  ReadLinesTool,
   FileEditTool,
   EditTool,
   GlobTool,
