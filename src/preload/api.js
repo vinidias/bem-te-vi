@@ -43,6 +43,25 @@ let electronAPI = {
   showAiNotification: () => {
     return ipcRenderer.invoke('show-ai-notification');
   },
+  // ========== MCP 相关 API ==========
+  listMcpServers: () => {
+    return ipcRenderer.invoke('list-mcp-servers');
+  },
+  upsertMcpServer: (server) => {
+    return ipcRenderer.invoke('upsert-mcp-server', { server });
+  },
+  removeMcpServer: (name) => {
+    return ipcRenderer.invoke('remove-mcp-server', { name });
+  },
+  enableMcpServer: (name) => {
+    return ipcRenderer.invoke('enable-mcp-server', { name });
+  },
+  disableMcpServer: (name) => {
+    return ipcRenderer.invoke('disable-mcp-server', { name });
+  },
+  getMcpTools: () => {
+    return ipcRenderer.invoke('get-mcp-tools');
+  },
 };
 
 try {

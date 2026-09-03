@@ -348,4 +348,33 @@ declare function openBrowserWindow(url: string, options?: { id?: string; width?:
  */
 declare function injectJS(windowId: string, code: string): Promise<any>;
 
+// ================= MCP =================
+
+/**
+ * 调用 MCP server 提供的工具。
+ * 使用前先调用 mcpListServers() 和 mcpGetTools() 查询可用能力。
+ * @param server MCP server 名称
+ * @param tool 要调用的工具名
+ * @param args 工具参数对象
+ * @returns 工具执行结果（纯文本）
+ * @throws 连接失败、工具不存在或调用出错时抛出异常
+ */
+declare function mcpCall(server: string, tool: string, args?: Record<string, unknown>): Promise<string>;
+
+/**
+ * 列出所有已配置的 MCP server（含启用状态、连接状态和工具数量）。
+ * 使用 MCP 前先调用此函数查看当前可用 server。
+ * @returns 纯文本 server 列表
+ */
+declare function mcpListServers(): Promise<string>;
+
+/**
+ * 查看指定 MCP server 提供的工具列表（含描述和参数）。
+ * 确认工具能力后再调用 mcpCall。
+ * @param serverName MCP server 名称
+ * @returns 纯文本工具列表
+ * @throws server 不存在或连接失败时抛出异常
+ */
+declare function mcpGetTools(serverName: string): Promise<string>;
+
 ```
