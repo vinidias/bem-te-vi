@@ -162,6 +162,14 @@ function initProject(skipPrompt = false, windowContext = null) {
     return { success: false, message: '读取提示词模板失败: ' + err.message };
   }
 
+  // 读取工具 API 类型定义（从 d.ts 文件读取，避免与模板重复维护）
+  let toolApiTypes = '';
+  try {
+    toolApiTypes = fs.readFileSync(path.join(__dirname, '..', '..', 'tools', 'cuckoo-tools.d.ts'), 'utf-8');
+  } catch (err) {
+    console.error('[Cuckoo Code] 读取 cuckoo-tools.d.ts 失败:', err.message);
+  }
+
   // 获取工具库描述（JS API 格式：AI 通过生成 JS 代码调用这些函数）
   const toolsDescription = toolRegistry.getFormattedJsApiForPrompt();
 
@@ -199,6 +207,7 @@ function initProject(skipPrompt = false, windowContext = null) {
 
   // 统一替换模板中的双花括号占位符（全量替换，支持同一占位符多次出现）
   const placeholders = {
+    '{{TOOL_API_TYPES}}': toolApiTypes,
     '{{TOOLS_LIST}}': toolsDescription,
     '{{TOOL_SECTIONS}}': promptSections,
     '{{PLATFORM_INFO}}': platformInfo,
