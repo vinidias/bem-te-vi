@@ -66,14 +66,26 @@
       width: 56px;
       height: 56px;
       margin: 0 auto 16px;
-      background: linear-gradient(135deg, #4d6bfe, #6d76ff);
+      background: #fff;
       border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
+      padding: 12px;
+    }
+
+    .platform-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .platform-logo .logo-fallback {
       font-size: 28px;
       font-weight: 800;
-      color: #fff;
+      color: #6d76ff;
     }
 
     .platform-name {
@@ -110,11 +122,21 @@
         }
         listEl.innerHTML = providers.map(function (p) {
           return '<div class="platform-card" data-id="' + p.id + '">' +
-            '<div class="platform-logo">' + (p.name || '?').charAt(0).toUpperCase() + '</div>' +
+            '<div class="platform-logo" data-name="' + p.name + '">' +
+              '<img src="logos/' + encodeURIComponent(p.id) + '.svg" alt="' + p.name + ' logo" />' +
+            '</div>' +
             '<div class="platform-name">' + p.name + '</div>' +
             '<div class="platform-desc">点击进入</div>' +
           '</div>';
         }).join('');
+
+        listEl.querySelectorAll('.platform-logo img').forEach(function (img) {
+          img.addEventListener('error', function () {
+            const container = img.parentElement;
+            const name = container.getAttribute('data-name') || '?';
+            container.innerHTML = '<span class="logo-fallback">' + name.charAt(0).toUpperCase() + '</span>';
+          });
+        });
 
         listEl.querySelectorAll('.platform-card').forEach(function (card) {
           card.addEventListener('click', async function () {
