@@ -1,7 +1,6 @@
 /**
  * 跨平台启动脚本
- * Windows 下设置 UTF-8 控制台编码后启动 Electron；macOS/Linux 直接启动
- * 日志输出到 wyp/log/electron.log
+ * 捕获 Electron stdout/stderr 写入日志文件，避免 Chromium 在 cwd 生成 PID 日志
  */
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -13,31 +12,28 @@ const isWin = process.platform === 'win32';
 const logDir = path.join(__dirname, 'wyp', 'log');
 fs.mkdirSync(logDir, { recursive: true });
 
-// 每次启动清空日志
+// 清空旧日志
 try {
-  const oldLogs = fs.readdirSync(logDir).filter(f => f.endsWith('.log'));
-  for (const f of oldLogs) {
-    fs.writeFileSync(path.join(logDir, f), '', 'utf-8');
+  for (const f of fs.readdirSync(logDir)) {
+    if (f.endsWith('.log')) fs.writeFileSync(path.join(logDir, f), '', 'utf-8');
   }
-  console.log('[start.js] 已清空', oldLogs.length, '个日志文件');
 } catch (err) {
   console.warn('[start.js] 清空日志失败:', err.message);
 }
 
 const logFile = path.join(logDir, 'electron.log');
+const logStream = fs.createWriteStream(logFile, { flags: 'a' });
 
-// --enable-logging 让 renderer console 也进日志文件
-// --log-file 指定输出路径
-const cmd = isWin
-  ? `chcp 65001 > nul && electron . --enable-logging --log-file="${logFile}"`
-  : `electron . --enable-logging --log-file="${logFile}"`;
+const cmd = isWin ? 'chcp 65001 > nul && electron .' : 'electron .';
+const child = spawn(cmd, { shell: true, stdio: ['inherit', 'pipe', 'pipe'] });
 
-const child = spawn(cmd, {
-  shell: true,
-  stdio: 'inherit',
-});
+child.stdout.pipe(logStream);
+child.stderr.pipe(logStream);
+child.stdout.pipe(process.stdout);
+child.stderr.pipe(process.stderr);
 
 child.on('close', (code) => {
+  logStream.end();
   process.exit(code ?? 0);
 });
 child.on('error', (err) => {
