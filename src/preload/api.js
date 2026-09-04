@@ -37,6 +37,9 @@ let electronAPI = {
   openProfileWindow: (profileId) => {
     return ipcRenderer.invoke('open-profile-window', { profileId });
   },
+  deleteProfileWindow: (profileId) => {
+    return ipcRenderer.invoke('delete-profile', { profileId });
+  },
   updateWindowName: (displayName) => {
     return ipcRenderer.invoke('update-window-name', { displayName });
   },
@@ -61,6 +64,16 @@ let electronAPI = {
   },
   getMcpTools: () => {
     return ipcRenderer.invoke('get-mcp-tools');
+  },
+  // ========== 平台相关 API ==========
+  listProviders: () => {
+    return ipcRenderer.invoke('list-providers');
+  },
+  selectPlatform: (providerId) => {
+    return ipcRenderer.invoke('select-platform', { providerId });
+  },
+  createProfileWindowWithProvider: (providerId) => {
+    return ipcRenderer.invoke('create-profile-window', { providerId });
   },
 };
 

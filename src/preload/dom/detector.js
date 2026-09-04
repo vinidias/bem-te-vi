@@ -3,6 +3,7 @@
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
 const { tryParseToolCall } = require('./tool-parser');
+const { getProviderByUrl } = require('../../../src/providers');
 
 // ========== DOM 监测：检测 ```cmd 代码块 ==========
 
@@ -16,45 +17,11 @@ const { tryParseToolCall } = require('./tool-parser');
  * @returns {string} 小写语言标记，找不到返回 ''
  */
 function getCodeBlockLanguage(pre) {
-  if (!pre) return '';
-
-  // 1. data-language 属性（旧结构兼容）
-  let lang = pre.getAttribute('data-language') || '';
-  if (!lang) {
-    const parentDiv = pre.closest('div[data-language]');
-    if (parentDiv) lang = parentDiv.getAttribute('data-language') || '';
+  const provider = getProviderByUrl(window.location.href);
+  if (provider && typeof provider.getCodeBlockLanguage === 'function') {
+    return provider.getCodeBlockLanguage(pre);
   }
-
-  // 2. language-* class
-  if (!lang) {
-    const codeEl = pre.querySelector('code');
-    const els = [codeEl, pre].filter(Boolean);
-    for (const el of els) {
-      const cls = Array.from(el.classList).find((c) => c.startsWith('language-'));
-      if (cls) { lang = cls.replace('language-', ''); break; }
-    }
-  }
-
-  // 3. 新结构：.md-code-block 容器内 banner 的语言 span（跳过按钮内的"复制/下载"文字）
-  if (!lang) {
-    const block = pre.closest('.md-code-block');
-    if (block) {
-      const banner = block.querySelector('.md-code-block-banner');
-      if (banner) {
-        const spans = banner.querySelectorAll('span');
-        for (const span of spans) {
-          if (span.closest('button')) continue;
-          const t = (span.textContent || '').trim();
-          if (/^[a-zA-Z0-9_+#.-]{1,20}$/.test(t)) {
-            lang = t;
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  return (lang || '').toLowerCase();
+  return '';
 }
 
 /**
@@ -195,27 +162,10 @@ function scanForToolCalls(nodes) {
  * 用户消息中包含系统提示词示例 JSON，应被排除
  */
 function isInsideUserMessage(node) {
-  // 方法1: 检查节点或其祖先是否为用户消息元素
-  let current = node;
-  while (current) {
-    const role = current.getAttribute?.('data-role') || current.getAttribute?.('data-author') || '';
-    if (role === 'user' || role === 'human') return true;
-
-    // 检查常见的用户消息 class
-    const cls = current.className || '';
-    if (typeof cls === 'string' && (cls.includes('user-message') || cls.includes('message-user') || cls.includes('human'))) {
-      return true;
-    }
-
-    current = current.parentElement;
+  const provider = getProviderByUrl(window.location.href);
+  if (provider && typeof provider.isUserMessage === 'function') {
+    return provider.isUserMessage(node);
   }
-
-  // 方法2: 检查文本内容是否包含用户消息的显著特征
-  const text = (node.textContent || node.innerText || '').substring(0, 200);
-  if (text.includes('我已选择目录：') || text.includes('系统提示词：') || text.includes('工具使用规则：')) {
-    return true;
-  }
-
   return false;
 }
 

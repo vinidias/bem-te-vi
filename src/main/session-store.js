@@ -49,6 +49,12 @@ function createSessionStore(profileId, storeDir, windowState) {
 
   function extractSessionIdFromUrl(url) {
     if (!url) return null;
+    // Claude: https://claude.ai/chat/xxx
+    if (url.includes('claude.ai')) {
+      const m = url.match(/\/chat\/([a-zA-Z0-9_-]+)/i);
+      return m ? m[1] : null;
+    }
+    // DeepSeek: https://chat.deepseek.com/a/chat/s/xxx
     const match = url.match(/\/chat\/s\/([a-f0-9-]+)/i);
     if (match) return match[1];
     const altMatch = url.match(/\/s\/([a-f0-9-]+)/i);

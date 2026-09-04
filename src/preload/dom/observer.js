@@ -5,11 +5,12 @@
 const {
   showOverlay, setTaskStatus, showToast, showConfirmDialog, addHistory, flashBadge, truncate, displayCommand, generateId,
 } = require('../overlay/ui');
-const { getCodeBlockLanguage, isInsideUserMessage, scanForCommands } = require('./detector');
+const { scanForCommands } = require('./detector');
 const { tryParseToolCall } = require('./tool-parser');
 const { getJsCodeBlocksFromMarkdown, looksLikeIncompleteCodeError, FENCE } = require('./js-detector');
 const { sendToolResultToChat, sendCombinedJsResultsToChat } = require('./chat-input');
 const { isAIResponseComplete } = require('./ai-response');
+const { getProviderByUrl } = require('../../../src/providers');
 const { hasTool, toolNamesList } = require('../tool-names');
 
 /**
@@ -103,21 +104,62 @@ function isJsonBalanced(str) {
   return braceCount === 0;
 }
 /**
- * 回复结束后，获取最新 .ds-message > .ds-markdown 的内容并解析工具调用
+ * 获取当前平台 Provider（若未识别则返回 null）
+ */
+function getCurrentProvider() {
+  return getProviderByUrl(window.location.href);
+}
+
+/**
+ * 获取当前平台消息容器元素列表（过滤用户消息）
+ */
+function getMessageCandidates() {
+  const provider = getCurrentProvider();
+  if (!provider || typeof provider.getMessageCandidates !== 'function') return [];
+  return provider.getMessageCandidates();
+}
+
+/**
+ * 获取消息容器中的回复内容根节点
+ */
+function getMessageMarkdown(messageEl) {
+  const provider = getCurrentProvider();
+  if (!provider || typeof provider.getMessageMarkdown !== 'function') return messageEl;
+  return provider.getMessageMarkdown(messageEl);
+}
+
+/**
+ * 回复结束后，获取最新一条 AI 回复的内容并解析工具调用
  * @param {number} retryCount 当前重试次数（内容不完整时延迟重试）
  */
 function processLatestAIResponse(retryCount = 0, force = false) {
-  const messages = document.querySelectorAll('.ds-message');
+  const messages = getMessageCandidates();
+  const nowIso = new Date().toISOString();
+  console.log('[' + nowIso + '] [DEBUG] messages count=' + messages.length);
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
+    console.log('[' + nowIso + '] [DEBUG] [' + i + '] cls=' + ((m.className || m.tagName || '').toString().slice(0, 60)) + ' text=' + ((m.textContent || '').trim().slice(0, 50)));
+  }
   if (messages.length === 0) {
-    console.log('[Cuckoo Code] 未找到 .ds-message 节点');
+    console.log('[Cuckoo Code] 未找到 AI 消息节点');
     return;
   }
 
-  // 取最后一条消息
-  const lastMessage = messages[messages.length - 1];
-  const markdown = lastMessage.querySelector(':scope > .ds-markdown');
-  if (!markdown) {
-    console.log('[Cuckoo Code] 最新消息中没有 .ds-markdown');
+  // 从后往前找第一条有实际内容的 AI 消息，跳过空消息
+  let lastMessage = null;
+  let markdown = null;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const candidate = messages[i];
+    const md = getMessageMarkdown(candidate);
+    const hasContent = md && (md.textContent || '').trim().length > 0;
+    if (hasContent) {
+      lastMessage = candidate;
+      markdown = md;
+      break;
+    }
+  }
+  if (!lastMessage || !markdown) {
+    console.log('[Cuckoo Code] 未找到有内容的 AI 回复');
     return;
   }
 
@@ -126,7 +168,8 @@ function processLatestAIResponse(retryCount = 0, force = false) {
   }
 
   // 跳过用户消息（其中包含系统提示词里的示例代码块，不应被执行）
-  if (isInsideUserMessage(lastMessage)) {
+  const providerForUser = getCurrentProvider();
+  if (providerForUser && typeof providerForUser.isUserMessage === 'function' && providerForUser.isUserMessage(lastMessage)) {
     processedMessages.add(lastMessage);
     console.log('[Cuckoo Code] ⏭ 跳过用户消息（包含系统提示词示例）');
     return;
@@ -134,6 +177,11 @@ function processLatestAIResponse(retryCount = 0, force = false) {
 
   // 优先检测 JS 工具代码块（cuckoo 代码块 / 调用工具函数的 js 代码块）
   const jsBlocks = getJsCodeBlocksFromMarkdown(markdown);
+  console.log('[DEBUG][processLatest] lastMessage=' + (lastMessage.className || lastMessage.tagName) +
+    ' markdown=' + (markdown.className || markdown.tagName) +
+    ' jsBlocks=' + jsBlocks.length +
+    ' force=' + force +
+    ' retryCount=' + retryCount);
   if (jsBlocks.length > 0) {
     // 稳定性双读校验：DeepSeek 流式渲染期间代码块只渲染了一半（曾导致 "const content"
     // 这样的残缺代码被执行 → SyntaxError）。间隔 1.2 秒复查内容，仍在变化就重新调度。
@@ -216,7 +264,11 @@ function processLatestAIResponse(retryCount = 0, force = false) {
     console.log('[Cuckoo Code] 提取方式: 克隆节点(剔除工具栏)');
   }
 
-  if (!text) return;
+  if (!text) {
+    console.log('[DEBUG][processLatest] 提取文本为空');
+    return;
+  }
+  console.log('[DEBUG][processLatest] text长度=' + text.length + ' 前60字符=' + JSON.stringify(text.slice(0, 60)));
   console.log(text);
   // 是否为疑似工具内容（用于控制详细日志与提示文案）
   const looksToolish = text.includes(FENCE) ||
@@ -271,7 +323,10 @@ function processLatestAIResponse(retryCount = 0, force = false) {
       const pres = markdown.querySelectorAll('pre');
       if (pres.length > 0) {
         for (const p of pres) {
-          const lang = getCodeBlockLanguage(p);
+          const providerForLang = getCurrentProvider();
+          const lang = (providerForLang && typeof providerForLang.getCodeBlockLanguage === 'function')
+            ? providerForLang.getCodeBlockLanguage(p)
+            : '';
           console.log('[Cuckoo Code] [诊断] 代码块 language=' + (lang || '(无)') + ', 内容前80字符=' + ((p.textContent || '').trim().slice(0, 80)));
         }
       } else {
@@ -283,12 +338,23 @@ function processLatestAIResponse(retryCount = 0, force = false) {
     }
   }
 }
-// 读取防抖定时器
-let responseReadTimer = null;
+// 读取防抖定时器（已弃用，改用 Promise sleep + 处理中标志位）
+let isProcessingResponse = false;
+let lastObserverRun = 0;
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 function startObserver() {
   const observer = new MutationObserver((mutations) => {
+    // 100ms 节流：避免页面高频 DOM 变化导致日志与检测刷屏
+    const now = Date.now();
+    if (now - lastObserverRun < 100) return;
+    lastObserverRun = now;
+
     let hasNewContent = false;
+    const mutationStats = { childList: 0, characterData: 0, attributes: 0 };
     for (const mutation of mutations) {
+      mutationStats[mutation.type] = (mutationStats[mutation.type] || 0) + 1;
       if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
         // 扫描命令
         const commands = scanForCommands(mutation.addedNodes);
@@ -296,20 +362,38 @@ function startObserver() {
           displayCommand({ command: cmd, timestamp: Date.now(), id: generateId() });
         }
         hasNewContent = true;
+      } else if (mutation.type === 'characterData' || mutation.type === 'attributes') {
+        // Claude 的完成信号（retry 按钮 / 代码块）可能通过文本或属性变化出现，
+        // 不产生新增子节点，也需要触发完成检测。
+        hasNewContent = true;
       }
     }
 
-    // 回复结束后处理最新 AI 回复（检测到操作按钮组后立即处理）
-    if (hasNewContent && isAIResponseComplete()) {
-      clearTimeout(responseReadTimer);
-      console.log('[Cuckoo Code] ✅ 检测到回复结束，立即读取回复');
-      processLatestAIResponse();
+    // 回复结束后读取最新 AI 回复；完成判定内部已含必要等待
+    if (hasNewContent && !isProcessingResponse) {
+      // 若最后一条 AI 消息已处理过，则跳过，避免反复打印和等待
+      const candidates = getMessageCandidates();
+      const lastMsg = candidates.length > 0 ? candidates[candidates.length - 1] : null;
+      if (lastMsg && processedMessages.has(lastMsg)) {
+        return;
+      }
+
+      isProcessingResponse = true;
+      (async () => {
+        try {
+          if (await isAIResponseComplete()) {
+            processLatestAIResponse();
+          }
+        } finally {
+          isProcessingResponse = false;
+        }
+      })();
     }
   });
 
   const target = document.body || document.documentElement;
   if (target) {
-    observer.observe(target, { childList: true, subtree: true });
+    observer.observe(target, { childList: true, subtree: true, characterData: true, attributes: true });
   }
 }
 

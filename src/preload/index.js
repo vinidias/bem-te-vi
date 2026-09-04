@@ -13,12 +13,10 @@ const projectDir = require('./overlay/project-dir');
 const bindEvents = require('./overlay/events');
 const observer = require('./dom/observer');
 const chatInput = require('./dom/chat-input');
+const { getProviderByUrl } = require('../providers');
 
 // 注册主进程消息监听（与原 preload.js 顶层注册时机一致）
 chatInput.registerIpcListeners();
-
-// 启动新建会话监听
-setTimeout(chatInput.setupNewSessionListener, 3000);
 
 // ========== 初始化 ==========
 
@@ -55,13 +53,13 @@ function init() {
   // 定期巡检：防止面板被意外隐藏
   ui.startOverlayWatcher();
 
-  // 定期提取 DeepSeek 用户信息并更新窗口名
+  // 定期提取当前平台用户信息并更新窗口名
   let lastSentUserName = '';
   setInterval(() => {
     try {
-      // 优先匹配脱敏手机号格式，其次找用户信息容器
-      const maskedPhoneEl = document.querySelector('._9d8da05');
-      const text = maskedPhoneEl ? maskedPhoneEl.textContent.trim() : '';
+      const provider = getProviderByUrl(window.location.href);
+      if (!provider || typeof provider.extractUserInfo !== 'function') return;
+      const text = provider.extractUserInfo();
       if (text && text !== lastSentUserName) {
         lastSentUserName = text;
         window.electronAPI.updateWindowName(text).catch(() => {});
