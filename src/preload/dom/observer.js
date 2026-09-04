@@ -59,10 +59,15 @@ let processedMessages = new WeakSet();
 // 正在做 JS 代码块稳定性校验的消息，防止 800ms 窗口内被重复调度
 let pendingJsChecks = new WeakSet();
 
+// 连续 XML 提示次数（防止 AI 持续用 XML 格式回复导致无限循环）
+let xmlHintCount = 0;
+const XML_HINT_MAX = 10;
+
 // 重置已处理状态（URL 切换/新会话时调用）
 function resetProcessedState() {
   processedMessages = new WeakSet();
   pendingJsChecks = new WeakSet();
+  xmlHintCount = 0;
 }
 
 // 内容不完整时的最大重试次数（AI 生成长内容可能需 30 秒+）
@@ -219,18 +224,6 @@ function processLatestAIResponse(retryCount = 0, force = false) {
   if (!text) return;
   console.log(text);
 
-  // 检测 XML 格式的工具调用（如 <invoke name="edit">...</invoke>），
-  // 提示 AI 改用 ```cuckoo 代码块格式
-  if (/<\s*invoke\b/i.test(text)) {
-    console.log('[Cuckoo Code] ⚠️ 检测到 XML 格式工具调用（<invoke>），提示 AI 改用 cuckoo 代码块');
-    const BT = String.fromCharCode(96);
-    sendMessageToChat(
-      '请使用' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' 代码块进行工具调用，而不是 XML 格式（<invoke name="...">...</invoke>）。',
-      'XML工具调用提示'
-    );
-    return;
-  }
-
   // 是否为疑似工具内容（用于控制详细日志与提示文案）
   const looksToolish = text.includes(FENCE) ||
     /toolName|"tool"|file_|await\s+(?:read|write|edit|glob|grep|bash|pwsh|todoWrite|deleteFile|webFetch|openBrowserWindow|injectJS|readFile|writeFile|editFile)\s*\(/.test(text);
@@ -278,6 +271,30 @@ function processLatestAIResponse(retryCount = 0, force = false) {
     notifyToolCallDetected(toolCall);
     handleToolCall(toolCall);
   } else {
+    // JSON 工具调用未解析到，再检测 XML 格式的工具调用
+    // 精准判断：<invoke 必须带 name 属性，且出现闭合标签或 parameter 参数标签
+    const hasXmlInvoke = /^<\s*invoke\s+name=/i.test(text);
+    const hasXmlClose = /<\/\s*invoke\s*>/i.test(text);
+    const hasXmlParam = /<\s*parameter\s+name=/i.test(text);
+    if (hasXmlInvoke && (hasXmlClose || hasXmlParam)) {
+      // 防止同一条消息被反复扫描时重复发送提示语
+      if (!force) processedMessages.add(lastMessage);
+
+      if (xmlHintCount >= XML_HINT_MAX) {
+        // 已连续提示多次，AI 仍用 XML 格式，熔断停止发送，避免无限循环
+        console.log('[Cuckoo Code] ⚠️ 已连续提示 ' + xmlHintCount + ' 次 XML 格式，停止发送提示语');
+        return;
+      }
+      xmlHintCount++;
+      console.log('[Cuckoo Code] ⚠️ 检测到 XML 格式工具调用（第 ' + xmlHintCount + ' 次提示），提示 AI 改用 cuckoo 代码块');
+      const BT = String.fromCharCode(96);
+      sendMessageToChat(
+        '请使用' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' 代码块进行工具调用，而不是 XML 格式（<invoke name="...">...</invoke>）。',
+        'XML工具调用提示'
+      );
+      return;
+    }
+
     if (looksToolish) {
       // 疑似工具内容但 JS 块检测与 JSON 解析都没命中 → 打印诊断，帮助定位
       console.log('[Cuckoo Code] ⚠️ 回复疑似工具调用但未被识别（JS 代码块未匹配 / JSON 解析失败）');
