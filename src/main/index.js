@@ -2,7 +2,7 @@
  * Cuckoo Code 主进程入口（多窗口多 profile 版）
  * 由项目根目录 main.js 薄壳加载。
  */
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -210,6 +210,35 @@ ipcMainForProfile.handle('delete-profile', async (_event, { profileId }) => {
 ipcMainForProfile.handle('list-providers', async () => {
   const { getAllProviders } = require('../providers');
   return { success: true, providers: getAllProviders().map(p => ({ id: p.id, name: p.name })) };
+});
+
+// 导入自定义 Provider（弹文件选择框，校验并保存路径）
+ipcMainForProfile.handle('import-provider', async (event) => {
+  const win = windowState.getMainWindow();
+  const result = dialog.showOpenDialogSync(win, {
+    properties: ['openFile'],
+    filters: [{ name: 'JavaScript', extensions: ['js'] }],
+    title: '选择自定义 Provider 文件',
+  });
+  if (!result || result.length === 0) {
+    return { success: false, canceled: true };
+  }
+
+  const filePath = result[0];
+  const { addCustomProviderPath } = require('../providers/custom/loader');
+  try {
+    const provider = require(filePath);
+    if (!provider || typeof provider !== 'object') {
+      return { success: false, error: '文件不是有效的 Provider 对象' };
+    }
+    if (!provider.id || !provider.name) {
+      return { success: false, error: 'Provider 缺少 id 或 name' };
+    }
+    addCustomProviderPath(filePath);
+    return { success: true, provider: { id: provider.id, name: provider.name, path: filePath } };
+  } catch (err) {
+    return { success: false, error: '加载失败: ' + err.message };
+  }
 });
 
 // 用户在平台选择页选择平台后，绑定 profile 并加载平台首页

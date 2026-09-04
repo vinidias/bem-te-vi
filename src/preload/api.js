@@ -75,6 +75,9 @@ let electronAPI = {
   createProfileWindowWithProvider: (providerId) => {
     return ipcRenderer.invoke('create-profile-window', { providerId });
   },
+  importProvider: () => {
+    return ipcRenderer.invoke('import-provider');
+  },
 };
 
 try {

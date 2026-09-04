@@ -143,25 +143,54 @@ async function initProject(skipPrompt = false, windowContext = null) {
   }
 
   // 初始化项目时读取对应平台模板并替换占位符
-  // 选择模板文件：优先按 providerId，其次 default
-  let templatePath = path.join(PROMPT_DIR, 'default.md');
-  if (providerId) {
-    const candidate = path.join(PROMPT_DIR, providerId + '.md');
-    if (fs.existsSync(candidate)) {
-      templatePath = candidate;
-    } else {
-      console.warn('[Cuckoo Code] 平台模板不存在，使用 default.md:', candidate);
+  // 模板选择优先级：
+  // 1. provider.getPromptTemplate() 返回的非空字符串
+  // 2. src/prompt/{providerId}.md
+  // 3. src/prompt/default.md
+  const provider = require('../providers').getProvider(providerId);
+  let templateContent = '';
+  let templatePath = '';
+
+  if (provider && typeof provider.getPromptTemplate === 'function') {
+    try {
+      const fromMethod = provider.getPromptTemplate();
+      if (fromMethod && typeof fromMethod === 'string' && fromMethod.trim()) {
+        templateContent = fromMethod;
+        templatePath = '(provider.getPromptTemplate)';
+      }
+    } catch (err) {
+      console.warn('[Cuckoo Code] 调用 provider.getPromptTemplate 失败:', err.message);
     }
   }
 
-  let templateContent = '';
-  try {
-    templateContent = fs.readFileSync(templatePath, 'utf-8');
-    console.log('[Cuckoo Code] 已读取提示词模板:', templatePath);
-  } catch (err) {
-    console.error('[Cuckoo Code] 读取提示词模板失败:', err.message);
-    return { success: false, message: '读取提示词模板失败: ' + err.message };
+  if (!templateContent && providerId) {
+    const candidate = path.join(PROMPT_DIR, providerId + '.md');
+    if (fs.existsSync(candidate)) {
+      templatePath = candidate;
+    }
   }
+
+  if (!templateContent && templatePath) {
+    try {
+      templateContent = fs.readFileSync(templatePath, 'utf-8');
+    } catch (err) {
+      console.error('[Cuckoo Code] 读取提示词模板失败:', err.message);
+      return { success: false, message: '读取提示词模板失败: ' + err.message };
+    }
+  }
+
+  if (!templateContent) {
+    templatePath = path.join(PROMPT_DIR, 'default.md');
+    try {
+      templateContent = fs.readFileSync(templatePath, 'utf-8');
+      console.warn('[Cuckoo Code] 未找到平台模板，使用默认模板:', templatePath);
+    } catch (err) {
+      console.error('[Cuckoo Code] 读取默认模板失败:', err.message);
+      return { success: false, message: '读取默认提示词模板失败: ' + err.message };
+    }
+  }
+
+  console.log('[Cuckoo Code] 已读取提示词模板:', templatePath);
 
   // 读取工具 API 类型定义（从 d.ts 文件读取，避免与模板重复维护）
   let toolApiTypes = '';
