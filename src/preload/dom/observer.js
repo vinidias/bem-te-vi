@@ -8,7 +8,7 @@ const {
 const { getCodeBlockLanguage, isInsideUserMessage, scanForCommands } = require('./detector');
 const { tryParseToolCall } = require('./tool-parser');
 const { getJsCodeBlocksFromMarkdown, looksLikeIncompleteCodeError, FENCE } = require('./js-detector');
-const { sendToolResultToChat, sendCombinedJsResultsToChat } = require('./chat-input');
+const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } = require('./chat-input');
 const { isAIResponseComplete } = require('./ai-response');
 const { hasTool, toolNamesList } = require('../tool-names');
 
@@ -218,6 +218,19 @@ function processLatestAIResponse(retryCount = 0, force = false) {
 
   if (!text) return;
   console.log(text);
+
+  // 检测 XML 格式的工具调用（如 <invoke name="edit">...</invoke>），
+  // 提示 AI 改用 ```cuckoo 代码块格式
+  if (/<\s*invoke\b/i.test(text)) {
+    console.log('[Cuckoo Code] ⚠️ 检测到 XML 格式工具调用（<invoke>），提示 AI 改用 cuckoo 代码块');
+    const BT = String.fromCharCode(96);
+    sendMessageToChat(
+      '请使用' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' 代码块进行工具调用，而不是 XML 格式（<invoke name="...">...</invoke>）。',
+      'XML工具调用提示'
+    );
+    return;
+  }
+
   // 是否为疑似工具内容（用于控制详细日志与提示文案）
   const looksToolish = text.includes(FENCE) ||
     /toolName|"tool"|file_|await\s+(?:read|write|edit|glob|grep|bash|pwsh|todoWrite|deleteFile|webFetch|openBrowserWindow|injectJS|readFile|writeFile|editFile)\s*\(/.test(text);
