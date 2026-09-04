@@ -70,6 +70,7 @@ test('extractJsToolBlocks 空输入', () => {
 });
 
 test('getJsCodeBlocksFromMarkdown PRE 元素', () => {
+  global.window = { location: { href: 'https://chat.deepseek.com/' } };
   const fakePre = {
     tagName: 'PRE',
     getAttribute: (name) => name === 'data-language' ? 'cuckoo' : '',

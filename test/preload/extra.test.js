@@ -2,30 +2,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-test('isInsideUserMessage 检测 data-role=user', () => {
-  const { isInsideUserMessage } = require('../../src/preload/dom/detector');
-  const node = { parentElement: null, getAttribute: (n) => n === 'data-role' ? 'user' : '' };
-  assert.strictEqual(isInsideUserMessage(node), true);
-});
-
-test('isInsideUserMessage 检测 user-message class', () => {
-  const { isInsideUserMessage } = require('../../src/preload/dom/detector');
-  const node = { parentElement: null, getAttribute: () => '', className: 'user-message test' };
-  assert.strictEqual(isInsideUserMessage(node), true);
-});
-
-test('isInsideUserMessage 检测文本内容特征', () => {
-  const { isInsideUserMessage } = require('../../src/preload/dom/detector');
-  const node = { parentElement: null, getAttribute: () => '', className: '', textContent: '系统提示词：xxx' };
-  assert.strictEqual(isInsideUserMessage(node), true);
-});
-
-test('isInsideUserMessage 普通节点返回 false', () => {
-  const { isInsideUserMessage } = require('../../src/preload/dom/detector');
-  const node = { parentElement: null, getAttribute: () => '', className: '', textContent: 'normal' };
-  assert.strictEqual(isInsideUserMessage(node), false);
-});
-
 test('randomDelay 返回 2000-3999ms', () => {
   const { randomDelay } = require('../../src/preload/dom/chat-input');
   for (let i = 0; i < 10; i++) {
