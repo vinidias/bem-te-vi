@@ -17,7 +17,7 @@ const RENDERER_LOG_DIR = path.join(__dirname, '..', '..', 'wyp', 'log');
 fs.mkdirSync(RENDERER_LOG_DIR, { recursive: true });
 
 // ========== 持久化会话配置 ==========
-const SESSION_DIR = 'cuckoo-ai-pro-session';
+const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
 app.setPath('userData', path.join(app.getPath('appData'), SESSION_DIR));
 console.log('[Cuckoo Code] Session 数据目录:', app.getPath('userData'));
 
