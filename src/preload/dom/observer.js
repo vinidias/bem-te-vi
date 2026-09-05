@@ -272,6 +272,10 @@ function processLatestAIResponse(retryCount = 0, force = false) {
     handleToolCall(toolCall);
   } else {
     // JSON 工具调用未解析到，再检测 XML 格式的工具调用
+    // 诊断：打印 XML 检测相关状态（text 和 innerHTML）
+    console.log('[Cuckoo Code] [XML诊断] text长度=' + text.length + ', 开头100字符=' + JSON.stringify(text.slice(0, 100)));
+    console.log('[Cuckoo Code] [XML诊断] markdown.innerHTML长度=' + (markdown.innerHTML || '').length + ', 开头200字符=' + JSON.stringify((markdown.innerHTML || '').slice(0, 200)));
+    console.log('[Cuckoo Code] [XML诊断] 是否有 pre code 元素=' + !!markdown.querySelector('pre code'));
     // 精准判断：<invoke 必须带 name 属性，且出现闭合标签或 parameter 参数标签
     const hasXmlInvoke = /^<\s*invoke\s+name=/i.test(text);
     const hasXmlClose = /<\/\s*invoke\s*>/i.test(text);
