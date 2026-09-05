@@ -189,6 +189,8 @@ function processLatestAIResponse(retryCount = 0, force = false) {
       if (!force) processedMessages.add(lastMessage);
       pendingJsChecks.delete(lastMessage);
       console.log('[Cuckoo Code] ✅ 代码块稳定，检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
+      // 正确使用 cuckoo 代码块，重置 XML 提示计数
+      xmlHintCount = 0;
       (async () => {
         const results = [];
         for (const code of jsBlocks) {
@@ -256,6 +258,8 @@ function processLatestAIResponse(retryCount = 0, force = false) {
 
   const toolCall = tryParseToolCall(text);
   if (toolCall) {
+    // 正确使用 JSON 工具调用，重置 XML 提示计数
+    xmlHintCount = 0;
     // 验证 toolName 是否在工具库中
     const available = hasTool(toolCall.toolName);
     if (!available) {
