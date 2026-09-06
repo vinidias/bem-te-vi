@@ -280,11 +280,14 @@ function processLatestAIResponse(retryCount = 0, force = false) {
     console.log('[Cuckoo Code] [XML诊断] text长度=' + text.length + ', 开头100字符=' + JSON.stringify(text.slice(0, 100)));
     console.log('[Cuckoo Code] [XML诊断] markdown.innerHTML长度=' + (markdown.innerHTML || '').length + ', 开头200字符=' + JSON.stringify((markdown.innerHTML || '').slice(0, 200)));
     console.log('[Cuckoo Code] [XML诊断] 是否有 pre code 元素=' + !!markdown.querySelector('pre code'));
-    // 精准判断：<invoke 必须带 name 属性，且出现闭合标签或 parameter 参数标签
-    const hasXmlInvoke = /^<\s*invoke\s+name=/i.test(text);
-    const hasXmlClose = /<\/\s*invoke\s*>/i.test(text);
-    const hasXmlParam = /<\s*parameter\s+name=/i.test(text);
-    if (hasXmlInvoke && (hasXmlClose || hasXmlParam)) {
+    // 精准判断：
+    // 1. <｜｜DSML｜｜ 开头直接触发（自定义标签前缀，如 <｜｜DSML｜｜tool_calls>、<｜｜DSML｜｜invoke>）
+    // 2. <invoke 必须带 name 属性，且出现闭合标签或 parameter 参数标签
+    const hasAntmlXml = /^<\s*｜｜DSML｜｜/i.test(text);
+    const hasXmlInvoke = /^<\s*(?:[\w-]+:)?invoke\s+name=/i.test(text);
+    const hasXmlClose = /<\s*\/\s*(?:[\w-]+:)?invoke\s*>/i.test(text);
+    const hasXmlParam = /<\s*(?:[\w-]+:)?parameter\s+name=/i.test(text);
+    if (hasAntmlXml || (hasXmlInvoke && (hasXmlClose || hasXmlParam))) {
       // 防止同一条消息被反复扫描时重复发送提示语
       if (!force) processedMessages.add(lastMessage);
 
