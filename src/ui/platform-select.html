@@ -188,6 +188,25 @@
           });
         });
 
+        listEl.querySelectorAll('.platform-delete').forEach(function (btn) {
+          btn.addEventListener('click', async function (e) {
+            e.stopPropagation();
+            const filePath = btn.dataset.path;
+            if (!filePath) return;
+            if (!confirm('确定删除这个自定义 Provider 吗？')) return;
+            try {
+              const res = await window.electronAPI.removeProvider(filePath);
+              if (res && res.success) {
+                await loadPlatforms();
+              } else {
+                alert('删除失败: ' + ((res && res.error) || '未知错误'));
+              }
+            } catch (err) {
+              alert('删除失败: ' + (err.message || err));
+            }
+          });
+        });
+
         const importCard = document.getElementById('platform-import-card');
         if (importCard) {
           importCard.addEventListener('click', async function () {
