@@ -403,23 +403,6 @@ function bindEvents() {
   const genDocBtn = document.getElementById('cuckoo-btn-gen-doc');
   genDocBtn?.addEventListener('click', handleGenerateDoc);
 
-  // 导入 Provider 按钮
-  const importProviderBtn = document.getElementById('cuckoo-btn-import-provider');
-  importProviderBtn?.addEventListener('click', async () => {
-    try {
-      const res = await window.electronAPI.importProvider();
-      if (res && res.success) {
-        showToast('已导入 Provider: ' + res.provider.name, 3000);
-      } else if (res && res.canceled) {
-        // 用户取消，不提示
-      } else {
-        showToast('导入失败: ' + ((res && res.error) || '未知错误'), 4000);
-      }
-    } catch (err) {
-      showToast('导入失败: ' + (err.message || err), 4000);
-    }
-  });
-
   // 沉浸式交流按钮
   const immersiveBtn = document.getElementById('cuckoo-btn-immersive');
   immersiveBtn?.addEventListener('click', () => {

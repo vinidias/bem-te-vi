@@ -26,7 +26,6 @@ const OVERLAY_HTML = [
 '    </div>',
 '    <div class="cuckoo-actions">',
       '<button id="cuckoo-btn-gen-doc" class="cuckoo-btn cuckoo-btn-primary" title="让 AI 生成项目说明文档 (CUCKOO.md)">生成项目说明</button>',
-      '<button id="cuckoo-btn-import-provider" class="cuckoo-btn cuckoo-btn-secondary" title="导入自定义平台 Provider">导入 Provider</button>',
 '    </div>',
 '    <div class="cuckoo-actions">',
 '      <button id="cuckoo-btn-immersive" class="cuckoo-btn cuckoo-btn-secondary" title="切换为沉浸式交流模式">沉浸式交流</button>',

@@ -209,7 +209,15 @@ ipcMainForProfile.handle('delete-profile', async (_event, { profileId }) => {
 // 列出所有内置平台
 ipcMainForProfile.handle('list-providers', async () => {
   const { getAllProviders } = require('../providers');
-  return { success: true, providers: getAllProviders().map(p => ({ id: p.id, name: p.name })) };
+  return {
+    success: true,
+    providers: getAllProviders().map(p => ({
+      id: p.id,
+      name: p.name,
+      custom: !!p._customPath,
+      path: p._customPath || null,
+    })),
+  };
 });
 
 // 导入自定义 Provider（弹文件选择框，校验并保存路径）
@@ -239,6 +247,14 @@ ipcMainForProfile.handle('import-provider', async (event) => {
   } catch (err) {
     return { success: false, error: '加载失败: ' + err.message };
   }
+});
+
+// 删除自定义 Provider（按文件路径移除，内置 provider 不受影响）
+ipcMainForProfile.handle('remove-provider', async (_event, { path: filePath }) => {
+  if (!filePath) return { success: false, error: '缺少文件路径' };
+  const { removeCustomProviderPath } = require('../providers/custom/loader');
+  removeCustomProviderPath(filePath);
+  return { success: true };
 });
 
 // 用户在平台选择页选择平台后，绑定 profile 并加载平台首页

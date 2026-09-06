@@ -78,6 +78,9 @@ let electronAPI = {
   importProvider: () => {
     return ipcRenderer.invoke('import-provider');
   },
+  removeProvider: (filePath) => {
+    return ipcRenderer.invoke('remove-provider', { path: filePath });
+  },
 };
 
 try {

@@ -45,6 +45,7 @@
     }
 
     .platform-card {
+      position: relative;
       width: 200px;
       padding: 28px 20px;
       background: rgba(255, 255, 255, 0.04);
@@ -53,6 +54,32 @@
       cursor: pointer;
       transition: all 0.25s ease;
       text-align: center;
+    }
+
+    .platform-delete {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 20px;
+      height: 20px;
+      line-height: 18px;
+      text-align: center;
+      background: rgba(255, 107, 122, 0.2);
+      color: #ff6b7a;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      display: none;
+    }
+
+    .platform-card:hover .platform-delete {
+      display: block;
+    }
+
+    .platform-delete:hover {
+      background: rgba(255, 107, 122, 0.4);
+      color: #fff;
     }
 
     .platform-card:hover {
@@ -121,14 +148,25 @@
           return;
         }
         listEl.innerHTML = providers.map(function (p) {
+          const deleteBtn = p.custom
+            ? '<button class="platform-delete" data-path="' + (p.path || '') + '" title="删除">×</button>'
+            : '';
           return '<div class="platform-card" data-id="' + p.id + '">' +
+            deleteBtn +
             '<div class="platform-logo" data-name="' + p.name + '">' +
               '<img src="logos/' + encodeURIComponent(p.id) + '.svg" alt="' + p.name + ' logo" />' +
             '</div>' +
             '<div class="platform-name">' + p.name + '</div>' +
             '<div class="platform-desc">点击进入</div>' +
           '</div>';
-        }).join('');
+        }).join('') +
+        '<div class="platform-card" id="platform-import-card">' +
+          '<div class="platform-logo">' +
+            '<span style="font-size:28px;color:#6d76ff;line-height:1;">+</span>' +
+          '</div>' +
+          '<div class="platform-name">导入 Provider</div>' +
+          '<div class="platform-desc">选择 JS 文件</div>' +
+        '</div>';
 
         listEl.querySelectorAll('.platform-logo img').forEach(function (img) {
           img.addEventListener('error', function () {
@@ -138,7 +176,7 @@
           });
         });
 
-        listEl.querySelectorAll('.platform-card').forEach(function (card) {
+        listEl.querySelectorAll('.platform-card[data-id]').forEach(function (card) {
           card.addEventListener('click', async function () {
             const providerId = card.dataset.id;
             try {
@@ -149,6 +187,25 @@
             }
           });
         });
+
+        const importCard = document.getElementById('platform-import-card');
+        if (importCard) {
+          importCard.addEventListener('click', async function () {
+            try {
+              const res = await window.electronAPI.importProvider();
+              if (res && res.success) {
+                // 导入成功后刷新平台列表
+                await loadPlatforms();
+              } else if (res && res.canceled) {
+                // 用户取消，不处理
+              } else {
+                alert('导入失败: ' + ((res && res.error) || '未知错误'));
+              }
+            } catch (err) {
+              alert('导入失败: ' + (err.message || err));
+            }
+          });
+        }
       } catch (err) {
         document.getElementById('platform-list').innerHTML =
           '<div style="color:#ff6b7a;font-size:14px;">加载失败: ' + (err && err.message ? err.message : err) + '</div>';
