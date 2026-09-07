@@ -31,7 +31,14 @@ async function triggerManualParseAttention() {
   }
 }
 
+// 是否正在执行命令或工具（供手动解析等入口判断）
+let isExecuting = false;
+
 async function handleManualParse() {
+  if (isExecuting) {
+    showToast('命令正在执行，无需手动解析', 3000);
+    return;
+  }
   const btn = document.getElementById('cuckoo-btn-manual-parse');
   if (btn) {
     btn.disabled = true;
@@ -134,6 +141,49 @@ function getMessageMarkdown(messageEl) {
 }
 
 /**
+ * 执行 JS 代码块，遇到"代码不完整"类错误时自动重试。
+ * 策略：等待 1 秒后重新从 markdown 获取最新代码块，最多重试 3 次。
+ * 仍失败则把最终报错回传 AI。
+ * @param {Array<string>} initialBlocks 初始提取的代码块
+ * @param {Element} markdown 消息 markdown 根节点
+ * @param {boolean} force 是否手动解析模式
+ */
+async function executeJsBlocksWithRetry(initialBlocks, markdown, force) {
+  let blocks = initialBlocks;
+  let results = [];
+  const MAX_JS_RETRY = 3;
+
+  for (let attempt = 0; attempt <= MAX_JS_RETRY; attempt++) {
+    results = [];
+    for (const code of blocks) {
+      const r = await handleJsToolScript(code);
+      if (r) results.push(r);
+    }
+
+    const hasIncompleteFailure = results.some(
+      item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error)
+    );
+
+    if (!hasIncompleteFailure) break;
+
+    if (attempt < MAX_JS_RETRY) {
+      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] ⏳ 代码不完整，等待 1 秒后重新获取并重试（' + (attempt + 1) + '/' + MAX_JS_RETRY + '）...');
+      await sleep(1000);
+      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] ⏳ 等待结束，开始第 ' + (attempt + 1) + ' 次重试');
+      blocks = getJsCodeBlocksFromMarkdown(markdown);
+    }
+  }
+
+  const stillIncomplete = results.some(
+    item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error)
+  );
+  if (stillIncomplete) {
+    console.log('[' + new Date().toISOString() + '] [Cuckoo Code] ⚠️ 代码不完整，已重试 ' + MAX_JS_RETRY + ' 次仍失败，将报错回传 AI');
+  }
+  if (results.length > 0) sendCombinedJsResultsToChat(results);
+}
+
+/**
  * 回复结束后，获取最新一条 AI 回复的内容并解析工具调用
  * @param {number} retryCount 当前重试次数（内容不完整时延迟重试）
  */
@@ -206,20 +256,7 @@ function processLatestAIResponse(retryCount = 0, force = false) {
     console.log('[Cuckoo Code] ⏳ 检测到 JS 工具代码块，稳定性校验中（' + (retryCount + 1) + '/' + JS_STABILITY_MAX_RETRY + '）...');
     if (force) {
       console.log('[Cuckoo Code] 手动解析模式，跳过稳定性校验');
-      (async () => {
-        const results = [];
-        for (const code of jsBlocks) {
-          const r = await handleJsToolScript(code);
-          if (r) results.push(r);
-        }
-        const hasIncompleteFailure = results.some(item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error));
-        if (hasIncompleteFailure) {
-          showConfirmDialog('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试');
-          triggerManualParseAttention();
-          return;
-        }
-        if (results.length > 0) sendCombinedJsResultsToChat(results);
-      })();
+      executeJsBlocksWithRetry(jsBlocks, markdown, true);
       return;
     }
 
@@ -239,20 +276,7 @@ function processLatestAIResponse(retryCount = 0, force = false) {
       console.log('[Cuckoo Code] ✅ 代码块稳定，检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
       // 正确使用 cuckoo 代码块，重置 XML 提示计数
       xmlHintCount = 0;
-      (async () => {
-        const results = [];
-        for (const code of jsBlocks) {
-          const r = await handleJsToolScript(code);
-          if (r) results.push(r);
-        }
-        const hasIncompleteFailure = results.some(item => item && item.result && !item.result.success && looksLikeIncompleteCodeError(item.result.error));
-        if (hasIncompleteFailure) {
-          showConfirmDialog('⚠️ 自动解析可能因代码不完整而失败\n\n请点击覆盖层的「手动解析」按钮重新尝试');
-          triggerManualParseAttention();
-          return;
-        }
-        if (results.length > 0) sendCombinedJsResultsToChat(results);
-      })();
+      executeJsBlocksWithRetry(jsBlocks, markdown, false);
     }, 800);
     return;
   }
@@ -468,6 +492,7 @@ function notifyJsScriptDetected(code) {
  */
 async function handleJsToolScript(code) {
   // 方向 C：不强制弹面板
+  isExecuting = true;
   notifyJsScriptDetected(code);
   setTaskStatus(true);
   showToast('开始执行命令');
@@ -525,6 +550,7 @@ async function handleJsToolScript(code) {
     }
     return { code, result: { success: false, error: '系统异常: ' + (err.message || String(err)) } };
   } finally {
+    isExecuting = false;
     setTaskStatus(false);
   }
 }
@@ -536,6 +562,7 @@ async function handleToolCall(toolCall) {
   console.log(`[Cuckoo Code] 执行工具: ${toolName}`, params);
 
   // 方向 C：不强制弹面板
+  isExecuting = true;
   setTaskStatus(true);
   showToast('开始执行命令');
 
@@ -592,6 +619,7 @@ async function handleToolCall(toolCall) {
     // 系统异常也要回传 AI，让它知道发生了什么
     sendToolResultToChat(toolCall, { success: false, error: '系统异常: ' + (err.message || String(err)) });
   } finally {
+    isExecuting = false;
     setTaskStatus(false);
   }
 }
