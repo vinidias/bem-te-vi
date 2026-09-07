@@ -1,5 +1,5 @@
 const { Tool, ToolResult } = require('./ToolRegistry');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const path = require('path');
 const { decodeOutput } = require('./decodeOutput');
 
@@ -99,14 +99,12 @@ class PwshTool extends Tool {
 
       const timeout = typeof timeoutMs === 'number' && timeoutMs > 0 ? timeoutMs : 30000;
 
-      // 构造 powershell 命令：使用 -NoProfile -Command
-      const psCommand = 'powershell -NoProfile -Command ' + trimmed;
-
       console.log('[PwshTool] 执行命令: ' + trimmed + ', cwd=' + workDir);
 
       return await new Promise((resolve) => {
-        exec(
-          psCommand,
+        execFile(
+          'powershell',
+          ['-NoProfile', '-Command', trimmed],
           { cwd: workDir, timeout, maxBuffer: 1024 * 1024, windowsHide: true, encoding: 'buffer' },
           (error, stdout, stderr) => {
             const out = decodeOutput(stdout);
