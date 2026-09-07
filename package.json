@@ -105,6 +105,10 @@
     "portable": {
       "artifactName": "cuckoo-code-win-v${version}-portable.${ext}"
     },
+    "asarUnpack": [
+      "**/node_modules/@vscode/ripgrep/**",
+      "**/node_modules/@vscode/ripgrep-win32-x64/**"
+    ],
     "files": [
       "**/*",
       "!node_modules/.bin",

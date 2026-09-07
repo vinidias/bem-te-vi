@@ -8,7 +8,15 @@ const { spawn } = require('child_process');
 let rgPathPromise = null;
 function getRgPath() {
   if (!rgPathPromise) {
-    rgPathPromise = import('@vscode/ripgrep').then(m => m.rgPath);
+    rgPathPromise = import('@vscode/ripgrep').then(m => {
+      // 打包后 @vscode/ripgrep 返回的路径在 app.asar 内，Windows 无法 spawn；
+      // 通过 asarUnpack 解包到 app.asar.unpacked，这里做路径替换。
+      let p = m.rgPath;
+      if (p && p.includes('app.asar' + path.sep)) {
+        p = p.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
+      }
+      return p;
+    });
   }
   return rgPathPromise;
 }
