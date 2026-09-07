@@ -7,21 +7,36 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 
-// preload 渲染进程无法访问 electron.app（app 为 undefined），
-// 而 providers 模块会在渲染进程被 require 后立即加载自定义 Provider，
-// 导致不停打印 "Cannot read properties of undefined (reading 'getPath')"。
-// 渲染进程只需内置 Provider 的 URL 匹配能力，因此直接跳过自定义 Provider 加载。
 const isRenderer = process.type === 'renderer';
+
+// 渲染进程从主进程注入的 additionalArguments 参数中读取 userData 路径
+// （electron.app 在渲染进程为 undefined，无法通过 app.getPath 获取）
+let rendererUserDataPath = null;
+if (isRenderer) {
+  const argv = process.argv || [];
+  const arg = argv.find(a => a.startsWith('--cuckoo-user-data='));
+  if (arg) rendererUserDataPath = arg.slice('--cuckoo-user-data='.length);
+}
+
+function getUserDataPath() {
+  if (isRenderer && rendererUserDataPath) return rendererUserDataPath;
+  if (app && typeof app.getPath === 'function') return app.getPath('userData');
+  return null;
+}
 
 const CUSTOM_CONFIG_FILE = 'custom-providers.json';
 const CUSTOM_PROVIDERS_DIR = 'custom-providers';
 
 function getConfigPath() {
-  return path.join(app.getPath('userData'), CUSTOM_CONFIG_FILE);
+  const userData = getUserDataPath();
+  if (!userData) return null;
+  return path.join(userData, CUSTOM_CONFIG_FILE);
 }
 
 function getCustomProvidersDir() {
-  return path.join(app.getPath('userData'), CUSTOM_PROVIDERS_DIR);
+  const userData = getUserDataPath();
+  if (!userData) return null;
+  return path.join(userData, CUSTOM_PROVIDERS_DIR);
 }
 
 function ensureCustomProvidersDir() {
@@ -33,10 +48,10 @@ function ensureCustomProvidersDir() {
 }
 
 function readConfig() {
-  if (isRenderer) return { paths: [] };
+  if (isRenderer && !rendererUserDataPath) return { paths: [] };
   try {
     const file = getConfigPath();
-    if (fs.existsSync(file)) {
+    if (file && fs.existsSync(file)) {
       return JSON.parse(fs.readFileSync(file, 'utf-8'));
     }
   } catch (err) {
@@ -71,7 +86,7 @@ function loadProviderFromFile(filePath) {
 }
 
 function loadCustomProviders() {
-  if (isRenderer) return [];
+  if (isRenderer && !rendererUserDataPath) return [];
   const config = readConfig();
   const providers = [];
   for (const p of config.paths || []) {

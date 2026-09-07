@@ -245,4 +245,5 @@ cuckoo-code/
 
 - DeepSeek、Claude 提供强大的 AI 能力
 - Electron 提供跨平台桌面框架
+- [@27584](https://github.com/27584)：Provider 发送扩展接口、流式稳定性双通道、自定义 Provider 渲染进程加载、MCP 工具识别等框架级改进（PR #9）
 - 所有贡献者和用户
