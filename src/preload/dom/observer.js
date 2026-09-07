@@ -360,7 +360,7 @@ function processLatestAIResponse(retryCount = 0, force = false) {
     // 1. <｜｜DSML｜｜ 开头直接触发（自定义标签前缀，如 <｜｜DSML｜｜tool_calls>、<｜｜DSML｜｜invoke>）
     // 2. <invoke 必须带 name 属性，且出现闭合标签或 parameter 参数标签
     const hasAntmlXml = /^<\s*｜｜DSML｜｜/i.test(text);
-    const hasXmlInvoke = /^<\s*(?:[\w-]+:)?invoke\s+name=/i.test(text);
+    const hasXmlInvoke = /<\s*(?:[\w-]+:)?invoke\s+name=/i.test(text);
     const hasXmlClose = /<\s*\/\s*(?:[\w-]+:)?invoke\s*>/i.test(text);
     const hasXmlParam = /<\s*(?:[\w-]+:)?parameter\s+name=/i.test(text);
     if (hasAntmlXml || (hasXmlInvoke && (hasXmlClose || hasXmlParam))) {
@@ -376,7 +376,7 @@ function processLatestAIResponse(retryCount = 0, force = false) {
       console.log('[Cuckoo Code] ⚠️ 检测到 XML 格式工具调用（第 ' + xmlHintCount + ' 次提示），提示 AI 改用 cuckoo 代码块');
       const BT = String.fromCharCode(96);
       sendMessageToChat(
-        '请使用' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' 代码块进行工具调用，而不是 XML 格式（<invoke name="...">...</invoke>）。',
+        '请使用' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' 代码块进行工具调用，不要使用 XML invoke 格式。',
         'XML工具调用提示'
       );
       return;
