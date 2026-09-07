@@ -64,8 +64,10 @@ async function handleManualParse() {
 // 已处理过的消息节点集合（避免重复处理）
 let processedMessages = new WeakSet();
 
-// 正在做 JS 代码块稳定性校验的消息，防止 800ms 窗口内被重复调度
-let pendingJsChecks = new WeakSet();
+// JS 代码块稳定性校验状态：msg → {snapshot, blocksSig, lastChange}
+// 由 mutation 驱动更新；interval 兜底在内容稳定满窗口后执行，不依赖单次 setTimeout（智谱等 SPA 下不可靠）
+let jsStability = new Map();
+let stabilityTimer = null;
 
 // 连续 XML 提示次数（防止 AI 持续用 XML 格式回复导致无限循环）
 let xmlHintCount = 0;
@@ -74,7 +76,11 @@ const XML_HINT_MAX = 10;
 // 重置已处理状态（URL 切换/新会话时调用）
 function resetProcessedState() {
   processedMessages = new WeakSet();
-  pendingJsChecks = new WeakSet();
+  jsStability = new Map();
+  if (stabilityTimer) {
+    clearInterval(stabilityTimer);
+    stabilityTimer = null;
+  }
   xmlHintCount = 0;
 }
 
@@ -82,8 +88,10 @@ function resetProcessedState() {
 const MAX_RETRY_COUNT = 2;
 // 重试间隔（ms）
 const RETRY_INTERVAL = 2000;
-// JS 代码块稳定性校验的最大复查次数（1.2 秒/次，约 48 秒）
-const JS_STABILITY_MAX_RETRY = 40;
+// JS 代码块稳定确认窗口（ms）
+const JS_STABILITY_WINDOW = 800;
+// interval 兜底轮询间隔（ms）
+const STABILITY_POLL_INTERVAL = 500;
 /**
  * 检查字符串是否为"疑似工具调用但内容不完整"
  * 规则：文本包含 { 且含工具调用特征（toolName/工具名/大括号开头），
@@ -182,6 +190,36 @@ async function executeJsBlocksWithRetry(initialBlocks, markdown, force) {
   }
   if (results.length > 0) sendCombinedJsResultsToChat(results);
 }
+/**
+ * 稳定性 interval 兜底：mutation 驱动可能因 SPA 宏任务风暴而漏触发，
+ * 这里每 STABILITY_POLL_INTERVAL 检查一次，内容稳定满 JS_STABILITY_WINDOW 即执行。
+ * 与 mutation 通道共享 jsStability 快照；执行后按消息预标记，防止双通道重复处理。
+ */
+function ensureStabilityTimer() {
+  if (stabilityTimer) return;
+  stabilityTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [msg, rec] of jsStability) {
+      // 节点已被页面卸载：清理
+      if (typeof msg.isConnected === 'boolean' && !msg.isConnected) {
+        jsStability.delete(msg);
+        continue;
+      }
+      if (now - rec.lastChange >= JS_STABILITY_WINDOW) {
+        jsStability.delete(msg);
+        if (processedMessages.has(msg)) continue; // 已被其他通道处理
+        processedMessages.add(msg);
+        // 内容已稳定满窗口 → force 直接执行（避免重新 set 快照导致死循环）
+        processLatestAIResponse(0, true);
+      }
+    }
+    if (jsStability.size === 0) {
+      clearInterval(stabilityTimer);
+      stabilityTimer = null;
+    }
+  }, STABILITY_POLL_INTERVAL);
+}
+
 
 /**
  * 回复结束后，获取最新一条 AI 回复的内容并解析工具调用
@@ -238,47 +276,64 @@ function processLatestAIResponse(retryCount = 0, force = false) {
     ' force=' + force +
     ' retryCount=' + retryCount);
   if (jsBlocks.length > 0) {
-    // 稳定性双读校验：DeepSeek 流式渲染期间代码块只渲染了一半（曾导致 "const content"
-    // 这样的残缺代码被执行 → SyntaxError）。间隔 1.2 秒复查内容，仍在变化就重新调度。
-    if (!force && pendingJsChecks.has(lastMessage)) {
-      console.log('[Cuckoo Code] ⏭ 该消息已在稳定性校验中，跳过重复调度');
-      return;
-    }
-    if (!force) pendingJsChecks.add(lastMessage);
-    if (!force && retryCount > JS_STABILITY_MAX_RETRY) {
-      console.log('[Cuckoo Code] ⚠️ 代码块持续不稳定（' + retryCount + ' 次复查），放弃本次处理');
-      pendingJsChecks.delete(lastMessage);
-      processedMessages.add(lastMessage);
-      return;
-    }
-    const snapshot = markdown.textContent || '';
-    const snapshotBlocks = jsBlocks.map((b) => b.length).join(',');
-    console.log('[Cuckoo Code] ⏳ 检测到 JS 工具代码块，稳定性校验中（' + (retryCount + 1) + '/' + JS_STABILITY_MAX_RETRY + '）...');
+    // 稳定性双通道校验：流式渲染期间代码块只渲染了一半（曾导致 "const content"
+    // 这样的残缺代码被执行 → SyntaxError）。mutation 驱动 + interval 兜底，
+    // 内容稳定满 JS_STABILITY_WINDOW 后执行，不依赖单次 setTimeout（智谱等 SPA 下不可靠）。
     if (force) {
+      // 手动解析：跳过稳定性校验，直接执行（标记已处理，避免同节点重复自动执行）
+      processedMessages.add(lastMessage);
       console.log('[Cuckoo Code] 手动解析模式，跳过稳定性校验');
       executeJsBlocksWithRetry(jsBlocks, markdown, true);
       return;
     }
 
-    setTimeout(() => {
-      const jsBlocksNow = getJsCodeBlocksFromMarkdown(markdown);
-      const stable = (markdown.textContent || '') === snapshot &&
-        jsBlocksNow.length === jsBlocks.length &&
-        jsBlocksNow.map((b) => b.length).join(',') === snapshotBlocks;
-      if (!stable) {
-        console.log('[Cuckoo Code] ⏳ 代码块仍在流式更新（快照不一致），重新调度');
-        pendingJsChecks.delete(lastMessage);
-        processLatestAIResponse(retryCount + 1);
-        return;
-      }
-      if (!force) processedMessages.add(lastMessage);
-      pendingJsChecks.delete(lastMessage);
-      console.log('[Cuckoo Code] ✅ 代码块稳定，检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
-      // 正确使用 cuckoo 代码块，重置 XML 提示计数
-      xmlHintCount = 0;
-      executeJsBlocksWithRetry(jsBlocks, markdown, false);
-    }, 800);
+    const snapshot = markdown.textContent || '';
+    const blocksSig = jsBlocks.map((b) => b.length).join(',');
+    const now = Date.now();
+    const rec = jsStability.get(lastMessage);
+    if (!rec || rec.snapshot !== snapshot || rec.blocksSig !== blocksSig) {
+      // 内容仍在变化：记录快照，等待下一次 mutation / interval 复查
+      jsStability.set(lastMessage, { snapshot, blocksSig, lastChange: now });
+      ensureStabilityTimer();
+      console.log('[Cuckoo Code] ⏳ 检测到 JS 工具代码块，流式渲染中，等待稳定...');
+      return; // 不标记 processed，稳定后执行
+    }
+
+    // 内容一致：需稳定满窗口确认
+    if (now - rec.lastChange < JS_STABILITY_WINDOW) {
+      console.log('[Cuckoo Code] ⏳ JS 代码块稳定中（等待 ' + JS_STABILITY_WINDOW + 'ms 确认）...');
+      return;
+    }
+
+    // 稳定满窗口 → 执行
+    jsStability.delete(lastMessage);
+    processedMessages.add(lastMessage);
+    console.log('[Cuckoo Code] ✅ 代码块稳定，检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
+    // 正确使用 cuckoo 代码块，重置 XML 提示计数
+    xmlHintCount = 0;
+    executeJsBlocksWithRetry(jsBlocks, markdown, false);
     return;
+  }
+
+  // 无 JS 代码块：文本也可能仍在流式渲染中（先文字后代码块 / 代码块中途不完整）。
+  // 若直接处理，会因"疑似工具但未识别"或"普通文本"提前标记 processed，
+  // 导致同一条消息后续渲染出的完整代码块被永久跳过（智谱等 SPA 回复中途
+  // isResponseComplete 即可能返回 true）。与 JS 块共用稳定性通道。
+  if (!force) {
+    const snapshot = markdown.textContent || '';
+    const now = Date.now();
+    const rec = jsStability.get(lastMessage);
+    if (!rec || rec.snapshot !== snapshot) {
+      jsStability.set(lastMessage, { snapshot, blocksSig: 'text', lastChange: now });
+      ensureStabilityTimer();
+      console.log('[Cuckoo Code] ⏳ 文本内容渲染中，等待稳定（防流式中途漏检）...');
+      return;
+    }
+    if (now - rec.lastChange < JS_STABILITY_WINDOW) {
+      console.log('[Cuckoo Code] ⏳ 文本内容稳定中（等待 ' + JS_STABILITY_WINDOW + 'ms 确认）...');
+      return;
+    }
+    jsStability.delete(lastMessage);
   }
 
   // 提取文本：优先从 pre code 提取（代码块内容天然不含 json/复制/下载等按钮文字）
@@ -399,13 +454,19 @@ function processLatestAIResponse(retryCount = 0, force = false) {
       }
     } else {
       console.log('[Cuckoo Code] ℹ️ 正常文本回复，未检测到工具调用（无需处理）');
-      window.electronAPI.showAiNotification().catch(() => {});
+      // 防重复：同一文本不重复通知（完成检测轮询每 2s 触发一次，避免刷屏）
+      if (lastNotifiedText !== text) {
+        lastNotifiedText = text;
+        window.electronAPI.showAiNotification().catch(() => {});
+      }
     }
   }
 }
 // 读取防抖定时器（已弃用，改用 Promise sleep + 处理中标志位）
 let isProcessingResponse = false;
 let lastObserverRun = 0;
+let completionPollTimer = null;
+let lastNotifiedText = '';
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -459,6 +520,23 @@ function startObserver() {
   const target = document.body || document.documentElement;
   if (target) {
     observer.observe(target, { childList: true, subtree: true, characterData: true, attributes: true });
+  }
+
+  // 完成检测兜底轮询：mutation 通道存在漏触发窗口——
+  // 长回复期间"停止对话"按钮常驻使 isAIResponseComplete 持续 false，生成结束按钮消失
+  // 这一完成信号若恰好落在 100ms 节流 / isProcessingResponse 串行窗口内会被丢弃，
+  // 之后无新 DOM 变化则永久不触发。定期主动复查一次，覆盖长生成场景。
+  if (!completionPollTimer) {
+    completionPollTimer = setInterval(() => {
+      if (isProcessingResponse) return;
+      (async () => {
+        try {
+          if (await isAIResponseComplete()) {
+            processLatestAIResponse();
+          }
+        } catch (_) { /* 轮询失败静默，等待下一轮 */ }
+      })();
+    }, 2000);
   }
 }
 
@@ -633,4 +711,3 @@ module.exports = {
   handleToolCall,
   handleManualParse,
 };
-

@@ -22,6 +22,9 @@ let electronAPI = {
   executeJs: (code, callId) => {
     return ipcRenderer.invoke('execute-js', { code, callId });
   },
+  sendEnterToChat: () => {
+    return ipcRenderer.invoke('chat-send-enter');
+  },
   listSessions: () => {
     return ipcRenderer.invoke('list-sessions');
   },
@@ -94,4 +97,3 @@ try {
 
 // 无论 contextBridge 是否成功，都直接挂载到 window 作为备选
 window.electronAPI = electronAPI;
-

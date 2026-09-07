@@ -98,3 +98,35 @@ test('claude getMessageMarkdown 优先 standard-markdown', () => {
   };
   assert.strictEqual(claude.getMessageMarkdown(msg), 'STD');
 });
+
+test('渲染进程经注入的 userData 路径可加载自定义 Provider', () => {
+  const os = require('node:os');
+  const path = require('node:path');
+  const fs = require('node:fs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cuckoo-cp-'));
+  const dir = path.join(tmp, 'custom-providers');
+  fs.mkdirSync(dir, { recursive: true });
+  const providerFile = path.join(dir, 'demo.js');
+  fs.writeFileSync(providerFile,
+    "module.exports = { id: 'demo', name: 'Demo', homeUrl: 'https://demo.example.com', " +
+    "matchesUrl: (u) => String(u).includes('demo.example.com'), extractSessionId: () => '1' };");
+  fs.writeFileSync(path.join(tmp, 'custom-providers.json'),
+    JSON.stringify({ paths: [providerFile.replace(/\\/g, '/')] }));
+
+  const savedArgv = process.argv;
+  const savedType = process.type;
+  process.type = 'renderer';
+  process.argv = savedArgv.concat(['--cuckoo-user-data=' + tmp]);
+  const loaderPath = require.resolve('../../src/providers/custom/loader');
+  delete require.cache[loaderPath];
+  try {
+    const { loadCustomProviders } = require(loaderPath);
+    const ps = loadCustomProviders();
+    assert.ok(ps.some((p) => p.id === 'demo'), '渲染进程应能加载注入路径下的自定义 Provider');
+  } finally {
+    process.type = savedType;
+    process.argv = savedArgv;
+    delete require.cache[loaderPath];
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

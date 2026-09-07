@@ -81,3 +81,114 @@ test('getJsCodeBlocksFromMarkdown PRE 元素', () => {
   const blocks = getJsCodeBlocksFromMarkdown(fakePre);
   assert.deepStrictEqual(blocks, ['await read("a")']);
 });
+
+
+// ========== 智谱场景（2026-09-07 修复回归） ==========
+// 智谱 .md-code 用 div + highlight.js span 渲染，语言标签定位不到（lang=''）：
+// 1) 无 <pre> 时兜底 .md-code 容器；2) lang='' 时代码以工具调用开头即提取（不限 onlyCode）
+
+function makeFakeRoot({ textOnly, codeText, langAttr, hasPre }) {
+  const codeEl = hasPre
+    ? {
+        tagName: 'CODE',
+        textContent: codeText,
+        querySelectorAll: () => [],
+        querySelector: () => null,
+        closest: () => null,
+        getAttribute: () => null,
+        classList: [],
+      }
+    : null;
+  const block = {
+    tagName: hasPre ? 'PRE' : 'DIV',
+    className: hasPre ? '' : 'markdown-body md-code',
+    textContent: codeText,
+    querySelector: (sel) => (sel === 'code' ? codeEl : null),
+    querySelectorAll: () => [],
+    closest: () => null,
+    getAttribute: (n) => (n === 'data-language' ? langAttr || null : null),
+    classList: [],
+    remove: () => {},
+  };
+  return {
+    tagName: 'DIV',
+    textContent: (textOnly || '') + ' ' + codeText,
+    cloneNode: () => ({
+      textContent: textOnly || '',
+      querySelectorAll: () => (textOnly ? [] : [block]),
+    }),
+    querySelectorAll: (sel) => (sel === 'pre' ? (hasPre ? [block] : []) : sel === '.md-code' ? [block] : []),
+  };
+}
+
+test('智谱：无 pre 的 .md-code 容器 + 语言未知 + 工具调用（带文字说明）→ 提取', () => {
+  global.window = { location: { href: 'https://chatglm.cn/main/alltoolsdetail?lang=zh' } };
+  const root = makeFakeRoot({
+    textOnly: '这是你的页面：',
+    codeText: 'await write("hello.html", "<h1>hi</h1>")',
+    langAttr: null,
+    hasPre: false,
+  });
+  const blocks = getJsCodeBlocksFromMarkdown(root);
+  assert.deepStrictEqual(blocks, ['await write("hello.html", "<h1>hi</h1>")']);
+});
+
+test('智谱：无 pre 的 .md-code 容器 + 语言未知 + 工具调用（纯代码）→ 提取', () => {
+  global.window = { location: { href: 'https://chatglm.cn/main/alltoolsdetail?lang=zh' } };
+  const root = makeFakeRoot({
+    textOnly: '',
+    codeText: 'await read("a.txt")',
+    langAttr: null,
+    hasPre: false,
+  });
+  const blocks = getJsCodeBlocksFromMarkdown(root);
+  assert.deepStrictEqual(blocks, ['await read("a.txt")']);
+});
+
+test('智谱：语言未知 + 普通代码（非工具调用）→ 不提取', () => {
+  global.window = { location: { href: 'https://chatglm.cn/main/alltoolsdetail?lang=zh' } };
+  const root = makeFakeRoot({
+    textOnly: '',
+    codeText: 'console.log(1)',
+    langAttr: null,
+    hasPre: false,
+  });
+  const blocks = getJsCodeBlocksFromMarkdown(root);
+  assert.deepStrictEqual(blocks, []);
+});
+
+test('智谱：语言未知 + MCP 工具调用（mcp 前缀）→ 提取', () => {
+  global.window = { location: { href: 'https://chatglm.cn/main/alltoolsdetail?lang=zh' } };
+  const root = makeFakeRoot({
+    textOnly: '',
+    codeText: 'log(await mcpListServers());',
+    langAttr: null,
+    hasPre: true,
+  });
+  const blocks = getJsCodeBlocksFromMarkdown(root);
+  assert.strictEqual(blocks.length, 1, 'MCP 前缀工具调用应被提取');
+});
+
+test('智谱：语言未知 + log 包裹 await 调用 → 提取', () => {
+  global.window = { location: { href: 'https://chatglm.cn/main/alltoolsdetail?lang=zh' } };
+  const root = makeFakeRoot({
+    textOnly: '',
+    codeText: 'log(await mcpGetTools("godot-ai"));',
+    langAttr: null,
+    hasPre: true,
+  });
+  const blocks = getJsCodeBlocksFromMarkdown(root);
+  assert.strictEqual(blocks.length, 1, 'log 包裹的 await 工具调用应被提取');
+});
+
+test('js 语言 + 带文字说明 → 不提取（保持原收紧行为）', () => {
+  global.window = { location: { href: 'https://chat.deepseek.com/' } };
+  const root = makeFakeRoot({
+    textOnly: '说明文字',
+    codeText: 'await bash("echo hi")',
+    langAttr: 'js',
+    hasPre: true,
+  });
+  const blocks = getJsCodeBlocksFromMarkdown(root);
+  assert.deepStrictEqual(blocks, []);
+});

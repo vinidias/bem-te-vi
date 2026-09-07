@@ -4,6 +4,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { getProviderByUrl } = require('../providers');
 
 /**
  * 创建 profile 专属的 session store 实例
@@ -49,6 +50,14 @@ function createSessionStore(profileId, storeDir, windowState) {
 
   function extractSessionIdFromUrl(url) {
     if (!url) return null;
+    // 平台 provider 优先（智谱 cid=、Claude /chat/ 等）
+    try {
+      const provider = getProviderByUrl(url);
+      if (provider && typeof provider.extractSessionId === 'function') {
+        const sid = provider.extractSessionId(url);
+        if (sid) return sid;
+      }
+    } catch (_) { /* provider 异常时回退旧逻辑 */ }
     // Claude: https://claude.ai/chat/xxx
     if (url.includes('claude.ai')) {
       const m = url.match(/\/chat\/([a-zA-Z0-9_-]+)/i);
