@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.4] - 2026-09-07
+
+### Fixed
+- pwsh 工具改用 execFile，避免管道符被 cmd 预解析导致命令残缺
+- 主窗口 UA 改为 Chrome 130 普通标识，避免 DeepSeek 提示隐私风险
+- openBrowserWindow 工具窗口同步设置 Chrome 130 UA，不再暴露 Electron 标识
+- XML invoke 检测不再要求必须位于文本开头，并避免提示语自触发循环
+- 渲染进程可通过 --cuckoo-user-data 参数加载自定义 Provider
+
+### Added
+- Provider 发送扩展接口（provider.triggerSend），支持站点原生发送
+- 流式稳定性双通道校验（mutation 快照 + interval 兜底）
+- 完成检测兜底轮询（每 2s 主动复查），覆盖后台/最小化漏触发场景
+- MCP 工具调用识别（await mcpXxx / log(await xxx））
+- 无 pre 的 .md-code 代码容器兜底
+
+### Changed
+- 会话 ID 提取与跳转 URL 改为 Provider 方法，不再硬编码 DeepSeek 格式
+
 ## [0.3.0] - 2026-09-07
 
 ### Added
