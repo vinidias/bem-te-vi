@@ -37,7 +37,16 @@ function registerIpcHandlers() {
     const ctx = windowState.getContextByWebContents(event.sender);
     const win = ctx ? ctx.win : null;
     if (!win || win.isDestroyed()) return { success: false, error: '窗口已关闭' };
-    const url = 'https://chat.deepseek.com/a/chat/s/' + sessionId;
+    // 按当前 provider 拼会话 URL（智谱 cid=、DeepSeek /chat/s/、Claude /chat/）
+    let url = null;
+    try {
+      const { getProviderByUrl } = require('../providers');
+      const provider = getProviderByUrl(win.webContents.getURL());
+      if (provider && typeof provider.sessionUrlBase === 'string' && provider.sessionUrlBase) {
+        url = provider.sessionUrlBase + sessionId;
+      }
+    } catch (_) { /* 回退 DeepSeek */ }
+    if (!url) url = 'https://chat.deepseek.com/a/chat/s/' + sessionId;
     try {
       await win.webContents.loadURL(url);
       return { success: true };
@@ -156,6 +165,21 @@ function registerIpcHandlers() {
       return { callId, ...result };
     } catch (err) {
       return { callId, success: false, error: err.message };
+    }
+  });
+
+  // 站点原生发送：向聚焦输入框注入真实级 Enter（智谱只响应 isTrusted=true 的输入，合成事件免疫）
+  ipcMain.handle('chat-send-enter', async (event) => {
+    const sender = event.sender;
+    if (!sender || sender.isDestroyed()) return false;
+    try {
+      sender.sendInputEvent({ type: 'keyDown', keyCode: 'Return', key: 'Enter' });
+      sender.sendInputEvent({ type: 'char', keyCode: 'Return', key: '\r' });
+      sender.sendInputEvent({ type: 'keyUp', keyCode: 'Return', key: 'Enter' });
+      return true;
+    } catch (err) {
+      console.error('[Cuckoo Code] ❌ 原生 Enter 发送失败:', err.message);
+      return false;
     }
   });
 }

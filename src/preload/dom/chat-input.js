@@ -224,6 +224,33 @@ function waitForInitialPromptAndSend() {
 function triggerSend(input) {
   const provider = getCurrentProvider();
 
+  // 方法 0: 站点原生发送（智谱等免疫合成事件的平台，经主进程注入真实级输入）
+  if (provider && typeof provider.triggerSend === 'function') {
+    let result = null;
+    try { result = provider.triggerSend(input); } catch (_) { /* 站点实现异常时回退通用逻辑 */ }
+    if (result && typeof result.then === 'function') {
+      result.then(function (ok) {
+        if (ok) {
+          console.log('[Cuckoo Code] 已通过站点原生发送触发');
+        } else {
+          fallbackSend(provider, input);
+        }
+      }).catch(function () { fallbackSend(provider, input); });
+      return;
+    }
+    if (result) {
+      console.log('[Cuckoo Code] 已通过站点原生发送触发');
+      return;
+    }
+  }
+
+  fallbackSend(provider, input);
+}
+
+/**
+ * 通用发送兜底：查找发送按钮点击，或模拟 Enter 按键序列
+ */
+function fallbackSend(provider, input) {
   // 方法 1: 调用平台 Provider 查找发送按钮
   if (provider && typeof provider.findSendButton === 'function') {
     const btn = provider.findSendButton();

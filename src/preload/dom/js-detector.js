@@ -21,7 +21,13 @@ function looksLikeIncompleteCodeError(error) {
 
 function looksLikeToolScript(code) {
   const c = code || '';
-  return JS_TOOL_CALL_RE.test(c);
+  // 1. 内置工具白名单：await write( 等
+  if (JS_TOOL_CALL_RE.test(c)) return true;
+  // 2. MCP 工具：await mcpXxx(（MCP server 工具名动态，无法进白名单，按 mcp 前缀识别）
+  if (/\bawait\s+mcp[A-Za-z_$][\w$]*\s*\(/.test(c)) return true;
+  // 3. Cuckoo 输出封装：log(await xxx( ...（log 包裹的任意工具调用，含 MCP）
+  if (/\blog\s*\(\s*await\s+[A-Za-z_$][\w$]*\s*\(/.test(c)) return true;
+  return false;
 }
 
 /**
@@ -106,7 +112,7 @@ function hasOnlyCodeContent(root) {
   if (root.tagName === 'PRE') return true;
   const clone = root.cloneNode(true);
   // 剔除代码块本身、banner（语言标签 + 复制/下载按钮）与工具栏等装饰元素
-  clone.querySelectorAll('pre, .md-code-block-banner-wrap, .md-code-block-banner, button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"], [class*="lang"], [class*="header"]').forEach((el) => el.remove());
+  clone.querySelectorAll('pre, .md-code, .md-code-block-banner-wrap, .md-code-block-banner, button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"], [class*="lang"], [class*="header"]').forEach((el) => el.remove());
   return !(clone.textContent || '').trim();
 }
 
@@ -125,6 +131,11 @@ function getJsCodeBlocksFromMarkdown(root) {
   if (root.querySelectorAll) {
     const nested = root.querySelectorAll('pre');
     for (const p of nested) pres.push(p);
+    // 兜底：无 <pre> 的代码容器（如智谱 .md-code 用 div + highlight.js span 渲染）
+    if (pres.length === 0) {
+      const mdCodes = root.querySelectorAll('.md-code');
+      for (const c of mdCodes) pres.push(c);
+    }
   }
 
   for (const pre of pres) {
@@ -136,7 +147,13 @@ function getJsCodeBlocksFromMarkdown(root) {
       blocks.push(code);
       continue;
     }
-    if ((lang === 'js' || lang === 'javascript' || lang === '') && onlyCode && looksLikeToolScript(code)) {
+    if (lang === 'js' || lang === 'javascript') {
+      if (onlyCode && looksLikeToolScript(code)) blocks.push(code);
+      continue;
+    }
+    // 语言未知（智谱等无语言标签站点）：代码明确以工具调用开头（await <工具>(）即视为工具脚本
+    // 走 JS 块路径以获得稳定性校验（流式渲染期间不会执行半截代码）
+    if (lang === '' && looksLikeToolScript(code)) {
       blocks.push(code);
     }
   }

@@ -65,6 +65,7 @@ function createWindow(profile) {
       sandbox: false,
       partition: profileData.partition, // 每个 profile 独立持久化 session
       backgroundThrottling: false,
+      additionalArguments: ['--cuckoo-user-data=' + app.getPath('userData')],
     },
   });
 
