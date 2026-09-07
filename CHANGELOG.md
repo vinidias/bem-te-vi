@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.5] - 2026-09-08
+
+### Fixed
+- glob/grep 工具打包后 ripgrep ENOENT，通过 asarUnpack 解包二进制并修正运行路径
+- 恢复 README 中 Codecov 覆盖率徽章
+
 ## [0.3.4] - 2026-09-07
 
 ### Fixed
