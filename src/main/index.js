@@ -2,14 +2,19 @@
  * Cuckoo Code 主进程入口（多窗口多 profile 版）
  * 由项目根目录 main.js 薄壳加载。
  */
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 const windowState = require('./window');
 const profileManager = require('./profile-manager');
 const { createSessionStore } = require('./session-store');
+const { getProvider } = require('../providers');
 const updater = require('./updater');
+
+// 渲染进程日志输出目录（按平台分文件）
+const RENDERER_LOG_DIR = path.join(__dirname, '..', '..', 'wyp', 'log');
+fs.mkdirSync(RENDERER_LOG_DIR, { recursive: true });
 
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
@@ -38,13 +43,17 @@ async function flushAllSessions() {
  */
 function createWindow(profile) {
   const profileData = profile || profileManager.getDefaultProfile();
+  const provider = getProvider(profileData.providerId || 'deepseek') || getProvider('deepseek');
   const storeDir = app.getPath('userData');
   const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
+  const hasExplicitProfile = !!profile;
+  // providerId 已确定 → 直接打开；未确定 → 显示平台选择页
+  const providerChosen = !!profileData.providerId;
 
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
-    title: 'Cuckoo Code Pro - ' + profileData.name,
+    title: 'Cuckoo Code Pro - ' + provider.name + ' - ' + profileData.name,
     webPreferences: {
       preload: path.join(__dirname, '..', '..', 'preload.js'),
       contextIsolation: true,
@@ -58,8 +67,8 @@ function createWindow(profile) {
   // 保存 session 引用（窗口销毁后 webContents 不可访问）
   const winSession = mainWindow.webContents.session;
 
-  // 注册窗口上下文
-  windowState.addWindow(mainWindow, profileData.id, sessionStore);
+  // 注册窗口上下文（记录 providerId，未确定时为空字符串）
+  windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore);
   sessionsToFlush.add(winSession);
 
   // 更新主窗口引用
@@ -70,9 +79,18 @@ function createWindow(profile) {
     updater.initAutoUpdater(mainWindow);
   }
 
-  // 转发渲染进程的 console.log 到主进程
+  // 转发渲染进程的 console.log 到主进程，并按平台写入独立日志文件
   mainWindow.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
     console.log('[Renderer Console][' + profileData.name + ']', message);
+
+    // 根据当前窗口上下文确定 providerId，未确定用 default
+    let providerId = profileData.providerId || 'default';
+    const ctx = windowState.getContextByWebContents(mainWindow.webContents);
+    if (ctx && ctx.providerId) providerId = ctx.providerId;
+
+    const logFile = path.join(RENDERER_LOG_DIR, providerId + '.log');
+    const timeIso = new Date().toISOString();
+    fs.appendFileSync(logFile, '[' + timeIso + '][' + profileData.name + '] ' + message + '\n', 'utf-8');
   });
 
   mainWindow.maximize();
@@ -81,7 +99,14 @@ function createWindow(profile) {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   mainWindow.webContents.setUserAgent(userAgent);
 
-  mainWindow.loadURL('https://chat.deepseek.com/');
+  if (providerChosen) {
+    // 平台已确定，直接进入平台首页
+    mainWindow.loadURL(provider.homeUrl);
+  } else {
+    // 平台未确定，显示平台选择页
+    const selectPage = path.join(__dirname, '..', 'ui', 'platform-select.html');
+    mainWindow.loadFile(selectPage);
+  }
 
   mainWindow.webContents.on('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -157,15 +182,153 @@ registerIpcHandlers();
 
 // 覆盖层"新建窗口"按钮触发
 const { ipcMain: ipcMainForProfile } = require('electron');
-ipcMainForProfile.handle('create-profile-window', async () => {
+ipcMainForProfile.handle('create-profile-window', async (_event, { providerId } = {}) => {
   const profiles = profileManager.readProfiles();
-  createWindow(profileManager.createProfile('窗口' + (profiles.length + 1)));
+  // 不指定平台时创建"未确定平台"的 profile，窗口会显示平台选择页
+  const pid = providerId || '';
+  createWindow(profileManager.createProfile('窗口' + (profiles.length + 1), pid));
   return { success: true };
 });
 
 // 列出所有 profiles
 ipcMainForProfile.handle('list-profiles', async () => {
   return { success: true, profiles: profileManager.readProfiles() };
+});
+
+// 删除指定 profile（会关闭其窗口）
+ipcMainForProfile.handle('delete-profile', async (_event, { profileId }) => {
+  if (!profileId) return { success: false, error: '缺少窗口ID' };
+  const ctx = windowState.getWindowByProfileId(profileId);
+  if (ctx && ctx.win && !ctx.win.isDestroyed()) {
+    ctx.win.close();
+  }
+  const ok = profileManager.deleteProfile(profileId);
+  return { success: ok, error: ok ? null : '窗口不存在' };
+});
+
+// 列出所有内置平台
+ipcMainForProfile.handle('list-providers', async () => {
+  const { getAllProviders } = require('../providers');
+  return {
+    success: true,
+    providers: getAllProviders().map(p => ({
+      id: p.id,
+      name: p.name,
+      custom: !!p._customPath,
+      path: p._customPath || null,
+    })),
+  };
+});
+
+// 导入自定义 Provider（弹文件选择框，复制到 userData，并处理重名）
+ipcMainForProfile.handle('import-provider', async (event, { replace = false } = {}) => {
+  const win = windowState.getMainWindow();
+  const result = dialog.showOpenDialogSync(win, {
+    properties: ['openFile'],
+    filters: [{ name: 'JavaScript', extensions: ['js'] }],
+    title: '选择自定义 Provider 文件',
+  });
+  if (!result || result.length === 0) {
+    return { success: false, canceled: true };
+  }
+
+  const filePath = result[0];
+  const { importCustomProvider } = require('../providers/custom/loader');
+  try {
+    const res = importCustomProvider(filePath, { replace });
+    if (res.exists && !replace) {
+      // 同名 provider 已存在，询问是否替换
+      const confirmRes = await dialog.showMessageBox(win, {
+        type: 'question',
+        buttons: ['取消', '替换'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Provider 已存在',
+        message: '已导入过 id 为 "' + res.provider.id + '" 的 Provider，是否替换？',
+      });
+      if (confirmRes.response !== 1) {
+        return { success: false, canceled: true };
+      }
+      // 用户确认替换，重新导入
+      const finalRes = importCustomProvider(filePath, { replace: true });
+      return { success: true, provider: { id: finalRes.provider.id, name: finalRes.provider.name, path: finalRes.targetPath } };
+    }
+    return { success: true, provider: { id: res.provider.id, name: res.provider.name, path: res.targetPath } };
+  } catch (err) {
+    return { success: false, error: '加载失败: ' + err.message };
+  }
+});
+
+// 删除自定义 Provider（先检查是否有窗口在使用）
+ipcMainForProfile.handle('remove-provider', async (_event, { path: filePath, providerId }) => {
+  if (!filePath) return { success: false, error: '缺少文件路径' };
+
+  // 检查是否有窗口正在使用该 provider
+  const usingContexts = windowState.getAllContexts().filter(
+    (ctx) => ctx.providerId === providerId
+  );
+
+  if (usingContexts.length > 0) {
+    const profileNames = usingContexts
+      .map((ctx) => {
+        const profile = profileManager.getProfileById(ctx.profileId);
+        return profile ? profile.name : ctx.profileId;
+      })
+      .join('、');
+    return {
+      success: false,
+      error: '以下窗口正在使用此 Provider，请先在窗口管理中更换这些窗口的平台再删除：' + profileNames,
+    };
+  }
+
+  const { removeCustomProviderPath } = require('../providers/custom/loader');
+  removeCustomProviderPath(filePath);
+  return { success: true };
+});
+
+// 替换自定义 Provider（弹文件选择框，校验 id 一致后覆盖）
+ipcMainForProfile.handle('replace-provider', async (event, { providerId }) => {
+  if (!providerId) return { success: false, error: '缺少 providerId' };
+  const win = windowState.getMainWindow();
+  const result = dialog.showOpenDialogSync(win, {
+    properties: ['openFile'],
+    filters: [{ name: 'JavaScript', extensions: ['js'] }],
+    title: '选择新的 Provider 文件（id 必须为 ' + providerId + '）',
+  });
+  if (!result || result.length === 0) {
+    return { success: false, canceled: true };
+  }
+
+  const filePath = result[0];
+  const { replaceCustomProvider } = require('../providers/custom/loader');
+  try {
+    const res = replaceCustomProvider(providerId, filePath);
+    return { success: true, provider: { id: res.provider.id, name: res.provider.name, path: res.targetPath } };
+  } catch (err) {
+    return { success: false, error: '替换失败: ' + err.message };
+  }
+});
+
+// 用户在平台选择页选择平台后，绑定 profile 并加载平台首页
+ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
+  if (!providerId) return { success: false, error: '缺少平台ID' };
+  const ctx = windowState.getContextByWebContents(event.sender);
+  if (!ctx) return { success: false, error: '窗口上下文不存在' };
+
+  const provider = getProvider(providerId);
+  if (!provider) return { success: false, error: '平台不存在: ' + providerId };
+
+  // 更新该窗口 profile 的 providerId 和 partition
+  profileManager.updateProfileProvider(ctx.profileId, providerId);
+
+  // 记录窗口上下文 providerId
+  ctx.providerId = providerId;
+
+  // 原地跳转到平台首页
+  if (ctx.win && !ctx.win.isDestroyed()) {
+    await ctx.win.loadURL(provider.homeUrl);
+  }
+  return { success: true };
 });
 
 // 打开指定 profile 的窗口（若已存在则聚焦）

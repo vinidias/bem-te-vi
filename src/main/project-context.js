@@ -10,8 +10,8 @@ const windowState = require('./window');
 const { toolRegistry } = require('./tool-registry');
 const mcpClient = require('./mcp-client');
 
-// systemPrompt.md 路径
-const SYSTEM_PROMPT_PATH = path.join(__dirname, '..', '..', 'systemPrompt.md');
+// 提示词模板目录
+const PROMPT_DIR = path.join(__dirname, '..', 'prompt');
 
 /**
  * 递归获取目录树结构字符串
@@ -80,6 +80,8 @@ async function initProject(skipPrompt = false, windowContext = null) {
   const ctx = windowContext || windowState.getMainContext();
   const mainWindow = ctx ? ctx.win : windowState.getMainWindow();
   const sessionStore = ctx ? ctx.sessionStore : null;
+  // providerId 来自窗口上下文（可能为空，表示未确定平台）
+  const providerId = (ctx && ctx.providerId) || '';
 
   // 先让用户选择目录
   const result = dialog.showOpenDialogSync(mainWindow, {
@@ -140,28 +142,62 @@ async function initProject(skipPrompt = false, windowContext = null) {
     return { success: true, message: '项目目录已更新' };
   }
 
-  // 初始化项目时发送系统提示词和工具规则（不含目录树）
-  // 读取系统提示词
-  let promptContent = '';
-  try {
-    if (fs.existsSync(SYSTEM_PROMPT_PATH)) {
-      promptContent = fs.readFileSync(SYSTEM_PROMPT_PATH, 'utf-8');
-    } else {
-      console.warn('[Cuckoo Code] systemPrompt.md 不存在');
+  // 初始化项目时读取对应平台模板并替换占位符
+  // 模板选择优先级：
+  // 1. provider.getPromptTemplate() 返回的非空字符串
+  // 2. src/prompt/{providerId}.md
+  // 3. src/prompt/default.md
+  const provider = require('../providers').getProvider(providerId);
+  let templateContent = '';
+  let templatePath = '';
+
+  if (provider && typeof provider.getPromptTemplate === 'function') {
+    try {
+      const fromMethod = provider.getPromptTemplate();
+      if (fromMethod && typeof fromMethod === 'string' && fromMethod.trim()) {
+        templateContent = fromMethod;
+        templatePath = '(provider.getPromptTemplate)';
+      }
+    } catch (err) {
+      console.warn('[Cuckoo Code] 调用 provider.getPromptTemplate 失败:', err.message);
     }
-  } catch (err) {
-    console.error('[Cuckoo Code] 读取 systemPrompt.md 失败:', err.message);
   }
 
-  // 读取工具使用规则
-  let rulesContent = '';
-  const RULES_PATH = path.join(__dirname, '..', '..', 'tools', 'rules.md');
-  try {
-    if (fs.existsSync(RULES_PATH)) {
-      rulesContent = fs.readFileSync(RULES_PATH, 'utf-8');
+  if (!templateContent && providerId) {
+    const candidate = path.join(PROMPT_DIR, providerId + '.md');
+    if (fs.existsSync(candidate)) {
+      templatePath = candidate;
     }
+  }
+
+  if (!templateContent && templatePath) {
+    try {
+      templateContent = fs.readFileSync(templatePath, 'utf-8');
+    } catch (err) {
+      console.error('[Cuckoo Code] 读取提示词模板失败:', err.message);
+      return { success: false, message: '读取提示词模板失败: ' + err.message };
+    }
+  }
+
+  if (!templateContent) {
+    templatePath = path.join(PROMPT_DIR, 'default.md');
+    try {
+      templateContent = fs.readFileSync(templatePath, 'utf-8');
+      console.warn('[Cuckoo Code] 未找到平台模板，使用默认模板:', templatePath);
+    } catch (err) {
+      console.error('[Cuckoo Code] 读取默认模板失败:', err.message);
+      return { success: false, message: '读取默认提示词模板失败: ' + err.message };
+    }
+  }
+
+  console.log('[Cuckoo Code] 已读取提示词模板:', templatePath);
+
+  // 读取工具 API 类型定义（从 d.ts 文件读取，避免与模板重复维护）
+  let toolApiTypes = '';
+  try {
+    toolApiTypes = fs.readFileSync(path.join(__dirname, '..', '..', 'tools', 'cuckoo-tools.d.ts'), 'utf-8');
   } catch (err) {
-    console.error('[Cuckoo Code] 读取 rules.md 失败:', err.message);
+    console.error('[Cuckoo Code] 读取 cuckoo-tools.d.ts 失败:', err.message);
   }
 
   // 获取工具库描述（JS API 格式：AI 通过生成 JS 代码调用这些函数）
@@ -206,11 +242,7 @@ async function initProject(skipPrompt = false, windowContext = null) {
     platformInfo = '- 操作系统：Linux（' + arch + '）\n  - bash 使用 bash（Unix 命令：pwd / ls / cat / grep）\n  - 路径分隔符为正斜杠 /';
   }
 
-  // 将 {TOOLS_LIST} 占位符替换为实际工具列表
-  const finalRules = rulesContent.replace('{TOOLS_LIST}', toolsDescription);
-  const finalPrompt = promptContent.replace('{TOOLS_LIST}', toolsDescription).replace('{PLATFORM_INFO}', platformInfo);
-
-  // 组合内容（包含目录树）
+  // 读取项目介绍（CUCKOO.md）
   let projectIntro = '';
   const cuckooMdPath = path.join(selectedDir, '.cuckooCode', 'CUCKOO.md');
   if (fs.existsSync(cuckooMdPath)) {
@@ -222,24 +254,25 @@ async function initProject(skipPrompt = false, windowContext = null) {
     }
   }
 
-  // 获取目录树
-  // let directoryTree = '';
-  // try {
-  //   if (fs.existsSync(selectedDir)) {
-  //     directoryTree = getDirectoryTree(selectedDir);
-  //     console.log('[Cuckoo Code] 已获取目录树');
-  //   }
-  // } catch (err) {
-  //   console.error('[Cuckoo Code] 获取目录树失败:', err.message);
-  // }
+  // 项目介绍占位符：无内容则整体置空
+  const projectIntroSection = projectIntro
+    ? '---\n## 项目介绍\n' + projectIntro
+    : '';
 
-  const combined = '系统提示词：\n' + finalPrompt +
-    '\n---\n工具使用指导：\n' + promptSections +
-    (mcpSection ? '\n---\n' + mcpSection : '') +
-    '\n---\n工具使用规则：\n' + finalRules +
-    (projectIntro ? '\n---\n## 项目介绍\n' + projectIntro : '') +
-    '\n---\n## 当前项目目录\n当前项目路径: ' + selectedDir +
-    '\n---\n如果你觉得需要使用工具，请直接回答工具指令及入参，其他内容不需要回复';
+  // 统一替换模板中的双花括号占位符（全量替换，支持同一占位符多次出现）
+  const placeholders = {
+    '{{TOOL_API_TYPES}}': toolApiTypes,
+    '{{TOOLS_LIST}}': toolsDescription,
+    '{{TOOL_SECTIONS}}': promptSections,
+    '{{PLATFORM_INFO}}': platformInfo,
+    '{{PROJECT_DIR}}': selectedDir,
+    '{{PROJECT_INTRO_SECTION}}': projectIntroSection,
+    '{{MCP_SECTION}}': mcpSection,
+  };
+  let combined = templateContent;
+  for (const [key, value] of Object.entries(placeholders)) {
+    combined = combined.split(key).join(value);
+  }
 
   console.log('[Cuckoo Code] 准备发送初始提示（不含目录树），长度:', combined.length);
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -249,24 +282,4 @@ async function initProject(skipPrompt = false, windowContext = null) {
   return { success: true, message: '初始化完成，已发送系统提示词、工具规则和工具库' };
 }
 
-/**
- * 读取 systemPrompt.md 并发送到 preload
- */
-function sendSystemPrompt() {
-  const mainWindow = windowState.getMainWindow();
-  try {
-    if (fs.existsSync(SYSTEM_PROMPT_PATH)) {
-      const content = fs.readFileSync(SYSTEM_PROMPT_PATH, 'utf-8');
-      console.log('[Cuckoo Code] systemPrompt.md 已读取，长度:', content.length, '字节');
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('system-prompt', content);
-      }
-    } else {
-      console.log('[Cuckoo Code] systemPrompt.md 不存在，跳过');
-    }
-  } catch (err) {
-    console.error('[Cuckoo Code] 读取 systemPrompt.md 失败:', err.message);
-  }
-}
-
-module.exports = { SYSTEM_PROMPT_PATH, IGNORED_DIRS, getDirectoryTree, initProject, sendSystemPrompt };
+module.exports = { PROMPT_DIR, IGNORED_DIRS, getDirectoryTree, initProject };

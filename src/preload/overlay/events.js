@@ -6,18 +6,7 @@ const state = require('../dom/state');
 const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
 const { handleManualParse } = require('../dom/observer');
-const { sendSystemPromptToInput, sendToChat } = require('../dom/chat-input');
-
-/**
- * 发送系统提示词按钮点击处理
- */
-function handleSendPrompt() {
-  if (!state.systemPromptContent) {
-    showToast('系统提示词内容为空', 3000);
-    return;
-  }
-  sendSystemPromptToInput();
-}
+const { sendToChat } = require('../dom/chat-input');
 
 /**
  * 渲染窗口列表（浮动管理面板内）
@@ -32,14 +21,30 @@ async function renderWindowList() {
       list.innerHTML = '<div class="cuckoo-session-empty">暂无窗口</div>';
       return;
     }
+    // 获取平台名映射
+    const providerMap = {};
+    try {
+      const pvRes = await window.electronAPI.listProviders();
+      if (pvRes && pvRes.success) {
+        (pvRes.providers || []).forEach(pv => { providerMap[pv.id] = pv.name; });
+      }
+    } catch (_) {}
+
     list.innerHTML = profiles.map(p => {
+      const pname = providerMap[p.providerId] || '平台';
       return '<div class="cuckoo-window-item" data-profile-id="' + p.id + '">' +
-        '<span class="cuckoo-window-name">' + p.name + '</span>' +
-        '<span class="cuckoo-window-status">点击打开/切换</span>' +
+        '<span class="cuckoo-window-left">' +
+          '<span class="cuckoo-window-name">' + p.name + '</span>' +
+          '<span class="cuckoo-window-sep">|</span>' +
+          '<span class="cuckoo-window-status">' + pname + '</span>' +
+        '</span>' +
+        '<span class="cuckoo-window-del" data-profile-id="' + p.id + '" title="删除窗口">删除</span>' +
       '</div>';
     }).join('');
     list.querySelectorAll('.cuckoo-window-item').forEach(el => {
-      el.addEventListener('click', async () => {
+      el.addEventListener('click', async (e) => {
+        // 点击删除按钮不触发切换
+        if (e.target.classList.contains('cuckoo-window-del')) return;
         const profileId = el.dataset.profileId;
         try {
           const r = await window.electronAPI.openProfileWindow(profileId);
@@ -51,6 +56,24 @@ async function renderWindowList() {
           }
         } catch (err) {
           showToast('打开窗口失败: ' + (err.message || err), 3000);
+        }
+      });
+    });
+    // 绑定删除按钮
+    list.querySelectorAll('.cuckoo-window-del').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const profileId = btn.dataset.profileId;
+        try {
+          const r = await window.electronAPI.deleteProfileWindow(profileId);
+          if (r && r.success) {
+            showToast('已删除窗口', 2000);
+            await renderWindowList();
+          } else {
+            showToast((r && r.error) || '删除失败', 3000);
+          }
+        } catch (err) {
+          showToast('删除失败: ' + (err.message || err), 3000);
         }
       });
     });
@@ -215,12 +238,10 @@ function bindEvents() {
 
   const minimizeBtn = document.getElementById('cuckoo-btn-minimize');
   const initBtn = document.getElementById('cuckoo-btn-init');
-  const sendPromptBtn = document.getElementById('cuckoo-btn-send-prompt');
   const clearBtn = document.getElementById('cuckoo-btn-clear');
 
   minimizeBtn?.addEventListener('click', hideOverlay);
   initBtn?.addEventListener('click', handleInitProject);
-  sendPromptBtn?.addEventListener('click', handleSendPrompt);
   clearBtn?.addEventListener('click', () => {
     commandHistory.length = 0;
     renderHistory();
@@ -358,12 +379,12 @@ function bindEvents() {
 
 
 
-  // 浮动面板：新建窗口
+  // 浮动面板：新建窗口（不指定平台，让窗口显示平台选择页）
   const wmNewWindowBtn = document.getElementById('cuckoo-wm-new-window');
   wmNewWindowBtn?.addEventListener('click', async () => {
     try {
       await window.electronAPI.createProfileWindow();
-      showToast('已创建新窗口', 2200);
+      showToast('已打开平台选择', 2200);
       await renderWindowList();
     } catch (err) {
       showToast('创建新窗口失败: ' + (err.message || err), 3000);

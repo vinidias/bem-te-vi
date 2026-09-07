@@ -39,19 +39,24 @@ function writeProfiles(profiles) {
 
 /**
  * 创建新 profile
+ * @param {string} name 显示名称
+ * @param {string} providerId 平台 id（默认 deepseek）
  */
-function createProfile(name) {
+function createProfile(name, providerId) {
   const profiles = readProfiles();
+  // providerId 为空表示平台未确定，首次打开会显示平台选择页
+  const pid = providerId || '';
   const id = 'profile-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
   const profile = {
     id,
+    providerId: pid,
     name: name || ('窗口' + (profiles.length + 1)),
-    partition: 'persist:' + id,
+    partition: 'persist:' + (pid ? pid + ':' : '') + id,
     createdAt: new Date().toISOString(),
   };
   profiles.push(profile);
   writeProfiles(profiles);
-  console.log('[Profile] 已创建:', profile.id, profile.name);
+  console.log('[Profile] 已创建:', profile.id, profile.name, 'provider=' + (pid || '(未确定)'));
   return profile;
 }
 
@@ -61,7 +66,7 @@ function createProfile(name) {
 function getDefaultProfile() {
   const profiles = readProfiles();
   if (profiles.length > 0) return profiles[0];
-  return createProfile('默认窗口');
+  return createProfile('默认窗口', '');
 }
 
 /**
@@ -69,6 +74,31 @@ function getDefaultProfile() {
  */
 function getProfileById(id) {
   return readProfiles().find(p => p.id === id) || null;
+}
+
+/**
+ * 删除 profile
+ */
+function deleteProfile(id) {
+  const profiles = readProfiles();
+  const idx = profiles.findIndex(p => p.id === id);
+  if (idx === -1) return false;
+  profiles.splice(idx, 1);
+  writeProfiles(profiles);
+  return true;
+}
+
+/**
+ * 更新 profile 平台
+ */
+function updateProfileProvider(id, providerId) {
+  const profiles = readProfiles();
+  const p = profiles.find(x => x.id === id);
+  if (!p || !providerId) return null;
+  p.providerId = providerId;
+  p.partition = 'persist:' + providerId + ':' + id;
+  writeProfiles(profiles);
+  return p;
 }
 
 /**
@@ -90,4 +120,6 @@ module.exports = {
   getDefaultProfile,
   getProfileById,
   updateProfileName,
+  updateProfileProvider,
+  deleteProfile,
 };
