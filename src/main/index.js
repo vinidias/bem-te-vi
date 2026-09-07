@@ -103,9 +103,8 @@ function createWindow(profile) {
 
   mainWindow.maximize();
 
-  const userAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-  mainWindow.webContents.setUserAgent(userAgent);
+  // 不手动设置 UA：让 Electron 使用默认 Chrome 130 UA，
+  // 避免与 sec-ch-ua（Chromium 130）不一致导致 Google OAuth 报“浏览器不安全”
 
   if (providerChosen) {
     // 平台已确定，直接进入平台首页
