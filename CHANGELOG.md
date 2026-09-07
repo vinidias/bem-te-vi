@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.3.0] - 2026-09-07
+
+### Added
+- 多平台 Provider 框架：支持 DeepSeek 与 Claude，按平台区分输入框/发送按钮/用户信息/消息解析
+- 平台选择页：新窗口未指定平台时展示卡片式选择页（含官方品牌 logo）
+- 提示词模板化：每平台独立模板，支持 `{{PLATFORM_INFO}}` `{{TOOL_API_TYPES}}` `{{TOOLS_LIST}}` `{{TOOL_SECTIONS}}` `{{PROJECT_DIR}}` `{{PROJECT_INTRO_SECTION}}` `{{MCP_SECTION}}` 占位符
+- 自定义 Provider 功能：用户可通过平台选择页导入 JS 文件，支持复制到 userData、重名替换、删除前窗口占用检查
+- 自定义 Provider 类型声明与模板：`src/providers/custom/provider.d.ts` + `provider.template.js`
+- Provider 方法化：平台差异全部下沉到 Provider 方法（findInput/findSendButton/isResponseComplete/getMessageCandidates 等）
+- Claude 自动解析：基于停止按钮边沿触发完成检测，跳过空消息，避免重复触发
+- 按平台分文件记录渲染日志到 `wyp/log/{providerId}.log`
+- 新增 Provider 单元测试
+
+### Changed
+- 系统提示词由单文件改为多平台模板，运行时按 providerId 选择并替换占位符
+- 工具 API 类型定义从 `tools/cuckoo-tools.d.ts` 动态读取，避免多处维护
+- 平台 logo 从首字母占位改为官方 SVG
+
+### Fixed
+- Claude 自动解析重复触发/漏触发问题
+- 多个 `{{PROJECT_DIR}}` 占位符只替换第一个的问题
+- 导入自定义 Provider 后源文件被删导致失效的问题
+
+---
+
 ## [0.2.5-beta.1] - 2026-09-02
 
 ### Added
