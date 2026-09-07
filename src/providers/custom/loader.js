@@ -7,6 +7,12 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 
+// preload 渲染进程无法访问 electron.app（app 为 undefined），
+// 而 providers 模块会在渲染进程被 require 后立即加载自定义 Provider，
+// 导致不停打印 "Cannot read properties of undefined (reading 'getPath')"。
+// 渲染进程只需内置 Provider 的 URL 匹配能力，因此直接跳过自定义 Provider 加载。
+const isRenderer = process.type === 'renderer';
+
 const CUSTOM_CONFIG_FILE = 'custom-providers.json';
 const CUSTOM_PROVIDERS_DIR = 'custom-providers';
 
@@ -27,6 +33,7 @@ function ensureCustomProvidersDir() {
 }
 
 function readConfig() {
+  if (isRenderer) return { paths: [] };
   try {
     const file = getConfigPath();
     if (fs.existsSync(file)) {
@@ -64,6 +71,7 @@ function loadProviderFromFile(filePath) {
 }
 
 function loadCustomProviders() {
+  if (isRenderer) return [];
   const config = readConfig();
   const providers = [];
   for (const p of config.paths || []) {

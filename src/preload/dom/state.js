@@ -11,4 +11,6 @@ module.exports = {
   // 发送延迟配置（毫秒）
   sendDelayMin: 2000,
   sendDelayMax: 4000,
+  // 当前项目目录（null 表示未初始化）
+  currentProjectDir: null,
 };

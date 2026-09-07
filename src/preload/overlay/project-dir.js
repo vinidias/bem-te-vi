@@ -4,6 +4,8 @@
  */
 const { ipcRenderer } = require('electron');
 const { renderSessions } = require('../dom/session-list');
+const state = require('../dom/state');
+const { hideFirstTimeDialog } = require('./ui');
 
 /**
  * 初始化项目目录区域：默认隐藏、监听目录更新、绑定修改按钮
@@ -44,6 +46,7 @@ function initProjectDirSection() {
  * @param {string} dirPath - 目录路径
  */
 function updateProjectDirDisplay(dirPath) {
+  state.currentProjectDir = dirPath || null;
   const display = document.getElementById('cuckoo-project-dir-display');
   if (display) {
     const span = display.querySelector('.cuckoo-dir-path');
@@ -56,6 +59,8 @@ function updateProjectDirDisplay(dirPath) {
   if (section) {
     if (dirPath && dirPath.trim() !== '') {
       section.style.display = '';
+      // 已初始化项目，隐藏首次使用提示浮窗
+      hideFirstTimeDialog();
     } else {
       section.style.display = 'none';
     }

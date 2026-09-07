@@ -3,7 +3,7 @@
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
 const state = require('../dom/state');
-const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog } = require('./ui');
+const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
 const { handleManualParse } = require('../dom/observer');
 const { sendToChat } = require('../dom/chat-input');
@@ -242,6 +242,14 @@ function bindEvents() {
 
   minimizeBtn?.addEventListener('click', hideOverlay);
   initBtn?.addEventListener('click', handleInitProject);
+
+  // 首次使用提示浮窗：初始化按钮（与右侧初始化项目逻辑一致）
+  const firstInitBtn = document.getElementById('cuckoo-btn-first-init');
+  firstInitBtn?.addEventListener('click', handleInitProject);
+
+  // 首次使用提示浮窗：关闭按钮
+  const firstCloseBtn = document.getElementById('cuckoo-btn-first-close');
+  firstCloseBtn?.addEventListener('click', hideFirstTimeDialog);
   clearBtn?.addEventListener('click', () => {
     commandHistory.length = 0;
     renderHistory();
@@ -469,6 +477,7 @@ function bindEvents() {
       hideOverlay();
       closeWindowManager();
       closeMcpManager();
+      hideFirstTimeDialog();
     }
   });
 }

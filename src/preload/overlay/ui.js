@@ -4,6 +4,7 @@
  */
 const { OVERLAY_HTML, OVERLAY_CSS } = require('./template');
 const { getProviderByUrl } = require('../../../src/providers');
+const state = require('../dom/state');
 
 // ========== 注入样式 ==========
 /**
@@ -308,6 +309,7 @@ function flashBadge() {
 /**
  * 根据当前 URL 切换覆盖层首页模式
  * 首页 https://chat.deepseek.com/ 时，只保留「初始化项目」按钮，隐藏其他内容
+ * 同时展示首次使用提示浮窗（居中）
  */
 function updateHomeMode() {
   const url = window.location.href;
@@ -317,10 +319,32 @@ function updateHomeMode() {
   if (overlay) {
     if (isHome) {
       overlay.classList.add('cuckoo-home-mode');
+      showFirstTimeDialog();
     } else {
       overlay.classList.remove('cuckoo-home-mode');
+      hideFirstTimeDialog();
     }
   }
+}
+
+/**
+ * 显示首次使用提示浮窗（居中）
+ */
+function showFirstTimeDialog() {
+  if (state.currentProjectDir) {
+    hideFirstTimeDialog();
+    return;
+  }
+  const dialog = document.getElementById('cuckoo-first-time-dialog');
+  if (dialog) dialog.classList.remove('cuckoo-hidden');
+}
+
+/**
+ * 隐藏首次使用提示浮窗
+ */
+function hideFirstTimeDialog() {
+  const dialog = document.getElementById('cuckoo-first-time-dialog');
+  if (dialog) dialog.classList.add('cuckoo-hidden');
 }
 
 /**
@@ -365,6 +389,8 @@ module.exports = {
   commandHistory,
   flashBadge,
   updateHomeMode,
+  showFirstTimeDialog,
+  hideFirstTimeDialog,
   forceShowOverlay,
   startOverlayWatcher,
 };
