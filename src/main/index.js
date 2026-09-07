@@ -220,8 +220,8 @@ ipcMainForProfile.handle('list-providers', async () => {
   };
 });
 
-// 导入自定义 Provider（弹文件选择框，校验并保存路径）
-ipcMainForProfile.handle('import-provider', async (event) => {
+// 导入自定义 Provider（弹文件选择框，复制到 userData，并处理重名）
+ipcMainForProfile.handle('import-provider', async (event, { replace = false } = {}) => {
   const win = windowState.getMainWindow();
   const result = dialog.showOpenDialogSync(win, {
     properties: ['openFile'],
@@ -233,28 +233,80 @@ ipcMainForProfile.handle('import-provider', async (event) => {
   }
 
   const filePath = result[0];
-  const { addCustomProviderPath } = require('../providers/custom/loader');
+  const { importCustomProvider } = require('../providers/custom/loader');
   try {
-    const provider = require(filePath);
-    if (!provider || typeof provider !== 'object') {
-      return { success: false, error: '文件不是有效的 Provider 对象' };
+    const res = importCustomProvider(filePath, { replace });
+    if (res.exists && !replace) {
+      // 同名 provider 已存在，询问是否替换
+      const confirmRes = await dialog.showMessageBox(win, {
+        type: 'question',
+        buttons: ['取消', '替换'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Provider 已存在',
+        message: '已导入过 id 为 "' + res.provider.id + '" 的 Provider，是否替换？',
+      });
+      if (confirmRes.response !== 1) {
+        return { success: false, canceled: true };
+      }
+      // 用户确认替换，重新导入
+      const finalRes = importCustomProvider(filePath, { replace: true });
+      return { success: true, provider: { id: finalRes.provider.id, name: finalRes.provider.name, path: finalRes.targetPath } };
     }
-    if (!provider.id || !provider.name) {
-      return { success: false, error: 'Provider 缺少 id 或 name' };
-    }
-    addCustomProviderPath(filePath);
-    return { success: true, provider: { id: provider.id, name: provider.name, path: filePath } };
+    return { success: true, provider: { id: res.provider.id, name: res.provider.name, path: res.targetPath } };
   } catch (err) {
     return { success: false, error: '加载失败: ' + err.message };
   }
 });
 
-// 删除自定义 Provider（按文件路径移除，内置 provider 不受影响）
-ipcMainForProfile.handle('remove-provider', async (_event, { path: filePath }) => {
+// 删除自定义 Provider（先检查是否有窗口在使用）
+ipcMainForProfile.handle('remove-provider', async (_event, { path: filePath, providerId }) => {
   if (!filePath) return { success: false, error: '缺少文件路径' };
+
+  // 检查是否有窗口正在使用该 provider
+  const usingContexts = windowState.getAllContexts().filter(
+    (ctx) => ctx.providerId === providerId
+  );
+
+  if (usingContexts.length > 0) {
+    const profileNames = usingContexts
+      .map((ctx) => {
+        const profile = profileManager.getProfileById(ctx.profileId);
+        return profile ? profile.name : ctx.profileId;
+      })
+      .join('、');
+    return {
+      success: false,
+      error: '以下窗口正在使用此 Provider，请先在窗口管理中更换这些窗口的平台再删除：' + profileNames,
+    };
+  }
+
   const { removeCustomProviderPath } = require('../providers/custom/loader');
   removeCustomProviderPath(filePath);
   return { success: true };
+});
+
+// 替换自定义 Provider（弹文件选择框，校验 id 一致后覆盖）
+ipcMainForProfile.handle('replace-provider', async (event, { providerId }) => {
+  if (!providerId) return { success: false, error: '缺少 providerId' };
+  const win = windowState.getMainWindow();
+  const result = dialog.showOpenDialogSync(win, {
+    properties: ['openFile'],
+    filters: [{ name: 'JavaScript', extensions: ['js'] }],
+    title: '选择新的 Provider 文件（id 必须为 ' + providerId + '）',
+  });
+  if (!result || result.length === 0) {
+    return { success: false, canceled: true };
+  }
+
+  const filePath = result[0];
+  const { replaceCustomProvider } = require('../providers/custom/loader');
+  try {
+    const res = replaceCustomProvider(providerId, filePath);
+    return { success: true, provider: { id: res.provider.id, name: res.provider.name, path: res.targetPath } };
+  } catch (err) {
+    return { success: false, error: '替换失败: ' + err.message };
+  }
 });
 
 // 用户在平台选择页选择平台后，绑定 profile 并加载平台首页

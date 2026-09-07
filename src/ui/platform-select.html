@@ -82,6 +82,32 @@
       color: #fff;
     }
 
+    .platform-replace {
+      position: absolute;
+      top: 8px;
+      right: 32px;
+      width: 20px;
+      height: 20px;
+      line-height: 18px;
+      text-align: center;
+      background: rgba(139, 147, 255, 0.2);
+      color: #8b93ff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      display: none;
+    }
+
+    .platform-card:hover .platform-replace {
+      display: block;
+    }
+
+    .platform-replace:hover {
+      background: rgba(139, 147, 255, 0.4);
+      color: #fff;
+    }
+
     .platform-card:hover {
       background: rgba(139, 147, 255, 0.15);
       border-color: rgba(139, 147, 255, 0.5);
@@ -148,11 +174,12 @@
           return;
         }
         listEl.innerHTML = providers.map(function (p) {
-          const deleteBtn = p.custom
-            ? '<button class="platform-delete" data-path="' + (p.path || '') + '" title="删除">×</button>'
+          const actions = p.custom
+            ? '<button class="platform-replace" data-id="' + p.id + '" title="替换">↻</button>' +
+              '<button class="platform-delete" data-id="' + p.id + '" data-path="' + (p.path || '') + '" title="删除">×</button>'
             : '';
           return '<div class="platform-card" data-id="' + p.id + '">' +
-            deleteBtn +
+            actions +
             '<div class="platform-logo" data-name="' + p.name + '">' +
               '<img src="logos/' + encodeURIComponent(p.id) + '.svg" alt="' + p.name + ' logo" />' +
             '</div>' +
@@ -192,10 +219,11 @@
           btn.addEventListener('click', async function (e) {
             e.stopPropagation();
             const filePath = btn.dataset.path;
+            const providerId = btn.dataset.id;
             if (!filePath) return;
             if (!confirm('确定删除这个自定义 Provider 吗？')) return;
             try {
-              const res = await window.electronAPI.removeProvider(filePath);
+              const res = await window.electronAPI.removeProvider(filePath, providerId);
               if (res && res.success) {
                 await loadPlatforms();
               } else {
@@ -203,6 +231,26 @@
               }
             } catch (err) {
               alert('删除失败: ' + (err.message || err));
+            }
+          });
+        });
+
+        listEl.querySelectorAll('.platform-replace').forEach(function (btn) {
+          btn.addEventListener('click', async function (e) {
+            e.stopPropagation();
+            const providerId = btn.dataset.id;
+            try {
+              const res = await window.electronAPI.replaceProvider(providerId);
+              if (res && res.success) {
+                alert('替换成功');
+                await loadPlatforms();
+              } else if (res && res.canceled) {
+                // 用户取消，不处理
+              } else {
+                alert('替换失败: ' + ((res && res.error) || '未知错误'));
+              }
+            } catch (err) {
+              alert('替换失败: ' + (err.message || err));
             }
           });
         });
