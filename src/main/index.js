@@ -103,8 +103,12 @@ function createWindow(profile) {
 
   mainWindow.maximize();
 
-  // 不手动设置 UA：让 Electron 使用默认 Chrome 130 UA，
-  // 避免与 sec-ch-ua（Chromium 130）不一致导致 Google OAuth 报“浏览器不安全”
+  // 设置与 Electron 33（Chromium 130）匹配的普通 Chrome UA：
+  // 1. 不带 Electron 标识，避免 DeepSeek 识别为第三方客户端
+  // 2. 与内核版本一致，避免 Google OAuth 因 UA/sec-ch-ua 不一致报“浏览器不安全”
+  const userAgent =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+  mainWindow.webContents.setUserAgent(userAgent);
 
   if (providerChosen) {
     // 平台已确定，直接进入平台首页
