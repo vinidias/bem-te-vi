@@ -5,12 +5,16 @@
  */
 const { app, dialog, Notification } = require('electron');
 const { autoUpdater } = require('electron-updater');
-const log = require('electron-log');
 
 // ========== 日志配置 ==========
-// electron-updater 内部使用 electron-log 输出日志
-autoUpdater.logger = log;
-autoUpdater.logger.transports.file.level = 'info';
+// 打包版禁用文件日志持久化：不加载 electron-log，也不写文件
+if (app.isPackaged) {
+  autoUpdater.logger = console;
+} else {
+  const log = require('electron-log');
+  autoUpdater.logger = log;
+  autoUpdater.logger.transports.file.level = 'info';
+}
 autoUpdater.autoDownload = false; // 检测到更新后不自动下载，等用户确认
 autoUpdater.autoInstallOnAppQuit = true; // 退出时自动安装（支持 NSIS）
 

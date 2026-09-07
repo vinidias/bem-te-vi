@@ -12,14 +12,18 @@ const { createSessionStore } = require('./session-store');
 const { getProvider } = require('../providers');
 const updater = require('./updater');
 
-// 渲染进程日志输出目录（按平台分文件）
-const RENDERER_LOG_DIR = path.join(__dirname, '..', '..', 'wyp', 'log');
-fs.mkdirSync(RENDERER_LOG_DIR, { recursive: true });
-
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
 app.setPath('userData', path.join(app.getPath('appData'), SESSION_DIR));
 console.log('[Cuckoo Code] Session 数据目录:', app.getPath('userData'));
+
+// 渲染进程日志输出目录（仅开发环境持久化；打包版不写日志文件）
+const RENDERER_LOG_DIR = app.isPackaged
+  ? null
+  : path.join(app.getPath('userData'), 'wyp', 'log');
+if (RENDERER_LOG_DIR) {
+  fs.mkdirSync(RENDERER_LOG_DIR, { recursive: true });
+}
 
 const { registerIpcHandlers } = require('./ipc');
 
@@ -82,6 +86,9 @@ function createWindow(profile) {
   // 转发渲染进程的 console.log 到主进程，并按平台写入独立日志文件
   mainWindow.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
     console.log('[Renderer Console][' + profileData.name + ']', message);
+
+    // 打包版不进行日志持久化
+    if (!RENDERER_LOG_DIR) return;
 
     // 根据当前窗口上下文确定 providerId，未确定用 default
     let providerId = profileData.providerId || 'default';
