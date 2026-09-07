@@ -113,7 +113,8 @@
       "!**/*.md",
       "!LICENSE",
       "systemPrompt.md",
-      "tools/rules.md"
+      "tools/rules.md",
+      "src/prompt/*.md"
     ]
   },
   "dependencies": {
