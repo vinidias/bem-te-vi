@@ -219,16 +219,6 @@ See [Roadmap.md](Roadmap.md) for the next phase plan.
 
 ---
 
-## Community
-
-Join the Cuckoo Code user WeChat group to exchange usage experience with other users:
-
-![WeChat group](assets/wechat-group.jpg)
-
-> The group QR code expires in about 7 days. If it is invalid, please remind us to update it in Issues.
-
----
-
 ## Contributing
 
 Issues and Pull Requests are welcome.
