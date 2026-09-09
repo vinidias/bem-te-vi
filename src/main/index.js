@@ -150,6 +150,21 @@ function createWindow(profile) {
 function setupAppMenu() {
   const template = [
     {
+      label: '文件',
+      submenu: [
+        {
+          label: '新建窗口',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => {
+            const profiles = profileManager.readProfiles();
+            createWindow(profileManager.createProfile('窗口' + (profiles.length + 1), ''));
+          }
+        },
+        { type: 'separator' },
+        { role: 'quit', label: '退出' }
+      ]
+    },
+    {
       label: '编辑',
       submenu: [
         { role: 'undo', label: '撤销' },
@@ -158,21 +173,61 @@ function setupAppMenu() {
         { role: 'cut', label: '剪切' },
         { role: 'copy', label: '复制' },
         { role: 'paste', label: '粘贴' },
+        { role: 'delete', label: '删除' },
+        { type: 'separator' },
         { role: 'selectAll', label: '全选' }
       ]
     },
     {
-      label: '文件',
+      label: '导航',
       submenu: [
-        { role: 'quit', label: '退出' }
+        {
+          label: '后退',
+          accelerator: 'Alt+Left',
+          click: (_item, focusedWindow) => {
+            if (focusedWindow) focusedWindow.webContents.navigationHistory.goBack();
+          }
+        },
+        {
+          label: '前进',
+          accelerator: 'Alt+Right',
+          click: (_item, focusedWindow) => {
+            if (focusedWindow) focusedWindow.webContents.navigationHistory.goForward();
+          }
+        },
+        { type: 'separator' },
+        {
+          label: '重新加载',
+          accelerator: 'CmdOrCtrl+R',
+          click: (_item, focusedWindow) => {
+            if (focusedWindow) focusedWindow.reload();
+          }
+        },
+        {
+          label: '停止加载',
+          accelerator: 'Esc',
+          click: (_item, focusedWindow) => {
+            if (focusedWindow) focusedWindow.webContents.stop();
+          }
+        },
+        { type: 'separator' },
+        {
+          label: '主页',
+          click: (_item, focusedWindow) => {
+            if (focusedWindow) {
+              const ctx = windowState.getContextByWebContents(focusedWindow.webContents);
+              if (ctx && ctx.providerId) {
+                const provider = getProvider(ctx.providerId);
+                if (provider) focusedWindow.loadURL(provider.homeUrl);
+              }
+            }
+          }
+        }
       ]
     },
     {
       label: '查看',
       submenu: [
-        { role: 'reload', label: '重新加载' },
-        { role: 'forceReload', label: '强制重新加载' },
-        { type: 'separator' },
         { role: 'resetZoom', label: '重置缩放' },
         { role: 'zoomIn', label: '放大' },
         { role: 'zoomOut', label: '缩小' },
@@ -180,6 +235,17 @@ function setupAppMenu() {
         { role: 'togglefullscreen', label: '切换全屏' },
         { type: 'separator' },
         { role: 'toggleDevTools', label: '开发者工具' }
+      ]
+    },
+    {
+      label: '窗口',
+      submenu: [
+        { role: 'minimize', label: '最小化' },
+        { role: 'zoom', label: '缩放' },
+        { type: 'separator' },
+        { role: 'front', label: '全部置于顶层' },
+        { type: 'separator' },
+        { role: 'close', label: '关闭窗口' }
       ]
     },
     {
