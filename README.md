@@ -12,6 +12,8 @@
   <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/badge/Electron-33-47848f?style=flat-square&logo=electron&logoColor=white" alt="Electron"></a>
 </p>
 
+[English](README.en.md) | 中文
+
 [下载最新版本](https://github.com/wangyongpeng90/cuckoo-code/releases/latest)
 
 **Cuckoo Code** 是一个零 Token 成本的 AI Agent 桌面端。
