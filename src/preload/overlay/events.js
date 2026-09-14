@@ -7,6 +7,8 @@ const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, show
 const { handleInitProject, renderSessions } = require('../dom/session-list');
 const { handleManualParse } = require('../dom/observer');
 const { sendToChat } = require('../dom/chat-input');
+const { estimateTokens } = require('../dom/token-estimator');
+const { getProviderByUrl } = require('../../../src/providers');
 
 /**
  * 渲染窗口列表（浮动管理面板内）
@@ -217,6 +219,53 @@ function closeMcpManager() {
  */
 let eventsBound = false;
 let mcpSending = false; // 防止 MCP 信息重复发送
+
+/**
+ * 格式化 token 数：过万显示为「xxx万」，否则原样显示
+ * @param {number} n
+ * @returns {string}
+ */
+function formatTokenCount(n) {
+  if (!Number.isFinite(n) || n < 0) return '0';
+  if (n >= 10000) {
+    return (n / 10000).toFixed(2) + '万';
+  }
+  return String(Math.round(n));
+}
+
+/**
+ * 刷新面板里的「对话 Token」显示
+ * 优先使用服务端权威值（accumulated_token_usage，含 prompt+输出）；
+ * 服务端值缺失时回退到页面文本本地估算。
+ */
+function updateConversationTokenDisplay() {
+  const countEl = document.getElementById('cuckoo-conv-token-count');
+  if (!countEl) return;
+
+  const server = state.serverTokenUsage;
+  if (server && typeof server.accumulatedTokens === 'number') {
+    countEl.textContent = formatTokenCount(server.accumulatedTokens);
+    return;
+  }
+
+  // 回退：本地估算
+  let text = '';
+  try {
+    const provider = getProviderByUrl(window.location.href);
+    if (provider && typeof provider.getConversationText === 'function') {
+      text = provider.getConversationText() || '';
+    }
+  } catch (_) { /* provider 未就绪 */ }
+  countEl.textContent = formatTokenCount(estimateTokens(text));
+}
+
+/**
+ * 启动对话 token 显示（每秒刷新）
+ */
+function startTokenCounter() {
+  setInterval(updateConversationTokenDisplay, 1000);
+  updateConversationTokenDisplay();
+}
 
 function bindEvents() {
   // 防止重复绑定（SPA 导航或 preload 重载时可能导致多次执行）
@@ -457,6 +506,9 @@ function bindEvents() {
       hideOverlay();
     }
   });
+
+  // 启动输入框 token 估算
+  startTokenCounter();
 
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {

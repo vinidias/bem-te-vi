@@ -8,6 +8,7 @@ const { tryParseToolCall } = require('./tool-parser');
 const { handleToolCall, handleJsToolScript } = require('./observer');
 const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } = require('./chat-input');
 const { hasTool, toolNamesList } = require('../tool-names');
+const state = require('./state');
 
 const MAX_JS_RETRY = 3;
 // 连续 XML 提示次数（防止无限循环）
@@ -119,6 +120,10 @@ function startInterceptObserver() {
     try {
       const detail = ev && ev.detail;
       if (!detail || !detail.finished) return;
+      // 保存服务端权威 token 统计（供面板显示）
+      if (detail.tokenUsage) {
+        state.serverTokenUsage = detail.tokenUsage;
+      }
       processInterceptedResponse(detail.text);
     } catch (err) {
       console.error('[Cuckoo Code][拦截] 处理回复事件出错:', err);

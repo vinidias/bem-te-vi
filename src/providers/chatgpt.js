@@ -155,6 +155,22 @@ module.exports = {
     return false;
   },
 
+  // 获取整个对话的纯文本（用户 + AI 消息按 DOM 顺序拼接），用于 token 估算
+  getConversationText() {
+    try {
+      const msgs = Array.from(document.querySelectorAll('[data-message-author-role]'));
+      return msgs
+        .map(el => {
+          const md = el.querySelector('[class*="markdown"]') || el.querySelector('div[class*="prose"]') || el;
+          return (md.textContent || md.innerText || '').trim();
+        })
+        .filter(Boolean)
+        .join('\n');
+    } catch (_) {
+      return '';
+    }
+  },
+
   // 获取当前页面所有 AI 消息容器（排除用户消息）
   getMessageCandidates() {
     return Array.from(document.querySelectorAll('[data-message-author-role="assistant"]')).filter(el => !this.isUserMessage(el));

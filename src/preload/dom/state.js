@@ -13,4 +13,6 @@ module.exports = {
   sendDelayMax: 4000,
   // 当前项目目录（null 表示未初始化）
   currentProjectDir: null,
+  // 服务端返回的权威 token 统计（{ accumulatedTokens, insertedAt, updatedAt, modelType }）
+  serverTokenUsage: null,
 };
