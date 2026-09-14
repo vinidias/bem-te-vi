@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.9] - 2026-09-14
+
+### Added
+- 面板显示 DeepSeek 服务端对话 token（读取 SSE 流的 accumulated_token_usage，
+  过万自动简写为 x.xx万）
+
+### Changed
+- 彻底移除 DOM 抓取 AI 回复路径，仅保留网络请求拦截
+  - 删除 observer / ai-response / detector 等 DOM 抓取模块
+  - 抽出工具执行逻辑到 tool-executor，拦截与 DOM 共用
+  - 手动解析改为复用拦截缓存文本，不再依赖 DOM
+- 注释 provider 中已废弃的 DOM 抓取方法（isResponseComplete / getMessageCandidates /
+  getMessageMarkdown / isUserMessage / getCodeBlockLanguage）
+- 移除 token 本地估算，仅保留服务端权威数据
+
 ## [0.3.8] - 2026-09-11
 
 ### Changed
