@@ -2,10 +2,263 @@
  * ChatGPT Provider 定义
  * 基于 chatgpt.com 页面结构，输入框为 ProseMirror（contenteditable）。
  */
-// ⚠️ 以下变量仅供已废弃的 isResponseComplete 使用，保留注释备查：
-// let stopBtnVisible = false;
-// let stopBtnFirstSeen = 0;
-// const MIN_GENERATING_MS = 1500;
+// ========== 网络拦截器（内联，注入主世界执行）==========
+// 说明：hook 源码直接内联在 provider 中，保证 provider 单文件自包含。
+// 函数体必须自包含（不引用模块级变量）。
+function chatgptHookInstaller() {
+  var MARKER = '__cuckooChatgptHookInstalled__';
+  if (window[MARKER]) return;
+  window[MARKER] = true;
+
+  function isCompletion(url, method) {
+    if (!url) return false;
+    if (String(method || 'GET').toUpperCase() !== 'POST') return false;
+    try {
+      var u = new URL(url, document.baseURI);
+      var host = u.hostname;
+      if (host.indexOf('chatgpt.com') === -1 && host.indexOf('chat.openai.com') === -1) return false;
+      return /\/backend-api\/(?:f\/)?conversation\/?$/.test(u.pathname);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function dispatch(text, finished) {
+    try {
+      window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
+        detail: { text: text || '', finished: !!finished }
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---------- SSE 帧解码 ----------
+  function createFrameDecoder() {
+    var buffer = '', scanFrom = 0;
+    return {
+      push: function (text) {
+        buffer += text;
+        var frames = [], re = /\r?\n\r?\n/g, offset = 0, m;
+        re.lastIndex = scanFrom;
+        while ((m = re.exec(buffer)) !== null) {
+          frames.push(buffer.slice(offset, m.index));
+          offset = m.index + m[0].length;
+        }
+        buffer = buffer.slice(offset);
+        scanFrom = Math.max(0, buffer.length - 3);
+        return frames;
+      },
+      finish: function () {
+        var frames = [];
+        if (buffer) frames.push(buffer);
+        buffer = ''; scanFrom = 0;
+        return frames;
+      }
+    };
+  }
+
+  // 返回 { data: string|null, done: boolean }
+  function parseBlock(block) {
+    if (!block || !block.trim()) return { data: null, done: false };
+    var data = null;
+    var lines = block.split(/\r\n|\r|\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (line.indexOf('data:') === 0) {
+        var d = line.slice(5).trim();
+        data = data == null ? d : data + '\n' + d;
+      }
+    }
+    if (data == null) return { data: null, done: false };
+    if (data === '[DONE]') return { data: null, done: true };
+    return { data: data, done: false };
+  }
+
+  // ---------- 回复文本提取 ----------
+  function createExtractor() {
+    var text = '';
+    var finished = false;
+
+    function extractParts(content) {
+      if (!content || !Array.isArray(content.parts)) return null;
+      var out = '';
+      for (var i = 0; i < content.parts.length; i++) {
+        var p = content.parts[i];
+        if (typeof p === 'string') out += p;
+        else if (p && typeof p === 'object' && typeof p.text === 'string') out += p.text;
+      }
+      return out;
+    }
+
+    function applyOp(node) {
+      if (!node || typeof node !== 'object') return;
+
+      // 1) 批量操作：o='patch' / 'BATCH'，v 为操作数组
+      if (Array.isArray(node.v) && (node.o === 'patch' || node.o === 'BATCH')) {
+        for (var i = 0; i < node.v.length; i++) applyOp(node.v[i]);
+        return;
+      }
+
+      // 2) 消息快照：v.message（仅采纳 assistant）
+      if (node.v && typeof node.v === 'object' && node.v.message) {
+        var m = node.v.message;
+        var role = m.author && m.author.role;
+        if (role === 'assistant') {
+          var snap = extractParts(m.content);
+          if (snap !== null) text = snap;
+        }
+        return;
+      }
+
+      // 3) 路径操作
+      if (typeof node.p === 'string' && node.p !== '') {
+        if (node.p === '/message/status' && node.v === 'finished_successfully') { finished = true; return; }
+        if (node.p === '/message/end_turn' && node.v === true) { finished = true; return; }
+        if (/\/message\/content\/parts\/\d+$/.test(node.p)) {
+          if (typeof node.v === 'string') {
+            if (node.o === 'append' || node.o === 'add') text += node.v;
+            else text = node.v;
+          }
+        }
+        return;
+      }
+
+      // 4) 裸 v 字符串（无有效 p）：追加正文
+      if (typeof node.v === 'string') { text += node.v; return; }
+
+      // 5) 类型化结束事件
+      if (node.type === 'message_stream_complete' || node.type === 'message_stream_completed') {
+        finished = true;
+      }
+    }
+
+    return {
+      consume: function (parsed) { applyOp(parsed); },
+      markDone: function () { finished = true; },
+      get text() { return text; },
+      get finished() { return finished; }
+    };
+  }
+
+  function observeBody(body) {
+    if (!body) return;
+    var reader = body.getReader();
+    var decoder = new TextDecoder();
+    var frameDecoder = createFrameDecoder();
+    var extractor = createExtractor();
+    var dispatched = false;
+
+    function flushFrame(frame) {
+      var r = parseBlock(frame);
+      if (r.done) { extractor.markDone(); return; }
+      if (r.data == null) return;
+      var parsed;
+      try { parsed = JSON.parse(r.data); } catch (e) { return; }
+      extractor.consume(parsed);
+    }
+
+    function feed(chunk) {
+      var frames = frameDecoder.push(chunk);
+      for (var i = 0; i < frames.length; i++) flushFrame(frames[i]);
+      if (extractor.finished && !dispatched) {
+        dispatched = true;
+        dispatch(extractor.text, true);
+      }
+    }
+
+    function pump() {
+      reader.read().then(function (r) {
+        if (r.done) {
+          var tail = decoder.decode();
+          if (tail) feed(tail);
+          var rest = frameDecoder.finish();
+          for (var i = 0; i < rest.length; i++) flushFrame(rest[i]);
+          if (!dispatched) { dispatched = true; dispatch(extractor.text, true); }
+          return;
+        }
+        feed(decoder.decode(r.value, { stream: true }));
+        pump();
+      }).catch(function () {
+        if (!dispatched) { dispatched = true; dispatch(extractor.text, true); }
+      });
+    }
+    pump();
+  }
+
+  // ---------- fetch 拦截 ----------
+  var origFetch = window.fetch;
+  if (typeof origFetch === 'function') {
+    window.fetch = function (input, init) {
+      var url = typeof input === 'string' ? input
+        : (input && input.url) ? input.url
+        : (input && input.href) ? input.href : '';
+      var method = (init && init.method) || (input && input.method) || 'GET';
+      var p = origFetch.apply(this, arguments);
+      if (!isCompletion(url, method)) return p;
+      return p.then(function (response) {
+        try {
+          if (response && response.body) observeBody(response.clone().body);
+        } catch (e) { /* ignore */ }
+        return response;
+      });
+    };
+  }
+
+  // ---------- XHR 拦截 ----------
+  var origOpen = XMLHttpRequest.prototype.open;
+  var origSend = XMLHttpRequest.prototype.send;
+  var xhrInfo = new WeakMap();
+  XMLHttpRequest.prototype.open = function (method, url) {
+    try { xhrInfo.set(this, { url: url, method: method }); } catch (e) { /* ignore */ }
+    return origOpen.apply(this, arguments);
+  };
+  XMLHttpRequest.prototype.send = function () {
+    var info = xhrInfo.get(this);
+    if (info && isCompletion(info.url, info.method)) {
+      try { observeXhr(this); } catch (e) { /* ignore */ }
+    }
+    return origSend.apply(this, arguments);
+  };
+
+  function observeXhr(xhr) {
+    var lastLen = 0;
+    var frameDecoder = createFrameDecoder();
+    var extractor = createExtractor();
+    var dispatched = false;
+
+    function flushFrame(frame) {
+      var r = parseBlock(frame);
+      if (r.done) { extractor.markDone(); return; }
+      if (r.data == null) return;
+      var parsed;
+      try { parsed = JSON.parse(r.data); } catch (e) { return; }
+      extractor.consume(parsed);
+    }
+
+    function consumeChunk() {
+      var raw;
+      try { raw = xhr.responseText; } catch (e) { return; }
+      if (typeof raw !== 'string' || raw.length <= lastLen) return;
+      var chunk = raw.slice(lastLen);
+      lastLen = raw.length;
+      var frames = frameDecoder.push(chunk);
+      for (var i = 0; i < frames.length; i++) flushFrame(frames[i]);
+      if (extractor.finished && !dispatched) {
+        dispatched = true;
+        dispatch(extractor.text, true);
+      }
+    }
+
+    xhr.addEventListener('readystatechange', function () {
+      if (xhr.readyState === 3 || xhr.readyState === 4) consumeChunk();
+      if (xhr.readyState === 4 && !dispatched) {
+        var rest = frameDecoder.finish();
+        for (var i = 0; i < rest.length; i++) flushFrame(rest[i]);
+        dispatched = true;
+        dispatch(extractor.text, true);
+      }
+    });
+  }
+}
 
 module.exports = {
   id: 'chatgpt',
@@ -116,91 +369,8 @@ module.exports = {
     return url.includes('chatgpt.com') || url.includes('chat.openai.com');
   },
 
-  // ========== 自动解析相关方法（已废弃：DOM 抓取路径移除后无人调用）==========
-  /*
-  async isResponseComplete() {
-    const stopBtn = document.querySelector('button[data-testid="stop-button"]');
-    const visible = !!stopBtn;
-    const now = Date.now();
-
-    if (visible) {
-      if (!stopBtnVisible) {
-        // 停止按钮首次出现，记录时间，避免发送瞬间的短暂切换被误判
-        stopBtnFirstSeen = now;
-      }
-      stopBtnVisible = true;
-      return false;
-    }
-
-    // 上一次可见、本次不可见 → 需确认生成态持续足够久，才认定为回复结束
-    if (stopBtnVisible) {
-      stopBtnVisible = false;
-      const generatingMs = now - stopBtnFirstSeen;
-      if (generatingMs < MIN_GENERATING_MS) {
-        // 生成态过短：发送按钮↔停止按钮的短暂切换，忽略，避免误判完成
-        console.log('[' + new Date().toISOString() + '] [Cuckoo Code] ChatGPT 停止按钮仅存在 ' + generatingMs + 'ms（<' + MIN_GENERATING_MS + 'ms），忽略本次完成信号');
-        return false;
-      }
-      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] ChatGPT 回复完成，等待 500ms 后解析');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] ChatGPT 500ms 等待结束');
-      return true;
-    }
-
-    return false;
+  // 返回注入主世界的网络拦截器源码（拦截模式使用）
+  getHookSource() {
+    return '(' + chatgptHookInstaller.toString() + ')();';
   },
-
-  // 获取当前页面所有 AI 消息容器（排除用户消息）
-  getMessageCandidates() {
-    return Array.from(document.querySelectorAll('[data-message-author-role="assistant"]')).filter(el => !this.isUserMessage(el));
-  },
-
-  // 从消息容器中取回复内容根节点
-  getMessageMarkdown(messageEl) {
-    return messageEl.querySelector('[class*="markdown"]') ||
-      messageEl.querySelector('div[class*="prose"]') ||
-      messageEl;
-  },
-
-  // 判断节点是否位于用户消息区域内
-  isUserMessage(node) {
-    let current = node;
-    while (current) {
-      const role = current.getAttribute?.('data-message-author-role') || '';
-      if (role === 'user') return true;
-      current = current.parentElement;
-    }
-    const userEl = node && node.closest ? node.closest('[data-message-author-role="user"]') : null;
-    if (userEl) return true;
-    const text = (node.textContent || node.innerText || '').substring(0, 200);
-    return text.includes('我已选择目录：') || text.includes('系统提示词：') || text.includes('工具使用规则：');
-  },
-
-  // 提取代码块的语言标记
-  // ChatGPT 代码块的语言标签在 header 里（如 <svg/>cuckoo），不在 class 中。
-  getCodeBlockLanguage(pre) {
-    if (!pre) return '';
-    // 1. 先尝试 class（兼容其他渲染方式）
-    const codeEl = pre.querySelector('code');
-    const els = [codeEl, pre].filter(Boolean);
-    for (const el of els) {
-      const cls = el.className || '';
-      if (typeof cls === 'string') {
-        const langMatch = cls.match(/language-([\w-]+)/);
-        if (langMatch) return langMatch[1].toLowerCase();
-      }
-    }
-    // 2. 从代码块 header 提取语言标签
-    const header = pre.querySelector('[class*="items-center"][class*="text-sm"]');
-    if (header) {
-      const clone = header.cloneNode(true);
-      clone.querySelectorAll('svg, button').forEach(el => el.remove());
-      const langText = (clone.textContent || '').trim();
-      if (/^[a-zA-Z0-9_+#.-]{1,20}$/.test(langText)) {
-        return langText.toLowerCase();
-      }
-    }
-    return '';
-  },
-  */
 };

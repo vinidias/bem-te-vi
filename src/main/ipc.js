@@ -45,8 +45,8 @@ function registerIpcHandlers() {
       if (provider && typeof provider.sessionUrlBase === 'string' && provider.sessionUrlBase) {
         url = provider.sessionUrlBase + sessionId;
       }
-    } catch (_) { /* 回退 DeepSeek */ }
-    if (!url) url = 'https://chat.deepseek.com/a/chat/s/' + sessionId;
+    } catch (_) { /* provider 未识别 */ }
+    if (!url) return { success: false, error: '无法确定会话 URL（当前平台未提供 sessionUrlBase）' };
     try {
       await win.webContents.loadURL(url);
       return { success: true };
