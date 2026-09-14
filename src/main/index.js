@@ -14,7 +14,15 @@ const updater = require('./updater');
 
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
-app.setPath('userData', path.join(app.getPath('appData'), SESSION_DIR));
+const USER_DATA_DIR = path.join(app.getPath('appData'), SESSION_DIR);
+// app.setPath('userData', ...) 要求目标目录必须已存在，否则会抛错导致启动闪退。
+// 用户首次运行或手动删除该目录时，此处负责兜底创建。
+try {
+  fs.mkdirSync(USER_DATA_DIR, { recursive: true });
+} catch (err) {
+  console.error('[Cuckoo Code] 创建 userData 目录失败:', err.message);
+}
+app.setPath('userData', USER_DATA_DIR);
 console.log('[Cuckoo Code] Session 数据目录:', app.getPath('userData'));
 
 // 渲染进程日志输出目录（仅开发环境持久化；打包版不写日志文件）
@@ -420,6 +428,9 @@ ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
   if (!updatedProfile) return { success: false, error: '更新 profile 失败' };
 
   // 关闭旧窗口（其 session 仍是旧 partition）
+  // 注意：这里销毁最后一个窗口会触发 window-all-closed，
+  // 但紧接着会 createWindow 重建，故 window-all-closed 采用延迟确认避免误退。
+  console.log('[Cuckoo Code] 切换平台: ' + ctx.providerId + ' -> ' + providerId + '，重建窗口');
   const oldWin = ctx.win;
   if (oldWin && !oldWin.isDestroyed()) {
     oldWin.destroy();
@@ -427,6 +438,7 @@ ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
 
   // 用新 profile（含新 partition）重建窗口
   createWindow(updatedProfile);
+  console.log('[Cuckoo Code] 切换平台完成，当前窗口数=' + windowState.getAllWindows().length);
   return { success: true };
 });
 
@@ -536,7 +548,14 @@ if (!gotSingleInstanceLock) {
 }
 
 app.on('window-all-closed', () => {
-  app.quit();
+  // 切换平台时会先销毁旧窗口（select-platform）再创建新窗口，
+  // 这个间隙窗口数会短暂为 0，若直接 quit 会导致闪退。
+  // 延迟确认：稍后仍无窗口才真正退出。
+  setTimeout(() => {
+    if (windowState.getAllWindows().length === 0) {
+      app.quit();
+    }
+  }, 500);
 });
 
 // 退出前刷新所有 session 数据
