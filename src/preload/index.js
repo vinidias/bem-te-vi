@@ -12,7 +12,6 @@ const { webFrame } = require('electron');
 const ui = require('./overlay/ui');
 const projectDir = require('./overlay/project-dir');
 const bindEvents = require('./overlay/events');
-const observer = require('./dom/observer');
 const chatInput = require('./dom/chat-input');
 const { getProviderByUrl } = require('../providers');
 
@@ -74,14 +73,9 @@ function init() {
     // 默认显示覆盖层 - 兜底强制显示
     ui.forceShowOverlay();
 
-    if (useIntercept) {
-      // 拦截模式：监听主世界注入器派发的 'cuckoo-ai-response' 事件
-      const interceptObserver = require('./dom/intercept-observer');
-      interceptObserver.startInterceptObserver();
-    } else {
-      // DOM 抓取模式（延迟启动观察器，等待页面框架渲染）
-      setTimeout(observer.startObserver, 2000);
-    }
+    // 拦截模式：监听主世界注入器派发的 'cuckoo-ai-response' 事件
+    const interceptObserver = require('./dom/intercept-observer');
+    interceptObserver.startInterceptObserver();
   } catch (err) {
     console.error('[Cuckoo Code] init() 出错:', err);
     // 兜底：即使出错也强制显示面板

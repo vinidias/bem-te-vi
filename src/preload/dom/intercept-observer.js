@@ -5,9 +5,10 @@
  */
 const { extractJsToolBlocks, BT } = require('./js-detector');
 const { tryParseToolCall } = require('./tool-parser');
-const { handleToolCall, handleJsToolScript } = require('./observer');
+const { handleToolCall, handleJsToolScript } = require('./tool-executor');
 const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } = require('./chat-input');
 const { hasTool, toolNamesList } = require('../tool-names');
+const state = require('./state');
 
 const MAX_JS_RETRY = 3;
 // 连续 XML 提示次数（防止无限循环）
@@ -15,6 +16,8 @@ let xmlHintCount = 0;
 const XML_HINT_MAX = 10;
 // 上次已处理的文本（去重，防同一条回复重复处理）
 let lastProcessedText = '';
+// 最近一次拦截到的完整回复文本（供手动解析复用，不依赖 DOM）
+let lastInterceptedText = '';
 
 function looksLikeIncompleteCodeError(error) {
   if (!error || typeof error !== 'string') return false;
@@ -49,11 +52,12 @@ async function executeJsBlocksWithRetry(blocks) {
 /**
  * 处理一条已完成的 AI 回复文本
  * @param {string} text 完整回复文本（Markdown 原文）
+ * @param {boolean} [force] 为 true 时跳过去重（手动解析重新执行同一条时使用）
  */
-async function processInterceptedResponse(text) {
+async function processInterceptedResponse(text, force) {
   const raw = (text || '').trim();
   if (!raw) return;
-  if (raw === lastProcessedText) return;
+  if (!force && raw === lastProcessedText) return;
   lastProcessedText = raw;
 
   console.log('[Cuckoo Code][拦截] 收到完整回复，长度=' + raw.length);
@@ -119,6 +123,12 @@ function startInterceptObserver() {
     try {
       const detail = ev && ev.detail;
       if (!detail || !detail.finished) return;
+      // 缓存最近一次完整回复文本，供手动解析复用（不依赖 DOM）
+      lastInterceptedText = detail.text || '';
+      // 保存服务端权威 token 统计（供面板显示）
+      if (detail.tokenUsage) {
+        state.serverTokenUsage = detail.tokenUsage;
+      }
       processInterceptedResponse(detail.text);
     } catch (err) {
       console.error('[Cuckoo Code][拦截] 处理回复事件出错:', err);
@@ -127,4 +137,9 @@ function startInterceptObserver() {
   console.log('[Cuckoo Code][拦截] 已启动 cuckoo-ai-response 事件监听');
 }
 
-module.exports = { startInterceptObserver, processInterceptedResponse };
+/** 取最近一次拦截到的完整回复文本（手动解析用） */
+function getLastInterceptedText() {
+  return lastInterceptedText;
+}
+
+module.exports = { startInterceptObserver, processInterceptedResponse, getLastInterceptedText };

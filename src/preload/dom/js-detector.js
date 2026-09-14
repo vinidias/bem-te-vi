@@ -2,8 +2,6 @@
  * JS 工具脚本检测与代码块提取
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-const { getCodeBlockLanguage } = require('./detector');
-
 // ========== JS 工具脚本检测与执行 ==========
 
 // 反引号与围栏（用字符码构造，避免源码中的转义问题）
@@ -103,63 +101,6 @@ function extractJsToolBlocks(text) {
   return blocks;
 }
 
-/**
- * 判断容器去掉所有 pre 代码块后是否只剩空白（整条回复只包含代码块）
- */
-function hasOnlyCodeContent(root) {
-  if (!root) return false;
-  // 调用方已定位到具体代码块元素时，视为"只有代码"
-  if (root.tagName === 'PRE') return true;
-  const clone = root.cloneNode(true);
-  // 剔除代码块本身、banner（语言标签 + 复制/下载按钮）与工具栏等装饰元素
-  clone.querySelectorAll('pre, .md-code, .md-code-block-banner-wrap, .md-code-block-banner, button, [class*="toolbar"], [class*="copy"], [class*="download"], [class*="code-block-header"], [class*="lang"], [class*="header"]').forEach((el) => el.remove());
-  return !(clone.textContent || '').trim();
-}
-
-/**
- * 从渲染后的 DOM（markdown 容器或单个 pre 元素）中提取 JS 工具代码块
- * 规则同 extractJsToolBlocks：js/javascript 块要求整条回复只包含代码块
- */
-function getJsCodeBlocksFromMarkdown(root) {
-  const blocks = [];
-  if (!root) return blocks;
-
-  const onlyCode = hasOnlyCodeContent(root);
-
-  const pres = [];
-  if (root.tagName === 'PRE') pres.push(root);
-  if (root.querySelectorAll) {
-    const nested = root.querySelectorAll('pre');
-    for (const p of nested) pres.push(p);
-    // 兜底：无 <pre> 的代码容器（如智谱 .md-code 用 div + highlight.js span 渲染）
-    if (pres.length === 0) {
-      const mdCodes = root.querySelectorAll('.md-code');
-      for (const c of mdCodes) pres.push(c);
-    }
-  }
-
-  for (const pre of pres) {
-    const lang = getCodeBlockLanguage(pre);
-    const codeEl = pre.querySelector('code');
-    const code = ((codeEl ? codeEl.textContent : pre.textContent) || '').trim();
-    if (!code) continue;
-    if (lang === 'cuckoo') {
-      blocks.push(code);
-      continue;
-    }
-    if (lang === 'js' || lang === 'javascript') {
-      if (onlyCode && looksLikeToolScript(code)) blocks.push(code);
-      continue;
-    }
-    // 语言未知（智谱等无语言标签站点）：代码明确以工具调用开头（await <工具>(）即视为工具脚本
-    // 走 JS 块路径以获得稳定性校验（流式渲染期间不会执行半截代码）
-    if (lang === '' && looksLikeToolScript(code)) {
-      blocks.push(code);
-    }
-  }
-  return blocks;
-}
-
 module.exports = {
   BT,
   FENCE,
@@ -168,6 +109,4 @@ module.exports = {
   looksLikeToolScript,
   hasOnlyFences,
   extractJsToolBlocks,
-  hasOnlyCodeContent,
-  getJsCodeBlocksFromMarkdown,
 };

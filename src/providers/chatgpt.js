@@ -2,12 +2,10 @@
  * ChatGPT Provider 定义
  * 基于 chatgpt.com 页面结构，输入框为 ProseMirror（contenteditable）。
  */
-let stopBtnVisible = false;
-// 停止按钮首次出现的时间戳
-let stopBtnFirstSeen = 0;
-// 停止按钮需持续存在超过此阈值，才视为真正进入生成态。
-// 过滤发送瞬间发送按钮↔停止按钮的短暂切换，避免误判为"回复完成"。
-const MIN_GENERATING_MS = 1500;
+// ⚠️ 以下变量仅供已废弃的 isResponseComplete 使用，保留注释备查：
+// let stopBtnVisible = false;
+// let stopBtnFirstSeen = 0;
+// const MIN_GENERATING_MS = 1500;
 
 module.exports = {
   id: 'chatgpt',
@@ -118,11 +116,8 @@ module.exports = {
     return url.includes('chatgpt.com') || url.includes('chat.openai.com');
   },
 
-  // ========== 自动解析相关方法 ==========
-
-  // 判断 AI 是否已完成回复（基于停止按钮的边沿触发）
-  // 回答中：button[data-testid="stop-button"] 存在
-  // 回答完成：该按钮消失；从存在到消失的边沿才返回 true，避免持续触发
+  // ========== 自动解析相关方法（已废弃：DOM 抓取路径移除后无人调用）==========
+  /*
   async isResponseComplete() {
     const stopBtn = document.querySelector('button[data-testid="stop-button"]');
     const visible = !!stopBtn;
@@ -207,4 +202,5 @@ module.exports = {
     }
     return '';
   },
+  */
 };

@@ -5,7 +5,6 @@
 const state = require('../dom/state');
 const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
-const { handleManualParse } = require('../dom/observer');
 const { sendToChat } = require('../dom/chat-input');
 
 /**
@@ -218,6 +217,63 @@ function closeMcpManager() {
 let eventsBound = false;
 let mcpSending = false; // 防止 MCP 信息重复发送
 
+/**
+ * 手动解析分派：
+ * - 拦截模式：复用最近一次拦截到的完整文本（不依赖 DOM）
+ * - DOM 模式：走 observer 的 DOM 抓取
+ */
+function handleManualParseDispatch() {
+  const interceptObserver = require('../dom/intercept-observer');
+  const text = interceptObserver.getLastInterceptedText();
+  if (!text) {
+    showToast('暂无可解析的回复（请先让 AI 回复一次）', 3000);
+    return;
+  }
+  showToast('已触发手动解析', 3000);
+  interceptObserver.processInterceptedResponse(text, true).catch((err) => {
+    console.error('[Cuckoo Code] 手动解析出错:', err);
+    showToast('手动解析出错: ' + err.message, 3000);
+  });
+}
+
+/**
+ * 格式化 token 数：过万显示为「xxx万」，否则原样显示
+ * @param {number} n
+ * @returns {string}
+ */
+function formatTokenCount(n) {
+  if (!Number.isFinite(n) || n < 0) return '0';
+  if (n >= 10000) {
+    return (n / 10000).toFixed(2) + '万';
+  }
+  return String(Math.round(n));
+}
+
+/**
+ * 刷新面板里的「对话 Token」显示
+ * 数据来源：服务端 accumulated_token_usage（含 prompt+输出）；
+ * 未收到服务端数据时显示 0。
+ */
+function updateConversationTokenDisplay() {
+  const countEl = document.getElementById('cuckoo-conv-token-count');
+  if (!countEl) return;
+
+  const server = state.serverTokenUsage;
+  if (server && typeof server.accumulatedTokens === 'number') {
+    countEl.textContent = formatTokenCount(server.accumulatedTokens);
+  } else {
+    countEl.textContent = '0';
+  }
+}
+
+/**
+ * 启动对话 token 显示（每秒刷新）
+ */
+function startTokenCounter() {
+  setInterval(updateConversationTokenDisplay, 1000);
+  updateConversationTokenDisplay();
+}
+
 function bindEvents() {
   // 防止重复绑定（SPA 导航或 preload 重载时可能导致多次执行）
   if (eventsBound) return;
@@ -257,7 +313,7 @@ function bindEvents() {
 
   // 手动解析按钮
   const manualParseBtn = document.getElementById('cuckoo-btn-manual-parse');
-  manualParseBtn?.addEventListener('click', handleManualParse);
+  manualParseBtn?.addEventListener('click', handleManualParseDispatch);
 
   // 窗口管理按钮：打开浮动管理面板
   const windowManagerBtn = document.getElementById('cuckoo-btn-window-manager');
@@ -457,6 +513,9 @@ function bindEvents() {
       hideOverlay();
     }
   });
+
+  // 启动输入框 token 估算
+  startTokenCounter();
 
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {

@@ -22,10 +22,10 @@ function deepseekHookInstaller() {
     }
   }
 
-  function dispatch(text, finished) {
+  function dispatch(text, finished, tokenUsage) {
     try {
       window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
-        detail: { text: text || '', finished: !!finished }
+        detail: { text: text || '', finished: !!finished, tokenUsage: tokenUsage || null }
       }));
     } catch (e) { /* ignore */ }
   }
@@ -77,6 +77,28 @@ function deepseekHookInstaller() {
     var observed = false;
     var text = '';
     var finished = false;
+    // 服务端权威 token 统计（accumulated_token_usage 含 prompt/context + 输出）
+    var tokenUsage = null;
+
+    // 从对象里捕获 token 相关字段（幂等，只保留最后一次值）
+    function captureTokenUsage(src) {
+      if (!src || typeof src !== 'object') return;
+      var changed = false;
+      if (!tokenUsage) tokenUsage = {};
+      if (typeof src.accumulated_token_usage === 'number') {
+        tokenUsage.accumulatedTokens = src.accumulated_token_usage; changed = true;
+      }
+      if (typeof src.inserted_at === 'number') {
+        tokenUsage.insertedAt = src.inserted_at; changed = true;
+      }
+      if (typeof src.updated_at === 'number') {
+        tokenUsage.updatedAt = src.updated_at; changed = true;
+      }
+      if (typeof src.model_type === 'string') {
+        tokenUsage.modelType = src.model_type; changed = true;
+      }
+      if (!changed && Object.keys(tokenUsage).length === 0) tokenUsage = null;
+    }
 
     function lastSeg(p) { return typeof p === 'string' ? p.split('/').pop() : ''; }
     function isTextPatch(p) {
@@ -128,6 +150,19 @@ function deepseekHookInstaller() {
         for (var i = 0; i < parsed.v.length; i++) consume(parsed.v[i]);
         return;
       }
+      // ---- token 字段捕获 ----
+      // 1) 消息快照：{"v":{"response":{"accumulated_token_usage":...}}}
+      if (parsed.v && typeof parsed.v === 'object' && parsed.v.response && typeof parsed.v.response === 'object') {
+        captureTokenUsage(parsed.v.response);
+      }
+      // 2) 独立帧：{"p":"accumulated_token_usage","v":123}
+      if (typeof parsed.p === 'string' && lastSeg(parsed.p) === 'accumulated_token_usage' && typeof parsed.v === 'number') {
+        captureTokenUsage({ accumulated_token_usage: parsed.v });
+      }
+      // 3) 顶层 updated_at：{"updated_at":1789351765.04}
+      if (parsed.updated_at !== undefined) {
+        captureTokenUsage(parsed);
+      }
       if (isFragmentsAppend(parsed)) {
         var types = [];
         for (var j = 0; j < parsed.v.length; j++) {
@@ -170,7 +205,8 @@ function deepseekHookInstaller() {
     return {
       consume: consume,
       get text() { return text; },
-      get finished() { return finished; }
+      get finished() { return finished; },
+      get tokenUsage() { return tokenUsage; }
     };
   }
 
@@ -190,7 +226,7 @@ function deepseekHookInstaller() {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, true);
+        dispatch(extractor.text, true, extractor.tokenUsage);
       }
     }
 
@@ -204,13 +240,13 @@ function deepseekHookInstaller() {
             var parsed = parseBlock(rest[i]);
             if (parsed) extractor.consume(parsed);
           }
-          if (!dispatched) { dispatched = true; dispatch(extractor.text, true); }
+          if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage); }
           return;
         }
         feed(decoder.decode(r.value, { stream: true }));
         pump();
       }).catch(function () {
-        if (!dispatched) { dispatched = true; dispatch(extractor.text, true); }
+        if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage); }
       });
     }
     pump();
@@ -270,7 +306,7 @@ function deepseekHookInstaller() {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, true);
+        dispatch(extractor.text, true, extractor.tokenUsage);
       }
     }
 
@@ -283,7 +319,7 @@ function deepseekHookInstaller() {
           if (parsed) extractor.consume(parsed);
         }
         dispatched = true;
-        dispatch(extractor.text, true);
+        dispatch(extractor.text, true, extractor.tokenUsage);
       }
     });
   }

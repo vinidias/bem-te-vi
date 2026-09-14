@@ -2,7 +2,7 @@
  * Claude Provider 定义
  * 基于 claude.ai 页面结构，输入框为 ProseMirror（contenteditable）。
  */
-let stopBtnVisible = false;
+// ⚠️ 仅供已废弃的 isResponseComplete 使用：let stopBtnVisible = false;
 
 module.exports = {
   id: 'claude',
@@ -75,11 +75,8 @@ module.exports = {
     return url.includes('claude.ai');
   },
 
-  // ========== 自动解析相关方法 ==========
-
-  // 判断 AI 是否已完成回复（基于停止按钮的边沿触发）
-  // 回答中：button[aria-label="Stop response"] 存在
-  // 回答完成：该按钮消失；从存在到消失的边沿才返回 true，避免持续触发
+  // ========== 自动解析相关方法（已废弃：DOM 抓取路径移除后无人调用）==========
+  /*
   async isResponseComplete() {
     const stopBtn = document.querySelector('button[aria-label="Stop response"]');
     const visible = !!stopBtn;
@@ -143,4 +140,5 @@ module.exports = {
     }
     return '';
   },
+  */
 };
