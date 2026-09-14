@@ -84,10 +84,21 @@ module.exports = {
   // 默认走 DOM 抓取；若目标平台需要拦截网络请求获取回复，
   // 设置 useIntercept: true 并实现 getHookSource()。
   //
-  // getHookSource() 返回一段源码字符串，会在页面主世界执行，
-  // 负责监听 fetch/XHR 的 SSE 流，并通过
-  //   window.dispatchEvent(new CustomEvent('cuckoo-ai-response', { detail: { text, finished } }))
-  // 派发完整回复。参考内置的 deepseek-hook.js / claude-hook.js / chatgpt-hook.js。
+  // ⚠️ 必须自包含：provider 是单文件上传，hook 源码要内联在此方法中，
+  // 不能 require 外部文件。hook 函数体在主世界独立执行，
+  // 只能使用浏览器全局（window/document/fetch 等），不引用模块级变量。
+  //
+  // getHookSource() 返回源码字符串，负责监听 fetch/XHR 的 SSE 流，并派发：
+  //   window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
+  //     detail: {
+  //       text: '<完整回复文本>',
+  //       finished: true,
+  //       // 可选：服务端 token 统计（面板会显示）
+  //       tokenUsage: { accumulatedTokens, insertedAt, updatedAt, modelType }
+  //     }
+  //   }));
+  //
+  // 参考内置 provider 的 getHookSource()（deepseek.js / claude.js / chatgpt.js）。
   //
   // useIntercept: true,
   // getHookSource() {

@@ -57,6 +57,14 @@ export interface Provider {
    * 返回注入页面主世界的网络拦截器源码（拦截模式使用）
    * 仅当 useIntercept 为 true 时需要。源码会在主世界执行，
    * 负责监听 fetch/XHR 并派发 'cuckoo-ai-response' 事件。
+   *
+   * ⚠️ 必须自包含：provider 是单文件上传，hook 源码要内联在此方法中，
+   * 不能 require 外部文件。推荐写法：
+   *   getHookSource() {
+   *     return '(' + function () { /* 拦截逻辑，只用浏览器全局 */ }.toString() + ')();';
+   *   }
+   *
+   * 派发事件时可选携带 tokenUsage 字段（详见 provider.template.js）。
    */
   getHookSource?(): string;
 
