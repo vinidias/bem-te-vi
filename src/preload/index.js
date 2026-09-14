@@ -27,19 +27,13 @@ console.log('[Cuckoo Code] 平台=' + (currentProvider ? currentProvider.id : 'u
 // preload 早于页面脚本执行，此处的 executeJavaScript 落在主世界。
 if (useIntercept) {
   try {
-    const hookByProvider = {
-      deepseek: () => require('../interceptor/deepseek-hook').deepseekHookSource(),
-      claude: () => require('../interceptor/claude-hook').claudeHookSource(),
-      chatgpt: () => require('../interceptor/chatgpt-hook').chatgptHookSource(),
-    };
-    const getSource = hookByProvider[currentProvider.id];
-    if (getSource) {
-      webFrame.executeJavaScript(getSource()).then(
+    if (typeof currentProvider.getHookSource === 'function') {
+      webFrame.executeJavaScript(currentProvider.getHookSource()).then(
         () => console.log('[Cuckoo Code] 主世界拦截器注入成功 (' + currentProvider.id + ')'),
         (err) => console.error('[Cuckoo Code] 主世界拦截器注入失败:', err && err.message)
       );
     } else {
-      console.warn('[Cuckoo Code] 未找到 ' + currentProvider.id + ' 的拦截器实现');
+      console.warn('[Cuckoo Code] 平台 ' + currentProvider.id + ' 未提供 getHookSource()');
     }
   } catch (err) {
     console.error('[Cuckoo Code] 加载拦截器失败:', err);

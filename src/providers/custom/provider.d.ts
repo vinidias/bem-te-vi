@@ -47,16 +47,18 @@ export interface Provider {
   /** 判断 URL 是否属于本平台 */
   matchesUrl(url: string): boolean;
 
-  /** 判断 AI 是否已完成回复 */
-  isResponseComplete(): boolean | Promise<boolean>;
-  /** 获取当前页面所有 AI 消息容器（排除用户消息） */
-  getMessageCandidates(): Element[];
-  /** 从消息容器中取回复内容根节点 */
-  getMessageMarkdown(messageEl: Element): Element | null;
-  /** 判断节点是否位于用户消息区域内 */
-  isUserMessage(node: Element): boolean;
-  /** 提取代码块的语言标记 */
-  getCodeBlockLanguage(pre: Element): string;
+  /**
+   * 是否使用网络拦截模式获取 AI 回复（默认 false = DOM 抓取）
+   * 为 true 时需实现 getHookSource()
+   */
+  useIntercept?: boolean;
+
+  /**
+   * 返回注入页面主世界的网络拦截器源码（拦截模式使用）
+   * 仅当 useIntercept 为 true 时需要。源码会在主世界执行，
+   * 负责监听 fetch/XHR 并派发 'cuckoo-ai-response' 事件。
+   */
+  getHookSource?(): string;
 
   /** 返回自定义提示词模板（优先级最高；返回空则回退到文件模板） */
   getPromptTemplate?(): string;

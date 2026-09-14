@@ -3,14 +3,7 @@
  * 包含主进程和 preload 都需要的信息：
  * - 主进程：homeUrl（打开窗口）、sessionUrlBase（导航到会话）
  * - preload：输入框/发送按钮选择器、用户信息选择器、首页判断正则
- * - preload：自动解析相关方法（完成检测/消息定位/语言提取等）
  */
-// ⚠️ 以下选择器仅供已废弃的 DOM 抓取方法使用，保留注释备查：
-// const STOP_BTN_SELECTOR =
-//   '.ds-button.ds-button--primary.ds-button--filled.ds-button--circle.ds-button--m' +
-//   '.ds-button--icon-relative-m.ds-button--disabled';
-// const ACTION_BTN_SELECTOR =
-//   '[role="button"].ds-button--iconLabelTertiary';
 
 module.exports = {
   id: 'deepseek',
@@ -105,85 +98,8 @@ module.exports = {
     return el.offsetWidth > 0 && el.offsetHeight > 0;
   },
 
-  // ========== 自动解析相关方法（已废弃：DOM 抓取路径移除后无人调用）==========
-  /*
-  isResponseComplete() {
-    try {
-      let btnCount = 0;
-      const messages = document.querySelectorAll('.ds-message');
-      if (messages.length === 0) return false;
-      const lastMessage = messages[messages.length - 1];
-      const scope = lastMessage.parentElement || lastMessage;
-      const actionButtons = scope.querySelectorAll(ACTION_BTN_SELECTOR);
-      btnCount = actionButtons.length;
-      const stopBtn = document.querySelector(STOP_BTN_SELECTOR);
-      return btnCount >= 2 && !!stopBtn;
-    } catch (err) {
-      console.error('[Cuckoo Code] ❌ 检测 AI 完成状态出错:', err);
-      return false;
-    }
+  // 返回注入主世界的网络拦截器源码（拦截模式使用）
+  getHookSource() {
+    return require('./deepseek-hook').deepseekHookSource();
   },
-
-  // 获取当前页面所有 AI 消息容器（排除用户消息）
-  getMessageCandidates() {
-    return Array.from(document.querySelectorAll('.ds-message')).filter(el => !this.isUserMessage(el));
-  },
-
-  // 从消息容器中取回复内容根节点
-  getMessageMarkdown(messageEl) {
-    return messageEl.querySelector(':scope > .ds-markdown');
-  },
-
-  // 判断节点是否位于用户消息区域内
-  isUserMessage(node) {
-    let current = node;
-    while (current) {
-      const role = current.getAttribute?.('data-role') || current.getAttribute?.('data-author') || '';
-      if (role === 'user' || role === 'human') return true;
-      const cls = current.className || '';
-      if (typeof cls === 'string' && (cls.includes('user-message') || cls.includes('message-user') || cls.includes('human'))) {
-        return true;
-      }
-      current = current.parentElement;
-    }
-    const text = (node.textContent || node.innerText || '').substring(0, 200);
-    return text.includes('我已选择目录：') || text.includes('系统提示词：') || text.includes('工具使用规则：');
-  },
-
-  // 提取代码块的语言标记（小写）
-  getCodeBlockLanguage(pre) {
-    if (!pre) return '';
-    let lang = pre.getAttribute('data-language') || '';
-    if (!lang) {
-      const parentDiv = pre.closest('div[data-language]');
-      if (parentDiv) lang = parentDiv.getAttribute('data-language') || '';
-    }
-    if (!lang) {
-      const codeEl = pre.querySelector('code');
-      const els = [codeEl, pre].filter(Boolean);
-      for (const el of els) {
-        const cls = Array.from(el.classList).find((c) => c.startsWith('language-'));
-        if (cls) { lang = cls.replace('language-', ''); break; }
-      }
-    }
-    if (!lang) {
-      const block = pre.closest('.md-code-block');
-      if (block) {
-        const banner = block.querySelector('.md-code-block-banner');
-        if (banner) {
-          const spans = banner.querySelectorAll('span');
-          for (const span of spans) {
-            if (span.closest('button')) continue;
-            const t = (span.textContent || '').trim();
-            if (/^[a-zA-Z0-9_+#.-]{1,20}$/.test(t)) {
-              lang = t;
-              break;
-            }
-          }
-        }
-      }
-    }
-    return (lang || '').toLowerCase();
-  },
-  */
 };

@@ -2,8 +2,6 @@
  * Claude Provider 定义
  * 基于 claude.ai 页面结构，输入框为 ProseMirror（contenteditable）。
  */
-// ⚠️ 仅供已废弃的 isResponseComplete 使用：let stopBtnVisible = false;
-
 module.exports = {
   id: 'claude',
   name: 'Claude',
@@ -75,70 +73,8 @@ module.exports = {
     return url.includes('claude.ai');
   },
 
-  // ========== 自动解析相关方法（已废弃：DOM 抓取路径移除后无人调用）==========
-  /*
-  async isResponseComplete() {
-    const stopBtn = document.querySelector('button[aria-label="Stop response"]');
-    const visible = !!stopBtn;
-
-    if (visible) {
-      stopBtnVisible = true;
-      return false;
-    }
-
-    // 上一次可见、本次不可见 → 回答刚结束
-    if (stopBtnVisible) {
-      stopBtnVisible = false;
-      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] Claude 回复完成，等待 500ms 后解析');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] Claude 500ms 等待结束');
-      return true;
-    }
-
-    return false;
+  // 返回注入主世界的网络拦截器源码（拦截模式使用）
+  getHookSource() {
+    return require('./claude-hook').claudeHookSource();
   },
-
-  // 获取当前页面所有 AI 消息容器（排除用户消息）
-  getMessageCandidates() {
-    return Array.from(document.querySelectorAll('[class*="message-row"]')).filter(el => !this.isUserMessage(el));
-  },
-
-  // 从消息容器中取回复内容根节点
-  getMessageMarkdown(messageEl) {
-    return messageEl.querySelector('[class*="standard-markdown"]') ||
-      messageEl.querySelector('div[class*="prose"]') ||
-      messageEl;
-  },
-
-  // 判断节点是否位于用户消息区域内
-  isUserMessage(node) {
-    let current = node;
-    while (current) {
-      const testid = current.getAttribute?.('data-testid') || '';
-      if (testid === 'user-message') return true;
-      const role = current.getAttribute?.('data-role') || current.getAttribute?.('data-author') || '';
-      if (role === 'user' || role === 'human') return true;
-      current = current.parentElement;
-    }
-    const rowEl = node && node.closest ? node.closest('[class*="message-row"]') : null;
-    if (rowEl && rowEl.querySelector('[data-testid="user-message"]')) return true;
-    const text = (node.textContent || node.innerText || '').substring(0, 200);
-    return text.includes('我已选择目录：') || text.includes('系统提示词：') || text.includes('工具使用规则：');
-  },
-
-  // 提取代码块的语言标记（Claude 使用 code[class*="language-"]）
-  getCodeBlockLanguage(pre) {
-    if (!pre) return '';
-    const codeEl = pre.querySelector('code');
-    const els = [codeEl, pre].filter(Boolean);
-    for (const el of els) {
-      const cls = el.className || '';
-      if (typeof cls === 'string') {
-        const langMatch = cls.match(/language-([\w-]+)/);
-        if (langMatch) return langMatch[1].toLowerCase();
-      }
-    }
-    return '';
-  },
-  */
 };

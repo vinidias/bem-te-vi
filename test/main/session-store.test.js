@@ -31,7 +31,13 @@ test('extractSessionIdFromUrl 标准 URL', () => {
 
 test('extractSessionIdFromUrl /s/ 备选', () => {
   const store = makeStore();
-  assert.strictEqual(store.extractSessionIdFromUrl('https://x.com/s/abc123'), 'abc123');
+  // 平台差异下沉到 provider.extractSessionId，需用已识别平台的 URL
+  assert.strictEqual(store.extractSessionIdFromUrl('https://chat.deepseek.com/s/abc123'), 'abc123');
+});
+
+test('extractSessionIdFromUrl 未识别平台返回 null', () => {
+  const store = makeStore();
+  assert.strictEqual(store.extractSessionIdFromUrl('https://x.com/s/abc123'), null);
 });
 
 test('extractSessionIdFromUrl 无会话返回 null', () => {

@@ -2,11 +2,6 @@
  * ChatGPT Provider 定义
  * 基于 chatgpt.com 页面结构，输入框为 ProseMirror（contenteditable）。
  */
-// ⚠️ 以下变量仅供已废弃的 isResponseComplete 使用，保留注释备查：
-// let stopBtnVisible = false;
-// let stopBtnFirstSeen = 0;
-// const MIN_GENERATING_MS = 1500;
-
 module.exports = {
   id: 'chatgpt',
   name: 'ChatGPT',
@@ -116,91 +111,8 @@ module.exports = {
     return url.includes('chatgpt.com') || url.includes('chat.openai.com');
   },
 
-  // ========== 自动解析相关方法（已废弃：DOM 抓取路径移除后无人调用）==========
-  /*
-  async isResponseComplete() {
-    const stopBtn = document.querySelector('button[data-testid="stop-button"]');
-    const visible = !!stopBtn;
-    const now = Date.now();
-
-    if (visible) {
-      if (!stopBtnVisible) {
-        // 停止按钮首次出现，记录时间，避免发送瞬间的短暂切换被误判
-        stopBtnFirstSeen = now;
-      }
-      stopBtnVisible = true;
-      return false;
-    }
-
-    // 上一次可见、本次不可见 → 需确认生成态持续足够久，才认定为回复结束
-    if (stopBtnVisible) {
-      stopBtnVisible = false;
-      const generatingMs = now - stopBtnFirstSeen;
-      if (generatingMs < MIN_GENERATING_MS) {
-        // 生成态过短：发送按钮↔停止按钮的短暂切换，忽略，避免误判完成
-        console.log('[' + new Date().toISOString() + '] [Cuckoo Code] ChatGPT 停止按钮仅存在 ' + generatingMs + 'ms（<' + MIN_GENERATING_MS + 'ms），忽略本次完成信号');
-        return false;
-      }
-      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] ChatGPT 回复完成，等待 500ms 后解析');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] ChatGPT 500ms 等待结束');
-      return true;
-    }
-
-    return false;
+  // 返回注入主世界的网络拦截器源码（拦截模式使用）
+  getHookSource() {
+    return require('./chatgpt-hook').chatgptHookSource();
   },
-
-  // 获取当前页面所有 AI 消息容器（排除用户消息）
-  getMessageCandidates() {
-    return Array.from(document.querySelectorAll('[data-message-author-role="assistant"]')).filter(el => !this.isUserMessage(el));
-  },
-
-  // 从消息容器中取回复内容根节点
-  getMessageMarkdown(messageEl) {
-    return messageEl.querySelector('[class*="markdown"]') ||
-      messageEl.querySelector('div[class*="prose"]') ||
-      messageEl;
-  },
-
-  // 判断节点是否位于用户消息区域内
-  isUserMessage(node) {
-    let current = node;
-    while (current) {
-      const role = current.getAttribute?.('data-message-author-role') || '';
-      if (role === 'user') return true;
-      current = current.parentElement;
-    }
-    const userEl = node && node.closest ? node.closest('[data-message-author-role="user"]') : null;
-    if (userEl) return true;
-    const text = (node.textContent || node.innerText || '').substring(0, 200);
-    return text.includes('我已选择目录：') || text.includes('系统提示词：') || text.includes('工具使用规则：');
-  },
-
-  // 提取代码块的语言标记
-  // ChatGPT 代码块的语言标签在 header 里（如 <svg/>cuckoo），不在 class 中。
-  getCodeBlockLanguage(pre) {
-    if (!pre) return '';
-    // 1. 先尝试 class（兼容其他渲染方式）
-    const codeEl = pre.querySelector('code');
-    const els = [codeEl, pre].filter(Boolean);
-    for (const el of els) {
-      const cls = el.className || '';
-      if (typeof cls === 'string') {
-        const langMatch = cls.match(/language-([\w-]+)/);
-        if (langMatch) return langMatch[1].toLowerCase();
-      }
-    }
-    // 2. 从代码块 header 提取语言标签
-    const header = pre.querySelector('[class*="items-center"][class*="text-sm"]');
-    if (header) {
-      const clone = header.cloneNode(true);
-      clone.querySelectorAll('svg, button').forEach(el => el.remove());
-      const langText = (clone.textContent || '').trim();
-      if (/^[a-zA-Z0-9_+#.-]{1,20}$/.test(langText)) {
-        return langText.toLowerCase();
-      }
-    }
-    return '';
-  },
-  */
 };
