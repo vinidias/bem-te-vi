@@ -5,12 +5,12 @@
  * - preload：输入框/发送按钮选择器、用户信息选择器、首页判断正则
  * - preload：自动解析相关方法（完成检测/消息定位/语言提取等）
  */
-const STOP_BTN_SELECTOR =
-  '.ds-button.ds-button--primary.ds-button--filled.ds-button--circle.ds-button--m' +
-  '.ds-button--icon-relative-m.ds-button--disabled';
-
-const ACTION_BTN_SELECTOR =
-  '[role="button"].ds-button--iconLabelTertiary';
+// ⚠️ 以下选择器仅供已废弃的 DOM 抓取方法使用，保留注释备查：
+// const STOP_BTN_SELECTOR =
+//   '.ds-button.ds-button--primary.ds-button--filled.ds-button--circle.ds-button--m' +
+//   '.ds-button--icon-relative-m.ds-button--disabled';
+// const ACTION_BTN_SELECTOR =
+//   '[role="button"].ds-button--iconLabelTertiary';
 
 module.exports = {
   id: 'deepseek',
@@ -105,9 +105,8 @@ module.exports = {
     return el.offsetWidth > 0 && el.offsetHeight > 0;
   },
 
-  // ========== 自动解析相关方法 ==========
-
-  // 判断 AI 是否已完成回复
+  // ========== 自动解析相关方法（已废弃：DOM 抓取路径移除后无人调用）==========
+  /*
   isResponseComplete() {
     try {
       let btnCount = 0;
@@ -122,19 +121,6 @@ module.exports = {
     } catch (err) {
       console.error('[Cuckoo Code] ❌ 检测 AI 完成状态出错:', err);
       return false;
-    }
-  },
-
-  // 获取整个对话的纯文本（用户 + AI 消息按 DOM 顺序拼接），用于 token 估算
-  getConversationText() {
-    try {
-      const msgs = Array.from(document.querySelectorAll('.ds-message'));
-      return msgs
-        .map(el => (el.textContent || el.innerText || '').trim())
-        .filter(Boolean)
-        .join('\n');
-    } catch (_) {
-      return '';
     }
   },
 
@@ -199,4 +185,5 @@ module.exports = {
     }
     return (lang || '').toLowerCase();
   },
+  */
 };

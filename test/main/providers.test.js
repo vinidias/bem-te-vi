@@ -56,6 +56,8 @@ test('claude extractSessionId', () => {
   assert.strictEqual(claude.extractSessionId('https://claude.ai/new'), null);
 });
 
+// ===== 以下测试对应的 provider DOM 抓取方法已废弃（DOM 路径移除），暂时注释 =====
+/*
 test('deepseek isUserMessage 检测 data-role=user', () => {
   const node = { parentElement: null, getAttribute: (n) => n === 'data-role' ? 'user' : '' };
   assert.strictEqual(deepseek.isUserMessage(node), true);
@@ -99,6 +101,7 @@ test('claude getMessageMarkdown 优先 standard-markdown', () => {
   };
   assert.strictEqual(claude.getMessageMarkdown(msg), 'STD');
 });
+*/
 
 test('chatgpt matchesUrl', () => {
   assert.strictEqual(chatgpt.matchesUrl('https://chatgpt.com/'), true);
@@ -113,6 +116,7 @@ test('chatgpt extractSessionId 排除 WEB 中间态', () => {
   assert.strictEqual(chatgpt.extractSessionId('https://chatgpt.com/'), null);
 });
 
+/*
 test('chatgpt getCodeBlockLanguage 从 class 提取', () => {
   const pre = {
     querySelector: () => ({ className: 'language-cuckoo' }),
@@ -122,7 +126,6 @@ test('chatgpt getCodeBlockLanguage 从 class 提取', () => {
 });
 
 test('chatgpt getCodeBlockLanguage 从 header 文本提取', () => {
-  // 无 class 语言标记时，从 header（移除 svg/button 后）取纯文本
   const header = {
     cloneNode: () => ({
       querySelectorAll: () => [],
@@ -151,6 +154,7 @@ test('chatgpt getMessageCandidates 过滤用户消息', () => {
     global.document = origDoc;
   }
 });
+*/
 
 test('渲染进程经注入的 userData 路径可加载自定义 Provider', () => {
   const os = require('node:os');

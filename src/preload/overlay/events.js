@@ -5,10 +5,7 @@
 const state = require('../dom/state');
 const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
-const { handleManualParse } = require('../dom/observer');
 const { sendToChat } = require('../dom/chat-input');
-const { estimateTokens } = require('../dom/token-estimator');
-const { getProviderByUrl } = require('../../../src/providers');
 
 /**
  * 渲染窗口列表（浮动管理面板内）
@@ -221,6 +218,25 @@ let eventsBound = false;
 let mcpSending = false; // 防止 MCP 信息重复发送
 
 /**
+ * 手动解析分派：
+ * - 拦截模式：复用最近一次拦截到的完整文本（不依赖 DOM）
+ * - DOM 模式：走 observer 的 DOM 抓取
+ */
+function handleManualParseDispatch() {
+  const interceptObserver = require('../dom/intercept-observer');
+  const text = interceptObserver.getLastInterceptedText();
+  if (!text) {
+    showToast('暂无可解析的回复（请先让 AI 回复一次）', 3000);
+    return;
+  }
+  showToast('已触发手动解析', 3000);
+  interceptObserver.processInterceptedResponse(text, true).catch((err) => {
+    console.error('[Cuckoo Code] 手动解析出错:', err);
+    showToast('手动解析出错: ' + err.message, 3000);
+  });
+}
+
+/**
  * 格式化 token 数：过万显示为「xxx万」，否则原样显示
  * @param {number} n
  * @returns {string}
@@ -235,8 +251,8 @@ function formatTokenCount(n) {
 
 /**
  * 刷新面板里的「对话 Token」显示
- * 优先使用服务端权威值（accumulated_token_usage，含 prompt+输出）；
- * 服务端值缺失时回退到页面文本本地估算。
+ * 数据来源：服务端 accumulated_token_usage（含 prompt+输出）；
+ * 未收到服务端数据时显示 0。
  */
 function updateConversationTokenDisplay() {
   const countEl = document.getElementById('cuckoo-conv-token-count');
@@ -245,18 +261,9 @@ function updateConversationTokenDisplay() {
   const server = state.serverTokenUsage;
   if (server && typeof server.accumulatedTokens === 'number') {
     countEl.textContent = formatTokenCount(server.accumulatedTokens);
-    return;
+  } else {
+    countEl.textContent = '0';
   }
-
-  // 回退：本地估算
-  let text = '';
-  try {
-    const provider = getProviderByUrl(window.location.href);
-    if (provider && typeof provider.getConversationText === 'function') {
-      text = provider.getConversationText() || '';
-    }
-  } catch (_) { /* provider 未就绪 */ }
-  countEl.textContent = formatTokenCount(estimateTokens(text));
 }
 
 /**
@@ -306,7 +313,7 @@ function bindEvents() {
 
   // 手动解析按钮
   const manualParseBtn = document.getElementById('cuckoo-btn-manual-parse');
-  manualParseBtn?.addEventListener('click', handleManualParse);
+  manualParseBtn?.addEventListener('click', handleManualParseDispatch);
 
   // 窗口管理按钮：打开浮动管理面板
   const windowManagerBtn = document.getElementById('cuckoo-btn-window-manager');

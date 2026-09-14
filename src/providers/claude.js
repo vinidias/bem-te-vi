@@ -2,7 +2,7 @@
  * Claude Provider 定义
  * 基于 claude.ai 页面结构，输入框为 ProseMirror（contenteditable）。
  */
-let stopBtnVisible = false;
+// ⚠️ 仅供已废弃的 isResponseComplete 使用：let stopBtnVisible = false;
 
 module.exports = {
   id: 'claude',
@@ -75,11 +75,8 @@ module.exports = {
     return url.includes('claude.ai');
   },
 
-  // ========== 自动解析相关方法 ==========
-
-  // 判断 AI 是否已完成回复（基于停止按钮的边沿触发）
-  // 回答中：button[aria-label="Stop response"] 存在
-  // 回答完成：该按钮消失；从存在到消失的边沿才返回 true，避免持续触发
+  // ========== 自动解析相关方法（已废弃：DOM 抓取路径移除后无人调用）==========
+  /*
   async isResponseComplete() {
     const stopBtn = document.querySelector('button[aria-label="Stop response"]');
     const visible = !!stopBtn;
@@ -99,22 +96,6 @@ module.exports = {
     }
 
     return false;
-  },
-
-  // 获取整个对话的纯文本（用户 + AI 消息按 DOM 顺序拼接），用于 token 估算
-  getConversationText() {
-    try {
-      const msgs = Array.from(document.querySelectorAll('[class*="message-row"]'));
-      return msgs
-        .map(el => {
-          const md = el.querySelector('[class*="standard-markdown"]') || el.querySelector('div[class*="prose"]') || el;
-          return (md.textContent || md.innerText || '').trim();
-        })
-        .filter(Boolean)
-        .join('\n');
-    } catch (_) {
-      return '';
-    }
   },
 
   // 获取当前页面所有 AI 消息容器（排除用户消息）
@@ -159,4 +140,5 @@ module.exports = {
     }
     return '';
   },
+  */
 };
