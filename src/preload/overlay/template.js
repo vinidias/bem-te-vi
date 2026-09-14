@@ -292,6 +292,7 @@ const OVERLAY_CSS = [
 '  will-change: transform;',
 '  display: flex; align-items: center; justify-content: center; gap: 0;',
 '  cursor: pointer;',
+'  touch-action: none; user-select: none;',
 '  transition: background 0.2s, border-color 0.2s, transform 0.15s;',
 '}',
 '#cuckoo-status-badge:hover { background: rgba(139, 147, 255, 0.35); border-color: rgba(139, 147, 255, 0.65); transform: scale(1.05); }',
