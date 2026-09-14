@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.10] - 2026-09-14
+
+### Fixed
+- 修复选择平台时闪退：切换平台会先销毁旧窗口再重建，
+  window-all-closed 期间窗口数短暂为 0 导致应用误退出
+- 修复 userData 目录不存在时启动崩溃：app.setPath('userData') 前兜底创建目录
+
 ## [0.3.9] - 2026-09-14
 
 ### Added
