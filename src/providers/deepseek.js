@@ -26,10 +26,10 @@ function deepseekHookInstaller() {
     }
   }
 
-  function dispatch(text, finished, tokenUsage) {
+  function dispatch(text, finished, tokenUsage, msgIds) {
     try {
       window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
-        detail: { text: text || '', finished: !!finished, tokenUsage: tokenUsage || null }
+        detail: { text: text || '', finished: !!finished, tokenUsage: tokenUsage || null, msgIds: msgIds || null }
       }));
     } catch (e) { /* ignore */ }
   }
@@ -83,6 +83,19 @@ function deepseekHookInstaller() {
     var finished = false;
     // 服务端权威 token 统计（accumulated_token_usage 含 prompt/context + 输出）
     var tokenUsage = null;
+    // 本条回复的消息 id：requestMessageId（用户提问）+ responseMessageId（AI 回复）
+    var msgIds = null;
+
+    // 从对象里捕获消息 id 字段
+    function captureMsgIds(src) {
+      if (!src || typeof src !== 'object') return;
+      if (!msgIds) msgIds = {};
+      if (typeof src.request_message_id === 'number') msgIds.requestMessageId = src.request_message_id;
+      if (typeof src.response_message_id === 'number') msgIds.responseMessageId = src.response_message_id;
+      // 快照形式：{v:{response:{message_id, parent_id}}}
+      if (typeof src.message_id === 'number') msgIds.responseMessageId = src.message_id;
+      if (typeof src.parent_id === 'number') msgIds.requestMessageId = src.parent_id;
+    }
 
     // 从对象里捕获 token 相关字段（幂等，只保留最后一次值）
     function captureTokenUsage(src) {
@@ -154,10 +167,14 @@ function deepseekHookInstaller() {
         for (var i = 0; i < parsed.v.length; i++) consume(parsed.v[i]);
         return;
       }
+      // ---- 消息 id 捕获 ----
+      // 顶层帧：{"request_message_id":668,"response_message_id":669,...}
+      captureMsgIds(parsed);
       // ---- token 字段捕获 ----
       // 1) 消息快照：{"v":{"response":{"accumulated_token_usage":...}}}
       if (parsed.v && typeof parsed.v === 'object' && parsed.v.response && typeof parsed.v.response === 'object') {
         captureTokenUsage(parsed.v.response);
+        captureMsgIds(parsed.v.response);
       }
       // 2) 独立帧：{"p":"accumulated_token_usage","v":123}
       if (typeof parsed.p === 'string' && lastSeg(parsed.p) === 'accumulated_token_usage' && typeof parsed.v === 'number') {
@@ -210,7 +227,8 @@ function deepseekHookInstaller() {
       consume: consume,
       get text() { return text; },
       get finished() { return finished; },
-      get tokenUsage() { return tokenUsage; }
+      get tokenUsage() { return tokenUsage; },
+      get msgIds() { return msgIds; }
     };
   }
 
@@ -230,7 +248,7 @@ function deepseekHookInstaller() {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, true, extractor.tokenUsage);
+        dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds);
       }
     }
 
@@ -244,16 +262,33 @@ function deepseekHookInstaller() {
             var parsed = parseBlock(rest[i]);
             if (parsed) extractor.consume(parsed);
           }
-          if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage); }
+          if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds); }
           return;
         }
         feed(decoder.decode(r.value, { stream: true }));
         pump();
       }).catch(function () {
-        if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage); }
+        if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds); }
       });
     }
     pump();
+  }
+
+  // ---------- 缓存真实请求头（供压缩时直接 fetch 使用）----------
+  // DeepSeek 的 share/create 需要 authorization + x-client-* 头，
+  // 拦截任意请求时缓存最新一组，供后续直接调用 API。
+  function cacheHeaders(hdrs) {
+    try {
+      if (!hdrs) return;
+      var lower = {};
+      for (var k in hdrs) {
+        if (Object.prototype.hasOwnProperty.call(hdrs, k)) {
+          lower[String(k).toLowerCase()] = hdrs[k];
+        }
+      }
+      if (!lower['authorization']) return;
+      localStorage.setItem('cuckoo-ds-headers', JSON.stringify(lower));
+    } catch (e) { /* ignore */ }
   }
 
   // ---------- fetch 拦截 ----------
@@ -264,6 +299,17 @@ function deepseekHookInstaller() {
         : (input && input.url) ? input.url
         : (input && input.href) ? input.href : '';
       var method = (init && init.method) || (input && input.method) || 'GET';
+      // 缓存请求头
+      try {
+        if (init && init.headers) {
+          var h = init.headers;
+          var obj = {};
+          if (typeof h.forEach === 'function' && !Array.isArray(h)) { h.forEach(function (v, k) { obj[k] = v; }); }
+          else if (Array.isArray(h)) { h.forEach(function (p) { obj[p[0]] = p[1]; }); }
+          else { obj = h; }
+          cacheHeaders(obj);
+        }
+      } catch (e) { /* ignore */ }
       var p = origFetch.apply(this, arguments);
       if (!isCompletion(url, method)) return p;
       return p.then(function (response) {
@@ -278,18 +324,30 @@ function deepseekHookInstaller() {
   // ---------- XHR 拦截（被动读取 responseText）----------
   var origOpen = XMLHttpRequest.prototype.open;
   var origSend = XMLHttpRequest.prototype.send;
+  var origSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
   var xhrInfo = new WeakMap();
+  XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
+    try {
+      var inf = xhrInfo.get(this) || {};
+      if (!inf.headers) inf.headers = {};
+      inf.headers[name] = value;
+      xhrInfo.set(this, inf);
+      cacheHeaders(inf.headers);
+    } catch (e) { /* ignore */ }
+    return origSetRequestHeader.apply(this, arguments);
+  };
   XMLHttpRequest.prototype.open = function (method, url) {
     try { xhrInfo.set(this, { url: url, method: method }); } catch (e) { /* ignore */ }
     return origOpen.apply(this, arguments);
   };
-  XMLHttpRequest.prototype.send = function () {
+  XMLHttpRequest.prototype.send = function (body) {
     var info = xhrInfo.get(this);
     if (info && isCompletion(info.url, info.method)) {
       try { observeXhr(this); } catch (e) { /* ignore */ }
     }
     return origSend.apply(this, arguments);
   };
+
 
   function observeXhr(xhr) {
     var lastLen = 0;
@@ -310,7 +368,7 @@ function deepseekHookInstaller() {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, true, extractor.tokenUsage);
+        dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds);
       }
     }
 
@@ -323,7 +381,7 @@ function deepseekHookInstaller() {
           if (parsed) extractor.consume(parsed);
         }
         dispatched = true;
-        dispatch(extractor.text, true, extractor.tokenUsage);
+        dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds);
       }
     });
   }

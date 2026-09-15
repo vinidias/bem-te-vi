@@ -15,4 +15,6 @@ module.exports = {
   currentProjectDir: null,
   // 服务端返回的权威 token 统计（{ accumulatedTokens, insertedAt, updatedAt, modelType }）
   serverTokenUsage: null,
+  // 最近一次 AI 回复的消息 id（{ requestMessageId, responseMessageId }）
+  lastResponseMsgIds: null,
 };

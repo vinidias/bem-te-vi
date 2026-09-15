@@ -6,6 +6,7 @@ const state = require('../dom/state');
 const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
 const { sendToChat } = require('../dom/chat-input');
+const { runCompaction, checkPendingInit } = require('../dom/compaction');
 
 /**
  * 渲染窗口列表（浮动管理面板内）
@@ -266,11 +267,74 @@ function updateConversationTokenDisplay() {
   }
 }
 
+// ========== 自动压缩上下文 ==========
+// 配置：是否启用 + 阈值（单位：万 token）
+let autoCompactEnabled = false;
+let autoCompactThresholdWan = 80;
+// 防止压缩过程中重复触发
+let autoCompactTriggering = false;
+
+/** 从 localStorage 读取自动压缩配置并同步到 UI */
+function loadAutoCompactConfig() {
+  try {
+    const en = localStorage.getItem('cuckoo-auto-compact-enabled');
+    const th = localStorage.getItem('cuckoo-auto-compact-threshold');
+    autoCompactEnabled = en === '1';
+    autoCompactThresholdWan = th ? (parseFloat(th) || 80) : 80;
+  } catch (_) {}
+  const enEl = document.getElementById('cuckoo-auto-compact-enabled');
+  const thEl = document.getElementById('cuckoo-auto-compact-threshold');
+  if (enEl) enEl.checked = autoCompactEnabled;
+  if (thEl) thEl.value = autoCompactThresholdWan;
+}
+
+/** 保存自动压缩配置 */
+function saveAutoCompactConfig() {
+  const enEl = document.getElementById('cuckoo-auto-compact-enabled');
+  const thEl = document.getElementById('cuckoo-auto-compact-threshold');
+  const enabled = !!(enEl && enEl.checked);
+  let th = thEl ? parseFloat(thEl.value) : 80;
+  if (!Number.isFinite(th) || th <= 0) {
+    showToast('阈值需为正数（万）', 3000);
+    return;
+  }
+  autoCompactEnabled = enabled;
+  autoCompactThresholdWan = th;
+  try {
+    localStorage.setItem('cuckoo-auto-compact-enabled', enabled ? '1' : '0');
+    localStorage.setItem('cuckoo-auto-compact-threshold', String(th));
+  } catch (_) {}
+  showToast('自动压缩设置已保存：' + (enabled ? '开启，阈值 ' + th + ' 万' : '关闭'), 2500);
+}
+
 /**
- * 启动对话 token 显示（每秒刷新）
+ * 检查是否触发自动压缩
+ * 数据源：state.serverTokenUsage.accumulatedTokens
+ */
+function checkAutoCompact() {
+  if (!autoCompactEnabled || autoCompactTriggering) return;
+  const server = state.serverTokenUsage;
+  if (!server || typeof server.accumulatedTokens !== 'number') return;
+  const thresholdTokens = autoCompactThresholdWan * 10000;
+  if (server.accumulatedTokens < thresholdTokens) return;
+  // 触发
+  autoCompactTriggering = true;
+  console.log('[Cuckoo Compact] 自动触发：当前 ' + server.accumulatedTokens + ' >= 阈值 ' + thresholdTokens);
+  showToast('Token 超阈值（' + autoCompactThresholdWan + '万），自动压缩中...', 4000);
+  runCompaction().finally(() => {
+    // 压缩会跳转页面；若未跳转（失败），重置标志允许下次重试
+    autoCompactTriggering = false;
+  });
+}
+
+/**
+ * 启动对话 token 显示（每秒刷新）+ 自动压缩检查
  */
 function startTokenCounter() {
-  setInterval(updateConversationTokenDisplay, 1000);
+  setInterval(() => {
+    updateConversationTokenDisplay();
+    checkAutoCompact();
+  }, 1000);
   updateConversationTokenDisplay();
 }
 
@@ -383,6 +447,10 @@ function bindEvents() {
 
   minimizeBtn?.addEventListener('click', hideOverlay);
   initBtn?.addEventListener('click', handleInitProject);
+
+  // 压缩上下文按钮
+  const compactBtn = document.getElementById('cuckoo-btn-compact');
+  compactBtn?.addEventListener('click', runCompaction);
 
   // 首次使用提示浮窗：初始化按钮（与右侧初始化项目逻辑一致）
   const firstInitBtn = document.getElementById('cuckoo-btn-first-init');
@@ -600,8 +668,16 @@ function bindEvents() {
     }
   });
 
-  // 启动输入框 token 估算
+  // 自动压缩：加载配置 + 绑定保存按钮
+  loadAutoCompactConfig();
+  const autoSaveBtn = document.getElementById('cuckoo-auto-compact-save');
+  autoSaveBtn?.addEventListener('click', saveAutoCompactConfig);
+
+  // 启动输入框 token 估算 + 自动压缩检查
   startTokenCounter();
+
+  // 压缩后新页面加载：检查是否需自动初始化项目（用被压缩项目的目录）
+  checkPendingInit();
 
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {
