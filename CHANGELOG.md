@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1] - 2026-09-15
+
+### Fixed
+- 修复打包后系统提示词中 ts 代码围栏为空的问题：electron-builder 默认排除
+  `*.d.ts` 不进 asar，导致 `tools/cuckoo-tools.d.ts` 缺失、`{{TOOL_API_TYPES}}`
+  被替换为空。改用 `extraResources` 复制到 `resources/tools/`，运行时优先从
+  `process.resourcesPath` 读取并回退到源码路径
+
 ## [0.5.0] - 2026-09-15
 
 ### Fixed

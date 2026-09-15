@@ -163,11 +163,23 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
 
   stepLog('读取模板完成');
   // 读取工具 API 类型定义（从 d.ts 文件读取，避免与模板重复维护）
+  // 打包后文件位于 resources/tools/（asar 外），开发环境位于项目根 tools/
+  // 注意：electron-builder 默认排除 *.d.ts 不进 asar，故通过 extraResources 复制
   let toolApiTypes = '';
-  try {
-    toolApiTypes = fs.readFileSync(path.join(__dirname, '..', '..', 'tools', 'cuckoo-tools.d.ts'), 'utf-8');
-  } catch (err) {
-    console.error('[Cuckoo Code] 读取 cuckoo-tools.d.ts 失败:', err.message);
+  const toolApiTypePaths = [
+    path.join(process.resourcesPath || '', 'tools', 'cuckoo-tools.d.ts'),
+    path.join(__dirname, '..', '..', 'tools', 'cuckoo-tools.d.ts'),
+  ];
+  for (const p of toolApiTypePaths) {
+    try {
+      toolApiTypes = fs.readFileSync(p, 'utf-8');
+      break;
+    } catch (err) {
+      // 继续尝试下一个候选路径
+    }
+  }
+  if (!toolApiTypes) {
+    console.error('[Cuckoo Code] 读取 cuckoo-tools.d.ts 失败：所有候选路径均不可读', toolApiTypePaths);
   }
 
   // 获取工具库描述（JS API 格式：AI 通过生成 JS 代码调用这些函数）

@@ -1,6 +1,6 @@
 {
   "name": "cuckoo-code",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "DeepSeek 桌面应用——内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行",
   "main": "main.js",
   "scripts": {
@@ -108,6 +108,12 @@
     "asarUnpack": [
       "**/node_modules/@vscode/ripgrep/**",
       "**/node_modules/@vscode/ripgrep-win32-x64/**"
+    ],
+    "extraResources": [
+      {
+        "from": "tools/cuckoo-tools.d.ts",
+        "to": "tools/cuckoo-tools.d.ts"
+      }
     ],
     "files": [
       "**/*",
