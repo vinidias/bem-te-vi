@@ -115,6 +115,19 @@ async function processInterceptedResponse(text, force) {
   } catch (e) { /* ignore */ }
 }
 
+// 回复完成监听器（供压缩等流程等待 AI 回复完成）
+const responseListeners = new Set();
+
+/**
+ * 注册"AI 回复完成"监听器
+ * @param {Function} cb 收到完成回复时调用，参数为完整文本
+ * @returns {Function} 取消注册
+ */
+function onInterceptedResponse(cb) {
+  responseListeners.add(cb);
+  return () => responseListeners.delete(cb);
+}
+
 /**
  * 启动拦截事件监听
  */
@@ -129,6 +142,14 @@ function startInterceptObserver() {
       if (detail.tokenUsage) {
         state.serverTokenUsage = detail.tokenUsage;
       }
+      // 保存最近一次回复的消息 id（压缩时定位摘要用）
+      if (detail.msgIds) {
+        state.lastResponseMsgIds = detail.msgIds;
+      }
+      // 通知监听器
+      for (const cb of responseListeners) {
+        try { cb(detail.text || ''); } catch (_) { /* ignore */ }
+      }
       processInterceptedResponse(detail.text);
     } catch (err) {
       console.error('[Cuckoo Code][拦截] 处理回复事件出错:', err);
@@ -142,4 +163,4 @@ function getLastInterceptedText() {
   return lastInterceptedText;
 }
 
-module.exports = { startInterceptObserver, processInterceptedResponse, getLastInterceptedText };
+module.exports = { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse };

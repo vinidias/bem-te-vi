@@ -32,34 +32,43 @@ function logWithFile(providerId, msg) {
  * 初始化项目：选择目录并发送 systemPrompt
  * 供 IPC 调用（用户点击初始化按钮时触发）
  * @param {boolean} skipPrompt - 如果为true，只更新目录映射，不发送初始提示（用于修改目录）
+ * @param {object|null} windowContext - 窗口上下文
+ * @param {string|null} presetDir - 预设项目目录（如压缩后自动初始化）。提供时跳过目录选择对话框。
+ * @param {boolean} isCompaction - 是否为压缩后初始化（末尾追加"请继续你之前的工作"）
  */
-async function initProject(skipPrompt = false, windowContext = null) {
+async function initProject(skipPrompt = false, windowContext = null, presetDir = null, isCompaction = false) {
   const ctx = windowContext || windowState.getMainContext();
   const mainWindow = ctx ? ctx.win : windowState.getMainWindow();
   const sessionStore = ctx ? ctx.sessionStore : null;
   // providerId 来自窗口上下文（可能为空，表示未确定平台）
   const providerId = (ctx && ctx.providerId) || '';
 
-  // 先让用户选择目录
-  const result = dialog.showOpenDialogSync(mainWindow, {
-    properties: ['openDirectory'],
-    buttonLabel: '选择目录',
-    title: '请选择要分析的项目目录',
-  });
+  let selectedDir;
+  if (presetDir) {
+    // 预设目录（压缩后自动初始化）：直接用，不弹框
+    selectedDir = presetDir;
+    console.log('[Cuckoo Code] 使用预设目录（自动初始化）:', selectedDir);
+  } else {
+    // 先让用户选择目录
+    const result = dialog.showOpenDialogSync(mainWindow, {
+      properties: ['openDirectory'],
+      buttonLabel: '选择目录',
+      title: '请选择要分析的项目目录',
+    });
 
-  // 无论用户是否选择目录，对话框关闭后都恢复主窗口焦点（避免输入框失效）
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.focus();
-    mainWindow.webContents.focus();
+    // 无论用户是否选择目录，对话框关闭后都恢复主窗口焦点（避免输入框失效）
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.focus();
+      mainWindow.webContents.focus();
+    }
+
+    if (!result || result.length === 0) {
+      console.log('[Cuckoo Code] 用户取消了目录选择');
+      return { success: false, message: '用户取消了目录选择' };
+    }
+    selectedDir = result[0];
+    console.log('[Cuckoo Code] 用户选择目录:', selectedDir);
   }
-
-  if (!result || result.length === 0) {
-    console.log('[Cuckoo Code] 用户取消了目录选择');
-    return { success: false, message: '用户取消了目录选择' };
-  }
-
-  const selectedDir = result[0];
-  console.log('[Cuckoo Code] 用户选择目录:', selectedDir);
   const tStart = Date.now();
   const stepLog = (msg) => logWithFile(providerId, '[Cuckoo Code][耗时] ' + msg + ' +' + (Date.now() - tStart) + 'ms');
 
@@ -234,6 +243,11 @@ async function initProject(skipPrompt = false, windowContext = null) {
   let combined = templateContent;
   for (const [key, value] of Object.entries(placeholders)) {
     combined = combined.split(key).join(value);
+  }
+
+  // 压缩后初始化：末尾追加提示，让 AI 接着之前的工作继续
+  if (isCompaction) {
+    combined += '\n\n---\n\n请继续你之前的工作';
   }
 
   stepLog('提示词组装完成');
