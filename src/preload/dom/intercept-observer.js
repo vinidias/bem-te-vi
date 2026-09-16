@@ -60,7 +60,7 @@ async function processInterceptedResponse(text, force) {
   if (!force && raw === lastProcessedText) return;
   lastProcessedText = raw;
 
-  console.log('[Cuckoo Code][拦截] 收到完整回复，长度=' + raw.length);
+  console.log('[Cuckoo Code][拦截] 收到完整回复，长度=' + raw.length + '，开始解析工具调用');
 
   // 1. 优先检测 JS 工具代码块（cuckoo / js 代码块）
   const jsBlocks = extractJsToolBlocks(raw);
@@ -148,6 +148,7 @@ function startInterceptObserver() {
     try {
       const detail = ev && ev.detail;
       if (!detail) return;
+      console.log('[CK][observer] response status=' + detail.status + ' finished=' + detail.finished + ' textLen=' + ((detail.text || '').length));
       // 用户主动停止：不处理，也不通知监听器（等待方按超时处理）
       if (detail.status === 'stopped') {
         console.log('[Cuckoo Code][拦截] 检测到用户停止生成，忽略该回复');
@@ -176,7 +177,7 @@ function startInterceptObserver() {
   window.addEventListener('cuckoo-ai-error', (ev) => {
     try {
       const detail = ev && ev.detail;
-      console.log('[Cuckoo Code][拦截] 收到失败事件:', detail && detail.reason, detail && (detail.httpStatus || detail.name || ''));
+      console.log('[CK][observer] error event reason=' + (detail && detail.reason) + ' httpStatus=' + (detail && detail.httpStatus) + ' name=' + (detail && detail.name));
       for (const cb of errorListeners) {
         try { cb(detail || {}); } catch (_) { /* ignore */ }
       }

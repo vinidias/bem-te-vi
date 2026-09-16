@@ -28,13 +28,16 @@ function deepseekHookInstaller() {
 
   // 终态判定：'finished' 正常完成 / 'stopped' 用户停止 / 'error' 失败
   function resolveStatus(extractor) {
-    if (extractor.finished) return 'finished';
-    if (extractor.incomplete) return 'stopped';
-    return 'error';
+    var st = 'error';
+    if (extractor.finished) st = 'finished';
+    else if (extractor.incomplete) st = 'stopped';
+    console.log('[CK][hook] resolveStatus => ' + st + ' (finished=' + extractor.finished + ', incomplete=' + extractor.incomplete + ')');
+    return st;
   }
 
   function dispatch(text, status, tokenUsage, msgIds, extra) {
     try {
+      console.log('[CK][hook] dispatch status=' + status + ' textLen=' + ((text || '').length) + (extra ? ' extra=' + JSON.stringify(extra) : ''));
       if (status === 'error') {
         var detail = { text: text || '', status: 'error', tokenUsage: tokenUsage || null, msgIds: msgIds || null };
         if (extra) {
@@ -286,6 +289,7 @@ function deepseekHookInstaller() {
           }
           if (!dispatched) {
             dispatched = true;
+            console.log('[CK][hook] fetch stream done');
             dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds);
           }
           return;
@@ -295,6 +299,7 @@ function deepseekHookInstaller() {
       }).catch(function (e) {
         if (!dispatched) {
           dispatched = true;
+          console.log('[CK][hook] fetch stream error name=' + (e && e.name));
           dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'stream', name: e && e.name });
         }
       });
@@ -340,7 +345,9 @@ function deepseekHookInstaller() {
       } catch (e) { /* ignore */ }
       var p = origFetch.apply(this, arguments);
       if (!isCompletion(url, method)) return p;
+      console.log('[CK][hook] fetch completion start url=' + url);
       return p.then(function (response) {
+        console.log('[CK][hook] fetch completion resolve status=' + (response && response.status) + ' ok=' + (response && response.ok));
         try {
           if (response && response.ok === false) {
             dispatch('', 'error', null, null, { reason: 'http', httpStatus: response.status });
@@ -350,6 +357,7 @@ function deepseekHookInstaller() {
         } catch (e) { /* ignore */ }
         return response;
       }, function (err) {
+        console.log('[CK][hook] fetch completion reject name=' + (err && err.name));
         dispatch('', 'error', null, null, { reason: 'network', name: err && err.name });
         throw err;
       });
@@ -378,17 +386,49 @@ function deepseekHookInstaller() {
   XMLHttpRequest.prototype.send = function (body) {
     var info = xhrInfo.get(this);
     if (info && isCompletion(info.url, info.method)) {
-      try { observeXhr(this); } catch (e) { /* ignore */ }
+      console.log('[CK][hook] xhr completion start url=' + info.url);
+      try { observeXhr(this); } catch (e) { console.log('[CK][hook] observeXhr error: ' + e.message); }
     }
     return origSend.apply(this, arguments);
   };
 
 
+  // 挂起看门狗超时：请求发出后超过此时长（且期间无新数据）判定为失败。
+  // 从 localStorage 读取（与设置弹窗共享），默认 90000ms。
+  function getXhrIdleTimeout() {
+    try {
+      var raw = localStorage.getItem('cuckoo-xhr-idle-timeout');
+      if (raw !== null) {
+        var v = parseInt(raw, 10);
+        if (Number.isFinite(v)) return v; // v<=0 视为禁用
+      }
+    } catch (e) { /* ignore */ }
+    return 90000;
+  }
+
   function observeXhr(xhr) {
+    var idleTimeoutMs = getXhrIdleTimeout();
     var lastLen = 0;
     var frameDecoder = createFrameDecoder();
     var extractor = createExtractor();
     var dispatched = false;
+    var watchdog = null;
+
+    function clearWatchdog() {
+      if (watchdog) { clearTimeout(watchdog); watchdog = null; }
+    }
+    function resetWatchdog() {
+      clearWatchdog();
+      if (dispatched) return;
+      if (!(idleTimeoutMs > 0)) return; // 0 或负数 = 禁用看门狗
+      watchdog = setTimeout(function () {
+        if (dispatched) return;
+        dispatched = true;
+        console.log('[CK][hook] xhr idle timeout (' + idleTimeoutMs + 'ms) 无数据，判定失败');
+        clearWatchdog();
+        dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'idle-timeout' });
+      }, idleTimeoutMs);
+    }
 
     function consumeChunk() {
       var raw;
@@ -396,6 +436,7 @@ function deepseekHookInstaller() {
       if (typeof raw !== 'string' || raw.length <= lastLen) return;
       var chunk = raw.slice(lastLen);
       lastLen = raw.length;
+      resetWatchdog();
       var frames = frameDecoder.push(chunk);
       for (var i = 0; i < frames.length; i++) {
         var parsed = parseBlock(frames[i]);
@@ -403,19 +444,25 @@ function deepseekHookInstaller() {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
+        clearWatchdog();
         dispatch(extractor.text, 'finished', extractor.tokenUsage, extractor.msgIds);
       }
     }
 
+    resetWatchdog();
+    console.log('[CK][hook] watchdog armed idleTimeoutMs=' + idleTimeoutMs);
+
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 3 || xhr.readyState === 4) consumeChunk();
       if (xhr.readyState === 4 && !dispatched) {
+        clearWatchdog();
         var rest = frameDecoder.finish();
         for (var i = 0; i < rest.length; i++) {
           var parsed = parseBlock(rest[i]);
           if (parsed) extractor.consume(parsed);
         }
         dispatched = true;
+        console.log('[CK][hook] xhr readyState4 httpStatus=' + xhr.status + ' finished=' + extractor.finished + ' incomplete=' + extractor.incomplete);
         var st = resolveStatus(extractor);
         if (st === 'error') {
           dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'xhr', httpStatus: xhr.status });
@@ -423,6 +470,10 @@ function deepseekHookInstaller() {
           dispatch(extractor.text, st, extractor.tokenUsage, extractor.msgIds);
         }
       }
+    });
+    // 失败/中断事件：清理看门狗（readyState 4 的 readystatechange 也会兜底触发）
+    ['abort', 'error', 'timeout'].forEach(function (ev) {
+      xhr.addEventListener(ev, function () { clearWatchdog(); });
     });
   }
 }

@@ -343,6 +343,7 @@ function openSettings() {
     setVal('cuckoo-retry-429-delay', localStorage.getItem('cuckoo-retry-429-delay') || '60000');
     setVal('cuckoo-retry-429-count', localStorage.getItem('cuckoo-retry-429-count') || '20');
     setVal('cuckoo-retry-prompt', localStorage.getItem('cuckoo-retry-prompt') || '刚才的回复似乎中断了，请重新完整回答上一个问题。');
+    setVal('cuckoo-xhr-idle-timeout', localStorage.getItem('cuckoo-xhr-idle-timeout') || '90000');
   } catch (_) {}
   setVal('cuckoo-delay-min', state.sendDelayMin);
   setVal('cuckoo-delay-max', state.sendDelayMax);
@@ -371,6 +372,8 @@ function saveSettings() {
   if (Number.isNaN(c429)) { showToast('429 次数必须是整数', 3000); return; }
   const prompt = val('cuckoo-retry-prompt').trim();
   if (!prompt) { showToast('重试提示词不能为空', 3000); return; }
+  const idleTimeout = parseInt(val('cuckoo-xhr-idle-timeout'), 10);
+  if (Number.isNaN(idleTimeout) || idleTimeout < 0) { showToast('挂起超时必须是非负整数', 3000); return; }
   const smin = parseInt(val('cuckoo-delay-min'), 10);
   const smax = parseInt(val('cuckoo-delay-max'), 10);
   if (Number.isNaN(smin) || smin < 0) { showToast('发送延迟最小值必须是非负整数', 3000); return; }
@@ -386,6 +389,7 @@ function saveSettings() {
     localStorage.setItem('cuckoo-retry-429-delay', String(d429));
     localStorage.setItem('cuckoo-retry-429-count', String(c429));
     localStorage.setItem('cuckoo-retry-prompt', prompt);
+    localStorage.setItem('cuckoo-xhr-idle-timeout', String(idleTimeout));
     localStorage.setItem('cuckoo-send-delay-min', String(smin));
     localStorage.setItem('cuckoo-send-delay-max', String(smax));
   } catch (_) {}
