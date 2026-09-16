@@ -229,7 +229,7 @@ cuckoo-code/
 
 **微信群**
 
-<img src="assets/wechat-group.jpg" alt="微信群" width="240">
+<img src="assets/wechat-group.jpg" alt="微信群" width="360">
 
 > 群二维码约 7 天过期，如已失效请在 Issues 中提醒更新。
 
