@@ -221,7 +221,13 @@ cuckoo-code/
 
 ## 交流群
 
-加入 Cuckoo Code 用户微信群，与其他用户交流使用经验：
+加入 Cuckoo Code 用户交流群，与其他用户交流使用经验：
+
+**QQ 群**
+
+![QQ 群](assets/qq-group.jpg)
+
+**微信群**
 
 ![微信群](assets/wechat-group.jpg)
 
