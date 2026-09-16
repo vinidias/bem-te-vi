@@ -9,6 +9,7 @@ const { handleToolCall, handleJsToolScript } = require('./tool-executor');
 const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } = require('./chat-input');
 const { hasTool, toolNamesList } = require('../tool-names');
 const state = require('./state');
+const watchdog = require('./tool-loop-watchdog');
 
 const MAX_JS_RETRY = 3;
 // 连续 XML 提示次数（防止无限循环）
@@ -66,6 +67,7 @@ async function processInterceptedResponse(text, force) {
   const jsBlocks = extractJsToolBlocks(raw);
   if (jsBlocks.length > 0) {
     console.log('[Cuckoo Code][拦截] 检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
+    try { watchdog.onToolCallDetected(); } catch (_) { /* ignore */ }
     xmlHintCount = 0;
     const results = await executeJsBlocksWithRetry(jsBlocks);
     if (results.length > 0) sendCombinedJsResultsToChat(results);
@@ -75,6 +77,7 @@ async function processInterceptedResponse(text, force) {
   // 2. JSON 工具调用
   const toolCall = tryParseToolCall(raw);
   if (toolCall) {
+    try { watchdog.onToolCallDetected(); } catch (_) { /* ignore */ }
     xmlHintCount = 0;
     if (!hasTool(toolCall.toolName)) {
       console.log('[Cuckoo Code][拦截] 工具不存在: ' + toolCall.toolName);
@@ -108,8 +111,9 @@ async function processInterceptedResponse(text, force) {
     return;
   }
 
-  // 4. 普通文本回复
+  // 4. 普通文本回复：任务完成，退出工具循环
   console.log('[Cuckoo Code][拦截] 正常文本回复，未检测到工具调用');
+  try { watchdog.exitToolLoop(); } catch (_) { /* ignore */ }
   try {
     window.electronAPI.showAiNotification().catch(() => {});
   } catch (e) { /* ignore */ }
@@ -148,13 +152,14 @@ function startInterceptObserver() {
     try {
       const detail = ev && ev.detail;
       if (!detail) return;
-      console.log('[CK][observer] response status=' + detail.status + ' finished=' + detail.finished + ' textLen=' + ((detail.text || '').length));
       // 用户主动停止：不处理，也不通知监听器（等待方按超时处理）
       if (detail.status === 'stopped') {
         console.log('[Cuckoo Code][拦截] 检测到用户停止生成，忽略该回复');
+        try { watchdog.onResponseReceived('stopped'); } catch (_) { /* ignore */ }
         return;
       }
       if (!detail.finished) return;
+      try { watchdog.onResponseReceived('finished'); } catch (_) { /* ignore */ }
       // 缓存最近一次完整回复文本，供手动解析复用（不依赖 DOM）
       lastInterceptedText = detail.text || '';
       // 保存服务端权威 token 统计（供面板显示）
@@ -177,7 +182,7 @@ function startInterceptObserver() {
   window.addEventListener('cuckoo-ai-error', (ev) => {
     try {
       const detail = ev && ev.detail;
-      console.log('[CK][observer] error event reason=' + (detail && detail.reason) + ' httpStatus=' + (detail && detail.httpStatus) + ' name=' + (detail && detail.name));
+      try { watchdog.onResponseReceived('error'); } catch (_) { /* ignore */ }
       for (const cb of errorListeners) {
         try { cb(detail || {}); } catch (_) { /* ignore */ }
       }
