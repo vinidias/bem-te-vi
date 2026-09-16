@@ -117,6 +117,8 @@ async function processInterceptedResponse(text, force) {
 
 // 回复完成监听器（供压缩等流程等待 AI 回复完成）
 const responseListeners = new Set();
+// 失败监听器（供自动重试引擎订阅）
+const errorListeners = new Set();
 
 /**
  * 注册"AI 回复完成"监听器
@@ -129,13 +131,29 @@ function onInterceptedResponse(cb) {
 }
 
 /**
+ * 注册"AI 请求失败"监听器
+ * @param {Function} cb 收到失败事件时调用，参数为 detail { text, status, reason, httpStatus, name }
+ * @returns {Function} 取消注册
+ */
+function onAiError(cb) {
+  errorListeners.add(cb);
+  return () => errorListeners.delete(cb);
+}
+
+/**
  * 启动拦截事件监听
  */
 function startInterceptObserver() {
   window.addEventListener('cuckoo-ai-response', (ev) => {
     try {
       const detail = ev && ev.detail;
-      if (!detail || !detail.finished) return;
+      if (!detail) return;
+      // 用户主动停止：不处理，也不通知监听器（等待方按超时处理）
+      if (detail.status === 'stopped') {
+        console.log('[Cuckoo Code][拦截] 检测到用户停止生成，忽略该回复');
+        return;
+      }
+      if (!detail.finished) return;
       // 缓存最近一次完整回复文本，供手动解析复用（不依赖 DOM）
       lastInterceptedText = detail.text || '';
       // 保存服务端权威 token 统计（供面板显示）
@@ -146,7 +164,7 @@ function startInterceptObserver() {
       if (detail.msgIds) {
         state.lastResponseMsgIds = detail.msgIds;
       }
-      // 通知监听器
+      // 通知监听器（每次成功回复都触发，供 token 判断等）
       for (const cb of responseListeners) {
         try { cb(detail.text || ''); } catch (_) { /* ignore */ }
       }
@@ -155,7 +173,18 @@ function startInterceptObserver() {
       console.error('[Cuckoo Code][拦截] 处理回复事件出错:', err);
     }
   });
-  console.log('[Cuckoo Code][拦截] 已启动 cuckoo-ai-response 事件监听');
+  window.addEventListener('cuckoo-ai-error', (ev) => {
+    try {
+      const detail = ev && ev.detail;
+      console.log('[Cuckoo Code][拦截] 收到失败事件:', detail && detail.reason, detail && (detail.httpStatus || detail.name || ''));
+      for (const cb of errorListeners) {
+        try { cb(detail || {}); } catch (_) { /* ignore */ }
+      }
+    } catch (err) {
+      console.error('[Cuckoo Code][拦截] 处理失败事件出错:', err);
+    }
+  });
+  console.log('[Cuckoo Code][拦截] 已启动 cuckoo-ai-response / cuckoo-ai-error 事件监听');
 }
 
 /** 取最近一次拦截到的完整回复文本（手动解析用） */
@@ -163,4 +192,4 @@ function getLastInterceptedText() {
   return lastInterceptedText;
 }
 
-module.exports = { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse };
+module.exports = { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError };

@@ -26,11 +26,28 @@ function deepseekHookInstaller() {
     }
   }
 
-  function dispatch(text, finished, tokenUsage, msgIds) {
+  // 终态判定：'finished' 正常完成 / 'stopped' 用户停止 / 'error' 失败
+  function resolveStatus(extractor) {
+    if (extractor.finished) return 'finished';
+    if (extractor.incomplete) return 'stopped';
+    return 'error';
+  }
+
+  function dispatch(text, status, tokenUsage, msgIds, extra) {
     try {
-      window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
-        detail: { text: text || '', finished: !!finished, tokenUsage: tokenUsage || null, msgIds: msgIds || null }
-      }));
+      if (status === 'error') {
+        var detail = { text: text || '', status: 'error', tokenUsage: tokenUsage || null, msgIds: msgIds || null };
+        if (extra) {
+          for (var k in extra) {
+            if (Object.prototype.hasOwnProperty.call(extra, k)) detail[k] = extra[k];
+          }
+        }
+        window.dispatchEvent(new CustomEvent('cuckoo-ai-error', { detail: detail }));
+      } else {
+        window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
+          detail: { text: text || '', finished: status === 'finished', status: status, tokenUsage: tokenUsage || null, msgIds: msgIds || null }
+        }));
+      }
     } catch (e) { /* ignore */ }
   }
 
@@ -81,6 +98,8 @@ function deepseekHookInstaller() {
     var observed = false;
     var text = '';
     var finished = false;
+    // 用户主动停止：服务端下发 response/status = INCOMPLETE
+    var incomplete = false;
     // 服务端权威 token 统计（accumulated_token_usage 含 prompt/context + 输出）
     var tokenUsage = null;
     // 本条回复的消息 id：requestMessageId（用户提问）+ responseMessageId（AI 回复）
@@ -219,14 +238,17 @@ function deepseekHookInstaller() {
         if (!isThink(typeAt(currentIndex))) text += parsed.v;
         return;
       }
-      if (parsed.p === 'response/status' && parsed.v === 'FINISHED') finished = true;
-      else if (parsed.p === 'quasi_status' && parsed.v === 'FINISHED') finished = true;
+      if (parsed.p === 'response/status' || parsed.p === 'quasi_status') {
+        if (parsed.v === 'FINISHED') finished = true;
+        else if (parsed.v === 'INCOMPLETE') incomplete = true;
+      }
     }
 
     return {
       consume: consume,
       get text() { return text; },
       get finished() { return finished; },
+      get incomplete() { return incomplete; },
       get tokenUsage() { return tokenUsage; },
       get msgIds() { return msgIds; }
     };
@@ -248,7 +270,7 @@ function deepseekHookInstaller() {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds);
+        dispatch(extractor.text, 'finished', extractor.tokenUsage, extractor.msgIds);
       }
     }
 
@@ -262,13 +284,19 @@ function deepseekHookInstaller() {
             var parsed = parseBlock(rest[i]);
             if (parsed) extractor.consume(parsed);
           }
-          if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds); }
+          if (!dispatched) {
+            dispatched = true;
+            dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds);
+          }
           return;
         }
         feed(decoder.decode(r.value, { stream: true }));
         pump();
-      }).catch(function () {
-        if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds); }
+      }).catch(function (e) {
+        if (!dispatched) {
+          dispatched = true;
+          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'stream', name: e && e.name });
+        }
       });
     }
     pump();
@@ -314,9 +342,16 @@ function deepseekHookInstaller() {
       if (!isCompletion(url, method)) return p;
       return p.then(function (response) {
         try {
-          if (response && response.body) observeBody(response.clone().body);
+          if (response && response.ok === false) {
+            dispatch('', 'error', null, null, { reason: 'http', httpStatus: response.status });
+          } else if (response && response.body) {
+            observeBody(response.clone().body);
+          }
         } catch (e) { /* ignore */ }
         return response;
+      }, function (err) {
+        dispatch('', 'error', null, null, { reason: 'network', name: err && err.name });
+        throw err;
       });
     };
   }
@@ -368,7 +403,7 @@ function deepseekHookInstaller() {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds);
+        dispatch(extractor.text, 'finished', extractor.tokenUsage, extractor.msgIds);
       }
     }
 
@@ -381,7 +416,12 @@ function deepseekHookInstaller() {
           if (parsed) extractor.consume(parsed);
         }
         dispatched = true;
-        dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds);
+        var st = resolveStatus(extractor);
+        if (st === 'error') {
+          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'xhr', httpStatus: xhr.status });
+        } else {
+          dispatch(extractor.text, st, extractor.tokenUsage, extractor.msgIds);
+        }
       }
     });
   }

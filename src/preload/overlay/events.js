@@ -327,14 +327,85 @@ function checkAutoCompact() {
   });
 }
 
+/** 打开设置弹窗：从 localStorage 加载配置到输入框 */
+function openSettings() {
+  function setVal(id, v) {
+    const el = document.getElementById(id);
+    if (el) el.value = v;
+  }
+  try {
+    const en = localStorage.getItem('cuckoo-retry-enabled');
+    const enEl = document.getElementById('cuckoo-retry-enabled');
+    if (enEl) enEl.checked = en === null ? true : en === '1';
+    setVal('cuckoo-retry-delay-min', localStorage.getItem('cuckoo-retry-delay-min') || '4000');
+    setVal('cuckoo-retry-delay-max', localStorage.getItem('cuckoo-retry-delay-max') || '10000');
+    setVal('cuckoo-retry-count', localStorage.getItem('cuckoo-retry-count') || '10');
+    setVal('cuckoo-retry-429-delay', localStorage.getItem('cuckoo-retry-429-delay') || '60000');
+    setVal('cuckoo-retry-429-count', localStorage.getItem('cuckoo-retry-429-count') || '20');
+    setVal('cuckoo-retry-prompt', localStorage.getItem('cuckoo-retry-prompt') || '刚才的回复似乎中断了，请重新完整回答上一个问题。');
+  } catch (_) {}
+  setVal('cuckoo-delay-min', state.sendDelayMin);
+  setVal('cuckoo-delay-max', state.sendDelayMax);
+  const panel = document.getElementById('cuckoo-settings');
+  if (panel) panel.classList.remove('cuckoo-hidden');
+}
+
+/** 关闭设置弹窗 */
+function closeSettings() {
+  const panel = document.getElementById('cuckoo-settings');
+  if (panel) panel.classList.add('cuckoo-hidden');
+}
+
+/** 保存设置弹窗的所有配置 */
+function saveSettings() {
+  const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const dmin = parseInt(val('cuckoo-retry-delay-min'), 10);
+  const dmax = parseInt(val('cuckoo-retry-delay-max'), 10);
+  if (Number.isNaN(dmin) || dmin < 0) { showToast('普通失败最小间隔必须是非负整数', 3000); return; }
+  if (Number.isNaN(dmax) || dmax < dmin) { showToast('普通失败最大间隔不能小于最小间隔', 3000); return; }
+  const cnt = parseInt(val('cuckoo-retry-count'), 10);
+  if (Number.isNaN(cnt)) { showToast('普通失败重试次数必须是整数', 3000); return; }
+  const d429 = parseInt(val('cuckoo-retry-429-delay'), 10);
+  if (Number.isNaN(d429) || d429 < 0) { showToast('429 间隔必须是非负整数', 3000); return; }
+  const c429 = parseInt(val('cuckoo-retry-429-count'), 10);
+  if (Number.isNaN(c429)) { showToast('429 次数必须是整数', 3000); return; }
+  const prompt = val('cuckoo-retry-prompt').trim();
+  if (!prompt) { showToast('重试提示词不能为空', 3000); return; }
+  const smin = parseInt(val('cuckoo-delay-min'), 10);
+  const smax = parseInt(val('cuckoo-delay-max'), 10);
+  if (Number.isNaN(smin) || smin < 0) { showToast('发送延迟最小值必须是非负整数', 3000); return; }
+  if (Number.isNaN(smax) || smax < smin) { showToast('发送延迟最大值不能小于最小值', 3000); return; }
+  if (smax > 10000) { showToast('发送延迟最大值不能超过 10000ms', 3000); return; }
+
+  const enEl = document.getElementById('cuckoo-retry-enabled');
+  try {
+    localStorage.setItem('cuckoo-retry-enabled', (enEl && enEl.checked) ? '1' : '0');
+    localStorage.setItem('cuckoo-retry-delay-min', String(dmin));
+    localStorage.setItem('cuckoo-retry-delay-max', String(dmax));
+    localStorage.setItem('cuckoo-retry-count', String(cnt));
+    localStorage.setItem('cuckoo-retry-429-delay', String(d429));
+    localStorage.setItem('cuckoo-retry-429-count', String(c429));
+    localStorage.setItem('cuckoo-retry-prompt', prompt);
+    localStorage.setItem('cuckoo-send-delay-min', String(smin));
+    localStorage.setItem('cuckoo-send-delay-max', String(smax));
+  } catch (_) {}
+  state.sendDelayMin = smin;
+  state.sendDelayMax = smax;
+  showToast('设置已保存', 2500);
+  closeSettings();
+}
+
 /**
- * 启动对话 token 显示（每秒刷新）+ 自动压缩检查
+ * 启动对话 token 显示 + 自动压缩检查（事件驱动）
+ * 仅在收到成功回复事件时刷新 token 显示并检查自动压缩，
+ * 避免失败/停止时因旧 token 值反复触发压缩。
  */
 function startTokenCounter() {
-  setInterval(() => {
+  const { onInterceptedResponse } = require('../dom/intercept-observer');
+  onInterceptedResponse(() => {
     updateConversationTokenDisplay();
     checkAutoCompact();
-  }, 1000);
+  });
   updateConversationTokenDisplay();
 }
 
@@ -635,25 +706,17 @@ function bindEvents() {
   const refreshSessionsBtn = document.getElementById('cuckoo-btn-refresh-sessions');
   refreshSessionsBtn?.addEventListener('click', renderSessions);
 
-  // 保存延迟设置按钮
-  const saveDelayBtn = document.getElementById('cuckoo-btn-save-delay');
-  const delayMinInput = document.getElementById('cuckoo-delay-min');
-  const delayMaxInput = document.getElementById('cuckoo-delay-max');
-  saveDelayBtn?.addEventListener('click', () => {
-    const min = parseInt(delayMinInput?.value, 10);
-    const max = parseInt(delayMaxInput?.value, 10);
-    if (Number.isNaN(min) || min < 0) { showToast('最小延迟必须是非负整数', 3000); return; }
-    if (Number.isNaN(max) || max < min) { showToast('最大延迟不能小于最小延迟', 3000); return; }
-    if (max > 10000) { showToast('最大延迟不能超过 10000ms', 3000); return; }
-    state.sendDelayMin = min;
-    state.sendDelayMax = max;
-    // 保存到 localStorage
-    try {
-      localStorage.setItem('cuckoo-send-delay-min', String(min));
-      localStorage.setItem('cuckoo-send-delay-max', String(max));
-    } catch (e) {}
-    showToast('延迟设置已保存：' + min + ' - ' + max + ' ms', 3000);
-  });
+  // 设置弹窗：打开
+  const settingsBtn = document.getElementById('cuckoo-btn-settings');
+  settingsBtn?.addEventListener('click', openSettings);
+
+  // 设置弹窗：关闭
+  const settingsCloseBtn = document.getElementById('cuckoo-settings-close');
+  settingsCloseBtn?.addEventListener('click', closeSettings);
+
+  // 设置弹窗：保存
+  const settingsSaveBtn = document.getElementById('cuckoo-settings-save');
+  settingsSaveBtn?.addEventListener('click', saveSettings);
 
   // 悬浮球：可拖动 + 点击切换面板显隐
   const statusBadge = document.getElementById('cuckoo-status-badge');
@@ -698,6 +761,7 @@ function bindEvents() {
       hideOverlay();
       closeWindowManager();
       closeMcpManager();
+      closeSettings();
       hideFirstTimeDialog();
     }
   });
