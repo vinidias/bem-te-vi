@@ -74,6 +74,9 @@ function init() {
     // 启动自动重试引擎（订阅失败事件）
     const retryEngine = require('./dom/retry-engine');
     retryEngine.startRetryEngine();
+
+    // 启动看门狗的会话切换监视
+    require('./dom/tool-loop-watchdog').startSessionWatcher();
   } catch (err) {
     console.error('[Cuckoo Code] init() 出错:', err);
     // 兜底：即使出错也强制显示面板
