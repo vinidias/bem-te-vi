@@ -40,19 +40,35 @@ class BrowserWindowManager {
     const win = this.windows.get(id);
     if (!win) throw new Error(`窗口 ID "${id}" 不存在`);
 
-    // 先检查语法错误（解析阶段错误无法被 try-catch 捕获）
-    // 包裹为 async 函数体，避免 await 被误报
+    // 语法探测：优先按"单个表达式"解析，失败则按"函数体（多条语句）"解析
+    // 这样既支持 `1+2`、`(() => {...})()` 这类表达式，也支持
+    // `return x`、`const a=1; return a`、`if (...) return x`、顶层 await 等多语句代码
+    let mode; // 'expression' | 'body'
     try {
-      new Function('return (async () => {\n' + jsCode + '\n})');
-    } catch (err) {
-      throw new Error(`JS 语法错误: ${err.message}`);
+      // eslint-disable-next-line no-new-func
+      new Function('return (' + jsCode + '\n)');
+      mode = 'expression';
+    } catch (e) {
+      try {
+        // eslint-disable-next-line no-new-func
+        new Function('return (async () => {\n' + jsCode + '\n})');
+        mode = 'body';
+      } catch (e2) {
+        throw new Error(`JS 语法错误: ${e2.message}`);
+      }
     }
 
-    const hasReturn = /^\s*return\b/.test(jsCode);
-    let wrapped;
-    if (hasReturn) {
-      // 用户代码以 return 开头，保持原来的函数体包装
-      wrapped = `(async () => {
+    const wrapped =
+      mode === 'expression'
+        ? `(async () => {
+  try {
+    const __result = await (${jsCode});
+    return { ok: true, value: __result };
+  } catch (err) {
+    return { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+})()`
+        : `(async () => {
   try {
     const __result = await (async () => {
 ${jsCode}
@@ -62,17 +78,7 @@ ${jsCode}
     return { ok: false, error: err && err.message ? err.message : String(err) };
   }
 })()`;
-    } else {
-      // 用户代码是表达式（如 IIFE），直接 await 表达式捕获返回值
-      wrapped = `(async () => {
-  try {
-    const __result = await (${jsCode});
-    return { ok: true, value: __result };
-  } catch (err) {
-    return { ok: false, error: err && err.message ? err.message : String(err) };
-  }
-})()`;
-    }
+
     const result = await win.webContents.executeJavaScript(wrapped, true);
     if (result && result.ok === false) {
       throw new Error(result.error);
