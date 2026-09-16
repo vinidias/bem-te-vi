@@ -225,11 +225,11 @@ cuckoo-code/
 
 **QQ 群**
 
-![QQ 群](assets/qq-group.jpg)
+<img src="assets/qq-group.jpg" alt="QQ 群" width="240">
 
 **微信群**
 
-![微信群](assets/wechat-group.jpg)
+<img src="assets/wechat-group.jpg" alt="微信群" width="240">
 
 > 群二维码约 7 天过期，如已失效请在 Issues 中提醒更新。
 
