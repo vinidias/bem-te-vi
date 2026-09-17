@@ -14,6 +14,20 @@ function deepseekHookInstaller() {
   window[MARKER] = true;
 
   var COMPLETION_PATH = '/api/v0/chat/completion';
+  var STOP_STREAM_PATH = '/api/v0/chat/stop_stream';
+  // 用户主动停止标志：拦截到 stop_stream 请求时置位，新的 completion 开始时复位
+  var userStopped = false;
+
+  function isStopStream(url, method) {
+    if (!url) return false;
+    if (String(method || 'GET').toUpperCase() !== 'POST') return false;
+    try {
+      var u = new URL(url, document.baseURI);
+      return u.pathname === STOP_STREAM_PATH;
+    } catch (e) {
+      return String(url).indexOf(STOP_STREAM_PATH) !== -1;
+    }
+  }
 
   function isCompletion(url, method) {
     if (!url) return false;
@@ -27,11 +41,12 @@ function deepseekHookInstaller() {
   }
 
   // 终态判定：'finished' 正常完成 / 'stopped' 用户停止 / 'error' 失败
+  // 用户停止信号：SSE INCOMPLETE 或 拦截到 stop_stream 请求（更可靠，二者取或）
   function resolveStatus(extractor) {
     var st = 'error';
     if (extractor.finished) st = 'finished';
-    else if (extractor.incomplete) st = 'stopped';
-    console.log('[Cuckoo Code][hook] resolveStatus => ' + st + ' (finished=' + extractor.finished + ', incomplete=' + extractor.incomplete + ')');
+    else if (extractor.incomplete || userStopped) st = 'stopped';
+    console.log('[Cuckoo Code][hook] resolveStatus => ' + st + ' (finished=' + extractor.finished + ', incomplete=' + extractor.incomplete + ', userStopped=' + userStopped + ')');
     return st;
   }
 
@@ -342,7 +357,13 @@ function deepseekHookInstaller() {
         }
       } catch (e) { /* ignore */ }
       var p = origFetch.apply(this, arguments);
+      if (isStopStream(url, method)) {
+        userStopped = true;
+        console.log('[Cuckoo Code][hook] 检测到 stop_stream(fetch)，标记用户停止');
+        return p;
+      }
       if (!isCompletion(url, method)) return p;
+      userStopped = false; // 新的 completion 开始：复位用户停止标志
       return p.then(function (response) {
         try {
           if (response && response.ok === false) {
@@ -377,11 +398,20 @@ function deepseekHookInstaller() {
   };
   XMLHttpRequest.prototype.open = function (method, url) {
     try { xhrInfo.set(this, { url: url, method: method }); } catch (e) { /* ignore */ }
+    // 拦截 stop_stream：用户主动停止的直接证据
+    try {
+      if (isStopStream(url, method)) {
+        userStopped = true;
+        console.log('[Cuckoo Code][hook] 检测到 stop_stream，标记用户停止');
+      }
+    } catch (e) { /* ignore */ }
     return origOpen.apply(this, arguments);
   };
   XMLHttpRequest.prototype.send = function (body) {
     var info = xhrInfo.get(this);
     if (info && isCompletion(info.url, info.method)) {
+      // 新的 completion 开始：复位用户停止标志
+      userStopped = false;
       try { observeXhr(this); } catch (e) { console.error('[Cuckoo Code][hook] observeXhr 异常: ' + e.message); }
     }
     return origSend.apply(this, arguments);
