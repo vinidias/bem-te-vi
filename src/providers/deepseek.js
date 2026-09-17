@@ -14,6 +14,20 @@ function deepseekHookInstaller() {
   window[MARKER] = true;
 
   var COMPLETION_PATH = '/api/v0/chat/completion';
+  var STOP_STREAM_PATH = '/api/v0/chat/stop_stream';
+  // 用户主动停止标志：拦截到 stop_stream 请求时置位，新的 completion 开始时复位
+  var userStopped = false;
+
+  function isStopStream(url, method) {
+    if (!url) return false;
+    if (String(method || 'GET').toUpperCase() !== 'POST') return false;
+    try {
+      var u = new URL(url, document.baseURI);
+      return u.pathname === STOP_STREAM_PATH;
+    } catch (e) {
+      return String(url).indexOf(STOP_STREAM_PATH) !== -1;
+    }
+  }
 
   function isCompletion(url, method) {
     if (!url) return false;
@@ -26,11 +40,31 @@ function deepseekHookInstaller() {
     }
   }
 
-  function dispatch(text, finished, tokenUsage, msgIds) {
+  // 终态判定：'finished' 正常完成 / 'stopped' 用户停止 / 'error' 失败
+  // 用户停止信号：SSE INCOMPLETE 或 拦截到 stop_stream 请求（更可靠，二者取或）
+  function resolveStatus(extractor) {
+    var st = 'error';
+    if (extractor.finished) st = 'finished';
+    else if (extractor.incomplete || userStopped) st = 'stopped';
+    console.log('[Cuckoo Code][hook] resolveStatus => ' + st + ' (finished=' + extractor.finished + ', incomplete=' + extractor.incomplete + ', userStopped=' + userStopped + ')');
+    return st;
+  }
+
+  function dispatch(text, status, tokenUsage, msgIds, extra) {
     try {
-      window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
-        detail: { text: text || '', finished: !!finished, tokenUsage: tokenUsage || null, msgIds: msgIds || null }
-      }));
+      if (status === 'error') {
+        var detail = { text: text || '', status: 'error', tokenUsage: tokenUsage || null, msgIds: msgIds || null };
+        if (extra) {
+          for (var k in extra) {
+            if (Object.prototype.hasOwnProperty.call(extra, k)) detail[k] = extra[k];
+          }
+        }
+        window.dispatchEvent(new CustomEvent('cuckoo-ai-error', { detail: detail }));
+      } else {
+        window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
+          detail: { text: text || '', finished: status === 'finished', status: status, tokenUsage: tokenUsage || null, msgIds: msgIds || null }
+        }));
+      }
     } catch (e) { /* ignore */ }
   }
 
@@ -81,6 +115,8 @@ function deepseekHookInstaller() {
     var observed = false;
     var text = '';
     var finished = false;
+    // 用户主动停止：服务端下发 response/status = INCOMPLETE
+    var incomplete = false;
     // 服务端权威 token 统计（accumulated_token_usage 含 prompt/context + 输出）
     var tokenUsage = null;
     // 本条回复的消息 id：requestMessageId（用户提问）+ responseMessageId（AI 回复）
@@ -219,14 +255,17 @@ function deepseekHookInstaller() {
         if (!isThink(typeAt(currentIndex))) text += parsed.v;
         return;
       }
-      if (parsed.p === 'response/status' && parsed.v === 'FINISHED') finished = true;
-      else if (parsed.p === 'quasi_status' && parsed.v === 'FINISHED') finished = true;
+      if (parsed.p === 'response/status' || parsed.p === 'quasi_status') {
+        if (parsed.v === 'FINISHED') finished = true;
+        else if (parsed.v === 'INCOMPLETE') incomplete = true;
+      }
     }
 
     return {
       consume: consume,
       get text() { return text; },
       get finished() { return finished; },
+      get incomplete() { return incomplete; },
       get tokenUsage() { return tokenUsage; },
       get msgIds() { return msgIds; }
     };
@@ -248,7 +287,7 @@ function deepseekHookInstaller() {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds);
+        dispatch(extractor.text, 'finished', extractor.tokenUsage, extractor.msgIds);
       }
     }
 
@@ -262,13 +301,20 @@ function deepseekHookInstaller() {
             var parsed = parseBlock(rest[i]);
             if (parsed) extractor.consume(parsed);
           }
-          if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds); }
+          if (!dispatched) {
+            dispatched = true;
+            dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds);
+          }
           return;
         }
         feed(decoder.decode(r.value, { stream: true }));
         pump();
-      }).catch(function () {
-        if (!dispatched) { dispatched = true; dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds); }
+      }).catch(function (e) {
+        if (!dispatched) {
+          dispatched = true;
+          console.log('[Cuckoo Code][hook] fetch stream error name=' + (e && e.name));
+          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'stream', name: e && e.name });
+        }
       });
     }
     pump();
@@ -311,12 +357,26 @@ function deepseekHookInstaller() {
         }
       } catch (e) { /* ignore */ }
       var p = origFetch.apply(this, arguments);
+      if (isStopStream(url, method)) {
+        userStopped = true;
+        console.log('[Cuckoo Code][hook] 检测到 stop_stream(fetch)，标记用户停止');
+        return p;
+      }
       if (!isCompletion(url, method)) return p;
+      userStopped = false; // 新的 completion 开始：复位用户停止标志
       return p.then(function (response) {
         try {
-          if (response && response.body) observeBody(response.clone().body);
+          if (response && response.ok === false) {
+            dispatch('', 'error', null, null, { reason: 'http', httpStatus: response.status });
+          } else if (response && response.body) {
+            observeBody(response.clone().body);
+          }
         } catch (e) { /* ignore */ }
         return response;
+      }, function (err) {
+        console.log('[Cuckoo Code][hook] fetch completion reject name=' + (err && err.name));
+        dispatch('', 'error', null, null, { reason: 'network', name: err && err.name });
+        throw err;
       });
     };
   }
@@ -338,12 +398,21 @@ function deepseekHookInstaller() {
   };
   XMLHttpRequest.prototype.open = function (method, url) {
     try { xhrInfo.set(this, { url: url, method: method }); } catch (e) { /* ignore */ }
+    // 拦截 stop_stream：用户主动停止的直接证据
+    try {
+      if (isStopStream(url, method)) {
+        userStopped = true;
+        console.log('[Cuckoo Code][hook] 检测到 stop_stream，标记用户停止');
+      }
+    } catch (e) { /* ignore */ }
     return origOpen.apply(this, arguments);
   };
   XMLHttpRequest.prototype.send = function (body) {
     var info = xhrInfo.get(this);
     if (info && isCompletion(info.url, info.method)) {
-      try { observeXhr(this); } catch (e) { /* ignore */ }
+      // 新的 completion 开始：复位用户停止标志
+      userStopped = false;
+      try { observeXhr(this); } catch (e) { console.error('[Cuckoo Code][hook] observeXhr 异常: ' + e.message); }
     }
     return origSend.apply(this, arguments);
   };
@@ -368,7 +437,7 @@ function deepseekHookInstaller() {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds);
+        dispatch(extractor.text, 'finished', extractor.tokenUsage, extractor.msgIds);
       }
     }
 
@@ -381,7 +450,12 @@ function deepseekHookInstaller() {
           if (parsed) extractor.consume(parsed);
         }
         dispatched = true;
-        dispatch(extractor.text, true, extractor.tokenUsage, extractor.msgIds);
+        var st = resolveStatus(extractor);
+        if (st === 'error') {
+          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'xhr', httpStatus: xhr.status });
+        } else {
+          dispatch(extractor.text, st, extractor.tokenUsage, extractor.msgIds);
+        }
       }
     });
   }

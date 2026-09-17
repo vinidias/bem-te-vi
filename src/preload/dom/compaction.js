@@ -18,6 +18,7 @@ const { sendToChat } = require('./chat-input');
 const { onInterceptedResponse } = require('./intercept-observer');
 const { showToast } = require('../overlay/ui');
 const state = require('./state');
+const retryEngine = require('./retry-engine');
 
 const SUMMARY_INSTRUCTION =
   '请把以上对话总结成一份详细的摘要，尽可能完整地保留关键信息、背景上下文、' +
@@ -171,6 +172,8 @@ async function createShare(sessionId, messageIds, headers) {
 async function runCompaction() {
   const btn = document.getElementById('cuckoo-btn-compact');
   if (btn) { btn.disabled = true; btn.textContent = '压缩中...'; }
+  // 压缩进行中：暂停自动重试，避免重试的回复被 waitForResponse 误当成摘要
+  retryEngine.setCompacting(true);
 
   try {
     // 步骤 0：先取 session_id 和发送前的 maxId
@@ -244,6 +247,7 @@ async function runCompaction() {
     console.error('[Cuckoo Compact] 压缩失败:', err);
     showToast('压缩失败: ' + err.message, 5000);
   } finally {
+    retryEngine.setCompacting(false);
     if (btn) { btn.disabled = false; btn.textContent = '压缩'; }
   }
 }

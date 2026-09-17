@@ -63,7 +63,7 @@ async function flushAllSessions() {
  */
 function createWindow(profile) {
   const profileData = profile || profileManager.getDefaultProfile();
-  const provider = getProvider(profileData.providerId || 'deepseek') || getProvider('deepseek');
+  const provider = getProvider(profileData.providerId) || null;
   const storeDir = app.getPath('userData');
   const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
   const hasExplicitProfile = !!profile;
@@ -73,7 +73,7 @@ function createWindow(profile) {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
-    title: 'Cuckoo Code Pro - ' + provider.name + ' - ' + profileData.name,
+    title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
     webPreferences: {
       preload: path.join(__dirname, '..', '..', 'preload.js'),
       contextIsolation: true,
@@ -126,11 +126,11 @@ function createWindow(profile) {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
   mainWindow.webContents.setUserAgent(userAgent);
 
-  if (providerChosen) {
-    // 平台已确定，直接进入平台首页
+  if (providerChosen && provider) {
+    // 平台已确定且存在，直接进入平台首页
     mainWindow.loadURL(provider.homeUrl);
   } else {
-    // 平台未确定，显示平台选择页
+    // 平台未确定（或对应 provider 已缺失），显示平台选择页
     const selectPage = path.join(__dirname, '..', 'ui', 'platform-select.html');
     mainWindow.loadFile(selectPage);
   }

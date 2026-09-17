@@ -94,6 +94,7 @@ async function sendToChat(msg, tag, fixedDelay, afterSent) {
     console.log('[Cuckoo Code] 等待结束，开始触发发送');
     triggerSend(input);
     console.log('[Cuckoo Code] 已触发发送, ' + (tag || '') + ', 长度=' + msg.length);
+    try { require('./tool-loop-watchdog').onMessageSent(); } catch (_) { /* ignore */ }
     if (typeof afterSent === 'function') afterSent();
   }, sendDelay);
   return true;
