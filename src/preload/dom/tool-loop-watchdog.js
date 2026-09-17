@@ -12,14 +12,14 @@
  *  - 看门狗超时                → 计数 +1，发提示词催继续，重新计时；超过上限则停止
  *
  * 配置（localStorage，每窗口独立）：
- *  - cuckoo-xhr-idle-timeout   等待超时（毫秒，默认 90000，<=0 禁用）
+ *  - cuckoo-xhr-idle-timeout   等待超时（毫秒，默认 300000，<=0 禁用）
  *  - cuckoo-watchdog-prompt    超时提示词（默认"请继续"）
  *  - cuckoo-watchdog-count     最大催次数（默认 3，负数=无限）
  */
 const { showToast } = require('../overlay/ui');
 
 const DEFAULT_PROMPT = '请继续';
-const DEFAULT_TIMEOUT = 90000;
+const DEFAULT_TIMEOUT = 300000;
 const DEFAULT_COUNT = 3;
 
 let inToolLoop = false;
