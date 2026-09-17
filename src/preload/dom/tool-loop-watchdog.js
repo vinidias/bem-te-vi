@@ -27,6 +27,8 @@ let timer = null;
 let timeoutCount = 0;
 // 开启看门狗时所在会话的 ID，用于超时时校验会话是否已切换
 let armedSessionId = null;
+// 暂停开关：压缩等流程进行中时置 true，看门狗完全停摆
+let suspended = false;
 
 /** 取当前页面 URL 对应的会话 ID（无则返回 null） */
 function getCurrentSessionId() {
@@ -61,6 +63,7 @@ function clearTimer() {
 
 function armWatchdog() {
   clearTimer();
+  if (suspended) return;
   if (!inToolLoop) return;
   const cfg = readConfig();
   if (!(cfg.timeout > 0)) return; // <=0 禁用
@@ -74,6 +77,7 @@ function disarmWatchdog() {
 
 function onTimeout() {
   timer = null;
+  if (suspended) return;
   if (!inToolLoop) return;
   // 会话已切换：看门狗已失效，静默退出，不打扰新会话
   const nowSession = getCurrentSessionId();
@@ -101,6 +105,7 @@ function onTimeout() {
 
 /** 检测到工具调用：进入工具循环，先关看门狗（工具执行期间不监控） */
 function onToolCallDetected() {
+  if (suspended) return;
   inToolLoop = true;
   clearTimer();
 }
@@ -132,6 +137,17 @@ function reset() {
   clearTimer();
 }
 
+/** 暂停/恢复看门狗：暂停时所有钩子都不动作（压缩等流程用） */
+function setSuspended(v) {
+  suspended = !!v;
+  if (suspended) {
+    inToolLoop = false;
+    timeoutCount = 0;
+    armedSessionId = null;
+    clearTimer();
+  }
+}
+
 // ===== 会话切换监视：SPA 路由（pushState）不触发 popstate/hashchange，
 // 用轮询检测 session 变化，一旦切换立即重置看门狗，避免误打扰新会话。=====
 let sessionWatcherTimer = null;
@@ -156,6 +172,7 @@ module.exports = {
   onResponseReceived,
   exitToolLoop,
   reset,
+  setSuspended,
   startSessionWatcher,
   _readConfig: readConfig,
   _isInLoop: () => inToolLoop,

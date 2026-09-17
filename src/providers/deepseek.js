@@ -40,6 +40,14 @@ function deepseekHookInstaller() {
     }
   }
 
+  // 从当前 URL 提取会话 ID（用于错误事件的会话校验）
+  function getSessionIdFromUrl() {
+    try {
+      var m = String(location.href).match(/\/chat\/s\/([a-f0-9-]+)/i);
+      return m ? m[1] : null;
+    } catch (e) { return null; }
+  }
+
   // 终态判定：'finished' 正常完成 / 'stopped' 用户停止 / 'error' 失败
   // 用户停止信号：SSE INCOMPLETE 或 拦截到 stop_stream 请求（更可靠，二者取或）
   function resolveStatus(extractor) {
@@ -313,7 +321,7 @@ function deepseekHookInstaller() {
         if (!dispatched) {
           dispatched = true;
           console.log('[Cuckoo Code][hook] fetch stream error name=' + (e && e.name));
-          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'stream', name: e && e.name });
+          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'stream', name: e && e.name, sessionId: getSessionIdFromUrl() });
         }
       });
     }
@@ -364,10 +372,11 @@ function deepseekHookInstaller() {
       }
       if (!isCompletion(url, method)) return p;
       userStopped = false; // 新的 completion 开始：复位用户停止标志
+      var fetchSessionId = getSessionIdFromUrl(); // 发起时记录会话
       return p.then(function (response) {
         try {
           if (response && response.ok === false) {
-            dispatch('', 'error', null, null, { reason: 'http', httpStatus: response.status });
+            dispatch('', 'error', null, null, { reason: 'http', httpStatus: response.status, sessionId: fetchSessionId });
           } else if (response && response.body) {
             observeBody(response.clone().body);
           }
@@ -375,7 +384,7 @@ function deepseekHookInstaller() {
         return response;
       }, function (err) {
         console.log('[Cuckoo Code][hook] fetch completion reject name=' + (err && err.name));
-        dispatch('', 'error', null, null, { reason: 'network', name: err && err.name });
+        dispatch('', 'error', null, null, { reason: 'network', name: err && err.name, sessionId: fetchSessionId });
         throw err;
       });
     };
@@ -423,6 +432,7 @@ function deepseekHookInstaller() {
     var frameDecoder = createFrameDecoder();
     var extractor = createExtractor();
     var dispatched = false;
+    var reqSessionId = getSessionIdFromUrl(); // 发起时记录会话
 
     function consumeChunk() {
       var raw;
@@ -452,7 +462,7 @@ function deepseekHookInstaller() {
         dispatched = true;
         var st = resolveStatus(extractor);
         if (st === 'error') {
-          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'xhr', httpStatus: xhr.status });
+          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'xhr', httpStatus: xhr.status, sessionId: reqSessionId });
         } else {
           dispatch(extractor.text, st, extractor.tokenUsage, extractor.msgIds);
         }

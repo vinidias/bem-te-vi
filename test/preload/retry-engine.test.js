@@ -11,6 +11,8 @@ let responseCb = null;
 const store = new Map();
 let timers = [];
 
+let curUrl = 'https://chat.deepseek.com/a/chat/s/sess-A';
+
 function installMocks() {
   const orig = Module._load;
   Module._load = function (request) {
@@ -26,12 +28,23 @@ function installMocks() {
     if (request === '../overlay/ui') {
       return { showToast: (m) => { toasts.push(m); } };
     }
+    if (/providers$/.test(request)) {
+      return {
+        getProviderByUrl: () => ({
+          extractSessionId: (s) => {
+            const m = String(s).match(/\/chat\/s\/([a-zA-Z0-9-]+)/);
+            return m ? m[1] : null;
+          },
+        }),
+      };
+    }
     return orig.apply(this, arguments);
   };
   return () => { Module._load = orig; };
 }
 
 function installGlobals() {
+  global.window = { get location() { return { href: curUrl }; } };
   global.localStorage = {
     getItem: (k) => (store.has(k) ? store.get(k) : null),
     setItem: (k, v) => store.set(k, String(v)),
@@ -57,6 +70,7 @@ function reset() {
   sent.length = 0; toasts.length = 0;
   errorCb = null; responseCb = null;
   store.clear(); timers = [];
+  curUrl = 'https://chat.deepseek.com/a/chat/s/sess-A';
 }
 
 function loadEngine() {
@@ -255,6 +269,37 @@ test('无限重试（次数为负）不因上限停止', () => {
   timers = [];
   errorCb({ reason: 'xhr' });
   assert.ok(lastTimeout(), '负数次数应无限重试');
+});
+
+// ================= 会话校验 =================
+test('错误事件的会话与当前一致：正常重试', () => {
+  reset();
+  store.set('cuckoo-retry-delay-min', '1');
+  store.set('cuckoo-retry-delay-max', '1');
+  const eng = loadEngine();
+  eng.startRetryEngine();
+  errorCb({ reason: 'xhr', sessionId: 'sess-A' }); // 当前是 sess-A
+  assert.ok(lastTimeout(), '会话一致应安排重试');
+});
+
+test('错误事件的会话已切换：忽略，不重试', () => {
+  reset();
+  store.set('cuckoo-retry-delay-min', '1');
+  store.set('cuckoo-retry-delay-max', '1');
+  const eng = loadEngine();
+  eng.startRetryEngine();
+  errorCb({ reason: 'xhr', sessionId: 'sess-OLD' }); // 旧会话
+  assert.strictEqual(timers.filter((t) => t.type === 'timeout').length, 0, '会话已切换不应重试');
+});
+
+test('错误事件无 sessionId：不做会话校验，正常重试', () => {
+  reset();
+  store.set('cuckoo-retry-delay-min', '1');
+  store.set('cuckoo-retry-delay-max', '1');
+  const eng = loadEngine();
+  eng.startRetryEngine();
+  errorCb({ reason: 'xhr' }); // 无 sessionId
+  assert.ok(lastTimeout(), '无 sessionId 应照常重试');
 });
 
 test.after(() => { restore(); });

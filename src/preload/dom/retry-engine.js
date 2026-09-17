@@ -56,6 +56,18 @@ function pickDelay(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
+/** 取当前页面 URL 对应的会话 ID（无则返回 null） */
+function getCurrentSessionId() {
+  try {
+    const { getProviderByUrl } = require('../../../src/providers');
+    const provider = getProviderByUrl(window.location.href);
+    if (provider && typeof provider.extractSessionId === 'function') {
+      return provider.extractSessionId(window.location.href) || null;
+    }
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
 let normalCount = 0;
 let count429 = 0;
 let pending = null;
@@ -124,6 +136,14 @@ function handleError(detail) {
   const cfg = readConfig();
   if (!cfg.enabled) return;
   if (compacting) return;
+  // 会话校验：错误发生时的会话与当前会话不一致 → 忽略（旧会话的延迟失败）
+  if (detail && detail.sessionId !== undefined) {
+    const cur = getCurrentSessionId();
+    if (detail.sessionId !== cur) {
+      console.log('[Cuckoo Code][重试] 会话已切换（' + detail.sessionId + ' -> ' + cur + '），忽略旧会话的错误');
+      return;
+    }
+  }
 
   const is429 = detail && detail.httpStatus === 429;
   if (is429) {
