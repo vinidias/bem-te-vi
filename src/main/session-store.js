@@ -50,24 +50,14 @@ function createSessionStore(profileId, storeDir, windowState) {
 
   function extractSessionIdFromUrl(url) {
     if (!url) return null;
-    // 平台 provider 优先（智谱 cid=、Claude /chat/ 等）
+    // 平台差异全部下沉到 provider.extractSessionId
     try {
       const provider = getProviderByUrl(url);
       if (provider && typeof provider.extractSessionId === 'function') {
-        const sid = provider.extractSessionId(url);
-        if (sid) return sid;
+        return provider.extractSessionId(url);
       }
-    } catch (_) { /* provider 异常时回退旧逻辑 */ }
-    // Claude: https://claude.ai/chat/xxx
-    if (url.includes('claude.ai')) {
-      const m = url.match(/\/chat\/([a-zA-Z0-9_-]+)/i);
-      return m ? m[1] : null;
-    }
-    // DeepSeek: https://chat.deepseek.com/a/chat/s/xxx
-    const match = url.match(/\/chat\/s\/([a-f0-9-]+)/i);
-    if (match) return match[1];
-    const altMatch = url.match(/\/s\/([a-f0-9-]+)/i);
-    return altMatch ? altMatch[1] : null;
+    } catch (_) { /* provider 异常时返回 null */ }
+    return null;
   }
 
   const state = {
@@ -110,10 +100,14 @@ function createSessionStore(profileId, storeDir, windowState) {
         }
       }
     } else {
+      // 提取不到会话 ID（如 ChatGPT 首页 https://chatgpt.com/）：
+      // 若有暂存目录（刚初始化但还没绑定会话），保留目录；否则清空（恢复原行为）。
       state.currentSessionId = null;
-      state.selectedProjectDir = null;
-      if (win && !win.isDestroyed()) {
-        win.webContents.send('project-dir-updated', null);
+      if (!state.pendingProjectDir) {
+        state.selectedProjectDir = null;
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('project-dir-updated', null);
+        }
       }
     }
   }

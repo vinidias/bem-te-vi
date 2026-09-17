@@ -1,5 +1,83 @@
 # Changelog
 
+## [0.5.2] - 2026-09-17
+
+### Added
+- **请求失败自动重试**：AI 对话请求失败（网络错误 / 非 2xx / 流中断）时，
+  按配置间隔自动重发提示词，触发 AI 重新回答
+  - 普通失败：默认 4~10 秒间隔、10 次；操作频繁（429）：默认 60 秒、20 次
+  - 倒计时浮层 + 取消按钮；次数为负数表示不限次
+  - 成功回复即重置计数；压缩上下文期间自动暂停
+- **工具循环看门狗**：AI 进入工具调用循环后，若某轮等待回复超时，
+  自动发送「请继续」提示词催 AI 继续；超时默认 300 秒、默认 3 次
+  - 工具执行期间不监控；会话切换自动失效，不打扰新会话
+- **设置弹窗**：重试 / 看门狗 / 发送延迟集中配置，新增「恢复默认」按钮
+- **内置 Provider 容错加载**：单个内置平台文件缺失/损坏不再拖垮应用启动
+
+### Fixed
+- 修复用户主动停止生成被误判为失败、触发自动重试的问题：
+  通过拦截 DeepSeek 的 stop_stream 请求作为「用户停止」的可靠判据
+- 修复 inject_js 无法处理多语句代码、顶层 await、if-return 的问题
+  （改用两遍语法探测，兼容表达式与语句体）
+
+## [0.5.1] - 2026-09-15
+
+### Fixed
+- 修复打包后系统提示词中 ts 代码围栏为空的问题：electron-builder 默认排除
+  `*.d.ts` 不进 asar，导致 `tools/cuckoo-tools.d.ts` 缺失、`{{TOOL_API_TYPES}}`
+  被替换为空。改用 `extraResources` 复制到 `resources/tools/`，运行时优先从
+  `process.resourcesPath` 读取并回退到源码路径
+
+## [0.5.0] - 2026-09-15
+
+### Fixed
+- 修复系统提示词中工具类型定义（cuckoo-tools.d.ts）注释里的 ``` 反引号破坏 ts 代码围栏的问题
+
+## [0.4.0] - 2026-09-15
+
+### Added
+- **上下文压缩（手动 + 自动）**：当对话 token 过大时，生成摘要并只保留最近
+  20% 对话，通过 DeepSeek 分享功能在新会话继续
+  - 纯 API 实现：读 IndexedDB 全量消息，直接调用分享接口，不依赖 DOM 点击
+  - 面板「压缩」按钮手动触发；「自动压缩」可配置阈值（默认 80 万 token）
+  - 压缩后自动跳转新会话并初始化项目，末尾追加「请继续你之前的工作」
+
+## [0.3.10] - 2026-09-14
+
+### Fixed
+- 修复选择平台时闪退：切换平台会先销毁旧窗口再重建，
+  window-all-closed 期间窗口数短暂为 0 导致应用误退出
+- 修复 userData 目录不存在时启动崩溃：app.setPath('userData') 前兜底创建目录
+
+## [0.3.9] - 2026-09-14
+
+### Added
+- 面板显示 DeepSeek 服务端对话 token（读取 SSE 流的 accumulated_token_usage，
+  过万自动简写为 x.xx万）
+
+### Changed
+- 彻底移除 DOM 抓取 AI 回复路径，仅保留网络请求拦截
+  - 删除 observer / ai-response / detector 等 DOM 抓取模块
+  - 抽出工具执行逻辑到 tool-executor，拦截与 DOM 共用
+  - 手动解析改为复用拦截缓存文本，不再依赖 DOM
+- 注释 provider 中已废弃的 DOM 抓取方法（isResponseComplete / getMessageCandidates /
+  getMessageMarkdown / isUserMessage / getCodeBlockLanguage）
+- 移除 token 本地估算，仅保留服务端权威数据
+
+## [0.3.8] - 2026-09-11
+
+### Changed
+- **DeepSeek / Claude / ChatGPT 三个平台的 AI 回复获取，从 DOM 抓取改为网络请求拦截**
+  - 在页面主世界（main world）注入拦截器，被动观察平台自身的 completion SSE 流，
+    直接解析回复文本，不再依赖 MutationObserver + DOM 稳定性轮询
+  - 仅旁路读取（response.clone / responseText 快照），不修改请求与响应
+  - 正文提取区分并排除 THINK / reasoning 片段
+  - DeepSeek：解析 response/fragments 的 THINK / RESPONSE 分片
+  - Claude：解析 content_block_delta 的 text_delta（忽略 thinking_delta）
+  - ChatGPT：解析 /backend-api/f/conversation 的裸 v 追加、patch 批量操作、
+    message 快照（仅采纳 assistant）与 message/status 结束信号
+  - 工具执行结果回传仍沿用原有模拟输入框发送方式
+
 ## [0.3.6] - 2026-09-08
 
 ### Fixed

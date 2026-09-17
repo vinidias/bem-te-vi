@@ -221,9 +221,15 @@ cuckoo-code/
 
 ## 交流群
 
-加入 Cuckoo Code 用户微信群，与其他用户交流使用经验：
+加入 Cuckoo Code 用户交流群，与其他用户交流使用经验：
 
-![微信群](assets/wechat-group.jpg)
+**QQ 群**
+
+<img src="assets/qq-group.jpg" alt="QQ 群" width="240">
+
+**微信群**
+
+<img src="assets/wechat-group.jpg" alt="微信群" width="360">
 
 > 群二维码约 7 天过期，如已失效请在 Issues 中提醒更新。
 

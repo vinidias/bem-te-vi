@@ -5,8 +5,8 @@
 const state = require('../dom/state');
 const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
-const { handleManualParse } = require('../dom/observer');
 const { sendToChat } = require('../dom/chat-input');
+const { runCompaction, checkPendingInit } = require('../dom/compaction');
 
 /**
  * 渲染窗口列表（浮动管理面板内）
@@ -218,6 +218,318 @@ function closeMcpManager() {
 let eventsBound = false;
 let mcpSending = false; // 防止 MCP 信息重复发送
 
+/**
+ * 手动解析分派：
+ * - 拦截模式：复用最近一次拦截到的完整文本（不依赖 DOM）
+ * - DOM 模式：走 observer 的 DOM 抓取
+ */
+function handleManualParseDispatch() {
+  const interceptObserver = require('../dom/intercept-observer');
+  const text = interceptObserver.getLastInterceptedText();
+  if (!text) {
+    showToast('暂无可解析的回复（请先让 AI 回复一次）', 3000);
+    return;
+  }
+  showToast('已触发手动解析', 3000);
+  interceptObserver.processInterceptedResponse(text, true).catch((err) => {
+    console.error('[Cuckoo Code] 手动解析出错:', err);
+    showToast('手动解析出错: ' + err.message, 3000);
+  });
+}
+
+/**
+ * 格式化 token 数：过万显示为「xxx万」，否则原样显示
+ * @param {number} n
+ * @returns {string}
+ */
+function formatTokenCount(n) {
+  if (!Number.isFinite(n) || n < 0) return '0';
+  if (n >= 10000) {
+    return (n / 10000).toFixed(2) + '万';
+  }
+  return String(Math.round(n));
+}
+
+/**
+ * 刷新面板里的「对话 Token」显示
+ * 数据来源：服务端 accumulated_token_usage（含 prompt+输出）；
+ * 未收到服务端数据时显示 0。
+ */
+function updateConversationTokenDisplay() {
+  const countEl = document.getElementById('cuckoo-conv-token-count');
+  if (!countEl) return;
+
+  const server = state.serverTokenUsage;
+  if (server && typeof server.accumulatedTokens === 'number') {
+    countEl.textContent = formatTokenCount(server.accumulatedTokens);
+  } else {
+    countEl.textContent = '0';
+  }
+}
+
+// ========== 自动压缩上下文 ==========
+// 配置：是否启用 + 阈值（单位：万 token）
+let autoCompactEnabled = false;
+let autoCompactThresholdWan = 80;
+// 防止压缩过程中重复触发
+let autoCompactTriggering = false;
+
+/** 从 localStorage 读取自动压缩配置并同步到 UI */
+function loadAutoCompactConfig() {
+  try {
+    const en = localStorage.getItem('cuckoo-auto-compact-enabled');
+    const th = localStorage.getItem('cuckoo-auto-compact-threshold');
+    autoCompactEnabled = en === '1';
+    autoCompactThresholdWan = th ? (parseFloat(th) || 80) : 80;
+  } catch (_) {}
+  const enEl = document.getElementById('cuckoo-auto-compact-enabled');
+  const thEl = document.getElementById('cuckoo-auto-compact-threshold');
+  if (enEl) enEl.checked = autoCompactEnabled;
+  if (thEl) thEl.value = autoCompactThresholdWan;
+}
+
+/** 保存自动压缩配置 */
+function saveAutoCompactConfig() {
+  const enEl = document.getElementById('cuckoo-auto-compact-enabled');
+  const thEl = document.getElementById('cuckoo-auto-compact-threshold');
+  const enabled = !!(enEl && enEl.checked);
+  let th = thEl ? parseFloat(thEl.value) : 80;
+  if (!Number.isFinite(th) || th <= 0) {
+    showToast('阈值需为正数（万）', 3000);
+    return;
+  }
+  autoCompactEnabled = enabled;
+  autoCompactThresholdWan = th;
+  try {
+    localStorage.setItem('cuckoo-auto-compact-enabled', enabled ? '1' : '0');
+    localStorage.setItem('cuckoo-auto-compact-threshold', String(th));
+  } catch (_) {}
+  showToast('自动压缩设置已保存：' + (enabled ? '开启，阈值 ' + th + ' 万' : '关闭'), 2500);
+}
+
+/**
+ * 检查是否触发自动压缩
+ * 数据源：state.serverTokenUsage.accumulatedTokens
+ */
+function checkAutoCompact() {
+  if (!autoCompactEnabled || autoCompactTriggering) return;
+  const server = state.serverTokenUsage;
+  if (!server || typeof server.accumulatedTokens !== 'number') return;
+  const thresholdTokens = autoCompactThresholdWan * 10000;
+  if (server.accumulatedTokens < thresholdTokens) return;
+  // 触发
+  autoCompactTriggering = true;
+  console.log('[Cuckoo Compact] 自动触发：当前 ' + server.accumulatedTokens + ' >= 阈值 ' + thresholdTokens);
+  showToast('Token 超阈值（' + autoCompactThresholdWan + '万），自动压缩中...', 4000);
+  runCompaction().finally(() => {
+    // 压缩会跳转页面；若未跳转（失败），重置标志允许下次重试
+    autoCompactTriggering = false;
+  });
+}
+
+/** 打开设置弹窗：从 localStorage 加载配置到输入框 */
+function openSettings() {
+  function setVal(id, v) {
+    const el = document.getElementById(id);
+    if (el) el.value = v;
+  }
+  // localStorage 存毫秒，UI 显示秒（毫秒/1000）
+  const msToSec = (ms, dft) => {
+    const n = parseInt(ms, 10);
+    return String(Number.isFinite(n) ? n / 1000 : dft);
+  };
+  try {
+    const en = localStorage.getItem('cuckoo-retry-enabled');
+    const enEl = document.getElementById('cuckoo-retry-enabled');
+    if (enEl) enEl.checked = en === null ? true : en === '1';
+    setVal('cuckoo-retry-delay-min', msToSec(localStorage.getItem('cuckoo-retry-delay-min') || '4000', 4));
+    setVal('cuckoo-retry-delay-max', msToSec(localStorage.getItem('cuckoo-retry-delay-max') || '10000', 10));
+    setVal('cuckoo-retry-count', localStorage.getItem('cuckoo-retry-count') || '10');
+    setVal('cuckoo-retry-429-delay', msToSec(localStorage.getItem('cuckoo-retry-429-delay') || '60000', 60));
+    setVal('cuckoo-retry-429-count', localStorage.getItem('cuckoo-retry-429-count') || '20');
+    setVal('cuckoo-retry-prompt', localStorage.getItem('cuckoo-retry-prompt') || '刚才的回复似乎中断了，请重新完整回答上一个问题。');
+    setVal('cuckoo-xhr-idle-timeout', msToSec(localStorage.getItem('cuckoo-xhr-idle-timeout') || '300000', 300));
+    setVal('cuckoo-watchdog-prompt', localStorage.getItem('cuckoo-watchdog-prompt') || '请继续');
+    setVal('cuckoo-watchdog-count', localStorage.getItem('cuckoo-watchdog-count') || '3');
+  } catch (_) {}
+  setVal('cuckoo-delay-min', state.sendDelayMin / 1000);
+  setVal('cuckoo-delay-max', state.sendDelayMax / 1000);
+  const panel = document.getElementById('cuckoo-settings');
+  if (panel) panel.classList.remove('cuckoo-hidden');
+}
+
+/** 关闭设置弹窗 */
+function closeSettings() {
+  const panel = document.getElementById('cuckoo-settings');
+  if (panel) panel.classList.add('cuckoo-hidden');
+}
+
+/** 恢复默认：删除所有相关 localStorage 键，重置内存 state，刷新弹窗 */
+function resetSettings() {
+  const KEYS = [
+    'cuckoo-retry-enabled', 'cuckoo-retry-delay-min', 'cuckoo-retry-delay-max',
+    'cuckoo-retry-count', 'cuckoo-retry-429-delay', 'cuckoo-retry-429-count',
+    'cuckoo-retry-prompt', 'cuckoo-xhr-idle-timeout', 'cuckoo-watchdog-prompt',
+    'cuckoo-watchdog-count', 'cuckoo-send-delay-min', 'cuckoo-send-delay-max',
+  ];
+  try {
+    for (const k of KEYS) localStorage.removeItem(k);
+  } catch (_) {}
+  state.sendDelayMin = 2000;
+  state.sendDelayMax = 4000;
+  showToast('已恢复默认设置', 2500);
+  openSettings(); // 重新加载默认值到输入框
+}
+
+/** 保存设置弹窗的所有配置 */
+function saveSettings() {
+  const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+  // UI 输入为秒，存储转毫秒
+  const secToMs = (s) => Math.round(parseFloat(s) * 1000);
+  const dmin = secToMs(val('cuckoo-retry-delay-min'));
+  const dmax = secToMs(val('cuckoo-retry-delay-max'));
+  if (Number.isNaN(dmin) || dmin < 0) { showToast('普通失败最小间隔必须是非负数字（秒）', 3000); return; }
+  if (Number.isNaN(dmax) || dmax < dmin) { showToast('普通失败最大间隔不能小于最小间隔', 3000); return; }
+  const cnt = parseInt(val('cuckoo-retry-count'), 10);
+  if (Number.isNaN(cnt)) { showToast('普通失败重试次数必须是整数', 3000); return; }
+  const d429 = secToMs(val('cuckoo-retry-429-delay'));
+  if (Number.isNaN(d429) || d429 < 0) { showToast('429 间隔必须是非负数字（秒）', 3000); return; }
+  const c429 = parseInt(val('cuckoo-retry-429-count'), 10);
+  if (Number.isNaN(c429)) { showToast('429 次数必须是整数', 3000); return; }
+  const prompt = val('cuckoo-retry-prompt').trim();
+  if (!prompt) { showToast('重试提示词不能为空', 3000); return; }
+  const idleTimeout = secToMs(val('cuckoo-xhr-idle-timeout'));
+  if (Number.isNaN(idleTimeout) || idleTimeout < 0) { showToast('挂起超时必须是非负数字（秒）', 3000); return; }
+  const watchdogPrompt = val('cuckoo-watchdog-prompt').trim();
+  if (!watchdogPrompt) { showToast('工具循环超时提示词不能为空', 3000); return; }
+  const watchdogCount = parseInt(val('cuckoo-watchdog-count'), 10);
+  if (Number.isNaN(watchdogCount)) { showToast('工具循环催继续次数必须是整数', 3000); return; }
+  const smin = secToMs(val('cuckoo-delay-min'));
+  const smax = secToMs(val('cuckoo-delay-max'));
+  if (Number.isNaN(smin) || smin < 0) { showToast('发送延迟最小值必须是非负数字（秒）', 3000); return; }
+  if (Number.isNaN(smax) || smax < smin) { showToast('发送延迟最大值不能小于最小值', 3000); return; }
+  if (smax > 10000) { showToast('发送延迟最大值不能超过 10 秒', 3000); return; }
+
+  const enEl = document.getElementById('cuckoo-retry-enabled');
+  try {
+    localStorage.setItem('cuckoo-retry-enabled', (enEl && enEl.checked) ? '1' : '0');
+    localStorage.setItem('cuckoo-retry-delay-min', String(dmin));
+    localStorage.setItem('cuckoo-retry-delay-max', String(dmax));
+    localStorage.setItem('cuckoo-retry-count', String(cnt));
+    localStorage.setItem('cuckoo-retry-429-delay', String(d429));
+    localStorage.setItem('cuckoo-retry-429-count', String(c429));
+    localStorage.setItem('cuckoo-retry-prompt', prompt);
+    localStorage.setItem('cuckoo-xhr-idle-timeout', String(idleTimeout));
+    localStorage.setItem('cuckoo-watchdog-prompt', watchdogPrompt);
+    localStorage.setItem('cuckoo-watchdog-count', String(watchdogCount));
+    localStorage.setItem('cuckoo-send-delay-min', String(smin));
+    localStorage.setItem('cuckoo-send-delay-max', String(smax));
+  } catch (_) {}
+  state.sendDelayMin = smin;
+  state.sendDelayMax = smax;
+  showToast('设置已保存', 2500);
+  closeSettings();
+}
+
+/**
+ * 启动对话 token 显示 + 自动压缩检查（事件驱动）
+ * 仅在收到成功回复事件时刷新 token 显示并检查自动压缩，
+ * 避免失败/停止时因旧 token 值反复触发压缩。
+ */
+function startTokenCounter() {
+  const { onInterceptedResponse } = require('../dom/intercept-observer');
+  onInterceptedResponse(() => {
+    updateConversationTokenDisplay();
+    checkAutoCompact();
+  });
+  updateConversationTokenDisplay();
+}
+
+/**
+ * 让悬浮球支持鼠标拖动，并持久化位置
+ * 拖动超过阈值视为移动，否则视为点击（保留切换面板功能）
+ * @param {HTMLElement} badge
+ */
+function makeFabDraggable(badge) {
+  const THRESHOLD = 4;
+  const POS_KEY = 'cuckoo-fab-pos';
+  let dragging = false;
+  let moved = false;
+  let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+  function applyPos(left, top) {
+    const w = badge.offsetWidth || 48;
+    const h = badge.offsetHeight || 48;
+    left = Math.max(0, Math.min(left, window.innerWidth - w));
+    top = Math.max(0, Math.min(top, window.innerHeight - h));
+    badge.style.left = left + 'px';
+    badge.style.top = top + 'px';
+    badge.style.right = 'auto';
+    badge.style.bottom = 'auto';
+  }
+
+  // 恢复保存的位置
+  try {
+    const saved = localStorage.getItem(POS_KEY);
+    if (saved) {
+      const p = JSON.parse(saved);
+      if (typeof p.left === 'number' && typeof p.top === 'number') {
+        applyPos(p.left, p.top);
+      }
+    }
+  } catch (_) { /* ignore */ }
+
+  badge.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const rect = badge.getBoundingClientRect();
+    dragging = true;
+    moved = false;
+    startX = e.clientX;
+    startY = e.clientY;
+    startLeft = rect.left;
+    startTop = rect.top;
+    try { badge.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+
+  badge.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (!moved && Math.abs(dx) + Math.abs(dy) < THRESHOLD) return;
+    moved = true;
+    applyPos(startLeft + dx, startTop + dy);
+  });
+
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    try { badge.releasePointerCapture(e.pointerId); } catch (_) {}
+    if (moved) {
+      try {
+        const rect = badge.getBoundingClientRect();
+        localStorage.setItem(POS_KEY, JSON.stringify({ left: rect.left, top: rect.top }));
+      } catch (_) { /* ignore */ }
+    }
+  }
+  badge.addEventListener('pointerup', endDrag);
+  badge.addEventListener('pointercancel', endDrag);
+
+  // 拖动后拦截本次 click，避免误触切换面板（捕获阶段优先执行）
+  badge.addEventListener('click', (e) => {
+    if (moved) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      moved = false;
+    }
+  }, true);
+
+  // 窗口尺寸变化时把悬浮球约束回视口
+  window.addEventListener('resize', () => {
+    const rect = badge.getBoundingClientRect();
+    applyPos(rect.left, rect.top);
+  });
+}
+
 function bindEvents() {
   // 防止重复绑定（SPA 导航或 preload 重载时可能导致多次执行）
   if (eventsBound) return;
@@ -243,6 +555,10 @@ function bindEvents() {
   minimizeBtn?.addEventListener('click', hideOverlay);
   initBtn?.addEventListener('click', handleInitProject);
 
+  // 压缩上下文按钮
+  const compactBtn = document.getElementById('cuckoo-btn-compact');
+  compactBtn?.addEventListener('click', runCompaction);
+
   // 首次使用提示浮窗：初始化按钮（与右侧初始化项目逻辑一致）
   const firstInitBtn = document.getElementById('cuckoo-btn-first-init');
   firstInitBtn?.addEventListener('click', handleInitProject);
@@ -257,7 +573,7 @@ function bindEvents() {
 
   // 手动解析按钮
   const manualParseBtn = document.getElementById('cuckoo-btn-manual-parse');
-  manualParseBtn?.addEventListener('click', handleManualParse);
+  manualParseBtn?.addEventListener('click', handleManualParseDispatch);
 
   // 窗口管理按钮：打开浮动管理面板
   const windowManagerBtn = document.getElementById('cuckoo-btn-window-manager');
@@ -426,28 +742,25 @@ function bindEvents() {
   const refreshSessionsBtn = document.getElementById('cuckoo-btn-refresh-sessions');
   refreshSessionsBtn?.addEventListener('click', renderSessions);
 
-  // 保存延迟设置按钮
-  const saveDelayBtn = document.getElementById('cuckoo-btn-save-delay');
-  const delayMinInput = document.getElementById('cuckoo-delay-min');
-  const delayMaxInput = document.getElementById('cuckoo-delay-max');
-  saveDelayBtn?.addEventListener('click', () => {
-    const min = parseInt(delayMinInput?.value, 10);
-    const max = parseInt(delayMaxInput?.value, 10);
-    if (Number.isNaN(min) || min < 0) { showToast('最小延迟必须是非负整数', 3000); return; }
-    if (Number.isNaN(max) || max < min) { showToast('最大延迟不能小于最小延迟', 3000); return; }
-    if (max > 10000) { showToast('最大延迟不能超过 10000ms', 3000); return; }
-    state.sendDelayMin = min;
-    state.sendDelayMax = max;
-    // 保存到 localStorage
-    try {
-      localStorage.setItem('cuckoo-send-delay-min', String(min));
-      localStorage.setItem('cuckoo-send-delay-max', String(max));
-    } catch (e) {}
-    showToast('延迟设置已保存：' + min + ' - ' + max + ' ms', 3000);
-  });
+  // 设置弹窗：打开
+  const settingsBtn = document.getElementById('cuckoo-btn-settings');
+  settingsBtn?.addEventListener('click', openSettings);
 
-  // 悬浮球点击切换面板显隐
+  // 设置弹窗：关闭
+  const settingsCloseBtn = document.getElementById('cuckoo-settings-close');
+  settingsCloseBtn?.addEventListener('click', closeSettings);
+
+  // 设置弹窗：保存
+  const settingsSaveBtn = document.getElementById('cuckoo-settings-save');
+  settingsSaveBtn?.addEventListener('click', saveSettings);
+
+  // 设置弹窗：恢复默认
+  const settingsResetBtn = document.getElementById('cuckoo-settings-reset');
+  settingsResetBtn?.addEventListener('click', resetSettings);
+
+  // 悬浮球：可拖动 + 点击切换面板显隐
   const statusBadge = document.getElementById('cuckoo-status-badge');
+  if (statusBadge) makeFabDraggable(statusBadge);
   statusBadge?.addEventListener('click', () => {
     const overlay = document.getElementById('cuckoo-overlay');
     if (!overlay) return;
@@ -457,6 +770,17 @@ function bindEvents() {
       hideOverlay();
     }
   });
+
+  // 自动压缩：加载配置 + 绑定保存按钮
+  loadAutoCompactConfig();
+  const autoSaveBtn = document.getElementById('cuckoo-auto-compact-save');
+  autoSaveBtn?.addEventListener('click', saveAutoCompactConfig);
+
+  // 启动输入框 token 估算 + 自动压缩检查
+  startTokenCounter();
+
+  // 压缩后新页面加载：检查是否需自动初始化项目（用被压缩项目的目录）
+  checkPendingInit();
 
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {
@@ -477,6 +801,7 @@ function bindEvents() {
       hideOverlay();
       closeWindowManager();
       closeMcpManager();
+      closeSettings();
       hideFirstTimeDialog();
     }
   });

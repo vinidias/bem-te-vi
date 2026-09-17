@@ -10,8 +10,12 @@ let electronAPI = {
   executeCommand: (command, id) => {
     return ipcRenderer.invoke('execute-command', { command, id });
   },
-  initProject: () => {
-    return ipcRenderer.invoke('init-project', { skipPrompt: false });
+  initProject: (projectDir, isCompaction) => {
+    return ipcRenderer.invoke('init-project', {
+      skipPrompt: false,
+      projectDir: projectDir || null,
+      isCompaction: !!isCompaction,
+    });
   },
   updateProjectDir: () => {
     return ipcRenderer.invoke('init-project', { skipPrompt: true });
@@ -24,6 +28,9 @@ let electronAPI = {
   },
   sendEnterToChat: () => {
     return ipcRenderer.invoke('chat-send-enter');
+  },
+  simulateMouse: (action, x, y) => {
+    return ipcRenderer.invoke('simulate-mouse', { action, x, y });
   },
   listSessions: () => {
     return ipcRenderer.invoke('list-sessions');

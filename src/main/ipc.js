@@ -14,9 +14,9 @@ const { decodeOutput, normalizeCommand } = require('../../tools/decodeOutput');
 
 function registerIpcHandlers() {
   // 初始化项目
-  ipcMain.handle('init-project', async (event, { skipPrompt = false } = {}) => {
+  ipcMain.handle('init-project', async (event, { skipPrompt = false, projectDir = null, isCompaction = false } = {}) => {
     const ctx = windowState.getContextByWebContents(event.sender);
-    return initProject(skipPrompt, ctx);
+    return initProject(skipPrompt, ctx, projectDir, isCompaction);
   });
 
   // 列出会话
@@ -45,8 +45,8 @@ function registerIpcHandlers() {
       if (provider && typeof provider.sessionUrlBase === 'string' && provider.sessionUrlBase) {
         url = provider.sessionUrlBase + sessionId;
       }
-    } catch (_) { /* 回退 DeepSeek */ }
-    if (!url) url = 'https://chat.deepseek.com/a/chat/s/' + sessionId;
+    } catch (_) { /* provider 未识别 */ }
+    if (!url) return { success: false, error: '无法确定会话 URL（当前平台未提供 sessionUrlBase）' };
     try {
       await win.webContents.loadURL(url);
       return { success: true };
@@ -183,6 +183,28 @@ function registerIpcHandlers() {
       return true;
     } catch (err) {
       console.error('[Cuckoo Code] ❌ 原生 Enter 发送失败:', err.message);
+      return false;
+    }
+  });
+
+  // 模拟真实鼠标事件（isTrusted=true），用于需要原生点击的站点
+  // action: 'move' | 'click'；x/y 为相对视口的 CSS 像素坐标
+  ipcMain.handle('simulate-mouse', async (event, { action, x, y } = {}) => {
+    const sender = event.sender;
+    if (!sender || sender.isDestroyed()) return false;
+    const px = Math.round(Number(x) || 0);
+    const py = Math.round(Number(y) || 0);
+    try {
+      if (action === 'move') {
+        sender.sendInputEvent({ type: 'mouseMove', x: px, y: py });
+      } else {
+        sender.sendInputEvent({ type: 'mouseMove', x: px, y: py });
+        sender.sendInputEvent({ type: 'mouseDown', x: px, y: py, button: 'left', clickCount: 1 });
+        sender.sendInputEvent({ type: 'mouseUp', x: px, y: py, button: 'left', clickCount: 1 });
+      }
+      return true;
+    } catch (err) {
+      console.error('[Cuckoo Code] ❌ simulate-mouse 失败:', err.message);
       return false;
     }
   });

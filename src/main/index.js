@@ -14,7 +14,15 @@ const updater = require('./updater');
 
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
-app.setPath('userData', path.join(app.getPath('appData'), SESSION_DIR));
+const USER_DATA_DIR = path.join(app.getPath('appData'), SESSION_DIR);
+// app.setPath('userData', ...) 要求目标目录必须已存在，否则会抛错导致启动闪退。
+// 用户首次运行或手动删除该目录时，此处负责兜底创建。
+try {
+  fs.mkdirSync(USER_DATA_DIR, { recursive: true });
+} catch (err) {
+  console.error('[Cuckoo Code] 创建 userData 目录失败:', err.message);
+}
+app.setPath('userData', USER_DATA_DIR);
 console.log('[Cuckoo Code] Session 数据目录:', app.getPath('userData'));
 
 // 渲染进程日志输出目录（仅开发环境持久化；打包版不写日志文件）
@@ -23,6 +31,14 @@ const RENDERER_LOG_DIR = app.isPackaged
   : path.join(app.getPath('userData'), 'wyp', 'log');
 if (RENDERER_LOG_DIR) {
   fs.mkdirSync(RENDERER_LOG_DIR, { recursive: true });
+  // 开发环境每次启动清空平台日志，避免无限累积（与 start.js 清空 electron.log 一致）
+  try {
+    for (const f of fs.readdirSync(RENDERER_LOG_DIR)) {
+      if (f.endsWith('.log')) fs.writeFileSync(path.join(RENDERER_LOG_DIR, f), '', 'utf-8');
+    }
+  } catch (err) {
+    console.warn('[Cuckoo Code] 清空平台日志失败:', err.message);
+  }
 }
 
 const { registerIpcHandlers } = require('./ipc');
@@ -47,7 +63,7 @@ async function flushAllSessions() {
  */
 function createWindow(profile) {
   const profileData = profile || profileManager.getDefaultProfile();
-  const provider = getProvider(profileData.providerId || 'deepseek') || getProvider('deepseek');
+  const provider = getProvider(profileData.providerId) || null;
   const storeDir = app.getPath('userData');
   const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
   const hasExplicitProfile = !!profile;
@@ -58,7 +74,7 @@ function createWindow(profile) {
     width: 1280,
     height: 900,
     icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
-    title: 'Cuckoo Code Pro - ' + provider.name + ' - ' + profileData.name,
+    title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
     webPreferences: {
       preload: path.join(__dirname, '..', '..', 'preload.js'),
       contextIsolation: true,
@@ -111,11 +127,11 @@ function createWindow(profile) {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
   mainWindow.webContents.setUserAgent(userAgent);
 
-  if (providerChosen) {
-    // 平台已确定，直接进入平台首页
+  if (providerChosen && provider) {
+    // 平台已确定且存在，直接进入平台首页
     mainWindow.loadURL(provider.homeUrl);
   } else {
-    // 平台未确定，显示平台选择页
+    // 平台未确定（或对应 provider 已缺失），显示平台选择页
     const selectPage = path.join(__dirname, '..', 'ui', 'platform-select.html');
     mainWindow.loadFile(selectPage);
   }
@@ -399,7 +415,7 @@ ipcMainForProfile.handle('replace-provider', async (event, { providerId }) => {
   }
 });
 
-// 用户在平台选择页选择平台后，绑定 profile 并加载平台首页
+// 用户在平台选择页选择平台后，绑定 profile 并重建窗口（partition 必须随 profile 更新）
 ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
   if (!providerId) return { success: false, error: '缺少平台ID' };
   const ctx = windowState.getContextByWebContents(event.sender);
@@ -409,15 +425,21 @@ ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
   if (!provider) return { success: false, error: '平台不存在: ' + providerId };
 
   // 更新该窗口 profile 的 providerId 和 partition
-  profileManager.updateProfileProvider(ctx.profileId, providerId);
+  const updatedProfile = profileManager.updateProfileProvider(ctx.profileId, providerId);
+  if (!updatedProfile) return { success: false, error: '更新 profile 失败' };
 
-  // 记录窗口上下文 providerId
-  ctx.providerId = providerId;
-
-  // 原地跳转到平台首页
-  if (ctx.win && !ctx.win.isDestroyed()) {
-    await ctx.win.loadURL(provider.homeUrl);
+  // 关闭旧窗口（其 session 仍是旧 partition）
+  // 注意：这里销毁最后一个窗口会触发 window-all-closed，
+  // 但紧接着会 createWindow 重建，故 window-all-closed 采用延迟确认避免误退。
+  console.log('[Cuckoo Code] 切换平台: ' + ctx.providerId + ' -> ' + providerId + '，重建窗口');
+  const oldWin = ctx.win;
+  if (oldWin && !oldWin.isDestroyed()) {
+    oldWin.destroy();
   }
+
+  // 用新 profile（含新 partition）重建窗口
+  createWindow(updatedProfile);
+  console.log('[Cuckoo Code] 切换平台完成，当前窗口数=' + windowState.getAllWindows().length);
   return { success: true };
 });
 
@@ -527,7 +549,14 @@ if (!gotSingleInstanceLock) {
 }
 
 app.on('window-all-closed', () => {
-  app.quit();
+  // 切换平台时会先销毁旧窗口（select-platform）再创建新窗口，
+  // 这个间隙窗口数会短暂为 0，若直接 quit 会导致闪退。
+  // 延迟确认：稍后仍无窗口才真正退出。
+  setTimeout(() => {
+    if (windowState.getAllWindows().length === 0) {
+      app.quit();
+    }
+  }, 500);
 });
 
 // 退出前刷新所有 session 数据

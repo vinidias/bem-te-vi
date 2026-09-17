@@ -1,12 +1,27 @@
 /**
  * Provider 注册表
  * 加载所有内置的 AI 平台 Provider 定义，以及用户导入的自定义 Provider。
+ * 内置 provider 采用容错加载：单个文件缺失/损坏不会拖垮整个应用。
  */
-const deepseek = require('./deepseek');
-const claude = require('./claude');
 const { loadCustomProviders } = require('./custom/loader');
 
-const builtinProviders = [deepseek, claude];
+const BUILTIN_PROVIDER_NAMES = ['deepseek', 'claude', 'chatgpt'];
+
+function loadBuiltinProviders() {
+  const list = [];
+  for (const name of BUILTIN_PROVIDER_NAMES) {
+    try {
+      const p = require('./' + name);
+      if (p && p.id) list.push(p);
+      else console.warn('[Provider] 内置 provider 无效，跳过:', name);
+    } catch (err) {
+      console.warn('[Provider] 内置 provider 加载失败，跳过:', name, err && err.message);
+    }
+  }
+  return list;
+}
+
+const builtinProviders = loadBuiltinProviders();
 
 function getAllProviders() {
   return [...builtinProviders, ...loadCustomProviders()];
@@ -19,7 +34,7 @@ function getProvider(id) {
 /** 根据 URL 自动识别所属平台 */
 function getProviderByUrl(url) {
   if (!url) return null;
-  return getAllProviders().find((p) => p.matchesUrl(url)) || null;
+  return getAllProviders().find((p) => typeof p.matchesUrl === 'function' && p.matchesUrl(url)) || null;
 }
 
 module.exports = {
