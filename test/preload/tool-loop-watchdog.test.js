@@ -75,7 +75,7 @@ installGlobals();
 test('readConfig 默认值', () => {
   reset();
   const cfg = loadWd()._readConfig();
-  assert.strictEqual(cfg.timeout, 90000);
+  assert.strictEqual(cfg.timeout, 300000);
   assert.strictEqual(cfg.prompt, '请继续');
   assert.strictEqual(cfg.count, 3);
 });
