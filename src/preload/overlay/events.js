@@ -219,22 +219,14 @@ let eventsBound = false;
 let mcpSending = false; // 防止 MCP 信息重复发送
 
 /**
- * 手动解析分派：
- * - 拦截模式：复用最近一次拦截到的完整文本（不依赖 DOM）
- * - DOM 模式：走 observer 的 DOM 抓取
+ * 「卡住了?点我」按钮：向 AI 发一句继续，催促其接着之前的工作
  */
 function handleManualParseDispatch() {
-  const interceptObserver = require('../dom/intercept-observer');
-  const text = interceptObserver.getLastInterceptedText();
-  if (!text) {
-    showToast('暂无可解析的回复（请先让 AI 回复一次）', 3000);
+  if (!sendToChat('刚才卡住了请继续 爱你哦', '继续', 300)) {
+    showToast('发送失败：未找到输入框', 3000);
     return;
   }
-  showToast('已触发手动解析', 3000);
-  interceptObserver.processInterceptedResponse(text, true).catch((err) => {
-    console.error('[Cuckoo Code] 手动解析出错:', err);
-    showToast('手动解析出错: ' + err.message, 3000);
-  });
+  showToast('已发送：继续', 2500);
 }
 
 /**

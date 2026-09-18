@@ -47,7 +47,7 @@ const OVERLAY_HTML = [
 '      <button id="cuckoo-btn-immersive" class="cuckoo-btn cuckoo-btn-secondary" title="切换为沉浸式交流模式">沉浸式交流</button>',
 '    </div>',
 '    <div class="cuckoo-actions">',
-'      <button id="cuckoo-btn-manual-parse" class="cuckoo-btn cuckoo-btn-secondary" title="手动触发解析当前页面内容中的工具调用">手动解析</button>',
+'      <button id="cuckoo-btn-manual-parse" class="cuckoo-btn cuckoo-btn-secondary" title="卡住了？点我给 AI 发一句继续">卡住了?点我</button>',
 '    </div>',
 '    <div class="cuckoo-divider"></div>',
 '    <div class="cuckoo-section cuckoo-session-section">',

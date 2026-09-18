@@ -9,12 +9,28 @@ const mcpConfig = require('./mcp-config');
 
 // server name -> { client, transport, tools, connected }
 const connections = new Map();
+// server name -> Promise<entry>：连接进行中的缓存，避免并发重复连接（如启动与初始化同时触发）
+const connecting = new Map();
 
 async function connectServer(server) {
   if (connections.has(server.name)) {
     return connections.get(server.name);
   }
+  // 已有连接进行中：复用同一个 Promise，避免 spawn 多个子进程/重复建连
+  if (connecting.has(server.name)) {
+    return connecting.get(server.name);
+  }
 
+  const p = doConnectServer(server);
+  connecting.set(server.name, p);
+  try {
+    return await p;
+  } finally {
+    connecting.delete(server.name);
+  }
+}
+
+async function doConnectServer(server) {
   let transport;
   if (server.type === 'stdio') {
     transport = new StdioClientTransport({
@@ -50,6 +66,10 @@ async function connectServer(server) {
 }
 
 async function disconnectServer(name) {
+  // 若有连接进行中，先等它结束，避免断开后又被它重新登记
+  if (connecting.has(name)) {
+    try { await connecting.get(name); } catch (_) {}
+  }
   const entry = connections.get(name);
   if (!entry) return;
   try {
