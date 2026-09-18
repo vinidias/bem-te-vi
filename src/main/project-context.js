@@ -199,11 +199,19 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
     console.error('[MCP] 初始化时连接失败:', err.message);
   }
 
-  // MCP 章节：按需查看模式，不在提示词中全量注入工具列表
+  // MCP 章节：列出已配置且启用的 server 名称，工具列表仍按需查询（避免全量注入）
+  const enabledMcpServers = mcpClient.listConfiguredServers().filter(s => s.enabled);
+  const mcpServerList = enabledMcpServers.length
+    ? enabledMcpServers.map(s => '- ' + s.name + '（' + s.type + '，' + (s.connected ? '已连接' : '未连接') + '，工具数 ' + s.toolCount + '）').join('\n')
+    : '（当前没有已配置且启用的 MCP server）';
+
   const mcpSection = [
     '## MCP 能力',
     '',
     '本应用支持 MCP（Model Context Protocol）外部工具扩展。',
+    '',
+    '当前已配置且启用的 MCP server：',
+    mcpServerList,
     '',
     '使用 MCP 前，请先查询可用能力：',
     '1. 调用 mcpListServers() 查看当前已配置的 MCP server 列表（含启用/连接状态）',
