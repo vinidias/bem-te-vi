@@ -26,14 +26,13 @@
 **目标**：产出架构文档，不写代码。
 
 **任务**：
-- [x] `00-goal.md` —— 目标/约束（用户写）
-- [x] `01-architecture.md` —— 目标架构（草稿）
-- [x] `02-modules.md` —— 模块职责表（草稿）
-- [x] `03-decisions.md` —— 决策记录（草稿）
+- [x] `01-architecture.md` —— 目标架构
+- [x] `02-modules.md` —— 模块职责表
+- [x] `03-decisions.md` —— 决策记录（D1–D15 全定）
 - [x] `04-plan.md` —— 本文件
-- [ ] 用户 review 全部文档
-- [ ] 拍板 D3 / D4 / D5 / D10
-- [ ] 补齐 `00-goal.md`
+- [x] 用户 review 全部文档
+- [x] 拍板 D3 / D4 / D5 / D10
+- [ ] 补齐 `00-goal.md`（用户口述目标）
 
 **验收**：用户对架构与模块划分认可；所有阻塞决策有结论。
 
@@ -51,7 +50,8 @@
 - [ ] 清理 `tools/index.js` 对应 import/register/export
 - [ ] 清理 `src/preload/tool-names.js` 的 `file_glob`/`file_grep`
 - [ ] **修 bug**：`tool-names.js` 缺 `mcp_call`
-- [ ] 视 D4 决策：删/留旧别名与对应工具
+- [ ] 删旧别名与对应工具（D4 已定：`readFile`/`writeFile`/`editFile`/`readFileWithLines`，
+      及 `FileReadTool`/`FileWriteTool`/`FileEditTool`）
 - [ ] 提示词归属 provider：将 `src/prompt/*.md` 内联进各 provider（D5/D13）
 - [ ] 清理根目录生成文件（`build-*.log`、`coverage.lcov` 等）出 git
 
@@ -146,14 +146,20 @@
 - [ ] 内部按 `core/ runtime/ impl/` 重组
 - [ ] 同步改 `package.json`（extraResources）、electron-builder、测试路径
 
-### P4.4 providers 内部分目录
-- [ ] `providers/deepseek.js` → `providers/deepseek/{index,hook}.ts`
-- [ ] 三份同理；抽出公共 SSE 解码逻辑
+### P4.4 providers 对齐新约定（D13/D14/D15）
+- [ ] **保持单文件自包含**（D13）：`deepseek.ts`/`claude.ts`/`chatgpt.ts` 各自
+      含元数据 + 提示词 + hook 源码，**不拆目录**
+- [ ] 抽出公共 SSE 解码到 `providers/shared/`（仅内置可引用）
+- [ ] 加 `providers/validate.ts`，加载时校验 provider 必需字段（D14）
+- [ ] 自定义 provider 加载改为**只收 `.js`**（D15），加载后过 validate
 
-### P4.5 拆巨型文件
+### P4.5 拆分与模式收敛
 - [ ] `overlay/events.ts`（813 行）→ 按面板区域拆
 - [ ] `overlay/template.ts`（526 行）→ 按区块拆或外置 HTML
-- [ ] `session/project-context.ts`（288 行）→ 拆提示词拼装
+- [ ] `session/project-context.ts`（288 行）→ 拆提示词渲染
+- [ ] **废除 JSON 调用模式（D11）**：删 `tool-parser` 的解析分支、
+      `handleToolCall`；改为 `json-detector` 只识别、检测到则发工具规范更新章节
+- [ ] 工具统一为 `read`/`write`/`edit` 一套名字
 
 **验收（每子阶段）**：
 - ESLint 依赖规则零违规
@@ -161,7 +167,8 @@
 - 应用功能不回归（手动冒烟关键路径）
 - 目录结构与文档一致
 
-**风险**：这是最长的阶段，冲突最多。需 D10 冻结策略支持。
+**风险**：这是最长的阶段。D10 决定不冻结 master，重构分支需定期合并，
+冲突就地解决。
 
 ---
 
@@ -171,8 +178,9 @@
 
 **任务**：
 - [ ] `tsconfig` 开 `strict: true`，逐个消灭 `any` 与 `@ts-ignore`
-- [ ] 删旧 JS API 别名（若 P1 未删）
-- [ ] 删所有兼容层
+- [ ] **工具规范自动生成（D12）**：用 TS 编译器从工具类型定义生成
+      `cuckoo-tools.d.ts` 与提示词中的工具章节，消除三处手动同步
+- [ ] 删残留的兼容层/旧别名（若 P1 未清完）
 - [ ] 补关键路径测试（bridge / overlay 覆盖不足）
 - [ ] 更新 `README` / `CONTRIBUTING` / `CHANGELOG`
 - [ ] 更新 `docs/refactor/` 状态为「已完成」
@@ -199,8 +207,8 @@
 ## 当前行动
 
 **P0 收尾**：
-1. 你 review `01`–`04` 四份文档
-2. 拍板 D3 / D4 / D5 / D10
-3. 补 `00-goal.md`
+1. ✅ review `01`–`04`
+2. ✅ 拍板 D1–D15
+3. [ ] 补 `00-goal.md`（用户口述目标）
 
-**完成后进入 P1。**
+**完成后进入 P1（清理死代码）。**
