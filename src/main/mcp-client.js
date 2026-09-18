@@ -2,6 +2,9 @@
  * MCP Client 管理
  * 连接/管理多个 MCP server（stdio + HTTP），提供工具列表和调用能力。
  */
+const fs = require('fs');
+const path = require('path');
+const { app } = require('electron');
 const { Client } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js');
 const { StdioClientTransport } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/stdio.js');
 const { StreamableHTTPClientTransport } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/streamableHttp.js');
@@ -11,6 +14,55 @@ const mcpConfig = require('./mcp-config');
 const connections = new Map();
 // server name -> Promise<entry>：连接进行中的缓存，避免并发重复连接（如启动与初始化同时触发）
 const connecting = new Map();
+
+// 默认工作目录缓存（探测一次）
+let defaultCwdCache;
+let defaultCwdResolved = false;
+
+/**
+ * 计算 MCP 子进程的默认工作目录。
+ * 优先「程序目录/mcp-cwd」，不可写时回退「userData/mcp-cwd」。
+ * 覆盖各平台、各安装方式（ZIP/Portable 可写程序目录；Program Files/macOS 不可写则落 userData）。
+ * @returns {string|undefined} 可写目录的绝对路径；全部失败返回 undefined（子进程继承父进程 cwd）
+ */
+function getDefaultMcpCwd() {
+  if (defaultCwdResolved) return defaultCwdCache;
+  defaultCwdResolved = true;
+
+  const candidates = [];
+  // portable 版：程序运行时解压到临时目录，exe 路径不可靠，用 electron-builder 提供的
+  // PORTABLE_EXECUTABLE_DIR（指向用户放置 portable exe 的真实目录）
+  if (app.isPackaged && process.env.PORTABLE_EXECUTABLE_DIR) {
+    candidates.push(path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'mcp-cwd'));
+  }
+  // 打包后：程序目录优先（便于用户删除程序目录时一并清理）
+  if (app.isPackaged) {
+    try {
+      const exeDir = path.dirname(app.getPath('exe'));
+      candidates.push(path.join(exeDir, 'mcp-cwd'));
+    } catch (_) {}
+  }
+  // userData 兜底（始终可写；开发环境也走这里）
+  try {
+    candidates.push(path.join(app.getPath('userData'), 'mcp-cwd'));
+  } catch (_) {}
+
+  for (const dir of candidates) {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      const probe = path.join(dir, '.write-test');
+      fs.writeFileSync(probe, '');
+      fs.unlinkSync(probe);
+      defaultCwdCache = dir;
+      console.log('[MCP] 默认工作目录:', dir);
+      return dir;
+    } catch (_) {
+      console.warn('[MCP] 工作目录不可写，尝试下一个:', dir);
+    }
+  }
+  console.warn('[MCP] 未找到可写的默认工作目录，子进程将继承父进程 cwd');
+  return undefined;
+}
 
 async function connectServer(server) {
   if (connections.has(server.name)) {
@@ -37,7 +89,7 @@ async function doConnectServer(server) {
       command: server.command,
       args: server.args || [],
       env: server.env || {},
-      cwd: server.cwd,
+      cwd: server.cwd || getDefaultMcpCwd(),
       stderr: 'pipe',
     });
   } else if (server.type === 'http') {

@@ -85,6 +85,7 @@ function getServers() {
       url: def && def.url,
       headers: def && def.headers,
       env: def && def.env,
+      cwd: def && def.cwd,
       enabled: state[name] !== false, // 默认启用
     });
   }
@@ -108,6 +109,7 @@ function upsertServer(server) {
     if (server.command) def.command = server.command;
     if (server.args && server.args.length) def.args = server.args;
     if (server.env) def.env = server.env;
+    if (server.cwd) def.cwd = server.cwd;
   }
   config.mcpServers[server.name] = def;
   writeConfig(config);
