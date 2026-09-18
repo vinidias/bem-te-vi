@@ -40,28 +40,35 @@
 
 ---
 
-## P1 —— 清理死代码
+## P1 —— 清理废弃路径
 
-**目标**：只删不加，行为 100% 不变。
+**目标**：清理旧工具 / 旧别名 / 冗余，**不新增功能、不重构结构**。
+
+> ⚠️ 与旧版定义的差异：本阶段**接受"删废弃路径"带来的行为变更**
+> （如 JSON 模式调 file_glob 会失败、readFile() 会报错）。
+> 这些路径本就是 D4/D11 要废除的；"行为不变"的原意是"不改业务逻辑"，
+> 而非"一个字节都不能动"。**这里提前删，为 P3 迁移减量。**
 
 **任务**：
-- [ ] 删 `tools/GlobTool.js` + `tools/GrepTool.js`（旧版，死代码）
+- [ ] 删 `tools/GlobTool.js` + `tools/GrepTool.js`（file_glob/file_grep 旧工具）
 - [ ] 删 `test/tools/LegacyGlobGrep.test.js`
 - [ ] 清理 `tools/index.js` 对应 import/register/export
 - [ ] 清理 `src/preload/tool-names.js` 的 `file_glob`/`file_grep`
 - [ ] **修 bug**：`tool-names.js` 缺 `mcp_call`
-- [ ] 删旧别名与对应工具（D4 已定：`readFile`/`writeFile`/`editFile`/`readFileWithLines`，
+- [ ] 删旧别名与对应工具（D4：`readFile`/`writeFile`/`editFile`/`readFileWithLines`
       及 `FileReadTool`/`FileWriteTool`/`FileEditTool`）
 - [ ] 提示词归属 provider：将 `src/prompt/*.md` 内联进各 provider（D5/D13）
 - [ ] 清理根目录生成文件（`build-*.log`、`coverage.lcov` 等）出 git
 
 **验收**：
-- `node --test` 全绿
+- `node --test` 全绿（**需同步删/改受影响的测试**）
 - 源码行数下降（目标 -10%）
-- `cuckoo-tools.d.ts` 契约未变
+- `cuckoo-tools.d.ts` **按 D4 更新**（删旧别名条目）
 - 应用能 `npm start` 启动并完成一次工具调用
 
-**风险**：误删被动态引用的代码 → 每次删除后立刻跑测试。
+**风险**：
+- 误删被动态引用的代码 → 每次删除后立刻跑测试
+- 测试失败是**预期**（测试引用了将删的工具）→ 同步更新测试，而非视为回归
 
 ---
 
