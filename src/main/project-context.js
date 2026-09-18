@@ -201,10 +201,18 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
     ? enabledMcpServers.map(s => '- ' + s.name + '（' + s.type + '，' + (s.connected ? '已连接' : '未连接') + '，工具数 ' + s.toolCount + '）').join('\n')
     : '（当前没有已配置且启用的 MCP server）';
 
+  // MCP 子进程的工作目录（stdio server 的相对路径产物会落在此目录下）
+  const mcpCwd = mcpClient.getDefaultMcpCwd();
+  const mcpCwdLine = mcpCwd
+    ? 'MCP 子进程的工作目录（cwd）：' + mcpCwd + '\n注意：MCP 工具（如截图、下载）返回的路径多为相对路径，实际文件位于该 cwd 下。若需读取/上传这些文件（如 attachFile），请把该 cwd 与相对路径用 / 拼接成绝对路径传入，例如：' + mcpCwd + '/page-xxx.png'
+    : 'MCP 子进程的工作目录（cwd）：未确定（继承父进程）。MCP 工具返回的相对路径请以实际返回为准。';
+
   const mcpSection = [
     '## MCP 能力',
     '',
     '本应用支持 MCP（Model Context Protocol）外部工具扩展。',
+    '',
+    mcpCwdLine,
     '',
     '当前已配置且启用的 MCP server：',
     mcpServerList,
