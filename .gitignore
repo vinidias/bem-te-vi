@@ -36,6 +36,9 @@ temp/
 .cuckooCode/
 .claude/
 
+# Playwright MCP 产物（快照/截图）
+.playwright-mcp/
+
 # Coverage reports
 coverage.lcov
 test/coverage.lcov
