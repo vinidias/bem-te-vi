@@ -138,10 +138,13 @@
   3. **每个 provider 都应有自己的提示词，不合并。**
   4. **`deepseek`/`claude`/`chatgpt` 本质上就是 provider**（内置，不需用户导入），
      与自定义 provider **同等地位**。
-- **结论**：**提示词归属 provider，不合并、不集中维护。**
-  - 提示词**内联进 provider 文件**（见 D13）。
-  - 各 provider 的提示词独立演进。
-- **影响**：删除 `src/prompts/` 集中目录（或降为仅存内置 provider 的提示词源）。
+- **结论**：**提示词可选，两种形式并存**（机制已存在，无需改动）：
+  - **provider 可实现 `getPromptTemplate()`** → 提示词内联进 provider。
+  - **不实现则读文件** `src/prompt/{providerId}.md` → 文件形式。
+  - 加载优先级：`provider.getPromptTemplate()` → `src/prompt/{id}.md` → `src/prompt/default.md`。
+  - 现状即此逻辑（`project-context.js` L116-131），**内置 provider 用文件形式**。
+  - `default.md` 保留为**自定义 provider 的兜底**。
+- **影响**：`src/prompt/` **保留**（内置 provider 的提示词来源 + 兜底），不删除、不搬家。
 - **日期**：2026-09-18
 - **状态**：✅ 已定
 
@@ -269,15 +272,16 @@
 
 - **背景**：provider 是否自包含、提示词放哪。
 - **备选**：
-  - (a) 全内联进 provider 单文件
-  - (b) 内置用目录，自定义单文件
-  - (c) 提示词独立文件
-- **结论**：**(a) 全部内联进 provider 单文件**。
-  - 一个 provider 文件 = 元数据 + 提示词 + 内联 hook 源码，**完全自包含**。
-  - **内置 provider（deepseek/claude/chatgpt）与自定义 provider 结构完全一致** ——
+  - (a) 全内联进 provider 单文件（含提示词）
+  - (b) 元数据 + hook 内联，提示词外置文件
+  - (c) 内置用目录，自定义单文件
+- **结论**：**(b) provider 单文件（元数据 + hook），提示词外置文件**。
+  - 一个 provider 文件 = 元数据 + 内联 hook 源码，**自包含**。
+  - **提示词可选**：可实现 `getPromptTemplate()` 内联，也可外置为
+    `src/prompt/{id}.md`（加载机制已存在，见 D5）。**内置用文件形式。**
+  - **内置 provider（deepseek/claude/chatgpt）与自定义 provider 结构一致** ——
     只是内置的随程序发布、不需用户导入。
-  - 内置 provider 文件会变大（如 deepseek ≈ 572 + 189 行），**接受**。
-- **影响**：D5 的"提示词内联"；`providers/shared/` 仅内置 provider 可引用；
+- **影响**：`providers/shared/` 仅内置 provider 可引用；
   自定义 provider 不得依赖外部（见 D14）。
 - **日期**：2026-09-18
 - **状态**：✅ 已定
@@ -336,6 +340,6 @@
 | D10 | 不冻结 master | ✅ |
 | D11 | 只留 JS 模式 | ✅ |
 | D12 | 工具规范自动生成（P5） | ✅ |
-| D13 | provider 单文件自包含 | ✅ |
+| D13 | provider 单文件（提示词可外置） | ✅ |
 | D14 | provider 强制实现 TS 接口 | ✅ |
 | D15 | 自定义 provider 上传 .js | ✅ |

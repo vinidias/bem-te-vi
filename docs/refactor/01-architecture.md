@@ -98,7 +98,8 @@ src/
 │   └── custom/           用户自定义 provider 加载
 │
 │   ⚠️ 核心约定（见 03-decisions D5/D13/D14/D15）：
-│   - **每个 provider 单文件自包含**：元数据 + 提示词 + hook 源码全内联。
+│   - **每个 provider 单文件自包含**：元数据 + hook 源码内联。
+│     提示词可选（可内联 `getPromptTemplate()`，也可外置 `src/prompt/{id}.md`）。
 │   - **内置与自定义结构完全一致** —— 内置的只是"随程序发布、不需导入"。
 │     内置 provider 可 require shared/；自定义必须完全自包含。
 │   - **统一实现 Provider 接口**：types.ts 定义 + validate.ts 运行时校验
@@ -247,7 +248,7 @@ export function bindEvents(handlers: {
 | `tools/*` | `src/tools/*` | **移入 src** |
 | `src/providers/*` | `src/providers/*` | 内部分目录 |
 | `src/utils/with-log.js` | `src/infra/with-log.ts` | 平移 |
-| `src/prompt/*.md` | 内联进各 provider | D5：提示词归属 provider，不集中 |
+| `src/prompt/*.md` | 保留 | D5：provider 提示词来源 + 自定义兜底 |
 | `tools/cuckoo-tools.d.ts` | `src/tools/api.d.ts` | 归位 |
 
 ### 4.1 删除动作的保守流程（适用于表中所有"删除/拆解"）

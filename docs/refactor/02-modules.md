@@ -67,11 +67,12 @@
 
 ### providers/{deepseek,claude,chatgpt}.ts
 - **职责**：单个内置平台的**完整定义，单文件自包含** ——
-  元数据（id/name/homeUrl/选择器/URL 匹配）+ **提示词** + 内联的主世界 hook 源码
+  元数据（id/name/homeUrl/选择器/URL 匹配）+ 内联的主世界 hook 源码
 - **对外接口**：导出 `Provider` 对象（含 `getHookSource()`）
 - **不做**：不做网络拦截的实际注入（注入由 bridge 负责）
-- **约束（D5/D13）**：**提示词内联进本文件**，不集中放 `src/prompts/`；
-  内置与自定义**结构完全一致**，内置的只是"随程序发布、不需导入"。
+- **约束（D5/D13）**：**提示词可选** —— 可内联（`getPromptTemplate()`），
+  也可外置为 `src/prompt/{id}.md`（**内置用文件形式**）。
+  内置与自定义**结构一致**，内置的只是"随程序发布、不需导入"。
   内置可 `require('../shared/*')`
 
 ### providers/shared/*.ts
@@ -85,7 +86,7 @@
 - **对外接口**：`loadCustomProviders()` / `importProvider(file)` / `deleteProvider(id)`
 - **不做**：不执行 provider 代码（只加载）
 - **约束（D13/D15）**：自定义 provider **必须单文件自包含**
-  （提示词也内联其中，不得 require 项目内其他模块）。
+  （元数据 + hook 内联；提示词可内联或依赖 `default.md` 兜底，不得 require 其他模块）。
   **用户上传 `.js`**（非 `.ts`）—— 系统不引入运行时编译器，保住"零构建"；
   写 TS 的人自行编译后上传。加载后过 `validate.ts` 校验。
 

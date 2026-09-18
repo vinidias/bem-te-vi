@@ -57,7 +57,7 @@
 - [ ] **修 bug**：`tool-names.js` 缺 `mcp_call`
 - [ ] 删旧别名与对应工具（D4：`readFile`/`writeFile`/`editFile`/`readFileWithLines`
       及 `FileReadTool`/`FileWriteTool`/`FileEditTool`）
-- [ ] 提示词归属 provider：将 `src/prompt/*.md` 内联进各 provider（D5/D13）
+- [x] 提示词组织：机制已存在（provider.getPromptTemplate 优先，文件兜底），无需改动（D5）
 - [ ] 清理根目录生成文件（`build-*.log`、`coverage.lcov` 等）出 git
 
 **验收**：
