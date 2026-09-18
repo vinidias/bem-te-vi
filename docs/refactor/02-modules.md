@@ -37,10 +37,11 @@
 - **对外接口**：`withLog(fn, label)`
 - **不做**：不写文件（只 console）、不改函数行为
 
-### infra/prompt-loader.ts
-- **职责**：加载提示词模板、替换变量占位符
-- **对外接口**：`loadSystemPrompt(providerId, vars)` / `renderTemplate(tpl, vars)`
-- **不做**：不发消息、不决定发什么（拼装逻辑归 session）
+### infra/prompt-render.ts
+- **职责**：把提示词模板里的 `{{XXX}}` 占位符替换为运行时值
+- **对外接口**：`renderTemplate(tpl, vars)`
+- **不做**：不决定用哪份模板（模板由 provider 提供）、不发消息
+- **说明**：D5 后提示词归属 provider，此模块只做"变量替换"这一件事
 
 ---
 
@@ -51,17 +52,27 @@
 - **对外接口**：`Provider` 类型、`ProviderInputs` 等
 - **不做**：不含运行时代码
 
+### providers/validate.ts
+- **职责**：**运行时**校验 provider 是否实现了必需字段
+  （`id`/`name`/`homeUrl` 等），缺失则报明确错误
+- **对外接口**：`validateProvider(obj)`
+- **不做**：不做类型检查（TS 类型运行时已擦除，故靠字段校验强制）
+- **说明（D14）**：这是"必须实现接口"的**真正强制手段** —— TS 给开发时提示，
+  校验函数给运行时保障，两者都要有
+
 ### providers/registry.ts
 - **职责**：加载内置 + 自定义 provider，提供按 id / url 查找
 - **对外接口**：`getAllProviders()` / `getProvider(id)` / `getProviderByUrl(url)`
 - **不做**：不创建窗口、不注入 hook
 
-### providers/{deepseek,claude,chatgpt}.js
-- **职责**：单个内置平台的完整定义 —— 元数据（id/name/homeUrl/选择器/URL 匹配）
-  + 内联的主世界 hook 源码（自包含函数）
+### providers/{deepseek,claude,chatgpt}.ts
+- **职责**：单个内置平台的**完整定义，单文件自包含** ——
+  元数据（id/name/homeUrl/选择器/URL 匹配）+ **提示词** + 内联的主世界 hook 源码
 - **对外接口**：导出 `Provider` 对象（含 `getHookSource()`）
 - **不做**：不做网络拦截的实际注入（注入由 bridge 负责）
-- **约束**：**内置 provider 为单文件**，可 `require('../shared/*')` 复用公共逻辑
+- **约束（D5/D13）**：**提示词内联进本文件**，不集中放 `src/prompts/`；
+  内置与自定义**结构完全一致**，内置的只是"随程序发布、不需导入"。
+  内置可 `require('../shared/*')`
 
 ### providers/shared/*.ts
 - **职责**：内置 provider 共享的公共逻辑（如 SSE 帧解码）
@@ -73,8 +84,10 @@
 - **职责**：用户自定义 provider 的导入/删除/持久化
 - **对外接口**：`loadCustomProviders()` / `importProvider(file)` / `deleteProvider(id)`
 - **不做**：不执行 provider 代码（只加载）
-- **约束**：自定义 provider **必须单文件自包含**（用户只上传一个文件，
-  系统复制到 userData 后独立加载，不得 require 项目内其他模块）
+- **约束（D13/D15）**：自定义 provider **必须单文件自包含**
+  （提示词也内联其中，不得 require 项目内其他模块）。
+  **用户上传 `.js`**（非 `.ts`）—— 系统不引入运行时编译器，保住"零构建"；
+  写 TS 的人自行编译后上传。加载后过 `validate.ts` 校验。
 
 ---
 
@@ -140,7 +153,7 @@
 ### session/project-context.ts
 - **职责**：初始化项目 —— 选目录、拼系统提示词、通过 IPC 发给渲染进程
 - **对外接口**：`initProject(opts)`
-- **不做**：不实现提示词模板（用 prompt-loader）、不实现 IPC 通道（在 app/ipc）
+- **不做**：不实现模板变量替换（用 prompt-render）、不实现 IPC 通道（在 app/ipc）
 
 ### session/compaction.ts
 - **职责**：上下文压缩流程（摘要 → share API → 跳转）
@@ -172,19 +185,22 @@
 - **不做**：不含 hook 源码（在 providers）
 
 ### bridge/parser/js-detector.ts
-- **职责**：从 AI 回复里识别 cuckoo 代码块 / 工具调用
+- **职责**：从 AI 回复里识别 cuckoo 代码块（JS 调用）
 - **对外接口**：`looksLikeToolScript(code)` / `extractJsToolBlocks(text)`
 - **不做**：不执行
 
-### bridge/parser/tool-parser.ts
-- **职责**：宽容 JSON 解析与修复
-- **对外接口**：`tryParseToolCall(text)` / `parseJsonWithRepair(str)`
-- **不做**：不执行
+### bridge/parser/json-detector.ts
+- **职责**：识别 AI 是否在用**旧的 JSON 调用格式**（`{"toolName":...}`）
+- **对外接口**：`looksLikeJsonToolCall(text)`
+- **不做**：**不解析、不执行** JSON 调用
+- **说明（D11）**：JSON 模式已废除。检测到 JSON 调用时，
+  只发"工具规范已更新"章节提醒 AI 改用 JS 模式，
+  **不发完整初始化提示词**（避免重置项目目录 / MCP 状态）。
 
 ### bridge/loop/executor.ts
-- **职责**：工具/JS 脚本的分发执行、结果回传
-- **对外接口**：`handleToolCall()` / `handleJsToolScript()`
-- **不做**：不决定重试（那是 retry）
+- **职责**：JS 脚本的执行分发、结果回传
+- **对外接口**：`handleJsToolScript()`
+- **不做**：不处理 JSON 调用（已废除）、不决定重试（那是 retry）
 
 ### bridge/loop/watchdog.ts
 - **职责**：AI 卡住时催继续

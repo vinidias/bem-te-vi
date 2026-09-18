@@ -42,8 +42,8 @@ src/
 │   │   └── injector.ts   provider hook 注入逻辑
 │   ├── dom-observe/      DOM 抓取模式
 │   ├── parser/           回复解析（纯函数，易测）
-│   │   ├── js-detector.ts  原 dom/js-detector.js
-│   │   └── tool-parser.ts  原 dom/tool-parser.js
+│   │   ├── js-detector.ts    原 dom/js-detector.js（识别 JS 调用）
+│   │   └── json-detector.ts  识别旧的 JSON 调用格式（D11：已废除，仅提示）
 │   └── loop/             工具调用循环
 │       ├── executor.ts   原 dom/tool-executor.js
 │       ├── watchdog.ts   原 dom/tool-loop-watchdog.js
@@ -88,18 +88,23 @@ src/
 │
 ├── providers/            平台适配
 │   ├── types.ts          Provider 接口（原 custom/provider.d.ts 提升）
+│   ├── validate.ts       运行时字段校验（"必须实现接口"的真正强制）
 │   ├── registry.ts       原 providers/index.js
 │   ├── shared/           内置 provider 共享的公共逻辑（SSE 解码等）
 │   │   └── sse.ts
-│   ├── deepseek.js       内置，单文件（可 require shared）
-│   ├── claude.js
-│   ├── chatgpt.js
+│   ├── deepseek.ts       内置，单文件（元数据 + 提示词 + hook 源码）
+│   ├── claude.ts
+│   ├── chatgpt.ts
 │   └── custom/           用户自定义 provider 加载
 │
-│   ⚠️ 约束区分：
-│   - 内置 provider（deepseek/claude/chatgpt）：可引用 shared/，可为多文件
-│   - 自定义 provider（用户上传）：**必须单文件自包含**，不得 require shared
-│     （用户只上传一个文件，系统复制到 userData 后独立加载）
+│   ⚠️ 核心约定（见 03-decisions D5/D13/D14/D15）：
+│   - **每个 provider 单文件自包含**：元数据 + 提示词 + hook 源码全内联。
+│   - **内置与自定义结构完全一致** —— 内置的只是"随程序发布、不需导入"。
+│     内置 provider 可 require shared/；自定义必须完全自包含。
+│   - **统一实现 Provider 接口**：types.ts 定义 + validate.ts 运行时校验
+│     （TS 类型运行时被擦除，强制靠校验函数）。
+│   - **用户上传 .js**（非 .ts）：系统不引入运行时编译器，保住"零构建"。
+│     写 TS 的人自行编译后上传。运行时两者都是 JS、都过同一校验。
 │
 ├── mcp/                  MCP 集成
 │   ├── client.ts         原 main/mcp-client.js
@@ -113,7 +118,7 @@ src/
     ├── dangerous-commands.ts 原 main/dangerous-commands.js
     ├── with-log.ts       原 utils/with-log.js
     ├── paths.ts          新：统一 userData / 日志目录计算
-    └── prompt-loader.ts  新：提示词模板加载与变量替换
+    └── prompt-render.ts  新：提示词模板的变量替换（模板本身由 provider 提供）
 
 # 保留在根目录（Electron 约定）
 main.js                  → 薄壳，require('./src/app/entry')
@@ -216,7 +221,7 @@ export function bindEvents(handlers: {
 | `src/main/profile-manager.js` | `src/app/profile.ts` | 平移 |
 | `src/main/ipc.js` | `src/app/ipc/*` | **拆分**（9 个通道按领域分 5 个文件） |
 | `src/main/session-store.js` | `src/session/store.ts` | 平移 |
-| `src/main/project-context.js` | `src/session/project-context.ts` | 拆：提示词拼装入 prompt-loader |
+| `src/main/project-context.js` | `src/session/project-context.ts` | 拆：变量替换入 prompt-render |
 | `src/main/mcp-client.js` | `src/mcp/client.ts` | 平移 |
 | `src/main/mcp-config.js` | `src/mcp/config.ts` | 平移 |
 | `src/main/updater.js` | `src/updater/index.ts` | 平移 |
@@ -228,7 +233,7 @@ export function bindEvents(handlers: {
 | `src/preload/dom/state.js` | **拆解** | 状态按领域归属到各模块 |
 | `src/preload/dom/intercept-observer.js` | `src/bridge/intercept/observer.ts` | 平移 |
 | `src/preload/dom/js-detector.js` | `src/bridge/parser/js-detector.ts` | 平移 |
-| `src/preload/dom/tool-parser.js` | `src/bridge/parser/tool-parser.ts` | 平移 |
+| `src/preload/dom/tool-parser.js` | `src/bridge/parser/json-detector.ts` | 改：只识别不解析（D11） |
 | `src/preload/dom/tool-executor.js` | `src/bridge/loop/executor.ts` | 平移 |
 | `src/preload/dom/tool-loop-watchdog.js` | `src/bridge/loop/watchdog.ts` | 平移 |
 | `src/preload/dom/retry-engine.js` | `src/bridge/loop/retry.ts` | 平移 |
@@ -242,7 +247,7 @@ export function bindEvents(handlers: {
 | `tools/*` | `src/tools/*` | **移入 src** |
 | `src/providers/*` | `src/providers/*` | 内部分目录 |
 | `src/utils/with-log.js` | `src/infra/with-log.ts` | 平移 |
-| `src/prompt/*.md` | `src/prompts/*.md` | 合并（见下） |
+| `src/prompt/*.md` | 内联进各 provider | D5：提示词归属 provider，不集中 |
 | `tools/cuckoo-tools.d.ts` | `src/tools/api.d.ts` | 归位 |
 
 ### 4.1 删除动作的保守流程（适用于表中所有"删除/拆解"）

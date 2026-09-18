@@ -52,7 +52,7 @@
 - [ ] 清理 `src/preload/tool-names.js` 的 `file_glob`/`file_grep`
 - [ ] **修 bug**：`tool-names.js` 缺 `mcp_call`
 - [ ] 视 D4 决策：删/留旧别名与对应工具
-- [ ] 视 D5 决策：合并 `src/prompt/*.md`
+- [ ] 提示词归属 provider：将 `src/prompt/*.md` 内联进各 provider（D5/D13）
 - [ ] 清理根目录生成文件（`build-*.log`、`coverage.lcov` 等）出 git
 
 **验收**：
