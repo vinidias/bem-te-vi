@@ -99,9 +99,10 @@ function guessMimeType(fileName) {
  * @param {string} fileName 文件名
  * @param {string} mimeType MIME 类型
  * @param {number} timeoutMs 等待附件出现的超时
+ * @param {number} waitMs 触发 change 后先等待的时间（附件上传间隔）
  * @returns {string} IIFE 代码字符串
  */
-function buildInjectCode(base64, fileName, mimeType, timeoutMs) {
+function buildInjectCode(base64, fileName, mimeType, timeoutMs, waitMs) {
   return (
     '(async () => {\n' +
     '  try {\n' +
@@ -109,6 +110,7 @@ function buildInjectCode(base64, fileName, mimeType, timeoutMs) {
     '    const fileName = ' + JSON.stringify(fileName) + ';\n' +
     '    const mimeType = ' + JSON.stringify(mimeType) + ';\n' +
     '    const timeoutMs = ' + JSON.stringify(timeoutMs) + ';\n' +
+    '    const waitMs = ' + JSON.stringify(waitMs) + ';\n' +
     '    const bin = atob(b64);\n' +
     '    const bytes = new Uint8Array(bin.length);\n' +
     '    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);\n' +
@@ -127,6 +129,8 @@ function buildInjectCode(base64, fileName, mimeType, timeoutMs) {
     '      }\n' +
     '      return false;\n' +
     '    }\n' +
+    '    await new Promise((r) => setTimeout(r, waitMs));\n' +
+    '    if (fileVisible()) return { success: true, fileName: fileName };\n' +
     '    const deadline = Date.now() + timeoutMs;\n' +
     '    while (Date.now() < deadline) {\n' +
     '      await new Promise((r) => setTimeout(r, 300));\n' +
@@ -168,7 +172,7 @@ class AttachFileTool extends Tool {
   }
 
   async execute(params) {
-    const { filePath, projectDir, currentWindowId, windowId } = params || {};
+    const { filePath, projectDir, currentWindowId, windowId, attachDelayMin, attachDelayMax } = params || {};
     let absPath;
     try {
       absPath = resolveFilePath(filePath, projectDir || null);
@@ -208,7 +212,10 @@ class AttachFileTool extends Tool {
     const fileName = path.basename(absPath);
     const mimeType = guessMimeType(fileName);
     const base64 = buffer.toString('base64');
-    const code = buildInjectCode(base64, fileName, mimeType, UPLOAD_TIMEOUT_MS);
+    const minDelay = Number.isFinite(attachDelayMin) ? attachDelayMin : 500;
+    const maxDelay = Number.isFinite(attachDelayMax) ? attachDelayMax : 1000;
+    const waitMs = maxDelay > minDelay ? Math.floor(Math.random() * (maxDelay - minDelay)) + minDelay : minDelay;
+    const code = buildInjectCode(base64, fileName, mimeType, UPLOAD_TIMEOUT_MS, waitMs);
 
     let result;
     try {

@@ -351,6 +351,8 @@ function openSettings() {
     setVal('cuckoo-xhr-idle-timeout', msToSec(localStorage.getItem('cuckoo-xhr-idle-timeout') || '300000', 300));
     setVal('cuckoo-watchdog-prompt', localStorage.getItem('cuckoo-watchdog-prompt') || '请继续');
     setVal('cuckoo-watchdog-count', localStorage.getItem('cuckoo-watchdog-count') || '3');
+    setVal('cuckoo-attach-delay-min', msToSec(localStorage.getItem('cuckoo-attach-delay-min') || '500', 0.5));
+    setVal('cuckoo-attach-delay-max', msToSec(localStorage.getItem('cuckoo-attach-delay-max') || '1000', 1));
   } catch (_) {}
   setVal('cuckoo-delay-min', state.sendDelayMin / 1000);
   setVal('cuckoo-delay-max', state.sendDelayMax / 1000);
@@ -371,6 +373,7 @@ function resetSettings() {
     'cuckoo-retry-count', 'cuckoo-retry-429-delay', 'cuckoo-retry-429-count',
     'cuckoo-retry-prompt', 'cuckoo-xhr-idle-timeout', 'cuckoo-watchdog-prompt',
     'cuckoo-watchdog-count', 'cuckoo-send-delay-min', 'cuckoo-send-delay-max',
+    'cuckoo-attach-delay-min', 'cuckoo-attach-delay-max',
   ];
   try {
     for (const k of KEYS) localStorage.removeItem(k);
@@ -409,6 +412,11 @@ function saveSettings() {
   if (Number.isNaN(smin) || smin < 0) { showToast('发送延迟最小值必须是非负数字（秒）', 3000); return; }
   if (Number.isNaN(smax) || smax < smin) { showToast('发送延迟最大值不能小于最小值', 3000); return; }
   if (smax > 10000) { showToast('发送延迟最大值不能超过 10 秒', 3000); return; }
+  const amin = secToMs(val('cuckoo-attach-delay-min'));
+  const amax = secToMs(val('cuckoo-attach-delay-max'));
+  if (Number.isNaN(amin) || amin < 0) { showToast('附件上传间隔最小值必须是非负数字（秒）', 3000); return; }
+  if (Number.isNaN(amax) || amax < amin) { showToast('附件上传间隔最大值不能小于最小值', 3000); return; }
+  if (amax > 60000) { showToast('附件上传间隔最大值不能超过 60 秒', 3000); return; }
 
   const enEl = document.getElementById('cuckoo-retry-enabled');
   try {
@@ -424,6 +432,8 @@ function saveSettings() {
     localStorage.setItem('cuckoo-watchdog-count', String(watchdogCount));
     localStorage.setItem('cuckoo-send-delay-min', String(smin));
     localStorage.setItem('cuckoo-send-delay-max', String(smax));
+    localStorage.setItem('cuckoo-attach-delay-min', String(amin));
+    localStorage.setItem('cuckoo-attach-delay-max', String(amax));
   } catch (_) {}
   state.sendDelayMin = smin;
   state.sendDelayMax = smax;

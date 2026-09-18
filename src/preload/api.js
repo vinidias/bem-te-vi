@@ -24,7 +24,15 @@ let electronAPI = {
     return ipcRenderer.invoke('execute-tool', { toolName, params, callId });
   },
   executeJs: (code, callId) => {
-    return ipcRenderer.invoke('execute-js', { code, callId });
+    // 附件上传间隔（毫秒），随 JS 执行一并传给主进程的 attach_file 工具
+    let attachDelayMin, attachDelayMax;
+    try {
+      const mn = parseInt(localStorage.getItem('cuckoo-attach-delay-min'), 10);
+      const mx = parseInt(localStorage.getItem('cuckoo-attach-delay-max'), 10);
+      if (Number.isFinite(mn)) attachDelayMin = mn;
+      if (Number.isFinite(mx)) attachDelayMax = mx;
+    } catch (_) {}
+    return ipcRenderer.invoke('execute-js', { code, callId, attachDelayMin, attachDelayMax });
   },
   sendEnterToChat: () => {
     return ipcRenderer.invoke('chat-send-enter');

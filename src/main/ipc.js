@@ -155,7 +155,7 @@ function registerIpcHandlers() {
   });
 
   // 执行 JS 脚本
-  ipcMain.handle('execute-js', async (event, { code, callId }) => {
+  ipcMain.handle('execute-js', async (event, { code, callId, attachDelayMin, attachDelayMax }) => {
     if (!code || typeof code !== 'string') {
       return { callId, success: false, error: '无效的 JS 代码' };
     }
@@ -165,7 +165,7 @@ function registerIpcHandlers() {
     const win = ctx ? ctx.win : null;
     const windowId = win && !win.isDestroyed() ? win.id : null;
     try {
-      const result = await jsRunner.run(code, selectedDir, windowId);
+      const result = await jsRunner.run(code, selectedDir, windowId, { attachDelayMin, attachDelayMax });
       return { callId, ...result };
     } catch (err) {
       return { callId, success: false, error: err.message };
