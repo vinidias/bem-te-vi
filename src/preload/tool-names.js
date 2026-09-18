@@ -5,12 +5,9 @@
  * 注册表（tools/index.js）完成。列表与顺序保持与原内联注册表一致。
  */
 const TOOL_NAMES = [
-  'file_write',
   'write',
-  'file_read',
   'read',
   'read_lines',
-  'file_edit',
   'edit',
   'glob',
   'grep',

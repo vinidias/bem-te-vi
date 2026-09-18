@@ -6,7 +6,6 @@ const { TOOL_NAMES, hasTool, toolNamesList } = require('../../src/preload/tool-n
 test('TOOL_NAMES 包含全部工具名', () => {
   assert.ok(Array.isArray(TOOL_NAMES));
   assert.ok(TOOL_NAMES.length >= 16);
-  assert.ok(TOOL_NAMES.includes('file_write'));
   assert.ok(TOOL_NAMES.includes('write'));
   assert.ok(TOOL_NAMES.includes('read'));
   assert.ok(TOOL_NAMES.includes('edit'));
@@ -14,6 +13,7 @@ test('TOOL_NAMES 包含全部工具名', () => {
   assert.ok(TOOL_NAMES.includes('pwsh'));
   assert.ok(TOOL_NAMES.includes('todo_write'));
   assert.ok(TOOL_NAMES.includes('web_fetch'));
+  assert.ok(TOOL_NAMES.includes('mcp_call'));
   assert.ok(TOOL_NAMES.includes('mcp_list_servers'));
   assert.ok(TOOL_NAMES.includes('mcp_get_tools'));
 });

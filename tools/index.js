@@ -4,12 +4,9 @@
  */
 const { ToolRegistry } = require('./ToolRegistry');
 const { JsRunner } = require('./JsRunner');
-const { FileWriteTool } = require('./FileWriteTool');
 const { WriteTool } = require('./WriteTool');
-const { FileReadTool } = require('./FileReadTool');
 const { ReadTool } = require('./ReadTool');
 const { ReadLinesTool } = require('./ReadLinesTool');
-const { FileEditTool } = require('./FileEditTool');
 const { EditTool } = require('./EditTool');
 const { GlobToolNew } = require('./GlobToolNew');
 const { GrepToolNew } = require('./GrepToolNew');
@@ -29,12 +26,9 @@ const { McpListServersTool, McpGetToolsTool } = require('./McpQueryTools');
 const registry = new ToolRegistry();
 
 // 注册所有工具
-registry.register(new FileWriteTool());
 registry.register(new WriteTool());
-registry.register(new FileReadTool());
 registry.register(new ReadTool());
 registry.register(new ReadLinesTool());
-registry.register(new FileEditTool());
 registry.register(new EditTool());
 registry.register(new GlobToolNew());
 registry.register(new GrepToolNew());
@@ -56,11 +50,8 @@ module.exports = {
   ToolRegistry,
   JsRunner,
   registry,
-  FileWriteTool,
   WriteTool,
-  FileReadTool,
   ReadLinesTool,
-  FileEditTool,
   EditTool,
   GlobToolNew,
   GrepToolNew,

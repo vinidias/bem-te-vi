@@ -4,7 +4,7 @@
 const path = require('path');
 const fs = require('fs');
 const { ToolRegistry, ToolResult } = require('../tools/ToolRegistry');
-const { FileWriteTool } = require('../tools/FileWriteTool');
+const { WriteTool } = require('../tools/WriteTool');
 
 async function test() {
   console.log('=== 测试工具库 ===\n');
@@ -13,7 +13,7 @@ async function test() {
   const registry = new ToolRegistry();
 
   // 注册工具
-  registry.register(new FileWriteTool());
+  registry.register(new WriteTool());
 
   console.log(`\n已注册工具数量: ${registry.size()}`);
   console.log(`工具列表: ${registry.listNames().join(', ')}\n`);
@@ -23,7 +23,7 @@ async function test() {
   console.log(registry.getFormattedToolsForPrompt());
 
   // 测试执行工具
-  console.log('\n=== 测试执行 file_write ===');
+  console.log('\n=== 测试执行 write ===');
 
   // 写入测试文件
   const testFile = path.join(__dirname, '..', 'test_output.txt');
@@ -31,7 +31,7 @@ async function test() {
 创建时间: ${new Date().toISOString()}
 工具库测试成功!`;
 
-  const result = await registry.execute('file_write', {
+  const result = await registry.execute('write', {
     file_path: testFile,
     content: testContent
   });

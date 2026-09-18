@@ -2,9 +2,9 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const { ToolRegistry } = require('../tools/ToolRegistry');
-const { FileWriteTool } = require('../tools/FileWriteTool');
-const { FileReadTool } = require('../tools/FileReadTool');
-const { FileEditTool } = require('../tools/FileEditTool');
+const { WriteTool } = require('../tools/WriteTool');
+const { ReadTool } = require('../tools/ReadTool');
+const { EditTool } = require('../tools/EditTool');
 const { GlobToolNew } = require('../tools/GlobToolNew');
 const { GrepToolNew } = require('../tools/GrepToolNew');
 const { BashTool } = require('../tools/BashTool');
@@ -15,9 +15,9 @@ const NL = String.fromCharCode(10);
 
 (async () => {
   const registry = new ToolRegistry();
-  registry.register(new FileWriteTool());
-  registry.register(new FileReadTool());
-  registry.register(new FileEditTool());
+  registry.register(new WriteTool());
+  registry.register(new ReadTool());
+  registry.register(new EditTool());
   registry.register(new GlobToolNew());
   registry.register(new GrepToolNew());
   registry.register(new BashTool());
@@ -31,12 +31,12 @@ const NL = String.fromCharCode(10);
       name: 'writeFile + readFile + editFile + log + 返回值',
       code: [
         'const p = "test.txt";',
-        'await writeFile(p, ["line1", "line2", "line3"].join(String.fromCharCode(10)));',
-        'const content = await readFile(p);',
+        'await write(p, ["line1", "line2", "line3"].join(String.fromCharCode(10)));',
+        'const content = await read(p);',
         'log("读取到长度:", content.length);',
-        'const r = await editFile(p, "line2", "LINE2");',
+        'const r = await edit(p, "line2", "LINE2");',
         'log(r);',
-        'const c2 = await readFile(p);',
+        'const c2 = await read(p);',
         'if (!c2.includes("LINE2")) throw new Error("edit 未生效");',
         'return "OK: " + c2.trim().split(String.fromCharCode(10)).join("|");',
       ].join(NL)
@@ -44,8 +44,8 @@ const NL = String.fromCharCode(10);
     {
       name: 'glob + grep + deleteFile',
       code: [
-        'await writeFile("src/a.js", "const TODO_A = 1;");',
-        'await writeFile("src/b.js", "nothing here");',
+        'await write("src/a.js", "const TODO_A = 1;");',
+        'await write("src/b.js", "nothing here");',
         'const files = await glob("src/**/*.js");',
         'log("glob 文件:", files);',
         'const matches = await grep("TODO_A", { glob: "*.js" });',
@@ -69,14 +69,14 @@ const NL = String.fromCharCode(10);
     {
       name: '错误处理：文件不存在抛出异常',
       expectError: true,
-      code: 'await readFile("不存在的文件.txt");'
+      code: 'await read("不存在的文件.txt");'
     },
     {
       name: '错误处理：editFile old_string 不匹配',
       expectError: true,
       code: [
-        'await writeFile("x.txt", "abc");',
-        'await editFile("x.txt", "xyz", "123");',
+        'await write("x.txt", "abc");',
+        'await edit("x.txt", "xyz", "123");',
       ].join(NL)
     },
     {
