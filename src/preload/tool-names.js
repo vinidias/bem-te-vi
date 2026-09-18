@@ -12,9 +12,7 @@ const TOOL_NAMES = [
   'read_lines',
   'file_edit',
   'edit',
-  'file_glob',
   'glob',
-  'file_grep',
   'grep',
   'todo_write',
   'bash',
@@ -24,6 +22,7 @@ const TOOL_NAMES = [
   'open_browser_window',
   'inject_js',
   'attach_file',
+  'mcp_call',
   'mcp_list_servers',
   'mcp_get_tools',
 ];
