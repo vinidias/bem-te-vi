@@ -189,15 +189,11 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
   const promptSections = toolRegistry.getFormattedPromptSections();
 
   stepLog('工具描述生成完成');
-  // 确保已启用的 MCP server 已连接（8 秒超时，避免阻塞初始化）
-  try {
-    await Promise.race([
-      mcpClient.connectEnabledServers(),
-      new Promise(resolve => setTimeout(resolve, 8000))
-    ]);
-  } catch (err) {
+  // 后台异步连接已启用的 MCP server，不阻塞初始化（提示词先按当前状态生成，
+  // 未连接的 server 会标注“未连接”，AI 后续调用 mcpGetTools/mcpCall 时会按需连接）
+  mcpClient.connectEnabledServers().catch(err => {
     console.error('[MCP] 初始化时连接失败:', err.message);
-  }
+  });
 
   // MCP 章节：列出已配置且启用的 server 名称，工具列表仍按需查询（避免全量注入）
   const enabledMcpServers = mcpClient.listConfiguredServers().filter(s => s.enabled);
