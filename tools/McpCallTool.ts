@@ -43,6 +43,9 @@ class McpCallTool extends Tool {
       }
       // TODO(P4): tools 依赖 src/main 违反架构方向，待 mcp-client 下沉到 infra 后移除
       //            详见 docs/refactor/01-architecture.md
+      // 注意：此 require 在源码态（vitest）会解析失败（找不到 .ts），
+      //       仅编译产物 out/ 下正常。当前测试未触发，故暂绿。
+      //       P4 解耦 mcp-client 到 infra 时必须处理。
       const mcpClient = require('../src/main/mcp-client');
       const result = await mcpClient.callMcpTool(server, tool, args || {});
 
