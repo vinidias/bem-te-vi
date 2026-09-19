@@ -1,6 +1,6 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const fs = require('fs');
-const path = require('path');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // 与 dsh read 对齐的默认上限
 const READ_LIMIT = 2000;
@@ -183,4 +183,4 @@ class ReadTool extends Tool {
   }
 }
 
-module.exports = { ReadTool, READ_LIMIT, READ_MAX_LINE_LENGTH, READ_MAX_BYTES, parseReadArgs, buildWindow, formatReadOutput };
+export { ReadTool, READ_LIMIT, READ_MAX_LINE_LENGTH, READ_MAX_BYTES, parseReadArgs, buildWindow, formatReadOutput };
