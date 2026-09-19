@@ -1,46 +1,40 @@
 import { test, afterAll, vi } from 'vitest';
 import assert from 'node:assert';
-import Module from 'node:module';
 
-// ===== 可观测 mock =====
-const sent = [];
-const toasts = [];
-let errorCb = null;
-let responseCb = null;
+// ===== 可观测 mock（vi.mock 工厂 hoisted，引用对象放 vi.hoisted）=====
+const mocks = vi.hoisted(() => ({
+  sent: [],
+  toasts: [],
+  errorCb: null,
+  responseCb: null,
+}));
+
+vi.mock('../../src/preload/dom/chat-input.js', () => ({
+  sendToChat: (msg, tag) => { mocks.sent.push({ msg, tag }); return true; },
+}));
+
+vi.mock('../../src/preload/dom/intercept-observer.js', () => ({
+  onAiError: (cb) => { mocks.errorCb = cb; return () => { mocks.errorCb = null; }; },
+  onInterceptedResponse: (cb) => { mocks.responseCb = cb; return () => { mocks.responseCb = null; }; },
+}));
+
+vi.mock('../../src/preload/overlay/ui.js', () => ({
+  showToast: (m) => { mocks.toasts.push(m); },
+}));
+
+vi.mock('../../src/providers/index.js', () => ({
+  getProviderByUrl: () => ({
+    extractSessionId: (s) => {
+      const m = String(s).match(/\/chat\/s\/([a-zA-Z0-9-]+)/);
+      return m ? m[1] : null;
+    },
+  }),
+}));
+
+// ===== 全局桩 =====
 const store = new Map();
 let timers = [];
-
 let curUrl = 'https://chat.deepseek.com/a/chat/s/sess-A';
-
-function installMocks() {
-  const orig = Module._load;
-  Module._load = function (request) {
-    if (request === './chat-input') {
-      return { sendToChat: (msg, tag) => { sent.push({ msg, tag }); return true; } };
-    }
-    if (request === './intercept-observer') {
-      return {
-        onAiError: (cb) => { errorCb = cb; return () => { errorCb = null; }; },
-        onInterceptedResponse: (cb) => { responseCb = cb; return () => { responseCb = null; }; },
-      };
-    }
-    if (request === '../overlay/ui') {
-      return { showToast: (m) => { toasts.push(m); } };
-    }
-    if (/providers$/.test(request)) {
-      return {
-        getProviderByUrl: () => ({
-          extractSessionId: (s) => {
-            const m = String(s).match(/\/chat\/s\/([a-zA-Z0-9-]+)/);
-            return m ? m[1] : null;
-          },
-        }),
-      };
-    }
-    return orig.apply(this, arguments);
-  };
-  return () => { Module._load = orig; };
-}
 
 function installGlobals() {
   global.window = { get location() { return { href: curUrl }; } };
@@ -66,13 +60,12 @@ function installGlobals() {
 }
 
 function reset() {
-  sent.length = 0; toasts.length = 0;
-  errorCb = null; responseCb = null;
+  mocks.sent.length = 0; mocks.toasts.length = 0;
+  mocks.errorCb = null; mocks.responseCb = null;
   store.clear(); timers = [];
   curUrl = 'https://chat.deepseek.com/a/chat/s/sess-A';
 }
 
-// 模块级状态需要每次重置：ESM 无 require.cache，用 resetModules + 动态 import 重新求值
 async function loadEngine() {
   vi.resetModules();
   return await import('../../src/preload/dom/retry-engine.js');
@@ -83,7 +76,6 @@ function lastTimeout() {
   return ts[ts.length - 1];
 }
 
-const restore = installMocks();
 installGlobals();
 
 // ================= readConfig =================
@@ -134,7 +126,7 @@ test('禁用时 handleError 不安排重试', async () => {
   store.set('cuckoo-retry-enabled', '0');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
   assert.strictEqual(timers.length, 0);
 });
 
@@ -143,7 +135,7 @@ test('压缩进行中 handleError 不安排重试', async () => {
   const eng = await loadEngine();
   eng.startRetryEngine();
   eng.setCompacting(true);
-  errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
   assert.strictEqual(timers.length, 0);
   eng.setCompacting(false);
 });
@@ -152,9 +144,9 @@ test('startRetryEngine 幂等（多次调用只订阅一次）', async () => {
   reset();
   const eng = await loadEngine();
   eng.startRetryEngine();
-  const first = errorCb;
+  const first = mocks.errorCb;
   eng.startRetryEngine();
-  assert.strictEqual(errorCb, first, '第二次调用不应重新订阅');
+  assert.strictEqual(mocks.errorCb, first, '第二次调用不应重新订阅');
 });
 
 // ================= 普通失败 =================
@@ -164,13 +156,13 @@ test('普通失败：安排定时器并在触发时发送提示词', async () =>
   store.set('cuckoo-retry-delay-max', '5');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'xhr', httpStatus: 0 });
+  mocks.errorCb({ reason: 'xhr', httpStatus: 0 });
   const t = lastTimeout();
   assert.ok(t, '应有重试定时器');
   assert.strictEqual(t.ms, 5);
   t.fn();
-  assert.strictEqual(sent.length, 1);
-  assert.strictEqual(sent[0].msg, eng.DEFAULT_PROMPT);
+  assert.strictEqual(mocks.sent.length, 1);
+  assert.strictEqual(mocks.sent[0].msg, eng.DEFAULT_PROMPT);
 });
 
 test('普通失败达到上限后停止并提示', async () => {
@@ -180,12 +172,12 @@ test('普通失败达到上限后停止并提示', async () => {
   store.set('cuckoo-retry-count', '2');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'xhr' });
-  errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
   timers = [];
-  errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
   assert.strictEqual(timers.length, 0);
-  assert.ok(toasts.some((s) => /上限/.test(s)));
+  assert.ok(mocks.toasts.some((s) => /上限/.test(s)));
 });
 
 test('成功回复重置计数', async () => {
@@ -195,11 +187,11 @@ test('成功回复重置计数', async () => {
   store.set('cuckoo-retry-count', '2');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'xhr' });
-  errorCb({ reason: 'xhr' });
-  responseCb('ok');
+  mocks.errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
+  mocks.responseCb('ok');
   timers = [];
-  errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
   assert.ok(lastTimeout(), '成功后计数重置，应能重新安排');
 });
 
@@ -209,9 +201,9 @@ test('成功回复会清除待重试定时器', async () => {
   store.set('cuckoo-retry-delay-max', '5');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
   assert.ok(lastTimeout());
-  responseCb('ok');
+  mocks.responseCb('ok');
   assert.strictEqual(timers.filter((t) => t.type === 'timeout').length, 0);
 });
 
@@ -222,7 +214,7 @@ test('429 使用 429 专属间隔', async () => {
   store.set('cuckoo-retry-429-count', '3');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'http', httpStatus: 429 });
+  mocks.errorCb({ reason: 'http', httpStatus: 429 });
   const t = lastTimeout();
   assert.ok(t);
   assert.strictEqual(t.ms, 7);
@@ -234,11 +226,11 @@ test('429 达到上限后停止且提示', async () => {
   store.set('cuckoo-retry-429-count', '1');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ httpStatus: 429 });
+  mocks.errorCb({ httpStatus: 429 });
   timers = [];
-  errorCb({ httpStatus: 429 });
+  mocks.errorCb({ httpStatus: 429 });
   assert.strictEqual(timers.length, 0);
-  assert.ok(toasts.some((s) => /429/.test(s)));
+  assert.ok(mocks.toasts.some((s) => /429/.test(s)));
 });
 
 test('普通失败与 429 计数相互独立', async () => {
@@ -250,10 +242,10 @@ test('普通失败与 429 计数相互独立', async () => {
   store.set('cuckoo-retry-429-count', '5');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'xhr' });
-  errorCb({ httpStatus: 429 });
+  mocks.errorCb({ reason: 'xhr' });
+  mocks.errorCb({ httpStatus: 429 });
   timers = [];
-  errorCb({ httpStatus: 429 });
+  mocks.errorCb({ httpStatus: 429 });
   assert.ok(lastTimeout(), '429 计数独立，不应被普通上限拦截');
 });
 
@@ -264,9 +256,9 @@ test('无限重试（次数为负）不因上限停止', async () => {
   store.set('cuckoo-retry-count', '-1');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  for (let i = 0; i < 50; i++) errorCb({ reason: 'xhr' });
+  for (let i = 0; i < 50; i++) mocks.errorCb({ reason: 'xhr' });
   timers = [];
-  errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
   assert.ok(lastTimeout(), '负数次数应无限重试');
 });
 
@@ -277,7 +269,7 @@ test('错误事件的会话与当前一致：正常重试', async () => {
   store.set('cuckoo-retry-delay-max', '1');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'xhr', sessionId: 'sess-A' });
+  mocks.errorCb({ reason: 'xhr', sessionId: 'sess-A' });
   assert.ok(lastTimeout(), '会话一致应安排重试');
 });
 
@@ -287,7 +279,7 @@ test('错误事件的会话已切换：忽略，不重试', async () => {
   store.set('cuckoo-retry-delay-max', '1');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'xhr', sessionId: 'sess-OLD' });
+  mocks.errorCb({ reason: 'xhr', sessionId: 'sess-OLD' });
   assert.strictEqual(timers.filter((t) => t.type === 'timeout').length, 0, '会话已切换不应重试');
 });
 
@@ -297,8 +289,8 @@ test('错误事件无 sessionId：不做会话校验，正常重试', async () =
   store.set('cuckoo-retry-delay-max', '1');
   const eng = await loadEngine();
   eng.startRetryEngine();
-  errorCb({ reason: 'xhr' });
+  mocks.errorCb({ reason: 'xhr' });
   assert.ok(lastTimeout(), '无 sessionId 应照常重试');
 });
 
-afterAll(() => { restore(); });
+afterAll(() => {});

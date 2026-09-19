@@ -12,13 +12,11 @@
  *  - cuckoo-retry-429-count      429 次数，默认 20；负数=无限
  *  - cuckoo-retry-prompt         提示词文案
  */
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const { sendToChat } = require('./chat-input');
-const { onAiError, onInterceptedResponse } = require('./intercept-observer');
-const { showToast } = require('../overlay/ui');
-const { withLog } = require('../../utils/with-log');
+import { sendToChat } from './chat-input.js';
+import { onAiError, onInterceptedResponse } from './intercept-observer.js';
+import { showToast } from '../overlay/ui.js';
+import { withLog } from '../../utils/with-log.js';
+import { getProviderByUrl } from '../../../src/providers/index.js';
 
 const DEFAULT_PROMPT = '刚才的回复似乎中断了，请重新完整回答上一个问题。';
 const DEFAULTS = {
@@ -62,7 +60,6 @@ function pickDelay(min, max) {
 /** 取当前页面 URL 对应的会话 ID（无则返回 null） */
 function getCurrentSessionId() {
   try {
-    const { getProviderByUrl } = require('../../../src/providers');
     const provider = getProviderByUrl(window.location.href);
     if (provider && typeof provider.extractSessionId === 'function') {
       return provider.extractSessionId(window.location.href) || null;
