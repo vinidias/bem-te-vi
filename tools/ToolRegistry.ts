@@ -2,22 +2,42 @@
  * 工具注册表 - 管理所有可用工具
  */
 
+/** 工具系统提示词 section（仿 dsh 的 ctx.systemPrompt.section） */
+interface PromptSection {
+  name: string;
+  order: number;
+  text: string;
+}
+
+/** 工具描述（用于发送给 AI） */
+interface ToolDescription {
+  name: string;
+  description: string;
+  parameters: any;
+  jsApi: string | null;
+}
+
 class Tool {
-  constructor(name, description, parameters, jsApi) {
+  name: string;
+  description: string;
+  parameters: any; // JSON Schema 格式
+  jsApi: string | null; // JS 调用签名，如 'editFile(file_path, old_string, new_string)'
+
+  constructor(name: string, description: string, parameters: any, jsApi?: string | null) {
     this.name = name;
     this.description = description;
-    this.parameters = parameters; // JSON Schema 格式
-    this.jsApi = jsApi || null; // JS 调用签名，如 'editFile(file_path, old_string, new_string)'
+    this.parameters = parameters;
+    this.jsApi = jsApi || null;
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     throw new Error('execute() 必须由子类实现');
   }
 
   /**
    * 获取工具描述，用于发送给 AI
    */
-  getDescription() {
+  getDescription(): ToolDescription {
     return {
       name: this.name,
       description: this.description,
@@ -31,21 +51,23 @@ class Tool {
    * 返回 { name, order, text } 或 null（默认无 section）。
    * 子类可覆写此方法贡献工具使用指导。
    */
-  getPromptSection() {
+  getPromptSection(): PromptSection | null {
     return null;
   }
 }
 
 class ToolRegistry {
+  tools: Map<string, Tool>;
+
   constructor() {
     this.tools = new Map();
   }
 
   /**
    * 注册工具
-   * @param {Tool} tool - 工具实例
+   * @param tool - 工具实例
    */
-  register(tool) {
+  register(tool: Tool): void {
     if (!tool || !tool.name) {
       throw new Error('工具必须有 name 属性');
     }
@@ -58,20 +80,18 @@ class ToolRegistry {
 
   /**
    * 获取工具
-   * @param {string} name - 工具名称
-   * @returns {Tool|undefined}
+   * @param name - 工具名称
    */
-  get(name) {
+  get(name: string): Tool | undefined {
     return this.tools.get(name);
   }
 
   /**
    * 执行工具
-   * @param {string} name - 工具名称
-   * @param {Object} params - 参数
-   * @returns {Promise<ToolResult>}
+   * @param name - 工具名称
+   * @param params - 参数
    */
-  async execute(name, params) {
+  async execute(name: string, params: any): Promise<ToolResult> {
     const tool = this.tools.get(name);
     if (!tool) {
       return ToolResult.error(`未找到工具: ${name}`);
@@ -79,24 +99,22 @@ class ToolRegistry {
     try {
       // 验证参数（可选，这里简化处理）
       return await tool.execute(params);
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error(`工具执行失败: ${err.message}`);
     }
   }
 
   /**
    * 获取所有工具描述
-   * @returns {Array}
    */
-  getDescriptions() {
+  getDescriptions(): ToolDescription[] {
     return Array.from(this.tools.values()).map(t => t.getDescription());
   }
 
   /**
    * 获取格式化的工具列表，用于 Prompt
-   * @returns {string}
    */
-  getFormattedToolsForPrompt() {
+  getFormattedToolsForPrompt(): string {
     const descriptions = this.getDescriptions();
     if (descriptions.length === 0) return '暂无可用工具';
 
@@ -108,25 +126,22 @@ class ToolRegistry {
 
   /**
    * 获取工具数量
-   * @returns {number}
    */
-  size() {
+  size(): number {
     return this.tools.size;
   }
 
   /**
    * 列出所有工具名称
-   * @returns {string[]}
    */
-  listNames() {
+  listNames(): string[] {
     return Array.from(this.tools.keys());
   }
 
   /**
    * 获取格式化的 JS API 列表，用于 Prompt（AI 生成 JS 代码调用这些函数）
-   * @returns {string}
    */
-  getFormattedJsApiForPrompt() {
+  getFormattedJsApiForPrompt(): string {
     const descriptions = this.getDescriptions().filter((t) => t.jsApi);
     if (descriptions.length === 0) return '暂无可用工具';
 
@@ -139,10 +154,9 @@ class ToolRegistry {
   /**
    * 收集所有工具的系统提示词 section，按 order 升序排列。
    * 仿 dsh 的 systemPrompt section 机制。
-   * @returns {Array<{name: string, order: number, text: string}>}
    */
-  getPromptSections() {
-    const sections = [];
+  getPromptSections(): PromptSection[] {
+    const sections: PromptSection[] = [];
     for (const tool of this.tools.values()) {
       const section = tool.getPromptSection();
       if (section && typeof section.text === 'string' && section.text.trim().length > 0) {
@@ -159,9 +173,8 @@ class ToolRegistry {
 
   /**
    * 获取格式化后的工具使用指导（所有 section 文本拼接）。
-   * @returns {string}
    */
-  getFormattedPromptSections() {
+  getFormattedPromptSections(): string {
     const sections = this.getPromptSections();
     if (sections.length === 0) return '';
     return sections.map(s => s.text).join('\n\n');
@@ -172,21 +185,25 @@ class ToolRegistry {
  * 统一的工具执行结果
  */
 class ToolResult {
-  constructor(success, data, error) {
+  success: boolean;
+  data: any;
+  error: any;
+
+  constructor(success: boolean, data: any, error: any) {
     this.success = success;
     this.data = data;
     this.error = error;
   }
 
-  static success(data) {
+  static success(data: any): ToolResult {
     return new ToolResult(true, data, null);
   }
 
-  static error(error) {
+  static error(error: any): ToolResult {
     return new ToolResult(false, null, error);
   }
 
-  toString() {
+  toString(): string {
     if (this.success) {
       return `✅ 成功: ${JSON.stringify(this.data)}`;
     } else {
@@ -196,3 +213,4 @@ class ToolResult {
 }
 
 export { Tool, ToolRegistry, ToolResult };
+export type { PromptSection, ToolDescription };
