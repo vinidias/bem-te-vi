@@ -36,7 +36,7 @@ if (useIntercept) {
     if (typeof currentProvider.getHookSource === 'function') {
       webFrame.executeJavaScript(currentProvider.getHookSource()).then(
         () => console.log('[Cuckoo Code] 主世界拦截器注入成功 (' + currentProvider.id + ')'),
-        (err) => console.error('[Cuckoo Code] 主世界拦截器注入失败:', err && err.message)
+        (err: any) => console.error('[Cuckoo Code] 主世界拦截器注入失败:', err && err.message)
       );
     } else {
       console.warn('[Cuckoo Code] 平台 ' + currentProvider.id + ' 未提供 getHookSource()');
@@ -55,7 +55,7 @@ chatInput.registerIpcListeners();
  * 初始化 Cuckoo Code 扩展
  * 注入样式、覆盖层 HTML，绑定事件，启动回复监听（拦截或 DOM 观察）
  */
-function init() {
+function init(): void {
   try {
     ui.injectCSS();
     ui.injectOverlay();
@@ -99,9 +99,9 @@ function init() {
       const text = provider.extractUserInfo();
       if (text && text !== lastSentUserName) {
         lastSentUserName = text;
-        window.electronAPI.updateWindowName(text).catch(() => {});
+        (window as any).electronAPI.updateWindowName(text).catch(() => {});
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('[Cuckoo Code] 轮询用户名异常:', e.message);
     }
   }, 3000);
