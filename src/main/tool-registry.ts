@@ -11,4 +11,3 @@ const toolRegistry = registry;
 const jsRunner = new JsRunner(toolRegistry);
 
 export { toolRegistry, jsRunner };
-
