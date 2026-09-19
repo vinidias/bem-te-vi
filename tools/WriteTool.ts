@@ -7,7 +7,7 @@ import path from 'node:path';
  * - file_path 必须是非空字符串
  * - content 允许为空字符串（写空文件是合法的）
  */
-function parseWriteArgs(filePath, content) {
+function parseWriteArgs(filePath: any, content: any): { filePath: string; content: string } {
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
     throw new Error('file_path must be a non-empty string');
   }
@@ -20,7 +20,7 @@ function parseWriteArgs(filePath, content) {
 /**
  * 与 dsh formatWriteOutput 对齐：返回 envelope，不回显内容。
  */
-function formatWriteOutput(displayPath, operation) {
+function formatWriteOutput(displayPath: string, operation: string): string {
   const verb = operation === 'create' ? 'Created' : 'Updated';
   return '<path>' + displayPath + '</path>\n<type>file</type>\n<content>\n' + verb + ' file\n</content>';
 }
@@ -61,7 +61,7 @@ class WriteTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { file_path, content, projectDir } = params;
 
     try {
@@ -98,7 +98,7 @@ class WriteTool extends Tool {
 
       console.log('[WriteTool] ' + (operation === 'create' ? 'Created' : 'Updated') + ':', resolvedPath);
       return ToolResult.success(formatWriteOutput(input.filePath, operation));
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('写入文件失败: ' + err.message);
     }
   }
