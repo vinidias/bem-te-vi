@@ -2,10 +2,17 @@
  * 窗口管理（多窗口 + 每窗口 profile 上下文）
  * 每个窗口关联一个 profileId，拥有独立的 sessionStore 实例。
  */
-const windows = new Map(); // windowId -> { win, profileId, providerId, sessionStore }
-let lastActiveWindowId = null;
+interface WindowContext {
+  win: any;
+  profileId: any;
+  providerId: any;
+  sessionStore: any;
+}
 
-function addWindow(win, profileId, providerId, sessionStore) {
+const windows = new Map<number, WindowContext>(); // windowId -> { win, profileId, providerId, sessionStore }
+let lastActiveWindowId: number | null = null;
+
+function addWindow(win: any, profileId: any, providerId: any, sessionStore: any): void {
   windows.set(win.id, { win, profileId, providerId, sessionStore });
   lastActiveWindowId = win.id;
   win.on('closed', () => {
@@ -17,7 +24,7 @@ function addWindow(win, profileId, providerId, sessionStore) {
   });
 }
 
-function removeWindow(windowId) {
+function removeWindow(windowId: number): void {
   windows.delete(windowId);
   if (lastActiveWindowId === windowId) {
     const remaining = Array.from(windows.keys());
@@ -25,29 +32,29 @@ function removeWindow(windowId) {
   }
 }
 
-function getWindowContext(windowId) {
+function getWindowContext(windowId: number): WindowContext | null {
   return windows.get(windowId) || null;
 }
 
-function getContextByWebContents(webContents) {
+function getContextByWebContents(webContents: any): WindowContext | null {
   for (const ctx of windows.values()) {
     if (ctx.win.webContents === webContents) return ctx;
   }
   return null;
 }
 
-function getMainWindow() {
+function getMainWindow(): any {
   if (!lastActiveWindowId) return null;
   const ctx = windows.get(lastActiveWindowId);
   return ctx ? ctx.win : null;
 }
 
-function getMainContext() {
+function getMainContext(): WindowContext | null {
   if (!lastActiveWindowId) return null;
   return windows.get(lastActiveWindowId) || null;
 }
 
-function setMainWindow(win) {
+function setMainWindow(win: any): void {
   if (win) {
     lastActiveWindowId = win.id;
   } else {
@@ -55,15 +62,15 @@ function setMainWindow(win) {
   }
 }
 
-function getAllWindows() {
+function getAllWindows(): any[] {
   return Array.from(windows.values()).map(ctx => ctx.win);
 }
 
-function getAllContexts() {
+function getAllContexts(): WindowContext[] {
   return Array.from(windows.values());
 }
 
-function getWindowByProfileId(profileId) {
+function getWindowByProfileId(profileId: any): WindowContext | null {
   for (const ctx of windows.values()) {
     if (ctx.profileId === profileId) return ctx;
   }
