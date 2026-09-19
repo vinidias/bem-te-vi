@@ -1,5 +1,5 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const mysql = require('mysql2/promise');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import mysql from 'mysql2/promise';
 
 /**
  * MySQL 工具 - 执行 SQL 查询或写操作。
@@ -163,4 +163,4 @@ function renderTable(columns, rows) {
   return lines.join('\n');
 }
 
-module.exports = { MySQLTool, renderTable };
+export { MySQLTool, renderTable };
