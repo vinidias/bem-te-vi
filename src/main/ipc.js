@@ -2,15 +2,18 @@
  * IPC 处理器注册（渲染进程 → 主进程）
  * 多窗口版：按 event.sender 路由到对应窗口的 profile 上下文。
  */
-const { app, dialog, ipcMain, Notification } = require('electron');
-const { exec } = require('child_process');
+import { exec } from 'node:child_process';
+import { createRequire } from 'node:module';
+import * as windowState from './window.js';
+import * as profileManager from './profile-manager.js';
+import { toolRegistry, jsRunner } from './tool-registry.js';
+import { initProject } from './project-context.js';
+import { isDangerous } from './dangerous-commands.js';
+import { decodeOutput, normalizeCommand } from '../../tools/decodeOutput.js';
+import { getProviderByUrl } from '../providers/index.js';
 
-const windowState = require('./window');
-const profileManager = require('./profile-manager');
-const { toolRegistry, jsRunner } = require('./tool-registry');
-const { initProject } = require('./project-context');
-const { isDangerous } = require('./dangerous-commands');
-const { decodeOutput, normalizeCommand } = require('../../tools/decodeOutput');
+const require = createRequire(import.meta.url);
+const { app, dialog, ipcMain, Notification } = require('electron');
 
 function registerIpcHandlers() {
   // 初始化项目
@@ -40,7 +43,7 @@ function registerIpcHandlers() {
     // 按当前 provider 拼会话 URL（智谱 cid=、DeepSeek /chat/s/、Claude /chat/）
     let url = null;
     try {
-      const { getProviderByUrl } = require('../providers');
+
       const provider = getProviderByUrl(win.webContents.getURL());
       if (provider && typeof provider.sessionUrlBase === 'string' && provider.sessionUrlBase) {
         url = provider.sessionUrlBase + sessionId;
@@ -210,4 +213,4 @@ function registerIpcHandlers() {
   });
 }
 
-module.exports = { registerIpcHandlers };
+export { registerIpcHandlers };
