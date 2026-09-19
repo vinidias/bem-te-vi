@@ -1,4 +1,4 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
+import { Tool, ToolResult } from './ToolRegistry.js';
 
 // 对齐 dsh STATUSES
 const STATUSES = ['pending', 'in_progress', 'completed'];
@@ -121,4 +121,4 @@ class TodoWriteTool extends Tool {
   }
 }
 
-module.exports = { TodoWriteTool, parseTodoList, formatTodoOutput, STATUSES };
+export { TodoWriteTool, parseTodoList, formatTodoOutput, STATUSES };
