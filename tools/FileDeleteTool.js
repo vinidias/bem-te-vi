@@ -1,6 +1,6 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const fs = require('fs');
-const path = require('path');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * 文件删除工具
@@ -61,4 +61,4 @@ class FileDeleteTool extends Tool {
   }
 }
 
-module.exports = { FileDeleteTool };
+export { FileDeleteTool };
