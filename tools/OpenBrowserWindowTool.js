@@ -1,5 +1,5 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const { windowManager } = require('./browser-window-manager');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import { windowManager } from './browser-window-manager.js';
 
 class OpenBrowserWindowTool extends Tool {
   constructor() {
@@ -39,4 +39,4 @@ class OpenBrowserWindowTool extends Tool {
   }
 }
 
-module.exports = { OpenBrowserWindowTool };
+export { OpenBrowserWindowTool };
