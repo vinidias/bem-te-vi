@@ -53,6 +53,9 @@ module.exports = [
       'no-undef': 'off',
       'no-useless-escape': 'off',
       'no-func-assign': 'off',
+      // ESLint 10 新增规则，暴露遗留问题；P2 先关闭，P5 再逐个修复。
+      'no-useless-assignment': 'off',
+      'preserve-caught-error': 'off',
     },
   },
   {
