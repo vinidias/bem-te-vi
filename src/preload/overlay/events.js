@@ -2,14 +2,12 @@
  * 覆盖层按钮事件绑定
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-import { createRequire } from 'node:module';
 import { state } from '../dom/state.js';
-
-const require = createRequire(import.meta.url);
-const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } = require('./ui');
-const { handleInitProject, renderSessions } = require('../dom/session-list');
-const { sendToChat } = require('../dom/chat-input');
-const { runCompaction, checkPendingInit } = require('../dom/compaction');
+import { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } from './ui.js';
+import { handleInitProject, renderSessions } from '../dom/session-list.js';
+import { sendToChat } from '../dom/chat-input.js';
+import { runCompaction, checkPendingInit } from '../dom/compaction.js';
+import { onInterceptedResponse } from '../dom/intercept-observer.js';
 
 /**
  * 渲染窗口列表（浮动管理面板内）
@@ -442,7 +440,6 @@ function saveSettings() {
  * 避免失败/停止时因旧 token 值反复触发压缩。
  */
 function startTokenCounter() {
-  const { onInterceptedResponse } = require('../dom/intercept-observer');
   onInterceptedResponse(() => {
     updateConversationTokenDisplay();
     checkAutoCompact();
