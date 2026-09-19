@@ -4,9 +4,9 @@
  */
 // ========== JS 工具脚本检测与执行 ==========
 
-// 反引号与围栏（用字符码构造，避免源码中的转义问题）
-const BT = String.fromCharCode(96);
-const FENCE = BT + BT + BT;
+// 反引号与围栏（共享常量，见 infra/markdown）
+import { BT, FENCE } from '../../infra/markdown.js';
+
 // 工具调用特征：必须出现 "await 工具函数名(" 形式的调用（防止 fs.readFile 等普通示例误判）
 const JS_TOOL_CALL_RE = /\bawait\s+(?:read|write|edit|glob|grep|bash|pwsh|todoWrite|deleteFile|webFetch|openBrowserWindow|injectJS|readFile|readFileWithLines|writeFile|editFile)\s*\(/;
 /**

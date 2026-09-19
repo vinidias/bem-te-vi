@@ -13,10 +13,11 @@ import * as ui from '../overlay/panel.js';
 import * as projectDir from '../overlay/project-dir.js';
 import { bindEvents } from '../overlay/events.js';
 import * as chatInput from '../overlay/chat-input.js';
+import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/index.js';
-import { startInterceptObserver } from './intercept/observer.js';
+import { startInterceptObserver, onInterceptedResponse } from './intercept/observer.js';
 import { startRetryEngine } from './loop/retry.js';
-import { startSessionWatcher } from './loop/watchdog.js';
+import { startSessionWatcher, onMessageSent } from './loop/watchdog.js';
 
 const require = createRequire(import.meta.url);
 const { webFrame } = require('electron');
@@ -48,6 +49,10 @@ if (useIntercept) {
 
 // 注册主进程消息监听（与原 preload.js 顶层注册时机一致）
 chatInput.registerIpcListeners();
+
+// ========== P4.2-A：回调注入（overlay 不依赖 bridge）==========
+chatInput.wireChatInput({ onMessageSent });
+wireEvents({ onInterceptedResponse });
 
 // ========== 初始化 ==========
 

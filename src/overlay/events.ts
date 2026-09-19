@@ -7,7 +7,13 @@ import { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, sho
 import { handleInitProject, renderSessions } from './session-list.js';
 import { sendToChat } from './chat-input.js';
 import { runCompaction, checkPendingInit } from '../session/compaction.js';
-import { onInterceptedResponse } from '../bridge/intercept/observer.js';
+
+// 回调注入（P4.2-A：overlay 不依赖 bridge）
+let hooks: { onInterceptedResponse?: (cb: () => void) => void } = {};
+/** 由 bridge/entry 在初始化时注入 bridge 能力 */
+function wireEvents(h: typeof hooks): void {
+  hooks = h;
+}
 
 /**
  * 渲染窗口列表（浮动管理面板内）
@@ -440,7 +446,7 @@ function saveSettings() {
  * 避免失败/停止时因旧 token 值反复触发压缩。
  */
 function startTokenCounter() {
-  onInterceptedResponse(() => {
+  hooks.onInterceptedResponse?.(() => {
     updateConversationTokenDisplay();
     checkAutoCompact();
   });
@@ -809,4 +815,4 @@ function bindEvents() {
   });
 }
 
-export { bindEvents };
+export { bindEvents, wireEvents };
