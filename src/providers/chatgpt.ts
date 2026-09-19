@@ -187,7 +187,7 @@ function chatgptHookInstaller() {
   // ---------- fetch 拦截 ----------
   var origFetch = window.fetch;
   if (typeof origFetch === 'function') {
-    window.fetch = function (input, init) {
+    window.fetch = function (input: any, init: any) {
       var url = typeof input === 'string' ? input
         : (input && input.url) ? input.url
         : (input && input.href) ? input.href : '';
@@ -269,7 +269,7 @@ const chatgpt = {
   sessionUrlBase: 'https://chatgpt.com/c/',
 
   // 判断元素是否可见（offsetWidth/offsetHeight > 0）
-  isElementVisible(el) {
+  isElementVisible(el: any) {
     if (!el) return false;
     return el.offsetWidth > 0 && el.offsetHeight > 0;
   },
@@ -302,7 +302,7 @@ const chatgpt = {
     ];
     for (const sel of selectors) {
       try {
-        const btn = document.querySelector(sel);
+        const btn = document.querySelector(sel) as any;
         if (this.isElementVisible(btn) && !btn.disabled) return btn;
       } catch (_) {}
     }
@@ -336,8 +336,8 @@ const chatgpt = {
     // 3. 侧边栏底部用户区：class 含 z-30 的底部固定容器
     const containers = document.querySelectorAll('nav div[class*="z-30"]');
     for (const el of containers) {
-      const clone = el.cloneNode(true);
-      clone.querySelectorAll('button').forEach(b => b.remove());
+      const clone = el.cloneNode(true) as any;
+      clone.querySelectorAll('button').forEach((b: any) => b.remove());
       const text = (clone.textContent || '').trim();
       if (text && text !== 'ChatGPT' && text.length <= 40) {
         return text;
@@ -353,7 +353,7 @@ const chatgpt = {
   // 从 URL 提取会话 ID（ChatGPT 是 /c/{uuid} 格式）
   // 注意：创建会话过程中 URL 有中间态 /c/WEB:xxx，不能把 WEB 当会话 ID。
   // session-store 会优先使用本方法的返回值，故此处必须自行排除 WEB。
-  extractSessionId(url) {
+  extractSessionId(url: string): string | null {
     if (!url) return null;
     // 优先匹配完整 UUID（正式会话 ID）
     const uuidMatch = url.match(/\/c\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
@@ -365,7 +365,7 @@ const chatgpt = {
   },
 
   // 判断 URL 是否属于本平台
-  matchesUrl(url) {
+  matchesUrl(url: string) {
     return url.includes('chatgpt.com') || url.includes('chat.openai.com');
   },
 
