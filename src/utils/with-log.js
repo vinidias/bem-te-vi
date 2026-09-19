@@ -64,4 +64,4 @@ function withLogObject(mod, moduleName) {
   return mod;
 }
 
-module.exports = { withLog, withLogObject };
+export { withLog, withLogObject };
