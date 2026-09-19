@@ -25,12 +25,12 @@ const TOOL_NAMES = [
 ];
 
 /** 判断工具名是否存在（原 toolManager.tools.has(name)） */
-function hasTool(name) {
+function hasTool(name: string): boolean {
   return TOOL_NAMES.includes(name);
 }
 
 /** 工具名列表字符串（原 Array.from(toolManager.tools.keys()).join(', ')） */
-function toolNamesList() {
+function toolNamesList(): string {
   return TOOL_NAMES.join(', ');
 }
 
