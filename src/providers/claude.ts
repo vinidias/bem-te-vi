@@ -148,7 +148,7 @@ function claudeHookInstaller() {
   // ---------- fetch 拦截 ----------
   var origFetch = window.fetch;
   if (typeof origFetch === 'function') {
-    window.fetch = function (input, init) {
+    window.fetch = function (input: any, init: any) {
       var url = typeof input === 'string' ? input
         : (input && input.url) ? input.url
         : (input && input.href) ? input.href : '';
@@ -227,7 +227,7 @@ const claude = {
   sessionUrlBase: 'https://claude.ai/chat/',
 
   // 判断元素是否可见（offsetWidth/offsetHeight > 0）
-  isElementVisible(el) {
+  isElementVisible(el: any) {
     if (!el) return false;
     return el.offsetWidth > 0 && el.offsetHeight > 0;
   },
@@ -260,7 +260,7 @@ const claude = {
     ];
     for (const sel of selectors) {
       try {
-        const btn = document.querySelector(sel);
+        const btn = document.querySelector(sel) as any;
         if (this.isElementVisible(btn) && !btn.disabled) return btn;
       } catch (_) {}
     }
@@ -277,7 +277,7 @@ const claude = {
   homeUrlPattern: /^https:\/\/claude\.ai(\/new)?\/?(\?.*)?$/,
 
   // 从 URL 提取会话 ID（Claude 是 /chat/xxx 格式）
-  extractSessionId(url) {
+  extractSessionId(url: string): string | null {
     if (!url) return null;
     const match = url.match(/\/chat\/([a-zA-Z0-9_-]+)/i);
     if (match) return match[1];
@@ -285,7 +285,7 @@ const claude = {
   },
 
   // 判断 URL 是否属于本平台
-  matchesUrl(url) {
+  matchesUrl(url: string) {
     return url.includes('claude.ai');
   },
 
