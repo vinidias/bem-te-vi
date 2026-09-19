@@ -36,7 +36,7 @@
 | `const a = require('./x')`（命名空间） | `import * as a from './x.js';` |
 | `const a = require('fs')`（内置） | `import * as fs from 'node:fs';`（或 `import fs from 'node:fs'`） |
 | `const path = require('path')` | `import path from 'node:path';` |
-| `const { app } = require('electron')` | `import { app } from 'electron';` |
+| `const { app } = require('electron')` | ⚠️ **特殊**：用 createRequire（见 1.5），**不可** `import` |
 
 **关键**：
 - **相对路径必须加 `.js` 扩展名**（如 `'./x.js'`）——即使源文件将来是 `.ts`，也写 `.js`（TS 约定）。
@@ -68,7 +68,33 @@ const require = createRequire(import.meta.url);
 // 之后的 require(filePath) 保持原样
 ```
 
-### 1.5 __dirname / __filename（6 处）
+### 1.5 electron 模块（特殊：必须用 createRequire）
+
+**规则**：`require('electron')` 转 ESM 时，**不用 `import`**，改用 `createRequire`：
+
+```js
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { app, BrowserWindow } = require('electron');
+```
+
+**原因**（已实测）：
+1. `node_modules/electron/index.js` 是 `module.exports = getElectronPath()` —— 导出**字符串**
+   （可执行文件路径），不是对象。
+2. 测试的 mock（`test/helpers/mock-electron.js`）通过猴子补丁 `Module._load` 注入假 electron，
+   **只对 `require()` 生效，对 `import` 无效**。
+3. `import { BrowserWindow } from 'electron'` 会让 Node 对真 electron 做静态分析，
+   发现无 `BrowserWindow` 具名导出 → **链接期抛错**。
+
+**createRequire 方案同时满足两个环境**（已验证）：
+- 测试环境：`require('electron')` 走 `Module._load` → mock 生效 ✅
+- 真实 Electron：拿到真对象 ✅
+
+**影响**：全仓 16 处 `require('electron')` 都按此规则。
+
+---
+
+### 1.6 __dirname / __filename（6 处）
 
 ```js
 // 顶部加：
