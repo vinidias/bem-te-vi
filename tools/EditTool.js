@@ -1,6 +1,6 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const fs = require('fs');
-const path = require('path');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * 校验 edit 参数（对齐 dsh parseEditArgs）：
@@ -166,4 +166,4 @@ class EditTool extends Tool {
   }
 }
 
-module.exports = { EditTool, parseEditArgs, formatEditOutput, formatDryRunOutput };
+export { EditTool, parseEditArgs, formatEditOutput, formatDryRunOutput };
