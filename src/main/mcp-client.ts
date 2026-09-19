@@ -15,12 +15,12 @@ const require = createRequire(import.meta.url);
 const { app } = require('electron');
 
 // server name -> { client, transport, tools, connected }
-const connections = new Map();
+const connections = new Map<string, any>();
 // server name -> Promise<entry>：连接进行中的缓存，避免并发重复连接（如启动与初始化同时触发）
-const connecting = new Map();
+const connecting = new Map<string, Promise<any>>();
 
 // 默认工作目录缓存（探测一次）
-let defaultCwdCache;
+let defaultCwdCache: string | undefined;
 let defaultCwdResolved = false;
 
 /**
@@ -29,11 +29,11 @@ let defaultCwdResolved = false;
  * 覆盖各平台、各安装方式（ZIP/Portable 可写程序目录；Program Files/macOS 不可写则落 userData）。
  * @returns {string|undefined} 可写目录的绝对路径；全部失败返回 undefined（子进程继承父进程 cwd）
  */
-function getDefaultMcpCwd() {
+function getDefaultMcpCwd(): string | undefined {
   if (defaultCwdResolved) return defaultCwdCache;
   defaultCwdResolved = true;
 
-  const candidates = [];
+  const candidates: string[] = [];
   // portable 版：程序运行时解压到临时目录，exe 路径不可靠，用 electron-builder 提供的
   // PORTABLE_EXECUTABLE_DIR（指向用户放置 portable exe 的真实目录）
   if (app.isPackaged && process.env.PORTABLE_EXECUTABLE_DIR) {
@@ -68,7 +68,7 @@ function getDefaultMcpCwd() {
   return undefined;
 }
 
-async function connectServer(server) {
+async function connectServer(server: any): Promise<any> {
   if (connections.has(server.name)) {
     return connections.get(server.name);
   }
@@ -86,8 +86,8 @@ async function connectServer(server) {
   }
 }
 
-async function doConnectServer(server) {
-  let transport;
+async function doConnectServer(server: any): Promise<any> {
+  let transport: any;
   if (server.type === 'stdio') {
     transport = new StdioClientTransport({
       command: server.command,
@@ -107,11 +107,11 @@ async function doConnectServer(server) {
   const client = new Client({ name: 'cuckoo-code', version: '0.2.4' });
   await client.connect(transport);
 
-  let tools = [];
+  let tools: any[] = [];
   try {
     const result = await client.listTools({});
     tools = result.tools || [];
-  } catch (err) {
+  } catch (err: any) {
     console.error('[MCP] 获取工具列表失败:', server.name, err.message);
   }
 
@@ -121,7 +121,7 @@ async function doConnectServer(server) {
   return entry;
 }
 
-async function disconnectServer(name) {
+async function disconnectServer(name: string): Promise<void> {
   // 若有连接进行中，先等它结束，避免断开后又被它重新登记
   if (connecting.has(name)) {
     try { await connecting.get(name); } catch (_) {}
@@ -135,42 +135,42 @@ async function disconnectServer(name) {
   console.log('[MCP] 已断开:', name);
 }
 
-async function refreshServerTools(name) {
+async function refreshServerTools(name: string): Promise<any[]> {
   const entry = connections.get(name);
   if (!entry) return [];
   try {
     const result = await entry.client.listTools({});
     entry.tools = result.tools || [];
     return entry.tools;
-  } catch (err) {
+  } catch (err: any) {
     console.error('[MCP] 刷新工具列表失败:', name, err.message);
     return entry.tools || [];
   }
 }
 
-async function connectEnabledServers() {
+async function connectEnabledServers(): Promise<string[]> {
   const servers = mcpConfig.getEnabledServers();
   for (const server of servers) {
     try {
       await connectServer(server);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[MCP] 连接失败:', server.name, err.message);
     }
   }
   return Array.from(connections.keys());
 }
 
-async function connectServerByName(name) {
+async function connectServerByName(name: string): Promise<any> {
   const server = mcpConfig.getServers().find(s => s.name === name && s.enabled);
   if (!server) throw new Error('MCP server 不存在或未启用: ' + name);
   return connectServer(server);
 }
 
-async function disconnectServerByName(name) {
+async function disconnectServerByName(name: string): Promise<void> {
   await disconnectServer(name);
 }
 
-async function callMcpTool(serverName, toolName, args) {
+async function callMcpTool(serverName: string, toolName: string, args: any): Promise<any> {
   let entry = connections.get(serverName);
   if (!entry) {
     entry = await connectServerByName(serverName);
@@ -179,16 +179,16 @@ async function callMcpTool(serverName, toolName, args) {
   return result;
 }
 
-function getConnectedServers() {
-  const out = [];
+function getConnectedServers(): any[] {
+  const out: any[] = [];
   for (const [name, entry] of connections) {
     out.push({ name, tools: entry.tools, connected: entry.connected });
   }
   return out;
 }
 
-function getMcpToolList() {
-  const out = [];
+function getMcpToolList(): any[] {
+  const out: any[] = [];
   for (const [serverName, entry] of connections) {
     for (const tool of entry.tools) {
       out.push({
@@ -206,7 +206,7 @@ function getMcpToolList() {
  * 列出所有已配置的 MCP server（含启用状态和连接状态）
  * @returns {Array<{name, type, enabled, connected, toolCount}>}
  */
-function listConfiguredServers() {
+function listConfiguredServers(): any[] {
   const servers = mcpConfig.getServers();
   return servers.map(s => {
     const entry = connections.get(s.name);
@@ -225,7 +225,7 @@ function listConfiguredServers() {
  * @param {string} name server 名称
  * @returns {Array<{name, description, inputSchema}>}
  */
-async function getToolsByServer(name) {
+async function getToolsByServer(name: string): Promise<any[]> {
   let entry = connections.get(name);
   if (!entry) {
     entry = await connectServerByName(name);
