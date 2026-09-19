@@ -15,15 +15,15 @@ import { getProviderByUrl } from '../providers/index.js';
 const require = createRequire(import.meta.url);
 const { app, dialog, ipcMain, Notification } = require('electron');
 
-function registerIpcHandlers() {
+function registerIpcHandlers(): void {
   // 初始化项目
-  ipcMain.handle('init-project', async (event, { skipPrompt = false, projectDir = null, isCompaction = false } = {}) => {
+  ipcMain.handle('init-project', async (event: any, { skipPrompt = false, projectDir = null, isCompaction = false }: any = {}) => {
     const ctx = windowState.getContextByWebContents(event.sender);
     return initProject(skipPrompt, ctx, projectDir, isCompaction);
   });
 
   // 列出会话
-  ipcMain.handle('list-sessions', async (event) => {
+  ipcMain.handle('list-sessions', async (event: any) => {
     const ctx = windowState.getContextByWebContents(event.sender);
     const store = ctx ? ctx.sessionStore : null;
     if (!store || !store.state.selectedProjectDir) {
@@ -35,7 +35,7 @@ function registerIpcHandlers() {
   });
 
   // 导航到会话
-  ipcMain.handle('navigate-session', async (event, { sessionId }) => {
+  ipcMain.handle('navigate-session', async (event: any, { sessionId }: any) => {
     if (!sessionId) return { success: false, error: '缺少会话ID' };
     const ctx = windowState.getContextByWebContents(event.sender);
     const win = ctx ? ctx.win : null;
@@ -53,13 +53,13 @@ function registerIpcHandlers() {
     try {
       await win.webContents.loadURL(url);
       return { success: true };
-    } catch (err) {
+    } catch (err: any) {
       return { success: false, error: err.message };
     }
   });
 
   // 执行命令
-  ipcMain.handle('execute-command', async (event, { command, id }) => {
+  ipcMain.handle('execute-command', async (event: any, { command, id }: any) => {
     if (!command || typeof command !== 'string') {
       return { id, success: false, error: '无效的命令' };
     }
@@ -93,7 +93,7 @@ function registerIpcHandlers() {
           maxBuffer: 1024 * 1024,
           encoding: 'buffer',
         },
-        (error, stdout, stderr) => {
+        (error: any, stdout: any, stderr: any) => {
           resolve({
             id,
             success: !error,
@@ -107,7 +107,7 @@ function registerIpcHandlers() {
   });
 
   // 执行工具
-  ipcMain.handle('execute-tool', async (event, { toolName, params, callId }) => {
+  ipcMain.handle('execute-tool', async (event: any, { toolName, params, callId }: any) => {
     const ctx = windowState.getContextByWebContents(event.sender);
     const store = ctx ? ctx.sessionStore : null;
     const selectedDir = store ? store.state.selectedProjectDir : null;
@@ -116,13 +116,13 @@ function registerIpcHandlers() {
     try {
       const result = await toolRegistry.execute(toolName, { ...params, projectDir: selectedDir, currentWindowId: windowId });
       return { callId, success: result.success, data: result.data, error: result.error };
-    } catch (err) {
+    } catch (err: any) {
       return { callId, success: false, error: err.message };
     }
   });
 
   // AI 回复完成时：窗口已聚焦则不打扰；否则弹通知并让任务栏/Dock 闪烁
-  ipcMain.handle('show-ai-notification', async (event) => {
+  ipcMain.handle('show-ai-notification', async (event: any) => {
     try {
       const ctx = windowState.getContextByWebContents(event.sender);
       const win = ctx ? ctx.win : windowState.getMainWindow();
@@ -152,13 +152,13 @@ function registerIpcHandlers() {
       }
 
       return { success: true };
-    } catch (err) {
+    } catch (err: any) {
       return { success: false, error: err.message };
     }
   });
 
   // 执行 JS 脚本
-  ipcMain.handle('execute-js', async (event, { code, callId, attachDelayMin, attachDelayMax }) => {
+  ipcMain.handle('execute-js', async (event: any, { code, callId, attachDelayMin, attachDelayMax }: any) => {
     if (!code || typeof code !== 'string') {
       return { callId, success: false, error: '无效的 JS 代码' };
     }
@@ -170,13 +170,13 @@ function registerIpcHandlers() {
     try {
       const result = await jsRunner.run(code, selectedDir, windowId, { attachDelayMin, attachDelayMax });
       return { callId, ...result };
-    } catch (err) {
+    } catch (err: any) {
       return { callId, success: false, error: err.message };
     }
   });
 
   // 站点原生发送：向聚焦输入框注入真实级 Enter（智谱只响应 isTrusted=true 的输入，合成事件免疫）
-  ipcMain.handle('chat-send-enter', async (event) => {
+  ipcMain.handle('chat-send-enter', async (event: any) => {
     const sender = event.sender;
     if (!sender || sender.isDestroyed()) return false;
     try {
@@ -184,7 +184,7 @@ function registerIpcHandlers() {
       sender.sendInputEvent({ type: 'char', keyCode: 'Return', key: '\r' });
       sender.sendInputEvent({ type: 'keyUp', keyCode: 'Return', key: 'Enter' });
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Cuckoo Code] ❌ 原生 Enter 发送失败:', err.message);
       return false;
     }
@@ -192,7 +192,7 @@ function registerIpcHandlers() {
 
   // 模拟真实鼠标事件（isTrusted=true），用于需要原生点击的站点
   // action: 'move' | 'click'；x/y 为相对视口的 CSS 像素坐标
-  ipcMain.handle('simulate-mouse', async (event, { action, x, y } = {}) => {
+  ipcMain.handle('simulate-mouse', async (event: any, { action, x, y }: any = {}) => {
     const sender = event.sender;
     if (!sender || sender.isDestroyed()) return false;
     const px = Math.round(Number(x) || 0);
@@ -206,7 +206,7 @@ function registerIpcHandlers() {
         sender.sendInputEvent({ type: 'mouseUp', x: px, y: py, button: 'left', clickCount: 1 });
       }
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Cuckoo Code] ❌ simulate-mouse 失败:', err.message);
       return false;
     }
