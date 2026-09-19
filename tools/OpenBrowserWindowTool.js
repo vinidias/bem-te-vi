@@ -1,5 +1,5 @@
 const { Tool, ToolResult } = require('./ToolRegistry');
-const windowManager = require('./browser-window-manager');
+const { windowManager } = require('./browser-window-manager');
 
 class OpenBrowserWindowTool extends Tool {
   constructor() {

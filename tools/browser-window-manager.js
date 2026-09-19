@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 const { BrowserWindow } = require('electron');
 
 class BrowserWindowManager {
@@ -103,4 +105,5 @@ ${jsCode}
   }
 }
 
-module.exports = new BrowserWindowManager();
+const windowManager = new BrowserWindowManager();
+export { windowManager };
