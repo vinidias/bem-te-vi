@@ -27,7 +27,7 @@ class McpListServersTool extends Tool {
     };
   }
 
-  async execute() {
+  async execute(): Promise<ToolResult> {
     try {
       const mcpClient = require('../src/main/mcp-client');
       const servers = mcpClient.listConfiguredServers();
@@ -35,19 +35,19 @@ class McpListServersTool extends Tool {
         return ToolResult.success('当前没有配置任何 MCP server。');
       }
       const allTools = mcpClient.getMcpToolList();
-      const lines = [];
+      const lines: string[] = [];
       for (const s of servers) {
         const status = !s.enabled ? '禁用' : (s.connected ? '已连接' : '未连接');
         lines.push('- ' + s.name + ' [' + s.type + '] ' + status + '，工具数: ' + s.toolCount);
         if (s.connected) {
-          const serverTools = allTools.filter(t => t.server === s.name);
+          const serverTools = allTools.filter((t: any) => t.server === s.name);
           for (const t of serverTools) {
             lines.push('  - ' + t.name);
           }
         }
       }
       return ToolResult.success(lines.join('\n'));
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('获取 MCP server 列表失败: ' + (err.message || String(err)));
     }
   }
@@ -80,7 +80,7 @@ class McpGetToolsTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { server } = params;
     if (!server || typeof server !== 'string') {
       return ToolResult.error('server 不能为空');
@@ -91,11 +91,11 @@ class McpGetToolsTool extends Tool {
       if (tools.length === 0) {
         return ToolResult.success('server "' + server + '" 没有提供任何工具。');
       }
-      const lines = tools.map(t => {
+      const lines = tools.map((t: any) => {
         let line = '- **' + t.name + '**' + (t.description ? ' - ' + t.description : '');
         const schema = t.inputSchema && t.inputSchema.properties;
         if (schema && Object.keys(schema).length > 0) {
-          const props = Object.entries(schema).map(([k, v]) => {
+          const props = Object.entries(schema).map(([k, v]: [string, any]) => {
             return k + ': ' + (v.type || 'any') + (v.description ? ' (' + v.description + ')' : '');
           });
           line += '\n  args: ' + props.join(', ');
@@ -103,7 +103,7 @@ class McpGetToolsTool extends Tool {
         return line;
       });
       return ToolResult.success(server + ' 的工具列表：\n\n' + lines.join('\n'));
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('获取 "' + server + '" 的工具列表失败: ' + (err.message || String(err)));
     }
   }
