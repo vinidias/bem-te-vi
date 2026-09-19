@@ -16,7 +16,7 @@ const DANGEROUS_CMDS = [
   /^cipher\s+\/w/i,
 ];
 
-function isDangerous(cmd) {
+function isDangerous(cmd: string): boolean {
   return DANGEROUS_CMDS.some((pattern) => pattern.test(cmd.trim()));
 }
 
