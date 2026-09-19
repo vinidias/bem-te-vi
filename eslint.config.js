@@ -34,7 +34,7 @@ const COMMON_GLOBALS = {
 
 export default [
   {
-    ignores: ['node_modules/**', 'dist/**', 'dist-verify/**', 'build/**', 'wyp/**', '**/*.d.ts'],
+    ignores: ['node_modules/**', 'dist/**', 'dist-verify/**', 'out/**', 'build/**', 'wyp/**', '**/*.d.ts'],
   },
   js.configs.recommended,
   {

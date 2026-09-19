@@ -26,6 +26,7 @@
     "node_modules",
     "dist",
     "dist-verify",
+    "out",
     "build",
     "wyp",
     ".cuckooCode",
