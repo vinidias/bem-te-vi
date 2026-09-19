@@ -8,47 +8,47 @@ import { getProviderByUrl } from '../providers/index.js';
 
 /**
  * 创建 profile 专属的 session store 实例
- * @param {string} profileId profile id
- * @param {string} storeDir 存储目录（通常是 userData）
- * @param {object} windowState window 管理模块引用
+ * @param profileId profile id
+ * @param storeDir 存储目录（通常是 userData）
+ * @param windowState window 管理模块引用
  */
-function createSessionStore(profileId, storeDir, windowState) {
+function createSessionStore(profileId: string, storeDir: string, windowState: any): any {
   const STORE_FILE = path.join(storeDir, 'session-dir-map-' + profileId + '.json');
 
-  function readSessionStore() {
+  function readSessionStore(): any {
     try {
       if (fs.existsSync(STORE_FILE)) {
         return JSON.parse(fs.readFileSync(STORE_FILE, 'utf-8'));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Cuckoo Code] 读取会话存储失败:', err.message);
     }
     return {};
   }
 
-  function writeSessionStore(store) {
+  function writeSessionStore(store: any): void {
     try {
       fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), 'utf-8');
       console.log('[Cuckoo Code] 会话存储已保存:', STORE_FILE);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Cuckoo Code] 写入会话存储失败:', err.message);
     }
   }
 
-  function getProjectDirBySessionId(sessionId) {
+  function getProjectDirBySessionId(sessionId: string): any {
     if (!sessionId) return null;
     const store = readSessionStore();
     return store[sessionId] || null;
   }
 
-  function saveSessionDirMapping(sessionId, projectDir) {
+  function saveSessionDirMapping(sessionId: string, projectDir: any): void {
     if (!sessionId) return;
     const store = readSessionStore();
     store[sessionId] = projectDir;
     writeSessionStore(store);
   }
 
-  function extractSessionIdFromUrl(url) {
+  function extractSessionIdFromUrl(url: string): string | null {
     if (!url) return null;
     // 平台差异全部下沉到 provider.extractSessionId
     try {
@@ -60,13 +60,13 @@ function createSessionStore(profileId, storeDir, windowState) {
     return null;
   }
 
-  const state = {
+  const state: any = {
     currentSessionId: null,
     selectedProjectDir: null,
     pendingProjectDir: null,
   };
 
-  function handleUrlChange(url, targetWindow) {
+  function handleUrlChange(url: string, targetWindow?: any): void {
     const sessionId = extractSessionIdFromUrl(url);
     const win = targetWindow || (windowState && windowState.getMainWindow());
 
@@ -112,7 +112,7 @@ function createSessionStore(profileId, storeDir, windowState) {
     }
   }
 
-  function tryRestoreSessionFromUrl(targetWindow) {
+  function tryRestoreSessionFromUrl(targetWindow?: any): void {
     const win = targetWindow || (windowState && windowState.getMainWindow());
     if (!win || win.isDestroyed()) return;
     const url = win.webContents.getURL();
@@ -132,4 +132,3 @@ function createSessionStore(profileId, storeDir, windowState) {
 }
 
 export { createSessionStore };
-
