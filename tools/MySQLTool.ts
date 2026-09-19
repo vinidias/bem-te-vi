@@ -37,7 +37,7 @@ class MySQLTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const {
       host = 'localhost',
       port = 3306,
@@ -96,8 +96,8 @@ class MySQLTool extends Tool {
           if (actualRows === 0) {
             output += '(no rows)';
           } else {
-            const columns = Array.isArray(fields) ? fields.map(f => f.name) : Object.keys(rows[0]);
-            output += renderTable(columns, rows);
+            const columns = Array.isArray(fields) ? fields.map((f: any) => f.name) : Object.keys(rows[0] as any);
+            output += renderTable(columns, rows as any[]);
           }
 
           return ToolResult.success(output);
@@ -106,9 +106,9 @@ class MySQLTool extends Tool {
           const [result] = await connection.query(trimmedSql);
 
           const elapsed = Date.now() - startTime;
-          const affectedRows = result.affectedRows || 0;
-          const insertId = result.insertId || 0;
-          const changedRows = result.changedRows !== undefined ? result.changedRows : affectedRows;
+          const affectedRows = (result as any).affectedRows || 0;
+          const insertId = (result as any).insertId || 0;
+          const changedRows = (result as any).changedRows !== undefined ? (result as any).changedRows : affectedRows;
 
           let output = '# 执行成功（affectedRows=' + affectedRows + ', elapsed=' + elapsed + 'ms）';
           if (insertId > 0) {
@@ -123,7 +123,7 @@ class MySQLTool extends Tool {
       } finally {
         await connection.end().catch(() => {});
       }
-    } catch (err) {
+    } catch (err: any) {
       const msg = extractErrorMessage(err);
       return ToolResult.error('MySQL 执行失败: ' + msg);
     }
@@ -133,10 +133,10 @@ class MySQLTool extends Tool {
 /**
  * 渲染纯文本表格
  */
-function extractErrorMessage(err) {
+function extractErrorMessage(err: any): string {
   if (!err) return '未知错误';
   if (err.errors && Array.isArray(err.errors) && err.errors.length > 0) {
-    return err.errors.map(e => e.message || String(e)).join('; ');
+    return err.errors.map((e: any) => e.message || String(e)).join('; ');
   }
   if (err.code && err.message) {
     return err.code + ': ' + err.message;
@@ -144,9 +144,9 @@ function extractErrorMessage(err) {
   return err.message || String(err);
 }
 
-function renderTable(columns, rows) {
+function renderTable(columns: string[], rows: any[]): string {
   const header = columns.map(String);
-  const lines = [];
+  const lines: string[] = [];
   lines.push('| ' + header.join(' | ') + ' |');
   lines.push('|' + header.map(() => '---').join('|') + '|');
 
