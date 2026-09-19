@@ -49,12 +49,12 @@ if (RENDERER_LOG_DIR) {
 import { registerIpcHandlers } from './ipc.js';
 
 // 退出前需要 flush 的 sessions
-const sessionsToFlush = new Set();
+const sessionsToFlush = new Set<any>();
 
 async function flushAllSessions() {
   const promises = [];
   for (const ses of sessionsToFlush) {
-    promises.push(ses.flushStorageData().catch(err => {
+    promises.push(ses.flushStorageData().catch((err: any) => {
       console.error('[Cuckoo Code] 刷新 session 失败:', err.message);
     }));
   }
@@ -294,7 +294,7 @@ function setupAppMenu() {
 registerIpcHandlers();
 
 // 覆盖层"新建窗口"按钮触发
-ipcMainForProfile.handle('create-profile-window', async (_event, { providerId } = {}) => {
+ipcMainForProfile.handle('create-profile-window', async (_event: any, { providerId }: any = {}) => {
   const profiles = profileManager.readProfiles();
   // 不指定平台时创建"未确定平台"的 profile，窗口会显示平台选择页
   const pid = providerId || '';
