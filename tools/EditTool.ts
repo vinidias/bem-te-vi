@@ -8,7 +8,7 @@ import path from 'node:path';
  * - old_string 非空
  * - old_string !== new_string（避免 no-op）
  */
-function parseEditArgs(filePath, oldString, newString, replaceAll, dryRun) {
+function parseEditArgs(filePath: any, oldString: any, newString: any, replaceAll: any, dryRun: any) {
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
     throw new Error('file_path must be a non-empty string');
   }
@@ -33,7 +33,7 @@ function parseEditArgs(filePath, oldString, newString, replaceAll, dryRun) {
 /**
  * 对齐 dsh formatEditOutput：Claude-style 确认语。
  */
-function formatEditOutput(displayPath, replaceAll, occurrences = 1) {
+function formatEditOutput(displayPath: string, replaceAll: boolean, occurrences: number = 1): string {
   const noun = occurrences === 1 ? 'occurrence' : 'occurrences';
   return replaceAll
     ? 'The file ' + displayPath + ' has been updated. Replaced ' + occurrences + ' ' + noun + ' successfully.'
@@ -43,7 +43,7 @@ function formatEditOutput(displayPath, replaceAll, occurrences = 1) {
 /**
  * dry-run 预览输出：不写文件，只返回将要替换的信息。
  */
-function formatDryRunOutput(displayPath, oldString, newString, occurrences, replaceAll) {
+function formatDryRunOutput(displayPath: string, oldString: string, newString: string, occurrences: number, replaceAll: boolean): string {
   const action = replaceAll
     ? '将全部替换 ' + occurrences + ' 处'
     : '将替换 1 处';
@@ -101,7 +101,7 @@ class EditTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { file_path, old_string, new_string, replaceAll, dryRun, projectDir } = params;
 
     try {
@@ -160,7 +160,7 @@ class EditTool extends Tool {
 
       console.log('[EditTool] 已编辑:', resolvedPath, '替换', occurrences, '处');
       return ToolResult.success(formatEditOutput(input.filePath, input.replaceAll, occurrences));
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('编辑文件失败: ' + err.message);
     }
   }
