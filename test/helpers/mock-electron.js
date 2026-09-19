@@ -1,6 +1,5 @@
-'use strict';
-const Module = require('module');
-const path = require('path');
+import Module from 'node:module';
+import path from 'node:path';
 
 const fakeElectron = {
   app: {
@@ -41,4 +40,4 @@ function installElectronMock() {
   return () => { Module._load = orig; };
 }
 
-module.exports = { fakeElectron, installElectronMock };
+export { fakeElectron, installElectronMock };
