@@ -16,6 +16,9 @@
  *  - cuckoo-watchdog-prompt    超时提示词（默认"请继续"）
  *  - cuckoo-watchdog-count     最大催次数（默认 3，负数=无限）
  */
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const { showToast } = require('../overlay/ui');
 
 const DEFAULT_PROMPT = '请继续';
@@ -166,7 +169,7 @@ function startSessionWatcher() {
   }, 1500);
 }
 
-module.exports = {
+export {
   onToolCallDetected,
   onMessageSent,
   onResponseReceived,
@@ -174,6 +177,7 @@ module.exports = {
   reset,
   setSuspended,
   startSessionWatcher,
-  _readConfig: readConfig,
-  _isInLoop: () => inToolLoop,
+  readConfig as _readConfig,
 };
+
+export function _isInLoop() { return inToolLoop; }

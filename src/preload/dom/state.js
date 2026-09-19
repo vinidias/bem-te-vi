@@ -2,7 +2,7 @@
  * preload 全局共享状态
  * 由原 preload.js 中的模块级变量拆分而来，各模块通过同一对象共享。
  */
-module.exports = {
+const state = {
   initialPromptContent: '',
   // 是否有待发送的初始提示
   pendingInitialPrompt: false,
@@ -18,3 +18,5 @@ module.exports = {
   // 最近一次 AI 回复的消息 id（{ requestMessageId, responseMessageId }）
   lastResponseMsgIds: null,
 };
+
+export { state };

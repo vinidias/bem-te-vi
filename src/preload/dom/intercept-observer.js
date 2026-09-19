@@ -8,7 +8,7 @@ const { tryParseToolCall } = require('./tool-parser');
 const { handleToolCall, handleJsToolScript } = require('./tool-executor');
 const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } = require('./chat-input');
 const { hasTool, toolNamesList } = require('../tool-names');
-const state = require('./state');
+import { state } from './state.js';
 const watchdog = require('./tool-loop-watchdog');
 
 const MAX_JS_RETRY = 3;

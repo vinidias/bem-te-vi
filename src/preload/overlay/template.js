@@ -522,4 +522,4 @@ const OVERLAY_CSS = [
 '.cuckoo-settings-textarea { width: 100%; background: var(--ck-code-bg); border: 1px solid var(--ck-border); border-radius: 6px; padding: 6px 8px; color: var(--ck-text); font-size: 12px; resize: vertical; }',
 ].join('\n');
 
-module.exports = { OVERLAY_HTML, OVERLAY_CSS };
+export { OVERLAY_HTML, OVERLAY_CSS };

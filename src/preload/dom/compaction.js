@@ -17,7 +17,7 @@
 const { sendToChat } = require('./chat-input');
 const { onInterceptedResponse } = require('./intercept-observer');
 const { showToast } = require('../overlay/ui');
-const state = require('./state');
+import { state } from './state.js';
 const retryEngine = require('./retry-engine');
 const watchdog = require('./tool-loop-watchdog');
 

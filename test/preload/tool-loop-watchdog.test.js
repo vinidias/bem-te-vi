@@ -1,9 +1,6 @@
-'use strict';
-import { test, afterAll } from 'vitest';
+import { test, afterAll, vi } from 'vitest';
 import assert from 'node:assert';
 import Module from 'node:module';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
 
 // ===== 可观测 mock =====
 const sent = [];
@@ -18,7 +15,7 @@ function installMocks() {
     // providers：按 href 提取会话 id
     if (/providers$/.test(request) || request === '../../../src/providers') {
       return {
-        getProviderByUrl: (u) => ({
+        getProviderByUrl: () => ({
           extractSessionId: (s) => {
             const m = String(s).match(/\/chat\/s\/([a-zA-Z0-9-]+)/);
             return m ? m[1] : null;
@@ -59,10 +56,10 @@ function reset() {
   url = 'https://chat.deepseek.com/a/chat/s/sess-A';
 }
 
-function loadWd() {
-  const p = require.resolve('../../src/preload/dom/tool-loop-watchdog');
-  delete require.cache[p];
-  return require(p);
+// 模块级状态需要每次重置：ESM 无 require.cache，用 resetModules + 动态 import 重新求值
+async function loadWd() {
+  vi.resetModules();
+  return await import('../../src/preload/dom/tool-loop-watchdog.js');
 }
 
 function lastTimeout() {
@@ -73,45 +70,43 @@ function lastTimeout() {
 const restore = installMocks();
 installGlobals();
 
-// ================= readConfig =================
-test('readConfig 默认值', () => {
+test('readConfig 默认值', async () => {
   reset();
-  const cfg = loadWd()._readConfig();
+  const cfg = (await loadWd())._readConfig();
   assert.strictEqual(cfg.timeout, 300000);
   assert.strictEqual(cfg.prompt, '请继续');
   assert.strictEqual(cfg.count, 3);
 });
 
-test('readConfig 读取 localStorage', () => {
+test('readConfig 读取 localStorage', async () => {
   reset();
   store.set('cuckoo-xhr-idle-timeout', '1234');
   store.set('cuckoo-watchdog-prompt', '继续呀');
   store.set('cuckoo-watchdog-count', '5');
-  const cfg = loadWd()._readConfig();
+  const cfg = (await loadWd())._readConfig();
   assert.strictEqual(cfg.timeout, 1234);
   assert.strictEqual(cfg.prompt, '继续呀');
   assert.strictEqual(cfg.count, 5);
 });
 
-// ================= 开关时机 =================
-test('未进入工具循环时，onMessageSent 不开看门狗', () => {
+test('未进入工具循环时，onMessageSent 不开看门狗', async () => {
   reset();
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onMessageSent();
   assert.strictEqual(timers.length, 0);
 });
 
-test('检测到工具调用后，onMessageSent 会开看门狗', () => {
+test('检测到工具调用后，onMessageSent 会开看门狗', async () => {
   reset();
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
   wd.onMessageSent();
   assert.ok(lastTimeout(), '应有一个看门狗定时器');
 });
 
-test('收到终态回复会关看门狗', () => {
+test('收到终态回复会关看门狗', async () => {
   reset();
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
   wd.onMessageSent();
   assert.ok(lastTimeout());
@@ -119,75 +114,74 @@ test('收到终态回复会关看门狗', () => {
   assert.strictEqual(timers.filter((t) => t.type === 'timeout').length, 0);
 });
 
-test('exitToolLoop 退出循环并清计数', () => {
+test('exitToolLoop 退出循环并清计数', async () => {
   reset();
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
   wd.exitToolLoop();
   wd.onMessageSent();
   assert.strictEqual(timers.length, 0, '退出循环后不再开看门狗');
 });
 
-// ================= 超时行为 =================
-test('超时且会话一致：发提示词', () => {
+test('超时且会话一致：发提示词', async () => {
   reset();
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
   wd.onMessageSent();
   const t = lastTimeout();
-  t.fn(); // 触发超时
+  t.fn();
   assert.strictEqual(sent.length, 1);
   assert.strictEqual(sent[0].msg, '请继续');
   assert.strictEqual(sent[0].tag, '看门狗');
 });
 
-test('超时但会话已切换：不发提示词', () => {
+test('超时但会话已切换：不发提示词', async () => {
   reset();
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
-  wd.onMessageSent(); // armedSessionId = sess-A
+  wd.onMessageSent();
   const t = lastTimeout();
-  url = 'https://chat.deepseek.com/a/chat/s/sess-B'; // 切会话
+  url = 'https://chat.deepseek.com/a/chat/s/sess-B';
   t.fn();
   assert.strictEqual(sent.length, 0, '会话已切换，不应发提示词');
 });
 
-test('超时次数达上限后停止', () => {
+test('超时次数达上限后停止', async () => {
   reset();
   store.set('cuckoo-watchdog-count', '2');
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
   wd.onMessageSent();
-  lastTimeout().fn(); // 第1次
-  wd.onMessageSent(); // 重新 arm
-  lastTimeout().fn(); // 第2次
+  lastTimeout().fn();
+  wd.onMessageSent();
+  lastTimeout().fn();
   wd.onMessageSent();
   const before = sent.length;
-  lastTimeout().fn(); // 第3次，应被上限拦截
+  lastTimeout().fn();
   assert.strictEqual(sent.length, before, '达上限后不再发送');
   assert.ok(toasts.some((s) => /上限/.test(s)));
 });
 
-test('成功回复重置超时计数', () => {
+test('成功回复重置超时计数', async () => {
   reset();
   store.set('cuckoo-watchdog-count', '2');
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
   wd.onMessageSent();
-  lastTimeout().fn(); // count=1
-  wd.onResponseReceived('finished'); // 重置
+  lastTimeout().fn();
+  wd.onResponseReceived('finished');
   wd.onMessageSent();
-  lastTimeout().fn(); // 应重新从 0 计
+  lastTimeout().fn();
   wd.onMessageSent();
   const before = sent.length;
-  lastTimeout().fn(); // 不被上限拦截
+  lastTimeout().fn();
   assert.ok(sent.length > before, '成功后计数重置，应能继续发');
 });
 
-test('负数次数表示无限，不因上限停止', () => {
+test('负数次数表示无限，不因上限停止', async () => {
   reset();
   store.set('cuckoo-watchdog-count', '-1');
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
   for (let i = 0; i < 10; i++) {
     wd.onMessageSent();
@@ -196,33 +190,31 @@ test('负数次数表示无限，不因上限停止', () => {
   assert.strictEqual(sent.length, 10, '无限模式每次都发');
 });
 
-test('超时时间 <=0 时禁用看门狗', () => {
+test('超时时间 <=0 时禁用看门狗', async () => {
   reset();
   store.set('cuckoo-xhr-idle-timeout', '0');
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
   wd.onMessageSent();
   assert.strictEqual(timers.filter((t) => t.type === 'timeout').length, 0);
 });
 
-// ================= 会话监视 =================
-test('startSessionWatcher 检测到会话切换后重置', () => {
+test('startSessionWatcher 检测到会话切换后重置', async () => {
   reset();
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.onToolCallDetected();
-  wd.onMessageSent(); // arm
+  wd.onMessageSent();
   wd.startSessionWatcher();
   const iv = timers.find((t) => t.type === 'interval');
   assert.ok(iv, '应启动轮询');
   url = 'https://chat.deepseek.com/a/chat/s/sess-B';
-  iv.fn(); // 触发轮询
-  // 重置后 inToolLoop=false
+  iv.fn();
   assert.strictEqual(wd._isInLoop(), false);
 });
 
-test('startSessionWatcher 幂等', () => {
+test('startSessionWatcher 幂等', async () => {
   reset();
-  const wd = loadWd();
+  const wd = await loadWd();
   wd.startSessionWatcher();
   wd.startSessionWatcher();
   const ivs = timers.filter((t) => t.type === 'interval');
@@ -230,4 +222,3 @@ test('startSessionWatcher 幂等', () => {
 });
 
 afterAll(() => { restore(); });
-

@@ -101,7 +101,7 @@ function extractJsToolBlocks(text) {
   return blocks;
 }
 
-module.exports = {
+export {
   BT,
   FENCE,
   JS_TOOL_CALL_RE,

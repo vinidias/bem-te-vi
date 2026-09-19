@@ -189,4 +189,4 @@ function extractJsonObject(str, startPos) {
   return null;
 }
 
-module.exports = { parseJsonWithRepair, repairJsonString, tryParseToolCall, extractJsonObject };
+export { parseJsonWithRepair, repairJsonString, tryParseToolCall, extractJsonObject };

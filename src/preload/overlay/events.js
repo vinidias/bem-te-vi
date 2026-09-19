@@ -2,7 +2,7 @@
  * 覆盖层按钮事件绑定
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-const state = require('../dom/state');
+import { state } from '../dom/state.js';
 const { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } = require('./ui');
 const { handleInitProject, renderSessions } = require('../dom/session-list');
 const { sendToChat } = require('../dom/chat-input');

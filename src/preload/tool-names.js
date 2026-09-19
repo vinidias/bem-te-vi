@@ -34,4 +34,4 @@ function toolNamesList() {
   return TOOL_NAMES.join(', ');
 }
 
-module.exports = { TOOL_NAMES, hasTool, toolNamesList };
+export { TOOL_NAMES, hasTool, toolNamesList };

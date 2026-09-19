@@ -3,7 +3,7 @@
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
 const { ipcRenderer } = require('electron');
-const state = require('./state');
+import { state } from './state.js';
 const { BT } = require('./js-detector');
 const { getProviderByUrl } = require('../../../src/providers');
 

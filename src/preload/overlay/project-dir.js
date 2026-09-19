@@ -4,7 +4,7 @@
  */
 const { ipcRenderer } = require('electron');
 const { renderSessions } = require('../dom/session-list');
-const state = require('../dom/state');
+import { state } from '../dom/state.js';
 const { hideFirstTimeDialog } = require('./ui');
 
 /**

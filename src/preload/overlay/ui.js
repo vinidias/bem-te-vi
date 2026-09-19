@@ -2,9 +2,9 @@
  * 覆盖层 UI 基础能力：注入、提示、历史记录、徽章、面板显隐与巡检
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-const { OVERLAY_HTML, OVERLAY_CSS } = require('./template');
-const { getProviderByUrl } = require('../../../src/providers');
-const state = require('../dom/state');
+import { OVERLAY_HTML, OVERLAY_CSS } from './template.js';
+import { getProviderByUrl } from '../../../src/providers/index.js';
+import { state } from '../dom/state.js';
 
 // ========== 注入样式 ==========
 /**
@@ -369,7 +369,7 @@ function startOverlayWatcher() {
   // 方向 C：不再定期强制弹出面板，避免遮挡主界面。
 }
 
-module.exports = {
+export {
   injectCSS,
   injectOverlay,
   generateId,
