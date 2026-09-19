@@ -3,9 +3,9 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 const { getProvider, getAllProviders, getProviderByUrl } = require('../../src/providers');
-const deepseek = require('../../src/providers/deepseek');
-const claude = require('../../src/providers/claude');
-const chatgpt = require('../../src/providers/chatgpt');
+const { deepseek } = require('../../src/providers/deepseek');
+const { claude } = require('../../src/providers/claude');
+const { chatgpt } = require('../../src/providers/chatgpt');
 
 test('getAllProviders 包含 deepseek 和 claude', () => {
   const all = getAllProviders();

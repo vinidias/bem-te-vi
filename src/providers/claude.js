@@ -218,7 +218,7 @@ function claudeHookInstaller() {
   }
 }
 
-module.exports = {
+const claude = {
   id: 'claude',
   name: 'Claude',
   // 使用网络请求拦截方式获取 AI 回复（替代 DOM 抓取）
@@ -294,3 +294,5 @@ module.exports = {
     return '(' + claudeHookInstaller.toString() + ')();';
   },
 };
+
+export { claude };

@@ -471,7 +471,7 @@ function deepseekHookInstaller() {
   }
 }
 
-module.exports = {
+const deepseek = {
   id: 'deepseek',
   name: 'DeepSeek',
   // 使用网络请求拦截方式获取 AI 回复（替代 DOM 抓取）
@@ -569,3 +569,5 @@ module.exports = {
     return '(' + deepseekHookInstaller.toString() + ')();';
   },
 };
+
+export { deepseek };

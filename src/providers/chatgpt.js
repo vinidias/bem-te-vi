@@ -260,7 +260,7 @@ function chatgptHookInstaller() {
   }
 }
 
-module.exports = {
+const chatgpt = {
   id: 'chatgpt',
   name: 'ChatGPT',
   // 使用网络请求拦截方式获取 AI 回复（替代 DOM 抓取）
@@ -374,3 +374,5 @@ module.exports = {
     return '(' + chatgptHookInstaller.toString() + ')();';
   },
 };
+
+export { chatgpt };
