@@ -16,10 +16,9 @@
  *  - cuckoo-watchdog-prompt    超时提示词（默认"请继续"）
  *  - cuckoo-watchdog-count     最大催次数（默认 3，负数=无限）
  */
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const { showToast } = require('../overlay/ui');
+import { showToast } from '../overlay/ui.js';
+import { getProviderByUrl } from '../../../src/providers/index.js';
+import { sendToChat } from './chat-input.js';
 
 const DEFAULT_PROMPT = '请继续';
 const DEFAULT_TIMEOUT = 300000;
@@ -36,7 +35,6 @@ let suspended = false;
 /** 取当前页面 URL 对应的会话 ID（无则返回 null） */
 function getCurrentSessionId() {
   try {
-    const { getProviderByUrl } = require('../../../src/providers');
     const provider = getProviderByUrl(window.location.href);
     if (provider && typeof provider.extractSessionId === 'function') {
       return provider.extractSessionId(window.location.href) || null;
@@ -99,7 +97,6 @@ function onTimeout() {
   timeoutCount++;
   showToast('等待 AI 回复超时，发送「' + cfg.prompt + '」催继续（第 ' + timeoutCount + ' 次）', 3000);
   try {
-    const { sendToChat } = require('./chat-input');
     sendToChat(cfg.prompt, '看门狗', 300);
   } catch (e) {
     console.error('[Cuckoo Code][看门狗] 发送提示词失败: ' + e.message);

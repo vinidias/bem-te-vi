@@ -1,48 +1,43 @@
 import { test, afterAll, vi } from 'vitest';
 import assert from 'node:assert';
-import Module from 'node:module';
 
-// ===== 可观测 mock =====
-const sent = [];
-const toasts = [];
-const store = new Map();
+// ===== 可观测 mock（vi.mock 工厂需在 hoist 前定义引用对象）=====
+const mocks = vi.hoisted(() => ({
+  sent: [],
+  toasts: [],
+  store: new Map(),
+}));
+
+vi.mock('../../src/preload/overlay/ui.js', () => ({
+  showToast: (m) => { mocks.toasts.push(m); },
+}));
+
+vi.mock('../../src/preload/dom/chat-input.js', () => ({
+  sendToChat: (msg, tag) => { mocks.sent.push({ msg, tag }); return true; },
+}));
+
+vi.mock('../../src/providers/index.js', () => ({
+  getProviderByUrl: () => ({
+    extractSessionId: (s) => {
+      const m = String(s).match(/\/chat\/s\/([a-zA-Z0-9-]+)/);
+      return m ? m[1] : null;
+    },
+  }),
+}));
+
+// ===== 全局桩（window/localStorage/定时器）=====
 let timers = [];
 let url = 'https://chat.deepseek.com/a/chat/s/sess-A';
-
-function installMocks() {
-  const orig = Module._load;
-  Module._load = function (request) {
-    // providers：按 href 提取会话 id
-    if (/providers$/.test(request) || request === '../../../src/providers') {
-      return {
-        getProviderByUrl: () => ({
-          extractSessionId: (s) => {
-            const m = String(s).match(/\/chat\/s\/([a-zA-Z0-9-]+)/);
-            return m ? m[1] : null;
-          },
-        }),
-      };
-    }
-    if (request === './chat-input') {
-      return { sendToChat: (msg, tag) => { sent.push({ msg, tag }); return true; } };
-    }
-    if (request === '../overlay/ui') {
-      return { showToast: (m) => { toasts.push(m); } };
-    }
-    return orig.apply(this, arguments);
-  };
-  return () => { Module._load = orig; };
-}
 
 function installGlobals() {
   global.window = {
     get location() { return { href: url }; },
   };
   global.localStorage = {
-    getItem: (k) => (store.has(k) ? store.get(k) : null),
-    setItem: (k, v) => store.set(k, String(v)),
-    removeItem: (k) => store.delete(k),
-    clear: () => store.clear(),
+    getItem: (k) => (mocks.store.has(k) ? mocks.store.get(k) : null),
+    setItem: (k, v) => mocks.store.set(k, String(v)),
+    removeItem: (k) => mocks.store.delete(k),
+    clear: () => mocks.store.clear(),
   };
   global.setTimeout = (fn, ms) => { const t = { fn, ms, type: 'timeout' }; timers.push(t); return t; };
   global.clearTimeout = (t) => { timers = timers.filter((x) => x !== t); };
@@ -51,12 +46,11 @@ function installGlobals() {
 }
 
 function reset() {
-  sent.length = 0; toasts.length = 0;
-  store.clear(); timers = [];
+  mocks.sent.length = 0; mocks.toasts.length = 0;
+  mocks.store.clear(); timers = [];
   url = 'https://chat.deepseek.com/a/chat/s/sess-A';
 }
 
-// 模块级状态需要每次重置：ESM 无 require.cache，用 resetModules + 动态 import 重新求值
 async function loadWd() {
   vi.resetModules();
   return await import('../../src/preload/dom/tool-loop-watchdog.js');
@@ -67,7 +61,6 @@ function lastTimeout() {
   return ts[ts.length - 1];
 }
 
-const restore = installMocks();
 installGlobals();
 
 test('readConfig 默认值', async () => {
@@ -80,9 +73,9 @@ test('readConfig 默认值', async () => {
 
 test('readConfig 读取 localStorage', async () => {
   reset();
-  store.set('cuckoo-xhr-idle-timeout', '1234');
-  store.set('cuckoo-watchdog-prompt', '继续呀');
-  store.set('cuckoo-watchdog-count', '5');
+  mocks.store.set('cuckoo-xhr-idle-timeout', '1234');
+  mocks.store.set('cuckoo-watchdog-prompt', '继续呀');
+  mocks.store.set('cuckoo-watchdog-count', '5');
   const cfg = (await loadWd())._readConfig();
   assert.strictEqual(cfg.timeout, 1234);
   assert.strictEqual(cfg.prompt, '继续呀');
@@ -130,9 +123,9 @@ test('超时且会话一致：发提示词', async () => {
   wd.onMessageSent();
   const t = lastTimeout();
   t.fn();
-  assert.strictEqual(sent.length, 1);
-  assert.strictEqual(sent[0].msg, '请继续');
-  assert.strictEqual(sent[0].tag, '看门狗');
+  assert.strictEqual(mocks.sent.length, 1);
+  assert.strictEqual(mocks.sent[0].msg, '请继续');
+  assert.strictEqual(mocks.sent[0].tag, '看门狗');
 });
 
 test('超时但会话已切换：不发提示词', async () => {
@@ -143,12 +136,12 @@ test('超时但会话已切换：不发提示词', async () => {
   const t = lastTimeout();
   url = 'https://chat.deepseek.com/a/chat/s/sess-B';
   t.fn();
-  assert.strictEqual(sent.length, 0, '会话已切换，不应发提示词');
+  assert.strictEqual(mocks.sent.length, 0, '会话已切换，不应发提示词');
 });
 
 test('超时次数达上限后停止', async () => {
   reset();
-  store.set('cuckoo-watchdog-count', '2');
+  mocks.store.set('cuckoo-watchdog-count', '2');
   const wd = await loadWd();
   wd.onToolCallDetected();
   wd.onMessageSent();
@@ -156,15 +149,15 @@ test('超时次数达上限后停止', async () => {
   wd.onMessageSent();
   lastTimeout().fn();
   wd.onMessageSent();
-  const before = sent.length;
+  const before = mocks.sent.length;
   lastTimeout().fn();
-  assert.strictEqual(sent.length, before, '达上限后不再发送');
-  assert.ok(toasts.some((s) => /上限/.test(s)));
+  assert.strictEqual(mocks.sent.length, before, '达上限后不再发送');
+  assert.ok(mocks.toasts.some((s) => /上限/.test(s)));
 });
 
 test('成功回复重置超时计数', async () => {
   reset();
-  store.set('cuckoo-watchdog-count', '2');
+  mocks.store.set('cuckoo-watchdog-count', '2');
   const wd = await loadWd();
   wd.onToolCallDetected();
   wd.onMessageSent();
@@ -173,26 +166,26 @@ test('成功回复重置超时计数', async () => {
   wd.onMessageSent();
   lastTimeout().fn();
   wd.onMessageSent();
-  const before = sent.length;
+  const before = mocks.sent.length;
   lastTimeout().fn();
-  assert.ok(sent.length > before, '成功后计数重置，应能继续发');
+  assert.ok(mocks.sent.length > before, '成功后计数重置，应能继续发');
 });
 
 test('负数次数表示无限，不因上限停止', async () => {
   reset();
-  store.set('cuckoo-watchdog-count', '-1');
+  mocks.store.set('cuckoo-watchdog-count', '-1');
   const wd = await loadWd();
   wd.onToolCallDetected();
   for (let i = 0; i < 10; i++) {
     wd.onMessageSent();
     lastTimeout().fn();
   }
-  assert.strictEqual(sent.length, 10, '无限模式每次都发');
+  assert.strictEqual(mocks.sent.length, 10, '无限模式每次都发');
 });
 
 test('超时时间 <=0 时禁用看门狗', async () => {
   reset();
-  store.set('cuckoo-xhr-idle-timeout', '0');
+  mocks.store.set('cuckoo-xhr-idle-timeout', '0');
   const wd = await loadWd();
   wd.onToolCallDetected();
   wd.onMessageSent();
@@ -221,4 +214,4 @@ test('startSessionWatcher 幂等', async () => {
   assert.strictEqual(ivs.length, 1, '只应有一个轮询定时器');
 });
 
-afterAll(() => { restore(); });
+afterAll(() => {});
