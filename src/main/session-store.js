@@ -2,9 +2,9 @@
  * 会话-目录映射持久化存储 + URL 会话检测（每 profile 独立实例）
  * 由原 session-store.js 改造：从单例改为工厂函数，每个 profile 拥有独立存储文件和状态。
  */
-const fs = require('fs');
-const path = require('path');
-const { getProviderByUrl } = require('../providers');
+import fs from 'node:fs';
+import path from 'node:path';
+import { getProviderByUrl } from '../providers/index.js';
 
 /**
  * 创建 profile 专属的 session store 实例
@@ -131,4 +131,5 @@ function createSessionStore(profileId, storeDir, windowState) {
   };
 }
 
-module.exports = { createSessionStore };
+export { createSessionStore };
+
