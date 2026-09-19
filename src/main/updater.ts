@@ -18,7 +18,7 @@ if (app.isPackaged) {
 } else {
   const { default: log } = await import('electron-log');
   autoUpdater.logger = log;
-  autoUpdater.logger.transports.file.level = 'info';
+  (autoUpdater.logger as any).transports.file.level = 'info';
 }
 autoUpdater.autoDownload = false; // 检测到更新后不自动下载，等用户确认
 autoUpdater.autoInstallOnAppQuit = true; // 退出时自动安装（支持 NSIS）
@@ -27,15 +27,15 @@ autoUpdater.autoInstallOnAppQuit = true; // 退出时自动安装（支持 NSIS�
 let updateChecked = false;       // 是否已执行过检查
 let updateDownloaded = false;    // 是否已下载完成
 let isManualCheck = false;       // 是否是用户手动触发的检查
-let mainWindowRef = null;        // 主窗口引用（用于弹出对话框）
+let mainWindowRef: any = null;   // 主窗口引用（用于弹出对话框）
 
 /** 设置主窗口引用，用于对话框定位 */
-function setMainWindow(win) {
+function setMainWindow(win: any): void {
   mainWindowRef = win;
 }
 
 /** 判断错误是否为网络连接类问题 */
-function isNetworkError(error) {
+function isNetworkError(error: any): boolean {
   const msg = String(error && (error.message || error.stack) || '').toLowerCase();
   const networkKeywords = [
     'net::err',
@@ -62,7 +62,7 @@ function isNetworkError(error) {
 }
 
 /** 判断错误是否为 GitHub 访问受限类问题 */
-function isGitHubAccessError(error) {
+function isGitHubAccessError(error: any): boolean {
   const msg = String(error && (error.message || error.stack) || '').toLowerCase();
   const githubKeywords = [
     '403',
@@ -77,14 +77,14 @@ function isGitHubAccessError(error) {
 }
 
 /** 显示系统通知（不打断用户） */
-function showNotification(title, body) {
+function showNotification(title: string, body: string): void {
   if (Notification.isSupported()) {
     new Notification({ title, body }).show();
   }
 }
 
 /** 弹出更新失败对话框，提供重试/取消选项 */
-async function showUpdateErrorDialog(error, isManual) {
+async function showUpdateErrorDialog(error: any, isManual: boolean): Promise<boolean> {
   // 自动检查失败时，静默提示即可，不弹对话框打扰用户
   if (!isManual) {
     const detail = isNetworkError(error) || isGitHubAccessError(error)
@@ -107,7 +107,7 @@ async function showUpdateErrorDialog(error, isManual) {
     detail = '发生未知错误。\n\n错误信息：' + (error.message || '');
   }
 
-  const options = {
+  const options: any = {
     type: 'error',
     title: '更新失败',
     message,
@@ -126,7 +126,7 @@ async function showUpdateErrorDialog(error, isManual) {
 }
 
 /** 手动检查更新入口 */
-async function checkForUpdates() {
+async function checkForUpdates(): Promise<void> {
   if (updateDownloaded) {
     // 已有下载完成的更新，直接提示安装
     const options = {
@@ -152,7 +152,7 @@ async function checkForUpdates() {
   updateChecked = false;
   try {
     await autoUpdater.checkForUpdates();
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Updater] 检查更新异常:', error);
     await showUpdateErrorDialog(error, true);
   }
@@ -167,7 +167,7 @@ autoUpdater.on('checking-for-update', () => {
   }
 });
 
-autoUpdater.on('update-available', async (info) => {
+autoUpdater.on('update-available', async (info: any) => {
   console.log('[Updater] 发现新版本:', info.version);
   const options = {
     type: 'info',
@@ -200,7 +200,7 @@ autoUpdater.on('update-not-available', () => {
   isManualCheck = false;
 });
 
-autoUpdater.on('download-progress', (progressObj) => {
+autoUpdater.on('download-progress', (progressObj: any) => {
   const percent = Math.round(progressObj.percent);
   console.log('[Updater] 下载进度:', percent + '%');
   // 仅在手动检查时显示进度通知
@@ -209,7 +209,7 @@ autoUpdater.on('download-progress', (progressObj) => {
   }
 });
 
-autoUpdater.on('update-downloaded', (info) => {
+autoUpdater.on('update-downloaded', (info: any) => {
   updateDownloaded = true;
   console.log('[Updater] 新版本已下载:', info.version);
 
@@ -237,7 +237,7 @@ autoUpdater.on('update-downloaded', (info) => {
   });
 });
 
-autoUpdater.on('error', async (error) => {
+autoUpdater.on('error', async (error: any) => {
   console.error('[Updater] 更新错误:', error);
   const shouldRetry = await showUpdateErrorDialog(error, isManualCheck);
   if (shouldRetry) {
@@ -255,7 +255,7 @@ autoUpdater.on('error', async (error) => {
 });
 
 // ========== 启动时自动检查 ==========
-function initAutoUpdater(win) {
+function initAutoUpdater(win: any): void {
   setMainWindow(win);
 
   // 仅在生产环境（打包后）才检查更新
@@ -267,7 +267,7 @@ function initAutoUpdater(win) {
   // 应用启动后延迟 5 秒检查，避免影响启动速度
   setTimeout(() => {
     console.log('[Updater] 启动自动检查更新');
-    autoUpdater.checkForUpdates().catch((error) => {
+    autoUpdater.checkForUpdates().catch((error: any) => {
       console.error('[Updater] 启动检查更新失败:', error);
     });
   }, 5000);
