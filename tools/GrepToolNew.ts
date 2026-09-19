@@ -7,8 +7,8 @@ import { spawn } from 'node:child_process';
 const GREP_MAX_MATCHES = 250;
 const GREP_MAX_LINE_BYTES = 2000;
 
-let rgPathPromise = null;
-function getRgPath() {
+let rgPathPromise: Promise<string> | null = null;
+function getRgPath(): Promise<string> {
   if (!rgPathPromise) {
     rgPathPromise = import('@vscode/ripgrep').then(m => {
       // 打包后 @vscode/ripgrep 返回的路径在 app.asar 内，Windows 无法 spawn；
@@ -26,7 +26,7 @@ function getRgPath() {
 /**
  * 对齐 dsh validateInclude：只允许单个正向 glob。
  */
-function validateInclude(include) {
+function validateInclude(include: string): void {
   if (include.trim().length === 0) {
     throw new Error('include must be a non-empty glob when given');
   }
@@ -46,7 +46,7 @@ function validateInclude(include) {
 /**
  * 对齐 dsh parseGrepArgs。
  */
-function parseGrepArgs(pattern, searchPath, include) {
+function parseGrepArgs(pattern: any, searchPath: any, include: any): { pattern: string; path?: string; include?: string } {
   if (typeof pattern !== 'string' || pattern.length === 0) {
     throw new Error('pattern must be a non-empty string');
   }
@@ -58,7 +58,7 @@ function parseGrepArgs(pattern, searchPath, include) {
   if (include !== undefined && include !== null) {
     validateInclude(include);
   }
-  const out = { pattern };
+  const out: { pattern: string; path?: string; include?: string } = { pattern };
   if (searchPath !== undefined && searchPath !== null) out.path = searchPath;
   if (include !== undefined && include !== null) out.include = include;
   return out;
@@ -67,7 +67,7 @@ function parseGrepArgs(pattern, searchPath, include) {
 /**
  * 对齐 dsh buildGrepCommand。
  */
-function buildGrepCommand(input) {
+function buildGrepCommand(input: { pattern: string; path?: string; include?: string }): string[] {
   const parts = ['--json', '--regexp=' + input.pattern];
   if (input.include !== undefined) parts.push('--glob=' + input.include);
   if (input.path !== undefined) parts.push('--', input.path);
@@ -77,7 +77,7 @@ function buildGrepCommand(input) {
 /**
  * 执行 ripgrep，返回完整 stdout。
  */
-function runRipgrep(args, cwd) {
+function runRipgrep(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; code: number | null }> {
   return new Promise((resolve, reject) => {
     getRgPath().then(rgPath => {
       const child = spawn(rgPath, ['--no-config', ...args], {
@@ -89,8 +89,8 @@ function runRipgrep(args, cwd) {
       });
       let stdout = '';
       let stderr = '';
-      child.stdout.on('data', d => { stdout += d; });
-      child.stderr.on('data', d => { stderr += d; });
+      child.stdout.on('data', (d: Buffer) => { stdout += d; });
+      child.stderr.on('data', (d: Buffer) => { stderr += d; });
       child.on('error', reject);
       child.on('close', code => {
         if (code === 0 || code === 1) {
@@ -103,10 +103,16 @@ function runRipgrep(args, cwd) {
   });
 }
 
+interface GrepMatch {
+  path: string;
+  lineNumber: number;
+  line: string;
+}
+
 /**
  * 对齐 dsh parseRecord：解析一条 rg --json NDJSON。
  */
-function parseRecord(line) {
+function parseRecord(line: string): GrepMatch | undefined {
   let parsed;
   try {
     parsed = JSON.parse(line);
@@ -143,8 +149,8 @@ function parseRecord(line) {
 /**
  * 对齐 dsh parseGrepMatches：解析完整 stdout。
  */
-function parseGrepMatches(stdout) {
-  const matches = [];
+function parseGrepMatches(stdout: string): GrepMatch[] {
+  const matches: GrepMatch[] = [];
   for (const line of stdout.split('\n')) {
     if (line.length === 0) continue;
     const match = parseRecord(line);
@@ -156,14 +162,14 @@ function parseGrepMatches(stdout) {
 /**
  * 对齐 dsh formatGrepMatches：按文件分组。
  */
-function formatGrepMatches(matches) {
-  const byFile = new Map();
+function formatGrepMatches(matches: GrepMatch[]): string {
+  const byFile = new Map<string, GrepMatch[]>();
   for (const match of matches) {
     const group = byFile.get(match.path);
     if (group) group.push(match);
     else byFile.set(match.path, [match]);
   }
-  const sections = [];
+  const sections: string[] = [];
   for (const [file, group] of byFile) {
     sections.push(file + '\n' + group.map(m => 'Line ' + m.lineNumber + ': ' + m.line).join('\n'));
   }
@@ -173,7 +179,7 @@ function formatGrepMatches(matches) {
 /**
  * UTF-8 安全截断，对齐 dsh previewLine。
  */
-function previewLine(line, maxBytes) {
+function previewLine(line: string, maxBytes: number): string {
   const buf = Buffer.from(line, 'utf8');
   if (buf.length <= maxBytes) return line;
   const truncated = buf.slice(0, maxBytes).toString('utf8');
@@ -183,7 +189,7 @@ function previewLine(line, maxBytes) {
 /**
  * 对齐 dsh formatGrepOutput：header + body + footer（无 spill）。
  */
-function formatGrepOutput(retained) {
+function formatGrepOutput(retained: { items: GrepMatch[]; seen: number; kept: number; truncated: boolean }): string {
   const header = retained.truncated
     ? 'Found ' + retained.kept + ' of ' + retained.seen + ' matches'
     : 'Found ' + retained.seen + ' ' + (retained.seen === 1 ? 'match' : 'matches');
@@ -196,7 +202,7 @@ function formatGrepOutput(retained) {
 /**
  * 对齐 dsh retainGrepMatches：截断到 maxMatches，并预览每行。
  */
-function retainGrepMatches(matches, maxMatches, maxLineBytes) {
+function retainGrepMatches(matches: GrepMatch[], maxMatches: number, maxLineBytes: number): { items: GrepMatch[]; seen: number; kept: number; truncated: boolean } {
   const seen = matches.length;
   const truncated = seen > maxMatches;
   const items = matches.slice(0, maxMatches).map(m => ({
@@ -247,7 +253,7 @@ class GrepToolNew extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { pattern, path: searchPath, include, projectDir } = params;
 
     try {
@@ -265,7 +271,7 @@ class GrepToolNew extends Tool {
       let run;
       try {
         run = await runRipgrep(args, baseDir);
-      } catch (err) {
+      } catch (err: any) {
         const msg = String(err.message || err);
         if (/regex parse error|error parsing glob/i.test(msg)) {
           return ToolResult.error('grep pattern rejected by ripgrep: ' + msg);
@@ -281,7 +287,7 @@ class GrepToolNew extends Tool {
       let all;
       try {
         all = parseGrepMatches(run.stdout);
-      } catch (err) {
+      } catch (err: any) {
         return ToolResult.error(err.message);
       }
 
@@ -297,7 +303,7 @@ class GrepToolNew extends Tool {
       }
 
       return ToolResult.success(formatGrepOutput(retained));
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('Grep 搜索失败: ' + err.message);
     }
   }
