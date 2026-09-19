@@ -1,6 +1,6 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const fs = require('fs');
-const path = require('path');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * 校验 write 参数：
@@ -104,4 +104,4 @@ class WriteTool extends Tool {
   }
 }
 
-module.exports = { WriteTool, parseWriteArgs, formatWriteOutput };
+export { WriteTool, parseWriteArgs, formatWriteOutput };
