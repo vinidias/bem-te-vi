@@ -2,25 +2,25 @@
  * 工具库统一入口
  * 导出所有可用工具（主进程注册工具的唯一入口，与 src/main/tool-registry.js 配套）
  */
-const { ToolRegistry } = require('./ToolRegistry');
-const { JsRunner } = require('./JsRunner');
-const { WriteTool } = require('./WriteTool');
-const { ReadTool } = require('./ReadTool');
-const { ReadLinesTool } = require('./ReadLinesTool');
-const { EditTool } = require('./EditTool');
-const { GlobToolNew } = require('./GlobToolNew');
-const { GrepToolNew } = require('./GrepToolNew');
-const { TodoWriteTool } = require('./TodoWriteTool');
-const { BashTool } = require('./BashTool');
-const { PwshTool } = require('./PwshTool');
-const { FileDeleteTool } = require('./FileDeleteTool');
-const { WebFetchTool } = require('./WebFetchTool');
-const { MySQLTool } = require('./MySQLTool');
-const { OpenBrowserWindowTool } = require('./OpenBrowserWindowTool');
-const { InjectJSTool } = require('./InjectJSTool');
-const { AttachFileTool } = require('./AttachFileTool');
-const { McpCallTool } = require('./McpCallTool');
-const { McpListServersTool, McpGetToolsTool } = require('./McpQueryTools');
+import { ToolRegistry } from './ToolRegistry.js';
+import { JsRunner } from './JsRunner.js';
+import { WriteTool } from './WriteTool.js';
+import { ReadTool } from './ReadTool.js';
+import { ReadLinesTool } from './ReadLinesTool.js';
+import { EditTool } from './EditTool.js';
+import { GlobToolNew } from './GlobToolNew.js';
+import { GrepToolNew } from './GrepToolNew.js';
+import { TodoWriteTool } from './TodoWriteTool.js';
+import { BashTool } from './BashTool.js';
+import { PwshTool } from './PwshTool.js';
+import { FileDeleteTool } from './FileDeleteTool.js';
+import { WebFetchTool } from './WebFetchTool.js';
+import { MySQLTool } from './MySQLTool.js';
+import { OpenBrowserWindowTool } from './OpenBrowserWindowTool.js';
+import { InjectJSTool } from './InjectJSTool.js';
+import { AttachFileTool } from './AttachFileTool.js';
+import { McpCallTool } from './McpCallTool.js';
+import { McpListServersTool, McpGetToolsTool } from './McpQueryTools.js';
 
 // 创建全局工具注册表
 const registry = new ToolRegistry();
@@ -46,7 +46,7 @@ registry.register(new McpListServersTool());
 registry.register(new McpGetToolsTool());
 
 // 导出
-module.exports = {
+export {
   ToolRegistry,
   JsRunner,
   registry,
@@ -61,8 +61,13 @@ module.exports = {
   FileDeleteTool,
   WebFetchTool,
   // 便捷方法
-  getAllTools: () => registry,
-  getToolDescriptions: () => registry.getDescriptions(),
-  getFormattedToolsForPrompt: () => registry.getFormattedToolsForPrompt(),
-  executeTool: (name, params) => registry.execute(name, params)
+  getAllTools,
+  getToolDescriptions,
+  getFormattedToolsForPrompt,
+  executeTool
 };
+
+function getAllTools() { return registry; }
+function getToolDescriptions() { return registry.getDescriptions(); }
+function getFormattedToolsForPrompt() { return registry.getFormattedToolsForPrompt(); }
+function executeTool(name, params) { return registry.execute(name, params); }
