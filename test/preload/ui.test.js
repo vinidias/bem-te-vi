@@ -1,6 +1,6 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+import { test } from 'vitest';
+import assert from 'node:assert';
 
 // 只测纯函数：generateId、formatTime、truncate
 // escapeHtml 等需要 DOM 的函数单独 mock
@@ -20,7 +20,7 @@ global.clearInterval = () => {};
 global.setTimeout = (fn, ms) => 0;
 global.clearTimeout = () => {};
 
-const ui = require('../../src/preload/overlay/ui');
+const ui = await import('../../src/preload/overlay/ui.js');
 
 test('generateId 格式', () => {
   const id1 = ui.generateId();
@@ -93,3 +93,4 @@ test('flashBadge 不抛错', () => {
 test('startOverlayWatcher 不抛错', () => {
   assert.doesNotThrow(() => ui.startOverlayWatcher());
 });
+

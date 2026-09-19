@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseJsonWithRepair, repairJsonString, tryParseToolCall, extractJsonObject } = require('../../src/preload/dom/tool-parser');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseJsonWithRepair, repairJsonString, tryParseToolCall, extractJsonObject } from '../../src/preload/dom/tool-parser.js';
 
 test('parseJsonWithRepair 严格 JSON 直接解析', () => {
   assert.deepStrictEqual(parseJsonWithRepair('{"a":1}'), { a: 1 });
@@ -66,3 +66,4 @@ test('extractJsonObject 完整提取', () => {
 test('extractJsonObject 未闭合返回 null', () => {
   assert.strictEqual(extractJsonObject('{"a":1', 0), null);
 });
+

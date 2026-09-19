@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { TOOL_NAMES, hasTool, toolNamesList } = require('../../src/preload/tool-names');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { TOOL_NAMES, hasTool, toolNamesList } from '../../src/preload/tool-names.js';
 
 test('TOOL_NAMES 包含全部工具名', () => {
   assert.ok(Array.isArray(TOOL_NAMES));
@@ -30,3 +30,4 @@ test('toolNamesList 返回逗号分隔字符串', () => {
   assert.strictEqual(list, TOOL_NAMES.join(', '));
   assert.match(list, /bash/);
 });
+

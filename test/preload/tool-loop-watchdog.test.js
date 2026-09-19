@@ -1,7 +1,9 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const Module = require('module');
+import { test, afterAll } from 'vitest';
+import assert from 'node:assert';
+import Module from 'node:module';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 // ===== 可观测 mock =====
 const sent = [];
@@ -227,4 +229,5 @@ test('startSessionWatcher 幂等', () => {
   assert.strictEqual(ivs.length, 1, '只应有一个轮询定时器');
 });
 
-test.after(() => { restore(); });
+afterAll(() => { restore(); });
+

@@ -1,7 +1,9 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const Module = require('module');
+import { test, afterAll } from 'vitest';
+import assert from 'node:assert';
+import Module from 'node:module';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 // ===== 可观测 mock =====
 const sent = [];
@@ -302,4 +304,5 @@ test('错误事件无 sessionId：不做会话校验，正常重试', () => {
   assert.ok(lastTimeout(), '无 sessionId 应照常重试');
 });
 
-test.after(() => { restore(); });
+afterAll(() => { restore(); });
+

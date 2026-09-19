@@ -1,6 +1,6 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+import { test } from 'vitest';
+import assert from 'node:assert';
 const {
   BT,
   FENCE,
@@ -66,3 +66,4 @@ test('extractJsToolBlocks 空输入', () => {
   assert.deepStrictEqual(extractJsToolBlocks(''), []);
   assert.deepStrictEqual(extractJsToolBlocks(null), []);
 });
+

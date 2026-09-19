@@ -1,7 +1,9 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const Module = require('module');
+import { test, afterAll } from 'vitest';
+import assert from 'node:assert';
+import Module from 'node:module';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 // ===== 记录工具/回传调用 =====
 const toolCalls = [];
@@ -155,4 +157,5 @@ test('多个 response 监听器都被通知', () => {
   assert.strictEqual(b, 1);
 });
 
-test.after(() => { restore(); });
+afterAll(() => { restore(); });
+
