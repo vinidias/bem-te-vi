@@ -2,7 +2,7 @@
  * 会话列表功能（渲染、导航、初始化项目按钮）
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-const { escapeHtml, showToast } = require('../overlay/ui');
+import { escapeHtml, showToast } from '../overlay/ui.js';
 
 // ========== 会话列表功能 ==========
 
@@ -108,4 +108,4 @@ async function handleInitProject() {
   }
 }
 
-module.exports = { renderSessions, handleNavigateSession, handleInitProject };
+export { renderSessions, handleNavigateSession, handleInitProject };
