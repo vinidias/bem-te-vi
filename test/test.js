@@ -1,10 +1,10 @@
 /**
  * 测试工具库
  */
-const path = require('path');
-const fs = require('fs');
-const { ToolRegistry, ToolResult } = require('../tools/ToolRegistry');
-const { WriteTool } = require('../tools/WriteTool');
+import path from 'node:path';
+import fs from 'node:fs';
+import { ToolRegistry, ToolResult } from '../tools/ToolRegistry.js';
+import { WriteTool } from '../tools/WriteTool.js';
 
 async function test() {
   console.log('=== 测试工具库 ===\n');
@@ -26,7 +26,7 @@ async function test() {
   console.log('\n=== 测试执行 write ===');
 
   // 写入测试文件
-  const testFile = path.join(__dirname, '..', 'test_output.txt');
+  const testFile = path.join(import.meta.dirname, '..', 'test_output.txt');
   const testContent = `这是一个测试文件
 创建时间: ${new Date().toISOString()}
 工具库测试成功!`;
@@ -39,7 +39,6 @@ async function test() {
   console.log('执行结果:', result.toString());
 
   // 验证文件是否存在
-  const fs = require('fs');
   if (fs.existsSync(testFile)) {
     const readContent = fs.readFileSync(testFile, 'utf-8');
     console.log('\n文件内容验证:');

@@ -2,14 +2,14 @@
  * 跨平台启动脚本
  * 捕获 Electron stdout/stderr 写入日志文件，避免 Chromium 在 cwd 生成 PID 日志
  */
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const isWin = process.platform === 'win32';
 
 // 创建 wyp/log 目录
-const logDir = path.join(__dirname, 'wyp', 'log');
+const logDir = path.join(import.meta.dirname, 'wyp', 'log');
 fs.mkdirSync(logDir, { recursive: true });
 
 // 清空旧日志

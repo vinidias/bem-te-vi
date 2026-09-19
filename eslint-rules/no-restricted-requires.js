@@ -1,4 +1,3 @@
-'use strict';
 /**
  * 自定义 ESLint 规则：限制 CommonJS 的 require() 路径。
  *
@@ -15,9 +14,9 @@
  *   }]
  * }
  */
-const path = require('path');
+import path from 'node:path';
 
-module.exports = {
+export default {
   rules: {
     'no-restricted-requires': {
       meta: {

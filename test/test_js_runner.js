@@ -1,15 +1,15 @@
-const path = require('path');
-const os = require('os');
-const fs = require('fs');
-const { ToolRegistry } = require('../tools/ToolRegistry');
-const { WriteTool } = require('../tools/WriteTool');
-const { ReadTool } = require('../tools/ReadTool');
-const { EditTool } = require('../tools/EditTool');
-const { GlobToolNew } = require('../tools/GlobToolNew');
-const { GrepToolNew } = require('../tools/GrepToolNew');
-const { BashTool } = require('../tools/BashTool');
-const { FileDeleteTool } = require('../tools/FileDeleteTool');
-const { JsRunner } = require('../tools/JsRunner');
+import path from 'node:path';
+import os from 'node:os';
+import fs from 'node:fs';
+import { ToolRegistry } from '../tools/ToolRegistry.js';
+import { WriteTool } from '../tools/WriteTool.js';
+import { ReadTool } from '../tools/ReadTool.js';
+import { EditTool } from '../tools/EditTool.js';
+import { GlobToolNew } from '../tools/GlobToolNew.js';
+import { GrepToolNew } from '../tools/GrepToolNew.js';
+import { BashTool } from '../tools/BashTool.js';
+import { FileDeleteTool } from '../tools/FileDeleteTool.js';
+import { JsRunner } from '../tools/JsRunner.js';
 
 const NL = String.fromCharCode(10);
 

@@ -1,8 +1,7 @@
 // ESLint 配置（flat config，ESLint 9+）
 // 目的：固化模块依赖方向（见 docs/refactor/01-architecture.md 第 3 节）
-'use strict';
-const js = require('@eslint/js');
-const noRestrictedRequires = require('./eslint-rules/no-restricted-requires');
+import js from '@eslint/js';
+import noRestrictedRequires from './eslint-rules/no-restricted-requires.js';
 
 // 依赖护栏（P2 先配"现状目录"，P4 重组后按目标结构重配）
 const DEPENDENCY_ZONES = [
@@ -33,7 +32,7 @@ const COMMON_GLOBALS = {
   structuredClone: 'readonly',
 };
 
-module.exports = [
+export default [
   {
     ignores: ['node_modules/**', 'dist/**', 'dist-verify/**', 'build/**', 'wyp/**', '**/*.d.ts'],
   },
