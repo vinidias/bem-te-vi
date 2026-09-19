@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * 方法调用日志包装（类 AOP）
  *
@@ -15,11 +13,11 @@
  * - 仅覆盖被包装的函数；模块内部未包装的私有函数不会被自动记录。
  */
 
-function safeStr(v) {
+function safeStr(v: unknown): string {
   if (v === undefined) return 'undefined';
   if (v === null) return 'null';
   if (typeof v === 'string') return v.length > 200 ? v.slice(0, 200) + '...' : v;
-  if (typeof v === 'function') return '[Function ' + (v.name || 'anonymous') + ']';
+  if (typeof v === 'function') return '[Function ' + ((v as Function).name || 'anonymous') + ']';
   try {
     const s = JSON.stringify(v);
     if (s === undefined) return String(v);
@@ -29,32 +27,32 @@ function safeStr(v) {
   }
 }
 
-function withLog(fn, label) {
+function withLog<T extends (...args: any[]) => any>(fn: T, label?: string): T {
   const name = label || fn.name || 'anonymous';
   const prefix = '[AOP][' + name + ']';
-  return function (...args) {
+  return function (this: unknown, ...args: any[]): any {
     const argsStr = args.map(safeStr).join(', ');
     console.log(prefix + ' >> (' + argsStr + ')');
-    let r;
+    let r: any;
     try {
       r = fn.apply(this, args);
-    } catch (e) {
+    } catch (e: any) {
       console.log(prefix + ' << 抛错: ' + (e && e.message));
       throw e;
     }
     if (r && typeof r.then === 'function') {
       return r.then(
-        (v) => { console.log(prefix + ' << (Promise) => ' + safeStr(v)); return v; },
-        (e) => { console.log(prefix + ' << (Promise) 拒绝: ' + (e && e.message)); throw e; }
+        (v: any) => { console.log(prefix + ' << (Promise) => ' + safeStr(v)); return v; },
+        (e: any) => { console.log(prefix + ' << (Promise) 拒绝: ' + (e && e.message)); throw e; }
       );
     }
     console.log(prefix + ' << => ' + safeStr(r));
     return r;
-  };
+  } as unknown as T;
 }
 
 /** 包装对象（通常是 module.exports）上的所有方法，原地替换 */
-function withLogObject(mod, moduleName) {
+function withLogObject(mod: Record<string, any>, moduleName?: string): Record<string, any> {
   const prefix = '[AOP][' + (moduleName || 'module') + ']';
   for (const key of Object.keys(mod)) {
     const fn = mod[key];
