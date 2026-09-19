@@ -27,7 +27,7 @@ class InjectJSTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { windowId, code } = params;
     const result = await windowManager.injectJS(windowId, code);
     return ToolResult.success(result);
