@@ -2,10 +2,13 @@
  * 聊天输入框交互：查找输入框、填入与发送消息、工具结果回传
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-const { ipcRenderer } = require('electron');
+import { createRequire } from 'node:module';
 import { state } from './state.js';
-const { BT } = require('./js-detector');
-const { getProviderByUrl } = require('../../../src/providers');
+import { BT } from './js-detector.js';
+import { getProviderByUrl } from '../../../src/providers/index.js';
+
+const require = createRequire(import.meta.url);
+const { ipcRenderer } = require('electron');
 
 /**
  * 根据当前 URL 获取 provider
@@ -324,7 +327,7 @@ ipcRenderer.on('initial-prompt', (_event, content) => {
 }
 
 
-module.exports = {
+export {
   randomDelay,
   setInputContent,
   sendToChat,

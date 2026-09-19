@@ -14,10 +14,13 @@
  *  - hook 已把真实请求头缓存到 localStorage['cuckoo-ds-headers']
  *  - DeepSeek 把会话消息缓存在 IndexedDB 'deepseek-chat' 的 'history-message' store
  */
+import { createRequire } from 'node:module';
+import { state } from './state.js';
+
+const require = createRequire(import.meta.url);
 const { sendToChat } = require('./chat-input');
 const { onInterceptedResponse } = require('./intercept-observer');
 const { showToast } = require('../overlay/ui');
-import { state } from './state.js';
 const retryEngine = require('./retry-engine');
 const watchdog = require('./tool-loop-watchdog');
 
@@ -281,4 +284,4 @@ function checkPendingInit() {
   }, 3000);
 }
 
-module.exports = { runCompaction, checkPendingInit };
+export { runCompaction, checkPendingInit };

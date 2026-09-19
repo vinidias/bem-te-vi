@@ -3,12 +3,15 @@
  * 监听主世界注入的 'cuckoo-ai-response' 事件，收到完整回复后走与 DOM 模式
  * 相同的工具调用/JS 代码块处理流程。
  */
+import { createRequire } from 'node:module';
+import { state } from './state.js';
+
+const require = createRequire(import.meta.url);
 const { extractJsToolBlocks, BT } = require('./js-detector');
 const { tryParseToolCall } = require('./tool-parser');
 const { handleToolCall, handleJsToolScript } = require('./tool-executor');
 const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } = require('./chat-input');
 const { hasTool, toolNamesList } = require('../tool-names');
-import { state } from './state.js';
 const watchdog = require('./tool-loop-watchdog');
 
 const MAX_JS_RETRY = 3;
@@ -198,4 +201,4 @@ function getLastInterceptedText() {
   return lastInterceptedText;
 }
 
-module.exports = { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError };
+export { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError };
