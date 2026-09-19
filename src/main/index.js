@@ -2,15 +2,19 @@
  * Cuckoo Code 主进程入口（多窗口多 profile 版）
  * 由项目根目录 main.js 薄壳加载。
  */
-const { app, BrowserWindow, Menu, dialog } = require('electron');
-const path = require('path');
-const fs = require('fs');
+import path from 'node:path';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import * as windowState from './window.js';
+import * as profileManager from './profile-manager.js';
+import { createSessionStore } from './session-store.js';
+import { getProvider } from '../providers/index.js';
+import * as updater from './updater.js';
+import * as mcpConfig from './mcp-config.js';
+import * as mcpClient from './mcp-client.js';
 
-const windowState = require('./window');
-const profileManager = require('./profile-manager');
-const { createSessionStore } = require('./session-store');
-const { getProvider } = require('../providers');
-const updater = require('./updater');
+const require = createRequire(import.meta.url);
+const { app, BrowserWindow, Menu, dialog, ipcMain: ipcMainForProfile } = require('electron');
 
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
@@ -41,7 +45,7 @@ if (RENDERER_LOG_DIR) {
   }
 }
 
-const { registerIpcHandlers } = require('./ipc');
+import { registerIpcHandlers } from './ipc.js';
 
 // 退出前需要 flush 的 sessions
 const sessionsToFlush = new Set();
@@ -73,10 +77,10 @@ function createWindow(profile) {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
-    icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
+    icon: path.join(import.meta.dirname, '..', '..', 'assets', 'icon.png'),
     title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
     webPreferences: {
-      preload: path.join(__dirname, '..', '..', 'preload.js'),
+      preload: path.join(import.meta.dirname, '..', '..', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -132,7 +136,7 @@ function createWindow(profile) {
     mainWindow.loadURL(provider.homeUrl);
   } else {
     // 平台未确定（或对应 provider 已缺失），显示平台选择页
-    const selectPage = path.join(__dirname, '..', 'ui', 'platform-select.html');
+    const selectPage = path.join(import.meta.dirname, '..', 'ui', 'platform-select.html');
     mainWindow.loadFile(selectPage);
   }
 
@@ -287,7 +291,6 @@ function setupAppMenu() {
 registerIpcHandlers();
 
 // 覆盖层"新建窗口"按钮触发
-const { ipcMain: ipcMainForProfile } = require('electron');
 ipcMainForProfile.handle('create-profile-window', async (_event, { providerId } = {}) => {
   const profiles = profileManager.readProfiles();
   // 不指定平台时创建"未确定平台"的 profile，窗口会显示平台选择页
@@ -314,7 +317,7 @@ ipcMainForProfile.handle('delete-profile', async (_event, { profileId }) => {
 
 // 列出所有内置平台
 ipcMainForProfile.handle('list-providers', async () => {
-  const { getAllProviders } = require('../providers');
+  const { getAllProviders } = await import('../providers/index.js');
   return {
     success: true,
     providers: getAllProviders().map(p => ({
@@ -339,7 +342,7 @@ ipcMainForProfile.handle('import-provider', async (event, { replace = false } = 
   }
 
   const filePath = result[0];
-  const { importCustomProvider } = require('../providers/custom/loader');
+  const { importCustomProvider } = await import('../providers/custom/loader.js');
   try {
     const res = importCustomProvider(filePath, { replace });
     if (res.exists && !replace) {
@@ -387,7 +390,7 @@ ipcMainForProfile.handle('remove-provider', async (_event, { path: filePath, pro
     };
   }
 
-  const { removeCustomProviderPath } = require('../providers/custom/loader');
+  const { removeCustomProviderPath } = await import('../providers/custom/loader.js');
   removeCustomProviderPath(filePath);
   return { success: true };
 });
@@ -406,7 +409,7 @@ ipcMainForProfile.handle('replace-provider', async (event, { providerId }) => {
   }
 
   const filePath = result[0];
-  const { replaceCustomProvider } = require('../providers/custom/loader');
+  const { replaceCustomProvider } = await import('../providers/custom/loader.js');
   try {
     const res = replaceCustomProvider(providerId, filePath);
     return { success: true, provider: { id: res.provider.id, name: res.provider.name, path: res.targetPath } };
@@ -471,8 +474,6 @@ ipcMainForProfile.handle('update-window-name', async (event, { displayName }) =>
 });
 
 // ========== MCP 相关 IPC ==========
-const mcpConfig = require('./mcp-config');
-const mcpClient = require('./mcp-client');
 
 // 列出所有 MCP server（含启用状态）
 ipcMainForProfile.handle('list-mcp-servers', async () => {
