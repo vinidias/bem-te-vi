@@ -1,5 +1,5 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const { windowManager } = require('./browser-window-manager');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import { windowManager } from './browser-window-manager.js';
 
 class InjectJSTool extends Tool {
   constructor() {
@@ -34,4 +34,4 @@ class InjectJSTool extends Tool {
   }
 }
 
-module.exports = { InjectJSTool };
+export { InjectJSTool };
