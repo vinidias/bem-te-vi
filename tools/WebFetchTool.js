@@ -1,6 +1,6 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const TurndownService = require('turndown');
-const { gfm } = require('@joplin/turndown-plugin-gfm');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import TurndownService from 'turndown';
+import { gfm } from '@joplin/turndown-plugin-gfm';
 
 // 内部固定上限，不暴露给模型
 const FETCH_TIMEOUT_MS = 15000;
@@ -168,4 +168,4 @@ class WebFetchTool extends Tool {
   }
 }
 
-module.exports = { WebFetchTool, parseFetchArgs, formatFetchOutput };
+export { WebFetchTool, parseFetchArgs, formatFetchOutput };
