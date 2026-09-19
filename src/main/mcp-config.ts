@@ -19,39 +19,39 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { app } = require('electron');
 
-function getConfigFile() {
+function getConfigFile(): string {
   return path.join(app.getPath('userData'), 'mcp.json');
 }
 
-function getStateFile() {
+function getStateFile(): string {
   return path.join(app.getPath('userData'), 'mcp-state.json');
 }
 
-function readConfig() {
+function readConfig(): any {
   try {
     const file = getConfigFile();
     if (fs.existsSync(file)) {
       return JSON.parse(fs.readFileSync(file, 'utf-8'));
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[MCP] 读取配置失败:', err.message);
   }
   return { mcpServers: {} };
 }
 
-function writeConfig(config) {
+function writeConfig(config: any): boolean {
   try {
     const file = getConfigFile();
     fs.writeFileSync(file, JSON.stringify(config, null, 2), 'utf-8');
     console.log('[MCP] 配置已保存:', file);
     return true;
-  } catch (err) {
+  } catch (err: any) {
     console.error('[MCP] 写入配置失败:', err.message);
     return false;
   }
 }
 
-function readState() {
+function readState(): any {
   try {
     const file = getStateFile();
     if (fs.existsSync(file)) {
@@ -61,11 +61,11 @@ function readState() {
   return {};
 }
 
-function writeState(state) {
+function writeState(state: any): boolean {
   try {
     fs.writeFileSync(getStateFile(), JSON.stringify(state, null, 2), 'utf-8');
     return true;
-  } catch (err) {
+  } catch (err: any) {
     console.error('[MCP] 写入状态失败:', err.message);
     return false;
   }
@@ -75,11 +75,11 @@ function writeState(state) {
  * 把 mcpServers 对象转成数组（带 name / type / enabled），便于 UI 和 client 使用。
  * type 判断：有 url 就是 http，否则 stdio。
  */
-function getServers() {
+function getServers(): any[] {
   const config = readConfig();
   const state = readState();
-  const servers = [];
-  for (const [name, def] of Object.entries(config.mcpServers || {})) {
+  const servers: any[] = [];
+  for (const [name, def] of Object.entries(config.mcpServers || {}) as [string, any][]) {
     servers.push({
       name,
       type: def && def.url ? 'http' : 'stdio',
@@ -95,16 +95,16 @@ function getServers() {
   return servers;
 }
 
-function getEnabledServers() {
+function getEnabledServers(): any[] {
   return getServers().filter(s => s.enabled);
 }
 
-function upsertServer(server) {
+function upsertServer(server: any): any {
   const config = readConfig();
   if (!config.mcpServers || typeof config.mcpServers !== 'object') {
     config.mcpServers = {};
   }
-  const def = {};
+  const def: any = {};
   if (server.type === 'http') {
     if (server.url) def.url = server.url;
     if (server.headers) def.headers = server.headers;
@@ -119,14 +119,14 @@ function upsertServer(server) {
   return server;
 }
 
-function setServerEnabled(name, enabled) {
+function setServerEnabled(name: string, enabled: any): boolean {
   const state = readState();
   state[name] = !!enabled;
   writeState(state);
   return true;
 }
 
-function removeServer(name) {
+function removeServer(name: string): boolean {
   const config = readConfig();
   if (!config.mcpServers || typeof config.mcpServers !== 'object') {
     config.mcpServers = {};
@@ -150,4 +150,3 @@ export {
   setServerEnabled,
   removeServer,
 };
-
