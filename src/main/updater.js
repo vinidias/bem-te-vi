@@ -3,6 +3,9 @@
  * 使用 electron-updater + generic provider（GitHub Releases）检查并下载更新。
  * 职责：检查更新、下载进度提示、下载完成提醒、网络错误友好提示。
  */
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const { app, dialog, Notification } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
@@ -268,7 +271,7 @@ function initAutoUpdater(win) {
   }, 5000);
 }
 
-module.exports = {
+export {
   initAutoUpdater,
   checkForUpdates,
   setMainWindow,
