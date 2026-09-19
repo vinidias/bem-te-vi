@@ -1,4 +1,6 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 /**
  * MCP 调用工具 - 让 AI 通过 mcpCall 调用外部 MCP server 的工具。
@@ -68,4 +70,4 @@ class McpCallTool extends Tool {
   }
 }
 
-module.exports = { McpCallTool };
+export { McpCallTool };
