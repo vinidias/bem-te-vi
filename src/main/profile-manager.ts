@@ -10,42 +10,42 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { app } = require('electron');
 
-let PROFILE_FILE = null;
+let PROFILE_FILE: string | null = null;
 
-function getProfileFile() {
+function getProfileFile(): string {
   if (!PROFILE_FILE) {
     PROFILE_FILE = path.join(app.getPath('userData'), 'profile-list.json');
   }
   return PROFILE_FILE;
 }
 
-function readProfiles() {
+function readProfiles(): any[] {
   try {
     const file = getProfileFile();
     if (fs.existsSync(file)) {
       return JSON.parse(fs.readFileSync(file, 'utf-8'));
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Profile] 读取 profile 列表失败:', err.message);
   }
   return [];
 }
 
-function writeProfiles(profiles) {
+function writeProfiles(profiles: any[]): void {
   try {
     const file = getProfileFile();
     fs.writeFileSync(file, JSON.stringify(profiles, null, 2), 'utf-8');
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Profile] 写入 profile 列表失败:', err.message);
   }
 }
 
 /**
  * 创建新 profile
- * @param {string} name 显示名称
- * @param {string} providerId 平台 id（默认 deepseek）
+ * @param name 显示名称
+ * @param providerId 平台 id（默认 deepseek）
  */
-function createProfile(name, providerId) {
+function createProfile(name: string, providerId: string): any {
   const profiles = readProfiles();
   // providerId 为空表示平台未确定，首次打开会显示平台选择页
   const pid = providerId || '';
@@ -66,7 +66,7 @@ function createProfile(name, providerId) {
 /**
  * 获取默认 profile，若不存在则创建
  */
-function getDefaultProfile() {
+function getDefaultProfile(): any {
   const profiles = readProfiles();
   if (profiles.length > 0) return profiles[0];
   return createProfile('默认窗口', '');
@@ -75,14 +75,14 @@ function getDefaultProfile() {
 /**
  * 根据 id 获取 profile
  */
-function getProfileById(id) {
+function getProfileById(id: string): any {
   return readProfiles().find(p => p.id === id) || null;
 }
 
 /**
  * 删除 profile
  */
-function deleteProfile(id) {
+function deleteProfile(id: string): boolean {
   const profiles = readProfiles();
   const idx = profiles.findIndex(p => p.id === id);
   if (idx === -1) return false;
@@ -94,7 +94,7 @@ function deleteProfile(id) {
 /**
  * 更新 profile 平台
  */
-function updateProfileProvider(id, providerId) {
+function updateProfileProvider(id: string, providerId: string): any {
   const profiles = readProfiles();
   const p = profiles.find(x => x.id === id);
   if (!p || !providerId) return null;
@@ -107,7 +107,7 @@ function updateProfileProvider(id, providerId) {
 /**
  * 更新 profile 显示名称
  */
-function updateProfileName(id, name) {
+function updateProfileName(id: string, name: string): any {
   const profiles = readProfiles();
   const p = profiles.find(x => x.id === id);
   if (!p || !name || !name.trim()) return null;
@@ -126,4 +126,3 @@ export {
   updateProfileProvider,
   deleteProfile,
 };
-
