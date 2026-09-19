@@ -1,30 +1,13 @@
 /**
  * Provider 注册表
  * 加载所有内置的 AI 平台 Provider 定义，以及用户导入的自定义 Provider。
- * 内置 provider 采用容错加载：单个文件缺失/损坏不会拖垮整个应用。
  */
 import { loadCustomProviders } from './custom/loader.js';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
+import { deepseek } from './deepseek.js';
+import { claude } from './claude.js';
+import { chatgpt } from './chatgpt.js';
 
-const BUILTIN_PROVIDER_NAMES = ['deepseek', 'claude', 'chatgpt'];
-
-function loadBuiltinProviders(): any[] {
-  const list: any[] = [];
-  for (const name of BUILTIN_PROVIDER_NAMES) {
-    try {
-      const mod = require('./' + name + '.js');
-      const p = mod[name];
-      if (p && p.id) list.push(p);
-      else console.warn('[Provider] 内置 provider 无效，跳过:', name);
-    } catch (err: any) {
-      console.warn('[Provider] 内置 provider 加载失败，跳过:', name, err && err.message);
-    }
-  }
-  return list;
-}
-
-const builtinProviders = loadBuiltinProviders();
+const builtinProviders = [deepseek, claude, chatgpt].filter((p) => p && p.id);
 
 function getAllProviders(): any[] {
   return [...builtinProviders, ...loadCustomProviders()];
