@@ -107,7 +107,7 @@ declare function edit(filePath: string, oldString: string, newString: string, re
  * 使用 ripgrep，包含隐藏文件和已忽略文件，只排除 VCS 元数据目录（.git、.svn 等）。
  * glob 语法：* 匹配单层内任意字符，** 匹配任意层级目录，? 匹配单个字符。
  * 结果包含 footer：未超限时 "(Found N files)"，超限时 "(Showing M of N paths...)"。
- * @param pattern glob 匹配模式，如 **/*.js、src/**/*.ts、*.json
+ * @param pattern glob 匹配模式，如 src 下所有 .js / .ts，或 *.json
  * @param searchPath 搜索起始目录（相对路径），默认项目根目录
  * @throws pattern 为空、搜索目录不存在或不是目录时抛出异常
  */

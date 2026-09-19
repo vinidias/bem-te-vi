@@ -3,7 +3,7 @@
  * 用户编写自定义平台 Provider 时，可参考本文件获得类型提示。
  *
  * 使用方式（在用户 JS 文件顶部）：
- *   /** @type {import('./custom/provider.d.ts').Provider} */
+ *   // @type {import('./custom/provider.d.ts').Provider}
  *   module.exports = { ... }
  */
 
@@ -61,7 +61,7 @@ export interface Provider {
    * ⚠️ 必须自包含：provider 是单文件上传，hook 源码要内联在此方法中，
    * 不能 require 外部文件。推荐写法：
    *   getHookSource() {
-   *     return '(' + function () { /* 拦截逻辑，只用浏览器全局 */ }.toString() + ')();';
+   *     return '(' + function () { 拦截逻辑，只用浏览器全局 }.toString() + ')();';
    *   }
    *
    * 派发事件时可选携带 tokenUsage 字段（详见 provider.template.js）。
