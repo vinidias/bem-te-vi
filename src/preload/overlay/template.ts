@@ -2,7 +2,7 @@
  * 覆盖层 UI 模板（HTML 与 CSS）
  * 方向 C：悬浮球模式 —— 右下角悬浮球 + 按需弹出小面板
  */
-const OVERLAY_HTML = [
+const OVERLAY_HTML: string = [
 '<div id="cuckoo-overlay" class="cuckoo-overlay cuckoo-hidden">',
 '  <div class="cuckoo-header">',
 '    <span class="cuckoo-title">Cuckoo Code</span>',
@@ -212,7 +212,7 @@ const OVERLAY_HTML = [
 '</div>',
 ].join('\n');
 
-const OVERLAY_CSS = [
+const OVERLAY_CSS: string = [
 ':root {',
 '  --ck-bg: rgba(17, 19, 34, 0.97);',
 '  --ck-surface: rgba(255, 255, 255, 0.04);',
