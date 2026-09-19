@@ -70,7 +70,7 @@ function getWindowByProfileId(profileId) {
   return null;
 }
 
-module.exports = {
+export {
   addWindow,
   removeWindow,
   getWindowContext,

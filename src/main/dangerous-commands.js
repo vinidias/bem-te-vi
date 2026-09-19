@@ -20,4 +20,4 @@ function isDangerous(cmd) {
   return DANGEROUS_CMDS.some((pattern) => pattern.test(cmd.trim()));
 }
 
-module.exports = { DANGEROUS_CMDS, isDangerous };
+export { DANGEROUS_CMDS, isDangerous };
