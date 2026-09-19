@@ -1,14 +1,29 @@
 /**
  * 跨平台启动脚本
- * 捕获 Electron stdout/stderr 写入日志文件，避免 Chromium 在 cwd 生成 PID 日志
+ * 1) 编译 TS → out/
+ * 2) 启动 Electron（读取 package.json main = out/src/main/index.js）
+ * 3) 捕获 stdout/stderr 写入日志文件
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const isWin = process.platform === 'win32';
 
-// 创建 wyp/log 目录
+// ========== 1. 编译 ==========
+console.log('[start.js] 编译中（tsc -p tsconfig.build.json）...');
+const build = spawnSync('npx', ['tsc', '-p', 'tsconfig.build.json'], {
+  shell: true,
+  stdio: 'inherit',
+  cwd: import.meta.dirname,
+});
+if (build.status !== 0) {
+  console.error('[start.js] 编译失败，退出。');
+  process.exit(build.status ?? 1);
+}
+console.log('[start.js] 编译完成，启动 Electron...');
+
+// ========== 2. 日志目录 ==========
 const logDir = path.join(import.meta.dirname, 'wyp', 'log');
 fs.mkdirSync(logDir, { recursive: true });
 
@@ -24,6 +39,7 @@ try {
 const logFile = path.join(logDir, 'electron.log');
 const logStream = fs.createWriteStream(logFile, { flags: 'a' });
 
+// ========== 3. 启动 Electron ==========
 const cmd = isWin ? 'chcp 65001 > nul && electron .' : 'electron .';
 const child = spawn(cmd, { shell: true, stdio: ['inherit', 'pipe', 'pipe'] });
 
