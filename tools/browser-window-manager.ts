@@ -2,14 +2,23 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { BrowserWindow } = require('electron');
 
+interface OpenWindowOptions {
+  width?: number;
+  height?: number;
+  [key: string]: any;
+}
+
 class BrowserWindowManager {
+  windows: Map<string, any>;
+  nextAutoId: number;
+
   constructor() {
     this.windows = new Map();
     this.nextAutoId = 1;
   }
 
-  openWindow(customId, url, options = {}) {
-    let id;
+  openWindow(customId: string | null, url: string, options: OpenWindowOptions = {}): string {
+    let id: string;
     if (customId) {
       if (this.windows.has(customId)) {
         throw new Error(`窗口 ID "${customId}" 已存在，请换一个 ID 或复用现有窗口`);
@@ -38,14 +47,14 @@ class BrowserWindowManager {
     return id;
   }
 
-  async injectJS(id, jsCode) {
+  async injectJS(id: string, jsCode: string): Promise<any> {
     const win = this.windows.get(id);
     if (!win) throw new Error(`窗口 ID "${id}" 不存在`);
 
     // 语法探测：优先按"单个表达式"解析，失败则按"函数体（多条语句）"解析
     // 这样既支持 `1+2`、`(() => {...})()` 这类表达式，也支持
     // `return x`、`const a=1; return a`、`if (...) return x`、顶层 await 等多语句代码
-    let mode; // 'expression' | 'body'
+    let mode: 'expression' | 'body'; // 'expression' | 'body'
     try {
       // eslint-disable-next-line no-new-func
       new Function('return (' + jsCode + '\n)');
@@ -55,7 +64,7 @@ class BrowserWindowManager {
         // eslint-disable-next-line no-new-func
         new Function('return (async () => {\n' + jsCode + '\n})');
         mode = 'body';
-      } catch (e2) {
+      } catch (e2: any) {
         throw new Error(`JS 语法错误: ${e2.message}`);
       }
     }
@@ -88,17 +97,17 @@ ${jsCode}
     return result ? result.value : undefined;
   }
 
-  getWindow(id) {
+  getWindow(id: string): any {
     const win = this.windows.get(id);
     if (!win) throw new Error(`窗口 ID "${id}" 不存在`);
     return win;
   }
 
-  getAllWindowIds() {
+  getAllWindowIds(): string[] {
     return Array.from(this.windows.keys());
   }
 
-  closeWindow(id) {
+  closeWindow(id: string): void {
     const win = this.getWindow(id);
     win.close();
     this.windows.delete(id);
