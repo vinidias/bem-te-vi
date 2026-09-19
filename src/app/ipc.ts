@@ -4,8 +4,8 @@
  */
 import { exec } from 'node:child_process';
 import { createRequire } from 'node:module';
-import * as windowState from '../app/window.js';
-import * as profileManager from '../app/profile.js';
+import * as windowState from './window.js';
+import * as profileManager from './profile.js';
 import { registry as toolRegistry, jsRunner } from '../../tools/index.js';
 import { initProject } from '../session/project-context.js';
 import { isDangerous } from '../infra/dangerous-commands.js';

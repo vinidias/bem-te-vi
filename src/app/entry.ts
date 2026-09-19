@@ -5,8 +5,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import * as windowState from '../app/window.js';
-import * as profileManager from '../app/profile.js';
+import * as windowState from './window.js';
+import * as profileManager from './profile.js';
 import { createSessionStore } from '../session/store.js';
 import { getProvider } from '../providers/index.js';
 import * as updater from '../updater/index.js';

@@ -3,7 +3,7 @@
   "version": "0.5.3",
   "description": "DeepSeek 桌面应用——内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行",
   "type": "module",
-  "main": "out/src/main/index.js",
+  "main": "out/src/app/entry.js",
   "scripts": {
     "compile": "tsc -p tsconfig.build.json",
     "start": "node start.js",
