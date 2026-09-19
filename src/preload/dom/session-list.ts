@@ -9,17 +9,17 @@ import { escapeHtml, showToast } from '../overlay/ui.js';
 /**
  * 渲染当前项目目录关联的会话列表
  */
-async function renderSessions() {
+async function renderSessions(): Promise<void> {
   const listContainer = document.getElementById('cuckoo-session-list');
   if (!listContainer) return;
 
   try {
-    if (!window.electronAPI || !window.electronAPI.listSessions) {
+    if (!(window as any).electronAPI || !(window as any).electronAPI.listSessions) {
       listContainer.innerHTML = '<div class="cuckoo-session-empty">API 不可用</div>';
       return;
     }
 
-    const result = await window.electronAPI.listSessions();
+    const result = await (window as any).electronAPI.listSessions();
     if (!result.success) {
       listContainer.innerHTML = '<div class="cuckoo-session-empty">加载失败</div>';
       return;
@@ -31,7 +31,7 @@ async function renderSessions() {
       return;
     }
 
-    listContainer.innerHTML = sessions.map((sessionId) => `
+    listContainer.innerHTML = sessions.map((sessionId: string) => `
       <div class="cuckoo-session-item" data-session-id="${escapeHtml(sessionId)}">
         <span class="session-id">${escapeHtml(sessionId)}</span>
         <span class="session-action">▶ 跳转</span>
@@ -41,7 +41,7 @@ async function renderSessions() {
     // 绑定点击事件
     listContainer.querySelectorAll('.cuckoo-session-item').forEach((item) => {
       item.addEventListener('click', () => {
-        const sessionId = item.dataset.sessionId;
+        const sessionId = (item as any).dataset.sessionId;
         if (sessionId) handleNavigateSession(sessionId);
       });
     });
@@ -54,16 +54,16 @@ async function renderSessions() {
 /**
  * 导航到指定会话
  */
-async function handleNavigateSession(sessionId) {
+async function handleNavigateSession(sessionId: string): Promise<void> {
   if (!sessionId) return;
 
   try {
-    if (!window.electronAPI || !window.electronAPI.navigateSession) {
+    if (!(window as any).electronAPI || !(window as any).electronAPI.navigateSession) {
       showToast('导航 API 不可用', 3000);
       return;
     }
 
-    const result = await window.electronAPI.navigateSession(sessionId);
+    const result = await (window as any).electronAPI.navigateSession(sessionId);
     if (result.success) {
       console.log('[Cuckoo Code] 已导航到会话:', sessionId);
       // 导航成功后，覆盖层可以保持打开，但用户可能会看到页面跳转
@@ -72,7 +72,7 @@ async function handleNavigateSession(sessionId) {
     } else {
       showToast('导航失败: ' + (result.error || '未知错误'), 3000);
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Cuckoo Code] 导航到会话失败:', err);
     showToast('导航失败: ' + err.message, 3000);
   }
@@ -81,8 +81,8 @@ async function handleNavigateSession(sessionId) {
 /**
  * 初始化项目按钮点击处理
  */
-async function handleInitProject() {
-  const initBtn = document.getElementById('cuckoo-btn-init');
+async function handleInitProject(): Promise<void> {
+  const initBtn = document.getElementById('cuckoo-btn-init') as any;
   if (initBtn) {
     initBtn.disabled = true;
     initBtn.textContent = '⏳ 初始化中...';
@@ -90,14 +90,14 @@ async function handleInitProject() {
 
   try {
     // 调用主进程的 init-project IPC
-    if (!window.electronAPI || !window.electronAPI.initProject) {
+    if (!(window as any).electronAPI || !(window as any).electronAPI.initProject) {
       throw new Error('window.electronAPI.initProject 不存在');
     }
-    const result = await window.electronAPI.initProject();
+    const result = await (window as any).electronAPI.initProject();
     if (result && !result.success) {
       showToast(result.message || '初始化失败', 3000);
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Cuckoo Code] 初始化项目失败:', err);
     showToast('初始化失败: ' + err.message, 3000);
   } finally {
