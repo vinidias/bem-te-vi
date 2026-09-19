@@ -29,7 +29,7 @@ const DEFAULTS = {
   prompt: DEFAULT_PROMPT,
 };
 
-function readConfig() {
+let readConfig = function readConfig(): any {
   const cfg = Object.assign({}, DEFAULTS);
   try {
     const en = localStorage.getItem('cuckoo-retry-enabled');
@@ -48,17 +48,17 @@ function readConfig() {
     if (p) cfg.prompt = p;
   } catch (e) { /* ignore */ }
   return cfg;
-}
+};
 
-function pickDelay(min, max) {
+let pickDelay = function pickDelay(min: any, max: any): number {
   if (!Number.isFinite(min) || min < 0) min = 0;
   if (!Number.isFinite(max) || max < min) max = min;
   if (min === max) return min;
   return Math.floor(Math.random() * (max - min)) + min;
-}
+};
 
 /** 取当前页面 URL 对应的会话 ID（无则返回 null） */
-function getCurrentSessionId() {
+function getCurrentSessionId(): string | null {
   try {
     const provider = getProviderByUrl(window.location.href);
     if (provider && typeof provider.extractSessionId === 'function') {
@@ -70,34 +70,34 @@ function getCurrentSessionId() {
 
 let normalCount = 0;
 let count429 = 0;
-let pending = null;
+let pending: any = null;
 let compacting = false;
 
-function setCompacting(v) {
+let setCompacting = function setCompacting(v: any): void {
   compacting = !!v;
-}
+};
 
-function clearPending() {
+let clearPending = function clearPending(): void {
   if (!pending) return;
   if (pending.timer) clearTimeout(pending.timer);
   if (pending.countdownTimer) clearInterval(pending.countdownTimer);
   pending = null;
   const box = document.getElementById('cuckoo-retry-countdown');
   if (box) box.classList.add('cuckoo-hidden');
-}
+};
 
-function onSuccess() {
+let onSuccess = function onSuccess(): void {
   normalCount = 0;
   count429 = 0;
   clearPending();
-}
+};
 
-function cancelPending() {
+let cancelPending = function cancelPending(): void {
   clearPending();
   showToast('已取消自动重试', 2000);
-}
+};
 
-function showCountdown(totalMs) {
+let showCountdown = function showCountdown(totalMs: number): any {
   const box = ensureCountdownBox();
   const textEl = box.querySelector('#cuckoo-retry-countdown-text');
   const cancelBtn = box.querySelector('#cuckoo-retry-cancel');
@@ -115,9 +115,9 @@ function showCountdown(totalMs) {
     render();
   }, 1000);
   return cd;
-}
+};
 
-function ensureCountdownBox() {
+let ensureCountdownBox = function ensureCountdownBox(): any {
   let box = document.getElementById('cuckoo-retry-countdown');
   if (box) return box;
   box = document.createElement('div');
@@ -130,9 +130,9 @@ function ensureCountdownBox() {
     '</div>';
   document.body.appendChild(box);
   return box;
-}
+};
 
-function handleError(detail) {
+let handleError = function handleError(detail: any): void {
   const cfg = readConfig();
   if (!cfg.enabled) return;
   if (compacting) return;
@@ -175,25 +175,25 @@ function handleError(detail) {
     pending = null;
     try {
       sendToChat(cfg.prompt, is429 ? '重试(429)' : '重试', 300);
-    } catch (e) {
+    } catch (e: any) {
       console.error('[Cuckoo Code][重试] 发送提示词失败: ' + e.message);
     }
   }, delay);
 
   pending = { kind: is429 ? '429' : 'normal', timer: timer, countdownTimer: cdTimer, remainMs: delay };
-}
+};
 
 let started = false;
-function startRetryEngine() {
+let startRetryEngine = function startRetryEngine(): void {
   if (started) return;
   started = true;
   onAiError(handleError);
   onInterceptedResponse(() => onSuccess());
   console.log('[Cuckoo Code][重试] 自动重试引擎已启动');
-}
+};
 
 // ===== 类 AOP：为所有方法自动加调用日志（含内部互调）=====
-// 原理：函数声明创建的绑定可重新赋值，模块内部调用在运行时按标识符查找，
+// 原理：用 let 声明的函数表达式绑定可重新赋值，模块内部调用在运行时按标识符查找，
 // 因此重赋值后内部互调也会走到带日志的版本。
 readConfig = withLog(readConfig, 'retry.readConfig');
 pickDelay = withLog(pickDelay, 'retry.pickDelay');
