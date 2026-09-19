@@ -3,12 +3,7 @@
  * 实现位于 src/preload/（参见 src/preload/index.js）。
  * 保留此文件以维持主进程 webPreferences.preload 的加载路径不变。
  */
-// 注册 tsx 的 ESM 钩子，使后续 import 能加载 .ts 文件。
-// 开发环境：钩子生效；生产环境：跳过，加载编译后的 .js。
-try {
-  const { register } = await import('tsx/esm/api');
-  register();
-} catch (_) {
-  // 无 tsx（生产构建），忽略
-}
-await import('./src/preload/index.js');
+// 注意：Electron 用 require() 加载 preload，不能含顶层 await
+// （require 不支持带 TLA 的 ESM）。当前 preload 图全是 .js，无需 tsx 钩子。
+// P3b 迁 TS 时需改用 Electron ESM preload（.mjs）或其他机制。
+import './src/preload/index.js';
