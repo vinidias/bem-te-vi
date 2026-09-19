@@ -9,11 +9,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // ========== 暴露给渲染进程的 API ==========
 // 尝试 contextBridge，如果失败则直接挂载到 window（作为 fallback）
-let electronAPI = {
-  executeCommand: (command, id) => {
+let electronAPI: any = {
+  executeCommand: (command: any, id: any) => {
     return ipcRenderer.invoke('execute-command', { command, id });
   },
-  initProject: (projectDir, isCompaction) => {
+  initProject: (projectDir: any, isCompaction: any) => {
     return ipcRenderer.invoke('init-project', {
       skipPrompt: false,
       projectDir: projectDir || null,
@@ -23,15 +23,15 @@ let electronAPI = {
   updateProjectDir: () => {
     return ipcRenderer.invoke('init-project', { skipPrompt: true });
   },
-  executeTool: (toolName, params, callId) => {
+  executeTool: (toolName: any, params: any, callId: any) => {
     return ipcRenderer.invoke('execute-tool', { toolName, params, callId });
   },
-  executeJs: (code, callId) => {
+  executeJs: (code: any, callId: any) => {
     // 附件上传间隔（毫秒），随 JS 执行一并传给主进程的 attach_file 工具
     let attachDelayMin, attachDelayMax;
     try {
-      const mn = parseInt(localStorage.getItem('cuckoo-attach-delay-min'), 10);
-      const mx = parseInt(localStorage.getItem('cuckoo-attach-delay-max'), 10);
+      const mn = parseInt(localStorage.getItem('cuckoo-attach-delay-min') as string, 10);
+      const mx = parseInt(localStorage.getItem('cuckoo-attach-delay-max') as string, 10);
       if (Number.isFinite(mn)) attachDelayMin = mn;
       if (Number.isFinite(mx)) attachDelayMax = mx;
     } catch (_) {}
@@ -40,13 +40,13 @@ let electronAPI = {
   sendEnterToChat: () => {
     return ipcRenderer.invoke('chat-send-enter');
   },
-  simulateMouse: (action, x, y) => {
+  simulateMouse: (action: any, x: any, y: any) => {
     return ipcRenderer.invoke('simulate-mouse', { action, x, y });
   },
   listSessions: () => {
     return ipcRenderer.invoke('list-sessions');
   },
-  navigateSession: (sessionId) => {
+  navigateSession: (sessionId: any) => {
     return ipcRenderer.invoke('navigate-session', { sessionId });
   },
   createProfileWindow: () => {
@@ -55,13 +55,13 @@ let electronAPI = {
   listProfiles: () => {
     return ipcRenderer.invoke('list-profiles');
   },
-  openProfileWindow: (profileId) => {
+  openProfileWindow: (profileId: any) => {
     return ipcRenderer.invoke('open-profile-window', { profileId });
   },
-  deleteProfileWindow: (profileId) => {
+  deleteProfileWindow: (profileId: any) => {
     return ipcRenderer.invoke('delete-profile', { profileId });
   },
-  updateWindowName: (displayName) => {
+  updateWindowName: (displayName: any) => {
     return ipcRenderer.invoke('update-window-name', { displayName });
   },
   showAiNotification: () => {
@@ -71,16 +71,16 @@ let electronAPI = {
   listMcpServers: () => {
     return ipcRenderer.invoke('list-mcp-servers');
   },
-  upsertMcpServer: (server) => {
+  upsertMcpServer: (server: any) => {
     return ipcRenderer.invoke('upsert-mcp-server', { server });
   },
-  removeMcpServer: (name) => {
+  removeMcpServer: (name: any) => {
     return ipcRenderer.invoke('remove-mcp-server', { name });
   },
-  enableMcpServer: (name) => {
+  enableMcpServer: (name: any) => {
     return ipcRenderer.invoke('enable-mcp-server', { name });
   },
-  disableMcpServer: (name) => {
+  disableMcpServer: (name: any) => {
     return ipcRenderer.invoke('disable-mcp-server', { name });
   },
   getMcpTools: () => {
@@ -90,19 +90,19 @@ let electronAPI = {
   listProviders: () => {
     return ipcRenderer.invoke('list-providers');
   },
-  selectPlatform: (providerId) => {
+  selectPlatform: (providerId: any) => {
     return ipcRenderer.invoke('select-platform', { providerId });
   },
-  createProfileWindowWithProvider: (providerId) => {
+  createProfileWindowWithProvider: (providerId: any) => {
     return ipcRenderer.invoke('create-profile-window', { providerId });
   },
   importProvider: () => {
     return ipcRenderer.invoke('import-provider');
   },
-  removeProvider: (filePath, providerId) => {
+  removeProvider: (filePath: any, providerId: any) => {
     return ipcRenderer.invoke('remove-provider', { path: filePath, providerId });
   },
-  replaceProvider: (providerId) => {
+  replaceProvider: (providerId: any) => {
     return ipcRenderer.invoke('replace-provider', { providerId });
   },
 };
@@ -114,4 +114,4 @@ try {
 }
 
 // 无论 contextBridge 是否成功，都直接挂载到 window 作为备选
-window.electronAPI = electronAPI;
+(window as any).electronAPI = electronAPI;
