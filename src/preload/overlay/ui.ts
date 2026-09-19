@@ -10,7 +10,7 @@ import { state } from '../dom/state.js';
 /**
  * 注入覆盖层 CSS 样式到页面头部
  */
-function injectCSS() {
+function injectCSS(): void {
   const style = document.createElement('style');
   style.textContent = OVERLAY_CSS;
   document.head.appendChild(style);
@@ -21,7 +21,7 @@ function injectCSS() {
  * 注入覆盖层 HTML 到页面 body
  * 创建 cuckoo-root 容器并填充 OVERLAY_HTML 内容
  */
-function injectOverlay() {
+function injectOverlay(): void {
   const container = document.createElement('div');
   container.id = 'cuckoo-root';
   container.innerHTML = OVERLAY_HTML;
@@ -30,47 +30,47 @@ function injectOverlay() {
 
 // ========== 覆盖层逻辑 ==========
 
-let currentCommand = null;
+let currentCommand: any = null;
 let isExecuting = false;
 let commandIdCounter = 0;
-const commandHistory = [];
+const commandHistory: any[] = [];
 
 /**
  * 生成唯一命令 ID
- * @returns {string} 格式为 cmd_时间戳_序号 的唯一标识
+ * @returns 格式为 cmd_时间戳_序号 的唯一标识
  */
-function generateId() {
+function generateId(): string {
   return `cmd_${Date.now()}_${++commandIdCounter}`;
 }
 
 /**
  * 格式化时间戳为 HH:mm:ss 格式
- * @param {number} ts - 时间戳（毫秒）
- * @returns {string} 格式化后的时间字符串
+ * @param ts - 时间戳（毫秒）
+ * @returns 格式化后的时间字符串
  */
-function formatTime(ts) {
+function formatTime(ts: number): string {
   const d = new Date(ts);
-  const pad = (n) => String(n).padStart(2, '0');
+  const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 /**
  * 截断文本到指定长度，超出部分以 ... 结尾
- * @param {string} text - 要截断的文本
- * @param {number} maxLen - 最大长度，默认 50
- * @returns {string} 截断后的文本
+ * @param text - 要截断的文本
+ * @param maxLen - 最大长度，默认 50
+ * @returns 截断后的文本
  */
-function truncate(text, maxLen = 50) {
+function truncate(text: any, maxLen: number = 50): string {
   if (!text || text.length <= maxLen) return text || '';
   return text.substring(0, maxLen) + '...';
 }
 
 /**
  * HTML 转义，防止 XSS 攻击
- * @param {string} text - 要转义的文本
- * @returns {string} 转义后的 HTML 字符串
+ * @param text - 要转义的文本
+ * @returns 转义后的 HTML 字符串
  */
-function escapeHtml(text) {
+function escapeHtml(text: any): string {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
@@ -78,10 +78,10 @@ function escapeHtml(text) {
 
 /**
  * 显示浮动提示弹窗
- * @param {string} text - 提示文本
- * @param {number} duration - 显示时长（毫秒），默认 2200
+ * @param text - 提示文本
+ * @param duration - 显示时长（毫秒），默认 2200
  */
-function showToast(text, duration = 2200) {
+function showToast(text: string, duration: number = 2200): void {
   let toast = document.getElementById('cuckoo-toast');
   if (!toast) {
     toast = document.createElement('div');
@@ -90,23 +90,20 @@ function showToast(text, duration = 2200) {
     document.body.appendChild(toast);
   }
   toast.textContent = text;
-  requestAnimationFrame(() => toast.classList.add('show'));
-  clearTimeout(showToast._timer);
-  showToast._timer = setTimeout(() => {
-    toast.classList.remove('show');
+  requestAnimationFrame(() => toast!.classList.add('show'));
+  clearTimeout((showToast as any)._timer);
+  (showToast as any)._timer = setTimeout(() => {
+    toast!.classList.remove('show');
   }, duration);
 }
 
 /**
  * 显示带确认/取消按钮的持久提示框（不点击就一直存在）
- * @param {string} text - 提示文本
- * @param {object} [options] - 可选配置
- * @param {string} [options.okText] - 确定按钮文字，默认「确定」
- * @param {boolean} [options.showCancel] - 是否显示取消按钮，默认 false
- * @param {string} [options.cancelText] - 取消按钮文字，默认「取消」
- * @returns {Promise<boolean>} 用户点确定 resolve(true)，点取消 resolve(false)
+ * @param text - 提示文本
+ * @param options - 可选配置
+ * @returns 用户点确定 resolve(true)，点取消 resolve(false)
  */
-function showConfirmDialog(text, options) {
+function showConfirmDialog(text: string, options?: { okText?: string; showCancel?: boolean; cancelText?: string }): Promise<boolean> {
   const opts = options || {};
   const okText = opts.okText || '确定';
   const showCancel = !!opts.showCancel;
@@ -157,12 +154,12 @@ function showConfirmDialog(text, options) {
     document.body.appendChild(dialog);
 
     const cleanup = () => dialog.remove();
-    dialog.querySelector('#cuckoo-confirm-ok').addEventListener('click', () => {
+    dialog.querySelector('#cuckoo-confirm-ok')!.addEventListener('click', () => {
       cleanup();
       resolve(true);
     });
     if (showCancel) {
-      dialog.querySelector('#cuckoo-confirm-cancel').addEventListener('click', () => {
+      dialog.querySelector('#cuckoo-confirm-cancel')!.addEventListener('click', () => {
         cleanup();
         resolve(false);
       });
@@ -172,9 +169,9 @@ function showConfirmDialog(text, options) {
 
 /**
  * 设置任务状态（检测到任务：后面的执行中提示）
- * @param {boolean} running - 是否执行中
+ * @param running - 是否执行中
  */
-function setTaskStatus(running) {
+function setTaskStatus(running: boolean): void {
   const status = document.getElementById('cuckoo-task-status');
   if (status) {
     status.classList.toggle('cuckoo-hidden', !running);
@@ -184,7 +181,7 @@ function setTaskStatus(running) {
 /**
  * 显示覆盖层（移除 hidden 类）
  */
-function showOverlay() {
+function showOverlay(): void {
   const el = document.getElementById('cuckoo-overlay');
   if (el) el.classList.remove('cuckoo-hidden');
 }
@@ -192,16 +189,16 @@ function showOverlay() {
 /**
  * 隐藏覆盖层（添加 hidden 类）
  */
-function hideOverlay() {
+function hideOverlay(): void {
   const el = document.getElementById('cuckoo-overlay');
   if (el) el.classList.add('cuckoo-hidden');
 }
 
 /**
  * 显示命令预览并展开覆盖层
- * @param {Object} cmdData - 命令数据对象，包含 command、timestamp、id 等字段
+ * @param cmdData - 命令数据对象，包含 command、timestamp、id 等字段
  */
-function displayCommand(cmdData) {
+function displayCommand(cmdData: any): void {
   currentCommand = cmdData;
   const preview = document.getElementById('cuckoo-cmd-preview');
   const resultSection = document.getElementById('cuckoo-result-section');
@@ -214,21 +211,21 @@ function displayCommand(cmdData) {
  * 确认执行当前显示的命令
  * 已移除：确认执行按钮及相关交互。保留空函数以防其他引用。
  */
-async function handleExecute() {
+async function handleExecute(): Promise<void> {
 }
 
 /**
  * 忽略当前命令
  * 已移除：忽略按钮及相关交互。保留空函数以防其他引用。
  */
-function handleIgnore() {
+function handleIgnore(): void {
 }
 
 /**
  * 添加一条历史记录
- * @param {Object} entry - 历史记录对象，包含 id、command、success、canceled、output、timestamp 等字段
+ * @param entry - 历史记录对象，包含 id、command、success、canceled、output、timestamp 等字段
  */
-function addHistory(entry) {
+function addHistory(entry: any): void {
   commandHistory.unshift(entry);
   if (commandHistory.length > 50) commandHistory.pop();
   renderHistory();
@@ -238,7 +235,7 @@ function addHistory(entry) {
  * 渲染历史记录列表
  * 将 commandHistory 中的记录渲染到界面，并为每条记录绑定点击事件以查看详情
  */
-function renderHistory() {
+function renderHistory(): void {
   const list = document.getElementById('cuckoo-history-list');
   if (!list) return;
 
@@ -260,7 +257,7 @@ function renderHistory() {
 
   list.querySelectorAll('.cuckoo-history-item').forEach((el) => {
     el.addEventListener('click', () => {
-      const id = el.dataset.id;
+      const id = (el as any).dataset.id;
       const entry = commandHistory.find((h) => h.id === id);
       if (entry) {
         const preview = document.getElementById('cuckoo-cmd-preview');
@@ -284,8 +281,9 @@ function renderHistory() {
 
 /**
  * 闪烁状态徽章提示
+ * @param _title 可选标题（当前实现忽略此参数，仅为兼容调用方传参）
  */
-function flashBadge() {
+function flashBadge(_title?: string): void {
   const badge = document.getElementById('cuckoo-status-badge');
   const dot = document.getElementById('cuckoo-status-dot');
   if (badge) {
@@ -311,7 +309,7 @@ function flashBadge() {
  * 首页 https://chat.deepseek.com/ 时，只保留「初始化项目」按钮，隐藏其他内容
  * 同时展示首次使用提示浮窗（居中）
  */
-function updateHomeMode() {
+function updateHomeMode(): void {
   const url = window.location.href;
   const provider = getProviderByUrl(url);
   const isHome = provider && provider.homeUrlPattern ? provider.homeUrlPattern.test(url) : false;
@@ -330,7 +328,7 @@ function updateHomeMode() {
 /**
  * 显示首次使用提示浮窗（居中）
  */
-function showFirstTimeDialog() {
+function showFirstTimeDialog(): void {
   if (state.currentProjectDir) {
     hideFirstTimeDialog();
     return;
@@ -342,7 +340,7 @@ function showFirstTimeDialog() {
 /**
  * 隐藏首次使用提示浮窗
  */
-function hideFirstTimeDialog() {
+function hideFirstTimeDialog(): void {
   const dialog = document.getElementById('cuckoo-first-time-dialog');
   if (dialog) dialog.classList.add('cuckoo-hidden');
 }
@@ -351,7 +349,7 @@ function hideFirstTimeDialog() {
  * 强制显示覆盖层（移除所有隐藏状态）
  * 用于兜底恢复因异常被隐藏的面板
  */
-function forceShowOverlay() {
+function forceShowOverlay(): void {
   const overlay = document.getElementById('cuckoo-overlay');
   if (overlay) {
     overlay.classList.remove('cuckoo-hidden');
@@ -365,7 +363,7 @@ function forceShowOverlay() {
  * 启动定期巡检，防止面板被意外隐藏（最小化、ESC、脚本错误等）
  * 每 5 秒检查一次，如果被隐藏则自动恢复
  */
-function startOverlayWatcher() {
+function startOverlayWatcher(): void {
   // 方向 C：不再定期强制弹出面板，避免遮挡主界面。
 }
 
