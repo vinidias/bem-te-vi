@@ -23,7 +23,7 @@ turndown.remove(['script', 'style', 'noscript']);
 /**
  * 对齐 dsh parseFetchArgs：url trim 非空。
  */
-function parseFetchArgs(url) {
+function parseFetchArgs(url: any): { url: string } {
   if (typeof url !== 'string' || url.trim().length === 0) {
     throw new Error('url must be a non-empty string');
   }
@@ -33,7 +33,7 @@ function parseFetchArgs(url) {
 /**
  * 对齐 dsh renderBody：根据 body kind 处理。
  */
-function renderBody(kind, content) {
+function renderBody(kind: string, content: string): { text: string; sourceTruncated: boolean } {
   const sliced = content.slice(0, FETCH_MAX_OUTPUT_CHARS);
   const sourceTruncated = sliced.length !== content.length;
   if (kind === 'html') {
@@ -55,7 +55,7 @@ function renderBody(kind, content) {
 <正文>
  * 截断时加 footer。
  */
-function formatFetchOutput(url, statusCode, bodyKind, bodyContent, truncated) {
+function formatFetchOutput(url: string, statusCode: number, bodyKind: string, bodyContent: string, truncated: boolean): string {
   const rendered = renderBody(bodyKind, bodyContent);
   const effectiveTruncated = truncated || rendered.sourceTruncated || rendered.text.length > FETCH_MAX_OUTPUT_CHARS;
   const header = 'Fetched ' + url + ' (HTTP ' + statusCode + ')\n\n';
@@ -99,7 +99,7 @@ class WebFetchTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { url } = params;
 
     try {
@@ -123,7 +123,7 @@ class WebFetchTool extends Tool {
         // 流式读取，限制大小
         const reader = response.body ? response.body.getReader() : null;
         let receivedBytes = 0;
-        const chunks = [];
+        const chunks: Uint8Array[] = [];
         let truncated = false;
         const MAX_BYTES = 512000;
 
@@ -131,15 +131,15 @@ class WebFetchTool extends Tool {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            receivedBytes += value.byteLength;
+            receivedBytes += value!.byteLength;
             if (receivedBytes > MAX_BYTES) {
-              const remaining = MAX_BYTES - (receivedBytes - value.byteLength);
-              if (remaining > 0) chunks.push(value.slice(0, remaining));
+              const remaining = MAX_BYTES - (receivedBytes - value!.byteLength);
+              if (remaining > 0) chunks.push(value!.slice(0, remaining));
               truncated = true;
               try { await reader.cancel(); } catch (_) {}
               break;
             }
-            chunks.push(value);
+            chunks.push(value!);
           }
         }
 
@@ -155,14 +155,14 @@ class WebFetchTool extends Tool {
         console.log('[WebFetchTool] 抓取完成:', input.url, 'HTTP', response.status, 'kind=' + bodyKind);
 
         return ToolResult.success(formatFetchOutput(response.url || input.url, response.status, bodyKind, rawText, truncated));
-      } catch (err) {
+      } catch (err: any) {
         clearTimeout(timeoutId);
         if (err.name === 'AbortError') {
           return ToolResult.error('请求超时 (超过 ' + FETCH_TIMEOUT_MS + 'ms)');
         }
         return ToolResult.error('请求失败: ' + err.message);
       }
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('web_fetch 失败: ' + err.message);
     }
   }
