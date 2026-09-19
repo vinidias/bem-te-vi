@@ -1,7 +1,7 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const fs = require('fs');
-const path = require('path');
-const { spawn } = require('child_process');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
 
 // @vscode/ripgrep 是 ES Module，CommonJS 里不能用 require() 同步加载；
 // 改为惰性动态 import()，只在首次执行 ripgrep 时解析一次。
@@ -200,4 +200,4 @@ class GlobToolNew extends Tool {
   }
 }
 
-module.exports = { GlobToolNew, parseGlobArgs, formatGlobOutput, MAX_RESULTS, GLOB_VCS_EXCLUDES, buildGlobArgs };
+export { GlobToolNew, parseGlobArgs, formatGlobOutput, MAX_RESULTS, GLOB_VCS_EXCLUDES, buildGlobArgs };
