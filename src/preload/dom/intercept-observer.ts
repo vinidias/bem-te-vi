@@ -20,12 +20,12 @@ let lastProcessedText = '';
 // 最近一次拦截到的完整回复文本（供手动解析复用，不依赖 DOM）
 let lastInterceptedText = '';
 
-function looksLikeIncompleteCodeError(error) {
+function looksLikeIncompleteCodeError(error: any): boolean {
   if (!error || typeof error !== 'string') return false;
   return /SyntaxError|Missing initializer|Unexpected end of input|Unexpected token|Unexpected identifier|Unexpected reserved word|Invalid or unexpected token/i.test(error);
 }
 
-function sleep(ms) {
+function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -33,8 +33,8 @@ function sleep(ms) {
  * 执行 JS 代码块，遇到"代码不完整"错误时自动重试。
  * 拦截模式下文本已完整（finished），无需重新提取，简单重试执行即可。
  */
-async function executeJsBlocksWithRetry(blocks) {
-  let results = [];
+async function executeJsBlocksWithRetry(blocks: string[]): Promise<any[]> {
+  let results: any[] = [];
   for (let attempt = 0; attempt <= MAX_JS_RETRY; attempt++) {
     results = [];
     for (const code of blocks) {
@@ -52,10 +52,10 @@ async function executeJsBlocksWithRetry(blocks) {
 
 /**
  * 处理一条已完成的 AI 回复文本
- * @param {string} text 完整回复文本（Markdown 原文）
- * @param {boolean} [force] 为 true 时跳过去重（手动解析重新执行同一条时使用）
+ * @param text 完整回复文本（Markdown 原文）
+ * @param force 为 true 时跳过去重（手动解析重新执行同一条时使用）
  */
-async function processInterceptedResponse(text, force) {
+async function processInterceptedResponse(text: string, force?: boolean): Promise<void> {
   const raw = (text || '').trim();
   if (!raw) return;
   if (!force && raw === lastProcessedText) return;
@@ -115,31 +115,31 @@ async function processInterceptedResponse(text, force) {
   console.log('[Cuckoo Code][拦截] 正常文本回复，未检测到工具调用');
   try { watchdog.exitToolLoop(); } catch (_) { /* ignore */ }
   try {
-    window.electronAPI.showAiNotification().catch(() => {});
+    (window as any).electronAPI.showAiNotification().catch(() => {});
   } catch (e) { /* ignore */ }
 }
 
 // 回复完成监听器（供压缩等流程等待 AI 回复完成）
-const responseListeners = new Set();
+const responseListeners = new Set<(text: string) => void>();
 // 失败监听器（供自动重试引擎订阅）
-const errorListeners = new Set();
+const errorListeners = new Set<(detail: any) => void>();
 
 /**
  * 注册"AI 回复完成"监听器
- * @param {Function} cb 收到完成回复时调用，参数为完整文本
- * @returns {Function} 取消注册
+ * @param cb 收到完成回复时调用，参数为完整文本
+ * @returns 取消注册
  */
-function onInterceptedResponse(cb) {
+function onInterceptedResponse(cb: (text: string) => void): () => void {
   responseListeners.add(cb);
   return () => responseListeners.delete(cb);
 }
 
 /**
  * 注册"AI 请求失败"监听器
- * @param {Function} cb 收到失败事件时调用，参数为 detail { text, status, reason, httpStatus, name }
- * @returns {Function} 取消注册
+ * @param cb 收到失败事件时调用，参数为 detail { text, status, reason, httpStatus, name }
+ * @returns 取消注册
  */
-function onAiError(cb) {
+function onAiError(cb: (detail: any) => void): () => void {
   errorListeners.add(cb);
   return () => errorListeners.delete(cb);
 }
@@ -147,8 +147,8 @@ function onAiError(cb) {
 /**
  * 启动拦截事件监听
  */
-function startInterceptObserver() {
-  window.addEventListener('cuckoo-ai-response', (ev) => {
+function startInterceptObserver(): void {
+  window.addEventListener('cuckoo-ai-response', (ev: any) => {
     try {
       const detail = ev && ev.detail;
       if (!detail) return;
@@ -179,7 +179,7 @@ function startInterceptObserver() {
       console.error('[Cuckoo Code][拦截] 处理回复事件出错:', err);
     }
   });
-  window.addEventListener('cuckoo-ai-error', (ev) => {
+  window.addEventListener('cuckoo-ai-error', (ev: any) => {
     try {
       const detail = ev && ev.detail;
       try { watchdog.onResponseReceived('error'); } catch (_) { /* ignore */ }
@@ -194,7 +194,7 @@ function startInterceptObserver() {
 }
 
 /** 取最近一次拦截到的完整回复文本（手动解析用） */
-function getLastInterceptedText() {
+function getLastInterceptedText(): string {
   return lastInterceptedText;
 }
 
