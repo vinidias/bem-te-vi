@@ -67,7 +67,7 @@ export {
   executeTool
 };
 
-function getAllTools() { return registry; }
-function getToolDescriptions() { return registry.getDescriptions(); }
-function getFormattedToolsForPrompt() { return registry.getFormattedToolsForPrompt(); }
-function executeTool(name, params) { return registry.execute(name, params); }
+function getAllTools(): ToolRegistry { return registry; }
+function getToolDescriptions(): any { return registry.getDescriptions(); }
+function getFormattedToolsForPrompt(): string { return registry.getFormattedToolsForPrompt(); }
+function executeTool(name: string, params: any): Promise<any> { return registry.execute(name, params); }
