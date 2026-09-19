@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { DANGEROUS_CMDS, isDangerous } from '../../src/main/dangerous-commands.js';
+import { DANGEROUS_CMDS, isDangerous } from '../../src/infra/dangerous-commands.js';
 
 test('DANGEROUS_CMDS 非空数组', () => {
   assert.ok(Array.isArray(DANGEROUS_CMDS));

@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import * as windowState from './window.js';
+import * as windowState from '../app/window.js';
 import { toolRegistry } from './tool-registry.js';
 import * as mcpClient from './mcp-client.js';
 import { getProvider } from '../providers/index.js';

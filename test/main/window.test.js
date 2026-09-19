@@ -6,7 +6,7 @@ let windowState;
 
 beforeEach(async () => {
   vi.resetModules();
-  windowState = await import('../../src/main/window.js');
+  windowState = await import('../../src/app/window.js');
 });
 
 test('getMainWindow 初始为 null', () => {

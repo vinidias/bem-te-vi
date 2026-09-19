@@ -4,11 +4,11 @@
  */
 import { exec } from 'node:child_process';
 import { createRequire } from 'node:module';
-import * as windowState from './window.js';
-import * as profileManager from './profile-manager.js';
+import * as windowState from '../app/window.js';
+import * as profileManager from '../app/profile.js';
 import { toolRegistry, jsRunner } from './tool-registry.js';
 import { initProject } from './project-context.js';
-import { isDangerous } from './dangerous-commands.js';
+import { isDangerous } from '../infra/dangerous-commands.js';
 import { decodeOutput, normalizeCommand } from '../../tools/decodeOutput.js';
 import { getProviderByUrl } from '../providers/index.js';
 

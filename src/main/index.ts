@@ -5,12 +5,12 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import * as windowState from './window.js';
-import * as profileManager from './profile-manager.js';
-import { createSessionStore } from './session-store.js';
+import * as windowState from '../app/window.js';
+import * as profileManager from '../app/profile.js';
+import { createSessionStore } from '../session/store.js';
 import { getProvider } from '../providers/index.js';
-import * as updater from './updater.js';
-import * as mcpConfig from './mcp-config.js';
+import * as updater from '../updater/index.js';
+import * as mcpConfig from '../mcp/config.js';
 import * as mcpClient from './mcp-client.js';
 import { resolveAsset, resolveSrc } from '../infra/paths.js';
 

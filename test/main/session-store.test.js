@@ -3,7 +3,7 @@ import { test, beforeEach, afterEach } from 'vitest';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createSessionStore } from '../../src/main/session-store.js';
+import { createSessionStore } from '../../src/session/store.js';
 
 const tmpDir = path.join(process.cwd(), 'test', 'tmp', 'session-store-test');
 
