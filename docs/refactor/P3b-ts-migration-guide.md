@@ -84,6 +84,13 @@ const mod = require('./' + name + '.js');
 
 ## 4. 关键注意
 
+### 4.0 被运行时重赋值的函数
+
+被运行时重赋值的函数（如类 AOP 的 `withLog` 包装），必须用
+`let foo = function() {}` 声明，**不能用** `function foo() {}` ——
+TS 不允许给函数声明重赋值（`TS2630: Cannot assign to 'foo' because it is a function`）。
+保留具名函数表达式（`let foo = function foo() {}`）便于调试。
+
 ### 4.1 import 后缀保持 `.js`
 即使源文件是 `.ts`，import 也写 `'./x.js'`（TS 约定，编译后正确）。
 **P3a 已让全仓 import 用 .js，所以不用改。**
