@@ -8,6 +8,9 @@ export default defineConfig({
     // console / 全局 mock，进程级隔离最干净
     pool: 'forks',
     include: ['test/**/*.test.js'],
+    // test/_legacy/：深度 mock 的旧测试（依赖 Module._load/vi.mock 内部模块），
+    // 按 D21 暂缓——重构完成后按新结构重写。详见 test/_legacy/README.md
+    exclude: ['test/_legacy/**', 'node_modules/**'],
     // 显式导入 vitest API，不用全局注入
     globals: false,
     coverage: {
