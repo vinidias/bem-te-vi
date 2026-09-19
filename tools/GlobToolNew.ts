@@ -5,8 +5,8 @@ import { spawn } from 'node:child_process';
 
 // @vscode/ripgrep 是 ES Module，CommonJS 里不能用 require() 同步加载；
 // 改为惰性动态 import()，只在首次执行 ripgrep 时解析一次。
-let rgPathPromise = null;
-function getRgPath() {
+let rgPathPromise: Promise<string> | null = null;
+function getRgPath(): Promise<string> {
   if (!rgPathPromise) {
     rgPathPromise = import('@vscode/ripgrep').then(m => {
       // 打包后 @vscode/ripgrep 返回的路径在 app.asar 内，Windows 无法 spawn；
@@ -30,7 +30,7 @@ const GLOB_VCS_EXCLUDES = ['.git', '.svn', '.hg', '.bzr', '.jj', '.sl'];
 /**
  * 对齐 dsh parseGlobArgs
  */
-function parseGlobArgs(pattern, searchPath) {
+function parseGlobArgs(pattern: any, searchPath: any): { pattern: string; path?: string } {
   if (typeof pattern !== 'string' || pattern.trim().length === 0) {
     throw new Error('pattern must be a non-empty string');
   }
@@ -47,7 +47,7 @@ function parseGlobArgs(pattern, searchPath) {
  * 对齐 dsh buildGlobCommand：构造 ripgrep --files argv。
  * 每个模型参数都是纯 argv 元素，无 shell 层。
  */
-function buildGlobArgs(input) {
+function buildGlobArgs(input: { pattern: string; path?: string }): string[] {
   const parts = [
     '--files',
     '--glob=' + input.pattern,
@@ -65,7 +65,7 @@ function buildGlobArgs(input) {
 /**
  * 执行 ripgrep，返回 stdout 字符串。
  */
-async function runRipgrep(args, cwd) {
+async function runRipgrep(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; code: number | null }> {
   const rgPath = await getRgPath();
   return new Promise((resolve, reject) => {
     const child = spawn(rgPath, args, {
@@ -74,8 +74,8 @@ async function runRipgrep(args, cwd) {
     });
     let stdout = '';
     let stderr = '';
-    child.stdout.on('data', d => { stdout += d; });
-    child.stderr.on('data', d => { stderr += d; });
+    child.stdout.on('data', (d: Buffer) => { stdout += d; });
+    child.stderr.on('data', (d: Buffer) => { stderr += d; });
     child.on('error', reject);
     child.on('close', code => {
       // code 0 表示成功，code 1 表示无匹配
@@ -91,7 +91,7 @@ async function runRipgrep(args, cwd) {
 /**
  * 对齐 dsh formatGlobOutput：纯文本路径列表 + footer
  */
-function formatGlobOutput(items, seen, truncated) {
+function formatGlobOutput(items: string[], seen: number, truncated: boolean): string {
   const body = items.join('\n');
   const footer = truncated
     ? '(Showing ' + items.length + ' of ' + seen + ' paths. Narrow pattern or path to see more.)'
@@ -135,7 +135,7 @@ class GlobToolNew extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { pattern, path: searchPath, projectDir } = params;
 
     try {
@@ -144,8 +144,8 @@ class GlobToolNew extends Tool {
       // 确定搜索目标：
       // - 有 path：如果 path 是绝对路径，搜索目标就是 path；否则 path 是相对于 projectDir 的子路径
       // - 无 path：搜索目标是 projectDir 或当前目录
-      let searchTarget;
-      let baseDir; // ripgrep cwd
+      let searchTarget: string;
+      let baseDir: string; // ripgrep cwd
       if (input.path) {
         if (path.isAbsolute(input.path)) {
           searchTarget = input.path.replace(/\\/g, '/');
@@ -180,9 +180,9 @@ class GlobToolNew extends Tool {
       // 解析路径并按字母序排序（保持 cuckoo 现状）
       const allResults = stdout
         .split(/\r?\n/)
-        .map(p => p.replace(/\\/g, '/').replace(/^\.\//, ''))
-        .filter(p => p.length > 0)
-        .sort((a, b) => a.localeCompare(b));
+        .map((p: string) => p.replace(/\\/g, '/').replace(/^\.\//, ''))
+        .filter((p: string) => p.length > 0)
+        .sort((a: string, b: string) => a.localeCompare(b));
 
       const truncated = allResults.length > MAX_RESULTS;
       const items = truncated ? allResults.slice(0, MAX_RESULTS) : allResults;
@@ -194,7 +194,7 @@ class GlobToolNew extends Tool {
       }
 
       return ToolResult.success(formatGlobOutput(items, allResults.length, truncated));
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('Glob 搜索失败: ' + err.message);
     }
   }
