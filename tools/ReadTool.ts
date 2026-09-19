@@ -11,7 +11,7 @@ const READ_MAX_BYTES = 50 * 1024;
  * 校验并归一化 read 参数。
  * offset/limit 必须是正整数，limit 不能超过 READ_LIMIT。
  */
-function parseReadArgs(filePath, offset, limit) {
+function parseReadArgs(filePath: any, offset: any, limit: any): { offset: number; limit: number } {
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
     throw new Error('file_path must be a non-empty string');
   }
@@ -29,25 +29,43 @@ function parseReadArgs(filePath, offset, limit) {
   return { offset: parsedOffset, limit: parsedLimit };
 }
 
-function truncateLine(line, maxLineLength) {
+function truncateLine(line: string, maxLineLength: number): string {
   return line.length > maxLineLength
     ? line.substring(0, maxLineLength) + '... (line truncated to ' + maxLineLength + ' chars)'
     : line;
 }
 
-function lineByteSize(line, currentLineCount) {
+function lineByteSize(line: string, currentLineCount: number): number {
   return Buffer.byteLength(line, 'utf8') + (currentLineCount > 0 ? 1 : 0);
 }
 
-function stripCarriageReturn(line) {
+function stripCarriageReturn(line: string): string {
   return line.endsWith('\r') ? line.slice(0, -1) : line;
+}
+
+interface WindowRequest {
+  offset: number;
+  limit: number;
+  maxLineLength: number;
+  maxBytes: number;
+}
+
+interface WindowLine {
+  number: number;
+  text: string;
+}
+
+interface WindowResult {
+  lines: WindowLine[];
+  totalLines: number;
+  truncatedByBytes: boolean;
 }
 
 /**
  * 从全文构建带行号的窗口，逻辑对齐 dsh read-render.buildWindow。
  */
-function buildWindow(text, request, displayPath) {
-  const acc = { lines: [], totalLines: 0, outputBytes: 0, truncatedByBytes: false };
+function buildWindow(text: string, request: WindowRequest, displayPath: string): WindowResult {
+  const acc = { lines: [] as WindowLine[], totalLines: 0, outputBytes: 0, truncatedByBytes: false };
   const rawLines = text.split(/\r?\n/);
 
   // 按行扫描：每行都计入 totalLines，但只保留窗口内的行
@@ -56,14 +74,14 @@ function buildWindow(text, request, displayPath) {
     if (acc.truncatedByBytes || acc.totalLines < request.offset || acc.lines.length >= request.limit) continue;
 
     const lineText = stripCarriageReturn(rawLine);
-    const text = truncateLine(lineText, request.maxLineLength);
-    const bytes = lineByteSize(text, acc.lines.length);
+    const text2 = truncateLine(lineText, request.maxLineLength);
+    const bytes = lineByteSize(text2, acc.lines.length);
     if (acc.outputBytes + bytes > request.maxBytes) {
       acc.truncatedByBytes = true;
       continue;
     }
     acc.outputBytes += bytes;
-    acc.lines.push({ number: acc.totalLines, text });
+    acc.lines.push({ number: acc.totalLines, text: text2 });
   }
 
   if (!acc.truncatedByBytes && request.offset > acc.totalLines && !(acc.totalLines === 0 && request.offset === 1)) {
@@ -80,7 +98,7 @@ function buildWindow(text, request, displayPath) {
 /**
  * 与 dsh formatReadOutput 保持一致：返回 envelope，包含行号和 footer。
  */
-function formatReadOutput(displayPath, outcome) {
+function formatReadOutput(displayPath: string, outcome: any): string {
   const endLine = outcome.lines.length > 0
     ? outcome.lines[outcome.lines.length - 1].number
     : Math.max(0, outcome.offset - 1);
@@ -95,7 +113,7 @@ function formatReadOutput(displayPath, outcome) {
   }
 
   const body = outcome.lines.length > 0
-    ? outcome.lines.map(line => line.number + ': ' + line.text).join('\n') + '\n\n' + footer
+    ? outcome.lines.map((line: WindowLine) => line.number + ': ' + line.text).join('\n') + '\n\n' + footer
     : footer;
 
   return '<path>' + displayPath + '</path>\n<type>file</type>\n<content>\n' + body + '\n</content>';
@@ -141,7 +159,7 @@ class ReadTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { file_path, offset, limit, projectDir } = params;
 
     try {
@@ -167,7 +185,7 @@ class ReadTool extends Tool {
 
       // 读取整个文件内容（当前实现与 dsh 流式不同，但保证 totalLines 精确）
       const content = fs.readFileSync(resolvedPath, 'utf-8');
-      const request = {
+      const request: WindowRequest = {
         offset: input.offset,
         limit: input.limit,
         maxLineLength: READ_MAX_LINE_LENGTH,
@@ -177,7 +195,7 @@ class ReadTool extends Tool {
 
       console.log('[ReadTool] 已读取:', resolvedPath, 'offset=' + input.offset, 'limit=' + input.limit, 'totalLines=' + window.totalLines);
       return ToolResult.success(formatReadOutput(file_path, { ...window, offset: input.offset }));
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('读取文件失败: ' + err.message);
     }
   }
