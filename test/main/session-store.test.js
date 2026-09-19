@@ -1,9 +1,9 @@
 'use strict';
-const { test, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
-const { createSessionStore } = require('../../src/main/session-store');
+import { test, beforeEach, afterEach } from 'vitest';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createSessionStore } from '../../src/main/session-store.js';
 
 const tmpDir = path.join(process.cwd(), 'test', 'tmp', 'session-store-test');
 
@@ -111,3 +111,4 @@ test('handleUrlChange 恢复已保存目录', () => {
   assert.ok(sent.some(([ch]) => ch === 'session-restored'));
   assert.ok(sent.some(([ch]) => ch === 'project-dir-updated'));
 });
+

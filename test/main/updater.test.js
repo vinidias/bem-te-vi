@@ -1,8 +1,7 @@
-'use strict';
-const { test, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
+import { test, beforeEach, afterEach, vi } from 'vitest';
+import assert from 'node:assert';
+import Module from 'node:module';
 
-const Module = require('module');
 const origLoad = Module._load;
 
 function installMock() {
@@ -43,18 +42,20 @@ function uninstallMock() {
   Module._load = origLoad;
 }
 
-beforeEach(() => {
+let updater;
+
+beforeEach(async () => {
   installMock();
-  delete require.cache[require.resolve('../../src/main/updater')];
+  vi.resetModules();
+  updater = await import('../../src/main/updater.js');
 });
 
 afterEach(() => {
   uninstallMock();
-  delete require.cache[require.resolve('../../src/main/updater')];
+  vi.resetModules();
 });
 
 test('isNetworkError 识别网络错误', () => {
-  const updater = require('../../src/main/updater');
   assert.strictEqual(updater.isNetworkError({ message: 'net::ERR_CONNECTION_REFUSED' }), true);
   assert.strictEqual(updater.isNetworkError({ message: 'ECONNREFUSED' }), true);
   assert.strictEqual(updater.isNetworkError({ message: 'ETIMEDOUT' }), true);
@@ -62,28 +63,24 @@ test('isNetworkError 识别网络错误', () => {
 });
 
 test('isNetworkError 非网络错误返回 false', () => {
-  const updater = require('../../src/main/updater');
   assert.strictEqual(updater.isNetworkError({ message: 'Cannot find latest.yml' }), false);
   assert.strictEqual(updater.isNetworkError({ message: 'unknown error' }), false);
   assert.strictEqual(updater.isNetworkError(null), false);
 });
 
 test('isGitHubAccessError 识别 GitHub 错误', () => {
-  const updater = require('../../src/main/updater');
   assert.strictEqual(updater.isGitHubAccessError({ message: 'HttpError: 404' }), true);
   assert.strictEqual(updater.isGitHubAccessError({ message: 'api.github.com rate limit' }), true);
   assert.strictEqual(updater.isGitHubAccessError({ message: 'forbidden' }), true);
 });
 
 test('isGitHubAccessError 非 GitHub 错误返回 false', () => {
-  const updater = require('../../src/main/updater');
   assert.strictEqual(updater.isGitHubAccessError({ message: 'ECONNREFUSED' }), false);
   assert.strictEqual(updater.isGitHubAccessError({ message: 'generic failure' }), false);
   assert.strictEqual(updater.isGitHubAccessError(null), false);
 });
 
 test('initAutoUpdater 开发环境不检查更新', () => {
-  const updater = require('../../src/main/updater');
   // app.isPackaged 是 false，initAutoUpdater 应该直接返回，不抛异常
   assert.doesNotThrow(() => updater.initAutoUpdater({ isDestroyed: () => false }));
 });
