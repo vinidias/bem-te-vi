@@ -189,6 +189,9 @@ Electron 的 ESM preload（`.mjs`）或预编译方案。
 - ✅ 根入口 `main.js`/`preload.js`/`start.js`/`eslint.config.js`/`test/*.js` 转 ESM
 - ✅ `package.json` 加 `"type": "module"`
 - ✅ Electron 应用 ESM 启动实测通过（18 工具注册、preload 正常）
+- ✅ 「假 ESM」清理：7 个自家模块真转 ESM（含 4 个测试改 vi.mock）
+- ✅ preload.js 去 TLA 修复（c117ecd）
+- ✅ 真机重启验证通过（UI/功能正常）
 
 ---
 
