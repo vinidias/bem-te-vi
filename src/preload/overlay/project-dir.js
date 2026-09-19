@@ -2,10 +2,13 @@
  * 项目目录显示与修改功能
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-const { ipcRenderer } = require('electron');
-const { renderSessions } = require('../dom/session-list');
+import { createRequire } from 'node:module';
+import { renderSessions } from '../dom/session-list.js';
 import { state } from '../dom/state.js';
-const { hideFirstTimeDialog } = require('./ui');
+import { hideFirstTimeDialog } from './ui.js';
+
+const require = createRequire(import.meta.url);
+const { ipcRenderer } = require('electron');
 
 /**
  * 初始化项目目录区域：默认隐藏、监听目录更新、绑定修改按钮
@@ -67,4 +70,4 @@ function updateProjectDirDisplay(dirPath) {
   }
 }
 
-module.exports = { initProjectDirSection, updateProjectDirDisplay };
+export { initProjectDirSection, updateProjectDirDisplay };
