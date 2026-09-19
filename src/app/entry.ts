@@ -46,7 +46,7 @@ if (RENDERER_LOG_DIR) {
   }
 }
 
-import { registerIpcHandlers } from './ipc.js';
+import { registerIpcHandlers } from './ipc/index.js';
 
 // 退出前需要 flush 的 sessions
 const sessionsToFlush = new Set<any>();
