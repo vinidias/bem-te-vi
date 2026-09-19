@@ -6,7 +6,7 @@ import { exec } from 'node:child_process';
 import { createRequire } from 'node:module';
 import * as windowState from '../app/window.js';
 import * as profileManager from '../app/profile.js';
-import { toolRegistry, jsRunner } from './tool-registry.js';
+import { registry as toolRegistry, jsRunner } from '../../tools/index.js';
 import { initProject } from './project-context.js';
 import { isDangerous } from '../infra/dangerous-commands.js';
 import { decodeOutput, normalizeCommand } from '../../tools/decodeOutput.js';

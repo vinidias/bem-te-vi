@@ -45,11 +45,15 @@ registry.register(new McpCallTool());
 registry.register(new McpListServersTool());
 registry.register(new McpGetToolsTool());
 
+// JS 工具脚本执行器（单例：AI 生成的 JS 代码调用工具函数）
+const jsRunner = new JsRunner(registry);
+
 // 导出
 export {
   ToolRegistry,
   JsRunner,
   registry,
+  jsRunner,
   WriteTool,
   ReadLinesTool,
   EditTool,
