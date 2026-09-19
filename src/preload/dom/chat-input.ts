@@ -15,14 +15,14 @@ const { ipcRenderer } = require('electron');
 /**
  * 根据当前 URL 获取 provider
  */
-function getCurrentProvider() {
+function getCurrentProvider(): any {
   return getProviderByUrl(window.location.href);
 }
 
 /**
  * 生成随机等待时间（ms），范围由 state 配置（默认 2-4 秒）
  */
-function randomDelay() {
+function randomDelay(): number {
   const min = typeof state.sendDelayMin === 'number' ? state.sendDelayMin : 2000;
   const max = typeof state.sendDelayMax === 'number' ? state.sendDelayMax : 4000;
   if (min >= max) return min;
@@ -30,19 +30,19 @@ function randomDelay() {
 }
 /**
  * 将文本填入输入框（React 兼容：使用原生 value setter）
- * @param {Element} input - 输入框元素
- * @param {string} msg - 要填入的文本
- * @returns {boolean} 是否成功填入
+ * @param input - 输入框元素
+ * @param msg - 要填入的文本
+ * @returns 是否成功填入
  */
-async function setInputContent(input, msg) {
+async function setInputContent(input: any, msg: string): Promise<boolean> {
   try {
     if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
       input.focus();
       const nativeSetter = Object.getOwnPropertyDescriptor(
         input.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype,
         'value'
-      ).set;
-      nativeSetter.call(input, msg);
+      )!.set;
+      nativeSetter!.call(input, msg);
       input.dispatchEvent(new Event('input', { bubbles: true }));
       return true;
     }
@@ -71,20 +71,20 @@ async function setInputContent(input, msg) {
       return true;
     }
     return false;
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Cuckoo Code] 设置输入框内容失败:', err.message);
     return false;
   }
 }
 /**
  * 将消息填入当前可见输入框并按指定延迟触发发送
- * @param {string} msg - 要发送的消息
- * @param {string} [tag] - 日志标记
- * @param {number} [fixedDelay] - 固定延迟毫秒数；缺省时使用 randomDelay()
- * @param {Function} [afterSent] - 发送后回调
- * @returns {boolean} 是否成功
+ * @param msg - 要发送的消息
+ * @param tag - 日志标记
+ * @param fixedDelay - 固定延迟毫秒数；缺省时使用 randomDelay()
+ * @param afterSent - 发送后回调
+ * @returns 是否成功
  */
-async function sendToChat(msg, tag, fixedDelay, afterSent) {
+async function sendToChat(msg: string, tag?: string, fixedDelay?: number, afterSent?: () => void): Promise<boolean> {
   const input = findInputArea();
   if (!input) {
     console.log('[Cuckoo Code] 找不到输入框，无法发送消息');
@@ -107,13 +107,13 @@ async function sendToChat(msg, tag, fixedDelay, afterSent) {
 /**
  * 将消息填入 DeepSeek 聊天输入框并触发发送（工具结果回传的公共实现）
  */
-function sendMessageToChat(msg, tag) {
+function sendMessageToChat(msg: string, tag?: string): Promise<boolean> {
   return sendToChat(msg, tag);
 }
 /**
  * 将 JSON 工具执行结果发送回 DeepSeek 聊天，让 AI 看到结果并继续工作
  */
-function sendToolResultToChat(toolCall, result) {
+function sendToolResultToChat(toolCall: any, result: any): void {
   // 构造回传消息（明确的成功/失败信息，AI 可据此修正并继续）
   let msg;
   if (result.success) {
@@ -136,7 +136,7 @@ function sendToolResultToChat(toolCall, result) {
 /**
  * 将 JS 工具脚本执行结果发送回 DeepSeek 聊天，让 AI 看到结果并继续工作
  */
-function sendCombinedJsResultsToChat(results) {
+function sendCombinedJsResultsToChat(results: any): void {
   if (!Array.isArray(results) || results.length === 0) return;
 
   const MAX_OUTPUT = 15000;
@@ -167,7 +167,7 @@ function sendCombinedJsResultsToChat(results) {
 /**
  * 查找 DeepSeek 的输入框元素
  */
-function findInputArea() {
+function findInputArea(): any {
   const provider = getCurrentProvider();
   if (provider && typeof provider.findInput === 'function') {
     const el = provider.findInput();
@@ -188,7 +188,7 @@ function findInputArea() {
 /**
  * 检查元素是否可见
  */
-function isInputVisible(el) {
+function isInputVisible(el: any): boolean {
   if (!el) return false;
   const style = window.getComputedStyle(el);
   return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
@@ -196,7 +196,7 @@ function isInputVisible(el) {
 /**
  * 发送初始提示（目录树+systemPrompt）到输入框
  */
-async function sendInitialPromptToInput() {
+async function sendInitialPromptToInput(): Promise<boolean> {
   if (!state.initialPromptContent) {
     state.pendingInitialPrompt = false;
     return false;
@@ -224,7 +224,7 @@ async function sendInitialPromptToInput() {
 /**
  * 等待输入框出现后再发送初始提示
  */
-function waitForInitialPromptAndSend() {
+function waitForInitialPromptAndSend(): void {
   let attempts = 0;
   const maxAttempts = 30;
   console.log('[' + new Date().toISOString() + '] [Cuckoo Code] 开始等待输入框出现（最多 ' + maxAttempts + ' 次，每次 500ms）');
@@ -251,15 +251,15 @@ function waitForInitialPromptAndSend() {
 /**
  * 触发发送消息
  */
-function triggerSend(input) {
+function triggerSend(input: any): void {
   const provider = getCurrentProvider();
 
   // 方法 0: 站点原生发送（智谱等免疫合成事件的平台，经主进程注入真实级输入）
   if (provider && typeof provider.triggerSend === 'function') {
-    let result = null;
+    let result: any = null;
     try { result = provider.triggerSend(input); } catch (_) { /* 站点实现异常时回退通用逻辑 */ }
     if (result && typeof result.then === 'function') {
-      result.then(function (ok) {
+      result.then(function (ok: boolean) {
         if (ok) {
           console.log('[Cuckoo Code] 已通过站点原生发送触发');
         } else {
@@ -280,7 +280,7 @@ function triggerSend(input) {
 /**
  * 通用发送兜底：查找发送按钮点击，或模拟 Enter 按键序列
  */
-function fallbackSend(provider, input) {
+function fallbackSend(provider: any, input: any): void {
   // 方法 1: 调用平台 Provider 查找发送按钮
   if (provider && typeof provider.findSendButton === 'function') {
     const btn = provider.findSendButton();
@@ -304,9 +304,9 @@ function fallbackSend(provider, input) {
  * 注册主进程消息监听（initial-prompt）
  * 与原 preload.js 顶层注册时机一致：preload 入口加载时同步调用。
  */
-function registerIpcListeners() {
+function registerIpcListeners(): void {
 // 监听主进程发送的初始提示
-ipcRenderer.on('initial-prompt', (_event, content) => {
+ipcRenderer.on('initial-prompt', (_event: any, content: string) => {
   console.log('[' + new Date().toISOString() + '] [Cuckoo Code] 收到 initial-prompt 事件, content长度=' + (content || '').length);
   state.initialPromptContent = content || '';
   state.pendingInitialPrompt = true;
@@ -321,7 +321,7 @@ ipcRenderer.on('initial-prompt', (_event, content) => {
         // 等待输入框出现
         waitForInitialPromptAndSend();
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('[' + new Date().toISOString() + '] [Cuckoo Code] initial-prompt 处理异常:', e.message);
     }
   }
