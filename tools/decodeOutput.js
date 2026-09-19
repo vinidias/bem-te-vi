@@ -40,4 +40,4 @@ function normalizeCommand(command) {
   return command.replace(/Get-Content\b/g, 'Get-Content -Encoding UTF8');
 }
 
-module.exports = { decodeOutput, normalizeCommand };
+export { decodeOutput, normalizeCommand };

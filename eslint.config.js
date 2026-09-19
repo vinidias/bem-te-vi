@@ -42,7 +42,9 @@ module.exports = [
     files: ['**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'commonjs',
+      // 迁移期：模块模式（兼容 ESM import/export 与 CJS require；
+      // require 未定义由 no-undef:off 兜底）
+      sourceType: 'module',
       globals: COMMON_GLOBALS,
     },
     rules: {
