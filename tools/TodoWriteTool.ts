@@ -3,18 +3,29 @@ import { Tool, ToolResult } from './ToolRegistry.js';
 // 对齐 dsh STATUSES
 const STATUSES = ['pending', 'in_progress', 'completed'];
 
+interface TodoItem {
+  content: string;
+  status: string;
+}
+
+interface TodoCounts {
+  pending: number;
+  inProgress: number;
+  completed: number;
+}
+
 /**
  * 对齐 dsh toTodoList：校验并规范化 todo 列表。
  * - content trim 后非空
  * - content 不重复
  * - 串行模式：最多一条 in_progress
  */
-function parseTodoList(todos, allowParallelInProgress) {
+function parseTodoList(todos: any, allowParallelInProgress: boolean): TodoItem[] {
   if (!Array.isArray(todos)) {
     throw new Error('todos must be an array');
   }
-  const result = [];
-  const seen = new Set();
+  const result: TodoItem[] = [];
+  const seen = new Set<string>();
   let active = 0;
   for (const item of todos) {
     if (typeof item !== 'object' || item === null) {
@@ -43,7 +54,7 @@ function parseTodoList(todos, allowParallelInProgress) {
 /**
  * 对齐 dsh render：返回统计确认消息。
  */
-function formatTodoOutput(counts) {
+function formatTodoOutput(counts: TodoCounts): string {
   return 'Updated todo list: ' + counts.pending + ' pending, ' + counts.inProgress + ' in progress, ' + counts.completed + ' completed.';
 }
 
@@ -95,27 +106,27 @@ class TodoWriteTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { todos, projectDir } = params;
 
     try {
       // 串行模式：allowParallelInProgress = false
       const list = parseTodoList(todos, false);
 
-      const count = (status) => list.filter(t => t.status === status).length;
-      const counts = {
+      const count = (status: string) => list.filter(t => t.status === status).length;
+      const counts: TodoCounts = {
         pending: count('pending'),
         inProgress: count('in_progress'),
         completed: count('completed'),
       };
 
       // 无持久化，仅在内存中短暂存储（可选）
-      if (!globalThis.__cuckooTodos) globalThis.__cuckooTodos = [];
-      globalThis.__cuckooTodos = list;
+      if (!(globalThis as any).__cuckooTodos) (globalThis as any).__cuckooTodos = [];
+      (globalThis as any).__cuckooTodos = list;
 
       console.log('[TodoWriteTool] 更新待办列表:', JSON.stringify(counts));
       return ToolResult.success(formatTodoOutput(counts));
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('更新待办列表失败: ' + err.message);
     }
   }
