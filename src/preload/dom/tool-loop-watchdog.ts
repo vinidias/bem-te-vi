@@ -25,15 +25,15 @@ const DEFAULT_TIMEOUT = 300000;
 const DEFAULT_COUNT = 3;
 
 let inToolLoop = false;
-let timer = null;
+let timer: any = null;
 let timeoutCount = 0;
 // 开启看门狗时所在会话的 ID，用于超时时校验会话是否已切换
-let armedSessionId = null;
+let armedSessionId: string | null = null;
 // 暂停开关：压缩等流程进行中时置 true，看门狗完全停摆
 let suspended = false;
 
 /** 取当前页面 URL 对应的会话 ID（无则返回 null） */
-function getCurrentSessionId() {
+function getCurrentSessionId(): string | null {
   try {
     const provider = getProviderByUrl(window.location.href);
     if (provider && typeof provider.extractSessionId === 'function') {
@@ -43,26 +43,26 @@ function getCurrentSessionId() {
   return null;
 }
 
-function readConfig() {
+function readConfig(): { timeout: number; prompt: string; count: number } {
   let timeout = DEFAULT_TIMEOUT;
   let prompt = DEFAULT_PROMPT;
   let count = DEFAULT_COUNT;
   try {
-    const t = parseInt(localStorage.getItem('cuckoo-xhr-idle-timeout'), 10);
+    const t = parseInt(localStorage.getItem('cuckoo-xhr-idle-timeout') as string, 10);
     if (Number.isFinite(t)) timeout = t;
     const p = localStorage.getItem('cuckoo-watchdog-prompt');
     if (p) prompt = p;
-    const c = parseInt(localStorage.getItem('cuckoo-watchdog-count'), 10);
+    const c = parseInt(localStorage.getItem('cuckoo-watchdog-count') as string, 10);
     if (Number.isFinite(c)) count = c;
   } catch (_) {}
   return { timeout, prompt, count };
 }
 
-function clearTimer() {
+function clearTimer(): void {
   if (timer) { clearTimeout(timer); timer = null; }
 }
 
-function armWatchdog() {
+function armWatchdog(): void {
   clearTimer();
   if (suspended) return;
   if (!inToolLoop) return;
@@ -72,11 +72,11 @@ function armWatchdog() {
   timer = setTimeout(onTimeout, cfg.timeout);
 }
 
-function disarmWatchdog() {
+function disarmWatchdog(): void {
   clearTimer();
 }
 
-function onTimeout() {
+function onTimeout(): void {
   timer = null;
   if (suspended) return;
   if (!inToolLoop) return;
@@ -98,31 +98,31 @@ function onTimeout() {
   showToast('等待 AI 回复超时，发送「' + cfg.prompt + '」催继续（第 ' + timeoutCount + ' 次）', 3000);
   try {
     sendToChat(cfg.prompt, '看门狗', 300);
-  } catch (e) {
+  } catch (e: any) {
     console.error('[Cuckoo Code][看门狗] 发送提示词失败: ' + e.message);
   }
 }
 
 /** 检测到工具调用：进入工具循环，先关看门狗（工具执行期间不监控） */
-function onToolCallDetected() {
+function onToolCallDetected(): void {
   if (suspended) return;
   inToolLoop = true;
   clearTimer();
 }
 
 /** 发出一条消息、等待 AI 回复：若在工具循环中则开看门狗 */
-function onMessageSent() {
+function onMessageSent(): void {
   if (inToolLoop) armWatchdog();
 }
 
 /** 收到任意终态回复：关看门狗；成功回复重置超时计数 */
-function onResponseReceived(status) {
+function onResponseReceived(status: string): void {
   clearTimer();
   if (status === 'finished') timeoutCount = 0;
 }
 
 /** 回复不含工具调用（纯文本）：退出工具循环 */
-function exitToolLoop() {
+function exitToolLoop(): void {
   inToolLoop = false;
   timeoutCount = 0;
   armedSessionId = null;
@@ -130,7 +130,7 @@ function exitToolLoop() {
 }
 
 /** 手动重置（压缩等流程可调用） */
-function reset() {
+function reset(): void {
   inToolLoop = false;
   timeoutCount = 0;
   armedSessionId = null;
@@ -138,7 +138,7 @@ function reset() {
 }
 
 /** 暂停/恢复看门狗：暂停时所有钩子都不动作（压缩等流程用） */
-function setSuspended(v) {
+function setSuspended(v: any): void {
   suspended = !!v;
   if (suspended) {
     inToolLoop = false;
@@ -150,10 +150,10 @@ function setSuspended(v) {
 
 // ===== 会话切换监视：SPA 路由（pushState）不触发 popstate/hashchange，
 // 用轮询检测 session 变化，一旦切换立即重置看门狗，避免误打扰新会话。=====
-let sessionWatcherTimer = null;
-let lastSeenSessionId = null;
+let sessionWatcherTimer: any = null;
+let lastSeenSessionId: string | null = null;
 
-function startSessionWatcher() {
+function startSessionWatcher(): void {
   if (sessionWatcherTimer) return;
   lastSeenSessionId = getCurrentSessionId();
   sessionWatcherTimer = setInterval(function () {
