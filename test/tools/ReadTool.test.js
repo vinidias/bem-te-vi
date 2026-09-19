@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseReadArgs, buildWindow, formatReadOutput, READ_LIMIT, READ_MAX_LINE_LENGTH, READ_MAX_BYTES } = require('../../tools/ReadTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseReadArgs, buildWindow, formatReadOutput, READ_LIMIT, READ_MAX_LINE_LENGTH, READ_MAX_BYTES } from '../../tools/ReadTool.js';
 
 test('parseReadArgs 默认值', () => {
   const r = parseReadArgs('a.txt', undefined, undefined);
@@ -87,3 +87,4 @@ test('formatReadOutput 无行仅有 footer', () => {
   const s = formatReadOutput('f.txt', out);
   assert.match(s, /\(End of file/);
 });
+

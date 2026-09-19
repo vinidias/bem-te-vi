@@ -1,18 +1,17 @@
-'use strict';
-const { test, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+import { test, beforeEach, afterEach, vi } from 'vitest';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
-const { installElectronMock, fakeElectron } = require('../helpers/mock-electron');
+import { installElectronMock, fakeElectron } from '../helpers/mock-electron.js';
 
 let restoreElectron;
 
 beforeEach(() => {
   restoreElectron = installElectronMock();
-  // 每次重新加载，确保拿到 mock 的 electron
-  delete require.cache[require.resolve('../../tools/AttachFileTool')];
+  // 每次清空模块缓存，确保动态 import 重新求值、拿到 mock 的 electron
+  vi.resetModules();
 });
 
 afterEach(() => {
@@ -29,17 +28,20 @@ function makeWindow(id, executeImpl) {
   return win;
 }
 
+async function loadTool() {
+  const { AttachFileTool } = await import('../../tools/AttachFileTool.js');
+  return new AttachFileTool();
+}
+
 test('attach_file 缺少窗口上下文报错', async () => {
-  const { AttachFileTool } = require('../../tools/AttachFileTool');
-  const tool = new AttachFileTool();
+  const tool = await loadTool();
   const res = await tool.execute({ filePath: 'x.txt', projectDir: os.tmpdir(), windowId: null });
   assert.strictEqual(res.success, false);
   assert.match(res.error, /窗口/);
 });
 
 test('attach_file 文件不存在报错', async () => {
-  const { AttachFileTool } = require('../../tools/AttachFileTool');
-  const tool = new AttachFileTool();
+  const tool = await loadTool();
   makeWindow(101, async () => ({ success: true, fileName: 'x' }));
   const res = await tool.execute({ filePath: 'definitely-missing-xyz.txt', projectDir: os.tmpdir(), windowId: 101 });
   assert.strictEqual(res.success, false);
@@ -47,8 +49,7 @@ test('attach_file 文件不存在报错', async () => {
 });
 
 test('attach_file 目标为目录报错', async () => {
-  const { AttachFileTool } = require('../../tools/AttachFileTool');
-  const tool = new AttachFileTool();
+  const tool = await loadTool();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'attach-dir-'));
   makeWindow(102, async () => ({ success: true, fileName: 'x' }));
   const res = await tool.execute({ filePath: dir, windowId: 102 });
@@ -57,8 +58,7 @@ test('attach_file 目标为目录报错', async () => {
 });
 
 test('attach_file 成功路径：读取文件并以 base64 注入', async () => {
-  const { AttachFileTool } = require('../../tools/AttachFileTool');
-  const tool = new AttachFileTool();
+  const tool = await loadTool();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'attach-ok-'));
   const file = path.join(dir, 'demo.md');
   fs.writeFileSync(file, '# hello attach');
@@ -82,8 +82,7 @@ test('attach_file 成功路径：读取文件并以 base64 注入', async () => 
 });
 
 test('attach_file 上传失败透传错误', async () => {
-  const { AttachFileTool } = require('../../tools/AttachFileTool');
-  const tool = new AttachFileTool();
+  const tool = await loadTool();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'attach-fail-'));
   fs.writeFileSync(path.join(dir, 'a.txt'), 'data');
   makeWindow(104, async () => ({ success: false, error: '上传超时，未检测到附件出现' }));
@@ -94,8 +93,7 @@ test('attach_file 上传失败透传错误', async () => {
 });
 
 test('attach_file 窗口不存在报错', async () => {
-  const { AttachFileTool } = require('../../tools/AttachFileTool');
-  const tool = new AttachFileTool();
+  const tool = await loadTool();
   const res = await tool.execute({ filePath: 'a.txt', windowId: 99999 });
   assert.strictEqual(res.success, false);
   assert.match(res.error, /窗口/);

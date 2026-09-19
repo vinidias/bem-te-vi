@@ -1,8 +1,8 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const path = require('path');
-const { resolveFilePath, guessMimeType, buildInjectCode } = require('../../tools/AttachFileTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import path from 'node:path';
+import { resolveFilePath, guessMimeType, buildInjectCode } from '../../tools/AttachFileTool.js';
 
 test('resolveFilePath 空/非字符串抛错', () => {
   assert.throws(() => resolveFilePath('', null), /non-empty string/);
@@ -47,3 +47,4 @@ test('buildInjectCode 包含文件名与 base64', () => {
   assert.match(code, /DataTransfer/);
   assert.match(code, /input\[type=file\]/);
 });
+

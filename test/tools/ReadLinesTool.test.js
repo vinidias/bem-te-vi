@@ -1,11 +1,11 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const { ReadLinesTool } = require('../../tools/ReadLinesTool');
-const { READ_LIMIT } = require('../../tools/ReadTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { ReadLinesTool } from '../../tools/ReadLinesTool.js';
+import { READ_LIMIT } from '../../tools/ReadTool.js';
 
 function makeTmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'cuckoo-readlines-'));
@@ -72,3 +72,4 @@ test('ReadLinesTool offset 越界', async () => {
   assert.strictEqual(r.success, false);
   assert.match(r.error, /out of range/);
 });
+

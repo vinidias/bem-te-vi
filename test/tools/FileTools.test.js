@@ -1,12 +1,12 @@
 'use strict';
-const { test, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
-const { FileDeleteTool } = require('../../tools/FileDeleteTool');
-const { WriteTool } = require('../../tools/WriteTool');
-const { ReadTool } = require('../../tools/ReadTool');
-const { EditTool } = require('../../tools/EditTool');
+import { test, beforeEach, afterEach } from 'vitest';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
+import { FileDeleteTool } from '../../tools/FileDeleteTool.js';
+import { WriteTool } from '../../tools/WriteTool.js';
+import { ReadTool } from '../../tools/ReadTool.js';
+import { EditTool } from '../../tools/EditTool.js';
 
 const tmpRoot = path.join(process.cwd(), 'test', 'tmp', 'filetools');
 
@@ -148,3 +148,4 @@ test('EditTool dry-run 删除预览', async () => {
   assert.match(r.data, /old: "remove" → new: ""/);
   assert.strictEqual(fs.readFileSync(path.join(tmpRoot, 'd.txt'), 'utf8'), 'remove me');
 });
+

@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { McpListServersTool, McpGetToolsTool } = require('../../tools/McpQueryTools');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { McpListServersTool, McpGetToolsTool } from '../../tools/McpQueryTools.js';
 
 test('McpListServersTool 构造器', () => {
   const t = new McpListServersTool();
@@ -38,3 +38,4 @@ test('McpGetToolsTool 缺 server 返回错误', async () => {
   assert.strictEqual(r.success, false);
   assert.match(r.error, /server 不能为空/);
 });
+

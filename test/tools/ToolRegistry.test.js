@@ -1,7 +1,6 @@
-'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { Tool, ToolRegistry, ToolResult } = require('../../tools/ToolRegistry');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { Tool, ToolRegistry, ToolResult } from '../../tools/ToolRegistry.js';
 
 test('Tool 构造与 getDescription', () => {
   const t = new Tool('test', 'desc', { type: 'object' }, 'test()');

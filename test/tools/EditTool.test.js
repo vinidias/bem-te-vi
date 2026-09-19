@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseEditArgs, formatEditOutput, formatDryRunOutput } = require('../../tools/EditTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseEditArgs, formatEditOutput, formatDryRunOutput } from '../../tools/EditTool.js';
 
 test('parseEditArgs 正常', () => {
   assert.deepStrictEqual(parseEditArgs('a.txt', 'old', 'new', false), { filePath: 'a.txt', oldString: 'old', newString: 'new', replaceAll: false, dryRun: false });
@@ -49,3 +49,4 @@ test('formatDryRunOutput 预览', () => {
   // 删除场景（空 new_string）
   assert.match(formatDryRunOutput('a.txt', 'x', '', 1, false), /old: "x" → new: ""/);
 });
+

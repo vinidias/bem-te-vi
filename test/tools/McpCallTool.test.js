@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { McpCallTool } = require('../../tools/McpCallTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { McpCallTool } from '../../tools/McpCallTool.js';
 
 test('McpCallTool 构造器', () => {
   const t = new McpCallTool();
@@ -34,3 +34,4 @@ test('McpCallTool 缺 tool 返回错误', async () => {
   assert.strictEqual(r.success, false);
   assert.match(r.error, /tool 不能为空/);
 });
+
