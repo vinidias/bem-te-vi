@@ -145,6 +145,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 - ✅ `tools/decodeOutput.js`（试点，a31997f）
 - ✅ `eslint.config.js` 的 `sourceType` 改为 `module`
 - ✅ `tools/` 全部 22 个文件转 ESM（含 browser-window-manager 方案 D）
+- ✅ `src/utils/`、`src/providers/`、`src/main/`、`src/preload/` 全部转 ESM
+- ✅ 测试基建从 `node --test` 迁移到 **Vitest**（新增 vitest.config.mjs；280 测试全绿）
+- ✅ 根入口 `main.js`/`preload.js`/`start.js`/`eslint.config.js`/`test/*.js` 转 ESM
+- ✅ `package.json` 加 `"type": "module"`
+- ✅ Electron 应用 ESM 启动实测通过（18 工具注册、preload 正常）
 
 ---
 
@@ -153,9 +158,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 （执行 AI 在此勾选）
 
 - [x] tools/ 全部文件（22 个）
-- [ ] src/utils/with-log.js
-- [ ] src/providers/（6 个）
-- [ ] src/main/（11 个）
-- [ ] src/preload/（17 个）
-- [ ] test/（39 个，最后）
-- [ ] 最后统一：package.json 加 "type": "module" + main.js/preload.js 改 import
+- [x] src/utils/with-log.js
+- [x] src/providers/（6 个）
+- [x] src/main/（11 个）
+- [x] src/preload/（17 个）
+- [x] test/（迁移到 Vitest）
+- [x] 最后统一：package.json 加 "type": "module" + main.js/preload.js 改 import
