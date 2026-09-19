@@ -11,7 +11,7 @@ let isExecuting = false;
 /**
  * 通知用户检测到工具调用（闪烁状态徽章 + 更新预览）
  */
-function notifyToolCallDetected(toolCall) {
+function notifyToolCallDetected(toolCall: any): void {
   const preview = document.getElementById('cuckoo-cmd-preview');
   if (preview) {
     preview.textContent = '[工具] ' + toolCall.toolName + '\n参数: ' + JSON.stringify(toolCall.params, null, 2);
@@ -22,7 +22,7 @@ function notifyToolCallDetected(toolCall) {
 /**
  * 通知用户检测到 JS 工具脚本（更新预览 + 闪烁徽章）
  */
-function notifyJsScriptDetected(code) {
+function notifyJsScriptDetected(code: string): void {
   const preview = document.getElementById('cuckoo-cmd-preview');
   if (preview) {
     preview.textContent = '[JS 工具脚本]' + String.fromCharCode(10) + code;
@@ -32,10 +32,8 @@ function notifyJsScriptDetected(code) {
 
 /**
  * 执行检测到的 JS 工具脚本
- * @param {string} code
- * @returns {Promise<{code: string, result: object}>}
  */
-async function handleJsToolScript(code) {
+async function handleJsToolScript(code: string): Promise<{ code: string; result: any }> {
   isExecuting = true;
   notifyJsScriptDetected(code);
   setTaskStatus(true);
@@ -44,7 +42,7 @@ async function handleJsToolScript(code) {
   const callId = 'js_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
   console.log('[Cuckoo Code] [诊断] 即将执行的代码(JSON转义): ' + JSON.stringify(code));
   try {
-    const result = await window.electronAPI.executeJs(code, callId);
+    const result = await (window as any).electronAPI.executeJs(code, callId);
 
     const resultSection = document.getElementById('cuckoo-result-section');
     const resultStatus = document.getElementById('cuckoo-result-status');
@@ -78,7 +76,7 @@ async function handleJsToolScript(code) {
     });
 
     return { code, result };
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Cuckoo Code] JS 工具脚本执行异常:', err);
     const resultSection = document.getElementById('cuckoo-result-section');
     const resultStatus = document.getElementById('cuckoo-result-status');
@@ -101,7 +99,7 @@ async function handleJsToolScript(code) {
 /**
  * 执行工具调用
  */
-async function handleToolCall(toolCall) {
+async function handleToolCall(toolCall: any): Promise<void> {
   const { toolName, params, callId } = toolCall;
   console.log('[Cuckoo Code] 执行工具: ' + toolName, params);
 
@@ -110,7 +108,7 @@ async function handleToolCall(toolCall) {
   showToast('开始执行命令');
 
   try {
-    const result = await window.electronAPI.executeTool(toolName, params, callId);
+    const result = await (window as any).electronAPI.executeTool(toolName, params, callId);
 
     const resultSection = document.getElementById('cuckoo-result-section');
     const resultStatus = document.getElementById('cuckoo-result-status');
@@ -145,7 +143,7 @@ async function handleToolCall(toolCall) {
     });
 
     sendToolResultToChat(toolCall, result);
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Cuckoo Code] 工具执行异常:', err);
     const resultSection = document.getElementById('cuckoo-result-section');
     const resultStatus = document.getElementById('cuckoo-result-status');
