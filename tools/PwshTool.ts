@@ -66,7 +66,7 @@ class PwshTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { command, description, workdir, timeoutMs, projectDir } = params;
 
     try {
@@ -85,7 +85,7 @@ class PwshTool extends Tool {
       }
 
       // 确定工作目录
-      let workDir;
+      let workDir: string;
       if (workdir) {
         const normalized = workdir.replace(/\//g, path.sep);
         workDir = path.isAbsolute(normalized)
@@ -101,7 +101,7 @@ class PwshTool extends Tool {
 
       console.log('[PwshTool] 执行命令: ' + trimmed + ', cwd=' + workDir);
 
-      return await new Promise((resolve) => {
+      return await new Promise<ToolResult>((resolve) => {
         execFile(
           'powershell',
           ['-NoProfile', '-Command', trimmed],
@@ -118,12 +118,12 @@ class PwshTool extends Tool {
             }
             if (body.length === 0) body = '(no output)';
 
-            const markers = [];
+            const markers: string[] = [];
             if (error) {
-              if (error.killed) {
+              if ((error as any).killed) {
                 markers.push('[timed out after ' + timeout + 'ms]');
-              } else if (typeof error.code === 'number') {
-                markers.push('[exit code: ' + error.code + ']');
+              } else if (typeof (error as any).code === 'number') {
+                markers.push('[exit code: ' + (error as any).code + ']');
               } else {
                 markers.push('[exit code: 1]');
               }
@@ -138,7 +138,7 @@ class PwshTool extends Tool {
           }
         );
       });
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('命令执行异常: ' + err.message);
     }
   }
