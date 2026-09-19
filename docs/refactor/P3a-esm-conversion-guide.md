@@ -144,6 +144,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 - ✅ `tools/decodeOutput.js`（试点，a31997f）
 - ✅ `eslint.config.js` 的 `sourceType` 改为 `module`
+- ✅ `tools/` 全部 22 个文件转 ESM（含 browser-window-manager 方案 D）
 
 ---
 
@@ -151,7 +152,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 （执行 AI 在此勾选）
 
-- [ ] tools/ 其余 26 个文件
+- [x] tools/ 全部文件（22 个）
 - [ ] src/utils/with-log.js
 - [ ] src/providers/（6 个）
 - [ ] src/main/（11 个）
