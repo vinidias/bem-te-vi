@@ -3,9 +3,12 @@
  * 每个 profile 对应一个独立的 partition，实现类似 Chrome 的多用户隔离。
  * profile 列表持久化在 userData/profile-list.json。
  */
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const { app } = require('electron');
-const fs = require('fs');
-const path = require('path');
 
 let PROFILE_FILE = null;
 
@@ -113,7 +116,7 @@ function updateProfileName(id, name) {
   return p;
 }
 
-module.exports = {
+export {
   readProfiles,
   writeProfiles,
   createProfile,
@@ -123,3 +126,4 @@ module.exports = {
   updateProfileProvider,
   deleteProfile,
 };
+

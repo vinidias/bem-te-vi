@@ -12,9 +12,12 @@
  * 启用/禁用状态单独存 mcp-state.json（不污染主流格式）：
  * { "filesystem": true, "remote-db": false }
  */
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const { app } = require('electron');
-const fs = require('fs');
-const path = require('path');
 
 function getConfigFile() {
   return path.join(app.getPath('userData'), 'mcp.json');
@@ -136,7 +139,7 @@ function removeServer(name) {
   return true;
 }
 
-module.exports = {
+export {
   getConfigFile,
   getStateFile,
   readConfig,
@@ -147,3 +150,4 @@ module.exports = {
   setServerEnabled,
   removeServer,
 };
+
