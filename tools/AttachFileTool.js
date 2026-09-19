@@ -1,7 +1,10 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { Tool, ToolResult } from './ToolRegistry.js';
+
+const require = createRequire(import.meta.url);
 const { BrowserWindow } = require('electron');
-const { Tool, ToolResult } = require('./ToolRegistry');
 
 // 上传文件大小上限（30MB），避免超大文件拖垮内存与注入脚本
 const MAX_FILE_SIZE = 30 * 1024 * 1024;
@@ -235,4 +238,4 @@ class AttachFileTool extends Tool {
   }
 }
 
-module.exports = { AttachFileTool, resolveFilePath, guessMimeType, buildInjectCode };
+export { AttachFileTool, resolveFilePath, guessMimeType, buildInjectCode };
