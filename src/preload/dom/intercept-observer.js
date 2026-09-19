@@ -3,16 +3,13 @@
  * 监听主世界注入的 'cuckoo-ai-response' 事件，收到完整回复后走与 DOM 模式
  * 相同的工具调用/JS 代码块处理流程。
  */
-import { createRequire } from 'node:module';
 import { state } from './state.js';
-
-const require = createRequire(import.meta.url);
-const { extractJsToolBlocks, BT } = require('./js-detector');
-const { tryParseToolCall } = require('./tool-parser');
-const { handleToolCall, handleJsToolScript } = require('./tool-executor');
-const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } = require('./chat-input');
-const { hasTool, toolNamesList } = require('../tool-names');
-const watchdog = require('./tool-loop-watchdog');
+import { extractJsToolBlocks, BT } from './js-detector.js';
+import { tryParseToolCall } from './tool-parser.js';
+import { handleToolCall, handleJsToolScript } from './tool-executor.js';
+import { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } from './chat-input.js';
+import { hasTool, toolNamesList } from '../tool-names.js';
+import * as watchdog from './tool-loop-watchdog.js';
 
 const MAX_JS_RETRY = 3;
 // 连续 XML 提示次数（防止无限循环）
