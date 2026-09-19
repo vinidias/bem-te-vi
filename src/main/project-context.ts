@@ -20,7 +20,7 @@ const PROMPT_DIR = resolveSrc('prompt');
 /**
  * 同时输出到终端和对应平台的日志文件（与渲染进程日志同目录）
  */
-function logWithFile(providerId, msg) {
+function logWithFile(providerId: string, msg: string): void {
   console.log(msg);
   try {
     if (!app.isPackaged) {
@@ -40,14 +40,14 @@ function logWithFile(providerId, msg) {
  * @param {string|null} presetDir - 预设项目目录（如压缩后自动初始化）。提供时跳过目录选择对话框。
  * @param {boolean} isCompaction - 是否为压缩后初始化（末尾追加"请继续你之前的工作"）
  */
-async function initProject(skipPrompt = false, windowContext = null, presetDir = null, isCompaction = false) {
+async function initProject(skipPrompt: boolean = false, windowContext: any = null, presetDir: string | null = null, isCompaction: boolean = false): Promise<any> {
   const ctx = windowContext || windowState.getMainContext();
   const mainWindow = ctx ? ctx.win : windowState.getMainWindow();
   const sessionStore = ctx ? ctx.sessionStore : null;
   // providerId 来自窗口上下文（可能为空，表示未确定平台）
   const providerId = (ctx && ctx.providerId) || '';
 
-  let selectedDir;
+  let selectedDir: string;
   if (presetDir) {
     // 预设目录（压缩后自动初始化）：直接用，不弹框
     selectedDir = presetDir;
@@ -74,7 +74,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
     console.log('[Cuckoo Code] 用户选择目录:', selectedDir);
   }
   const tStart = Date.now();
-  const stepLog = (msg) => logWithFile(providerId, '[Cuckoo Code][耗时] ' + msg + ' +' + (Date.now() - tStart) + 'ms');
+  const stepLog = (msg: string) => logWithFile(providerId, '[Cuckoo Code][耗时] ' + msg + ' +' + (Date.now() - tStart) + 'ms');
 
   // 保存选中的项目目录（若该窗口有独立的 sessionStore）
   if (sessionStore) {
@@ -87,7 +87,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
       console.log(`[Cuckoo Code] 已保存会话 ${sessionStore.state.currentSessionId} -> ${selectedDir}`);
     } else {
       // 如果未能获取会话ID，尝试从当前URL提取
-      let sessionId = null;
+      let sessionId: string | null = null;
       if (mainWindow && !mainWindow.isDestroyed()) {
         const url = mainWindow.webContents.getURL();
         sessionId = sessionStore.extractSessionIdFromUrl(url);
@@ -131,7 +131,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
         templateContent = fromMethod;
         templatePath = '(provider.getPromptTemplate)';
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[Cuckoo Code] 调用 provider.getPromptTemplate 失败:', err.message);
     }
   }
@@ -146,7 +146,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
   if (!templateContent && templatePath) {
     try {
       templateContent = fs.readFileSync(templatePath, 'utf-8');
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Cuckoo Code] 读取提示词模板失败:', err.message);
       return { success: false, message: '读取提示词模板失败: ' + err.message };
     }
@@ -157,7 +157,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
     try {
       templateContent = fs.readFileSync(templatePath, 'utf-8');
       console.warn('[Cuckoo Code] 未找到平台模板，使用默认模板:', templatePath);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Cuckoo Code] 读取默认模板失败:', err.message);
       return { success: false, message: '读取默认提示词模板失败: ' + err.message };
     }
@@ -176,7 +176,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
     // 找不到工具规范文件时保持空串
   }
   if (!toolApiTypes) {
-    console.error('[Cuckoo Code] 读取 cuckoo-tools.d.ts 失败：所有候选路径均不可读', toolApiTypePaths);
+    console.error('[Cuckoo Code] 读取 cuckoo-tools.d.ts 失败:', resolveToolSpec());
   }
 
   // 获取工具库描述（JS API 格式：AI 通过生成 JS 代码调用这些函数）
@@ -188,7 +188,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
   stepLog('工具描述生成完成');
   // 后台异步连接已启用的 MCP server，不阻塞初始化（提示词先按当前状态生成，
   // 未连接的 server 会标注“未连接”，AI 后续调用 mcpGetTools/mcpCall 时会按需连接）
-  mcpClient.connectEnabledServers().catch(err => {
+  mcpClient.connectEnabledServers().catch((err: any) => {
     console.error('[MCP] 初始化时连接失败:', err.message);
   });
 
@@ -241,7 +241,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
     try {
       projectIntro = fs.readFileSync(cuckooMdPath, 'utf-8');
       console.log('[Cuckoo Code] 已读取 CUCKOO.md 内容');
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Cuckoo Code] 读取 CUCKOO.md 失败:', err.message);
     }
   }
@@ -252,7 +252,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
     : '';
 
   // 统一替换模板中的双花括号占位符（全量替换，支持同一占位符多次出现）
-  const placeholders = {
+  const placeholders: Record<string, string> = {
     '{{TOOL_API_TYPES}}': toolApiTypes,
     '{{TOOLS_LIST}}': toolsDescription,
     '{{TOOL_SECTIONS}}': promptSections,
