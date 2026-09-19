@@ -46,7 +46,7 @@ class McpCallTool extends Tool {
       // 注意：此 require 在源码态（vitest）会解析失败（找不到 .ts），
       //       仅编译产物 out/ 下正常。当前测试未触发，故暂绿。
       //       P4 解耦 mcp-client 到 infra 时必须处理。
-      const mcpClient = require('../src/main/mcp-client');
+      const mcpClient = require('../src/mcp/client');
       const result = await mcpClient.callMcpTool(server, tool, args || {});
 
       // 提取纯文本内容

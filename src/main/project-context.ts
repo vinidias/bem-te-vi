@@ -7,7 +7,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import * as windowState from '../app/window.js';
 import { toolRegistry } from './tool-registry.js';
-import * as mcpClient from './mcp-client.js';
+import * as mcpClient from '../mcp/client.js';
 import { getProvider } from '../providers/index.js';
 import { resolveSrc, resolveToolSpec } from '../infra/paths.js';
 

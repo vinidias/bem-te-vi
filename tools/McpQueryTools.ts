@@ -34,7 +34,7 @@ class McpListServersTool extends Tool {
       // 注意：此 require 在源码态（vitest）会解析失败（找不到 .ts），
       //       仅编译产物 out/ 下正常。当前测试未触发，故暂绿。
       //       P4 解耦 mcp-client 到 infra 时必须处理。
-      const mcpClient = require('../src/main/mcp-client');
+      const mcpClient = require('../src/mcp/client');
       const servers = mcpClient.listConfiguredServers();
       if (servers.length === 0) {
         return ToolResult.success('当前没有配置任何 MCP server。');
@@ -96,7 +96,7 @@ class McpGetToolsTool extends Tool {
       // 注意：此 require 在源码态（vitest）会解析失败（找不到 .ts），
       //       仅编译产物 out/ 下正常。当前测试未触发，故暂绿。
       //       P4 解耦 mcp-client 到 infra 时必须处理。
-      const mcpClient = require('../src/main/mcp-client');
+      const mcpClient = require('../src/mcp/client');
       const tools = await mcpClient.getToolsByServer(server);
       if (tools.length === 0) {
         return ToolResult.success('server "' + server + '" 没有提供任何工具。');

@@ -11,7 +11,7 @@ import { createSessionStore } from '../session/store.js';
 import { getProvider } from '../providers/index.js';
 import * as updater from '../updater/index.js';
 import * as mcpConfig from '../mcp/config.js';
-import * as mcpClient from './mcp-client.js';
+import * as mcpClient from '../mcp/client.js';
 import { resolveAsset, resolveSrc } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
