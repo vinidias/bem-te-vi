@@ -13,12 +13,12 @@ const { ipcRenderer } = require('electron');
 /**
  * 初始化项目目录区域：默认隐藏、监听目录更新、绑定修改按钮
  */
-function initProjectDirSection() {
+function initProjectDirSection(): void {
   // 初始化隐藏（如果没有目录）
   updateProjectDirDisplay(null);
 
   // 监听主进程的目录更新事件
-  ipcRenderer.on('project-dir-updated', (_event, dirPath) => {
+  ipcRenderer.on('project-dir-updated', (_event: any, dirPath: string) => {
     updateProjectDirDisplay(dirPath);
     // 目录更新后刷新会话列表
     renderSessions();
@@ -28,11 +28,11 @@ function initProjectDirSection() {
   setTimeout(() => {
     const changeBtn = document.getElementById('cuckoo-btn-change-dir');
     if (changeBtn) {
-      changeBtn.addEventListener('click', async (e) => {
+      changeBtn.addEventListener('click', async (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
         // 使用 updateProjectDir 只更新目录映射，不重新发送初始提示
-        const result = await window.electronAPI.updateProjectDir();
+        const result = await (window as any).electronAPI.updateProjectDir();
         if (result && result.success) {
           // 主进程会发送 project-dir-updated 事件更新显示
           console.log('[Cuckoo Code] 目录已更新');
@@ -46,12 +46,12 @@ function initProjectDirSection() {
 
 /**
  * 更新项目目录显示
- * @param {string} dirPath - 目录路径
+ * @param dirPath - 目录路径
  */
-function updateProjectDirDisplay(dirPath) {
+function updateProjectDirDisplay(dirPath: string | null): void {
   state.currentProjectDir = dirPath || null;
   const display = document.getElementById('cuckoo-project-dir-display');
-  const section = document.querySelector('.cuckoo-project-dir-section');
+  const section = document.querySelector('.cuckoo-project-dir-section') as HTMLElement | null;
   if (display) {
     const span = display.querySelector('.cuckoo-dir-path');
     if (span) {
