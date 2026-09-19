@@ -9,11 +9,11 @@
  * - 每个工具调用都带执行截止时间检查，防止死循环；整体运行有 60 秒超时
  */
 
-const vm = require('vm');
-const { exec } = require('child_process');
-const path = require('path');
-const { DANGEROUS_CMDS } = require('./BashTool');
-const { decodeOutput, normalizeCommand } = require('./decodeOutput');
+import vm from 'node:vm';
+import { exec } from 'node:child_process';
+import path from 'node:path';
+import { DANGEROUS_CMDS } from './BashTool.js';
+import { decodeOutput, normalizeCommand } from './decodeOutput.js';
 
 // 同步执行超时（vm timeout，覆盖无 await 的死循环）
 const SYNC_TIMEOUT = 30 * 1000;
@@ -361,4 +361,4 @@ class JsRunner {
   }
 }
 
-module.exports = { JsRunner };
+export { JsRunner };
