@@ -2,6 +2,9 @@
  * 暴露给渲染进程的 API（contextBridge + window 兜底）
  * 由原 preload.js 拆分而来，行为保持不变。
  */
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const { contextBridge, ipcRenderer } = require('electron');
 
 // ========== 暴露给渲染进程的 API ==========

@@ -2,6 +2,9 @@
  * 工具/JS 脚本执行器（与回复获取方式无关）
  * 拦截模式和 DOM 模式共用的执行逻辑：执行工具调用、执行 JS 脚本、通知 UI。
  */
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const { showToast, setTaskStatus, addHistory, truncate, flashBadge } = require('../overlay/ui');
 const { sendToolResultToChat } = require('./chat-input');
 
@@ -163,7 +166,7 @@ async function handleToolCall(toolCall) {
   }
 }
 
-module.exports = {
+export {
   handleToolCall,
   handleJsToolScript,
   notifyToolCallDetected,

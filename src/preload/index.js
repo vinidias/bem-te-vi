@@ -6,14 +6,20 @@
 console.log('[Cuckoo Code] Preload script 开始执行');
 
 // 暴露 electronAPI 到渲染进程（contextBridge + window 兜底）
-require('./api');
+import './api.js';
 
+import { createRequire } from 'node:module';
+import * as ui from './overlay/ui.js';
+import * as projectDir from './overlay/project-dir.js';
+import { bindEvents } from './overlay/events.js';
+import * as chatInput from './dom/chat-input.js';
+import { getProviderByUrl } from '../providers/index.js';
+import { startInterceptObserver } from './dom/intercept-observer.js';
+import { startRetryEngine } from './dom/retry-engine.js';
+import { startSessionWatcher } from './dom/tool-loop-watchdog.js';
+
+const require = createRequire(import.meta.url);
 const { webFrame } = require('electron');
-const ui = require('./overlay/ui');
-const projectDir = require('./overlay/project-dir');
-const bindEvents = require('./overlay/events');
-const chatInput = require('./dom/chat-input');
-const { getProviderByUrl } = require('../providers');
 
 // ========== 平台识别 ==========
 // 在 init 之前先判断当前平台，决定走"网络拦截"还是"DOM 抓取"模式
@@ -68,15 +74,13 @@ function init() {
     ui.forceShowOverlay();
 
     // 拦截模式：监听主世界注入器派发的 'cuckoo-ai-response' 事件
-    const interceptObserver = require('./dom/intercept-observer');
-    interceptObserver.startInterceptObserver();
+    startInterceptObserver();
 
     // 启动自动重试引擎（订阅失败事件）
-    const retryEngine = require('./dom/retry-engine');
-    retryEngine.startRetryEngine();
+    startRetryEngine();
 
     // 启动看门狗的会话切换监视
-    require('./dom/tool-loop-watchdog').startSessionWatcher();
+    startSessionWatcher();
   } catch (err) {
     console.error('[Cuckoo Code] init() 出错:', err);
     // 兜底：即使出错也强制显示面板

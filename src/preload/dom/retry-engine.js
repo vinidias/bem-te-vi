@@ -12,6 +12,9 @@
  *  - cuckoo-retry-429-count      429 次数，默认 20；负数=无限
  *  - cuckoo-retry-prompt         提示词文案
  */
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const { sendToChat } = require('./chat-input');
 const { onAiError, onInterceptedResponse } = require('./intercept-observer');
 const { showToast } = require('../overlay/ui');
@@ -206,4 +209,4 @@ ensureCountdownBox = withLog(ensureCountdownBox, 'retry.ensureCountdownBox');
 handleError = withLog(handleError, 'retry.handleError');
 startRetryEngine = withLog(startRetryEngine, 'retry.startRetryEngine');
 
-module.exports = { startRetryEngine, setCompacting, readConfig, DEFAULT_PROMPT };
+export { startRetryEngine, setCompacting, readConfig, DEFAULT_PROMPT };
