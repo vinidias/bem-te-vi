@@ -45,7 +45,7 @@ class ReadLinesTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { file_path, offset, limit, projectDir } = params;
 
     try {
@@ -87,7 +87,7 @@ class ReadLinesTool extends Tool {
         offset: input.offset,
         truncatedByBytes: window.truncatedByBytes,
       });
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('读取文件失败: ' + err.message);
     }
   }
