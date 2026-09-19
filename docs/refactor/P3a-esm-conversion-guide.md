@@ -134,6 +134,45 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 ---
 
+## 3.5 关键教训（P3a 实际踩坑记录）
+
+### 教训 1：electron 必须用 createRequire（已写入 1.5）
+
+### 教训 2：测试打桩 Module._load 对 ESM import 无效
+
+旧测试用 `Module._load = fn` 猴子补丁打桩（只对 `require` 生效）。源文件真转 ESM 后，
+`import` 绕过它 → 加载真实模块 → 测试崩（如 `document is not defined`）。
+
+**解法**：改用 vitest 的 `vi.mock`（能拦截 ESM）。样板见：
+- `test/preload/tool-loop-watchdog.test.js`
+- `test/preload/retry-engine.test.js`
+- `test/preload/intercept-observer.test.js`
+
+**要点**：
+- mock 工厂要 hoisted，可观测对象用 `vi.hoisted(() => ({...}))`
+- 每个测试用 `vi.resetModules()` + 动态 `import()` 重新求值（取代 `require.cache` 清除）
+- **electron 例外**：源码用 createRequire 加载 electron，vi.mock 拦不到 → 仍需 Module._load 打桩
+  （样板见 `test/main/updater.test.js`：electron 用 Module._load，其余包用 vi.mock）
+
+### 教训 3：Electron preload 不能用顶层 await（TLA）
+
+`preload.js` 最初用 `await import('tsx/esm/api')` + `await import('./src/preload')` 注册钩子。
+但 **Electron 用 `require()` 加载 preload**，而 `require(ESM)` 不支持带 TLA 的模块 →
+`ERR_REQUIRE_ASYNC_MODULE` → preload 加载失败 → **UI 全无**。
+
+**解法**：preload.js 去掉 TLA，改纯静态 import。当前 preload 图全是 .js，无需 tsx 钩子。
+（主进程 main.js 有 TLA 合法——它走 ESM import，不走 require。）
+
+**对 P3b 的影响**：preload 转 TS 时，**不能靠 TLA 注册 tsx**。需改用
+Electron 的 ESM preload（`.mjs`）或预编译方案。
+
+### 教训 4：ESM 循环依赖用静态 import + 活绑定
+
+`chat-input ↔ tool-loop-watchdog` 循环，原用懒 require 打破。ESM 下直接静态 import 即可
+（活绑定 + 运行时取值）。已实测通过。
+
+---
+
 ## 4. 暂停点
 
 每个文件转换后必须三项全绿才能继续。**任何一项红 → 立即回滚该文件**（`git checkout <file>`），报告问题，不要带病前进。
