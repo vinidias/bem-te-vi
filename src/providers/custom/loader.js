@@ -3,8 +3,11 @@
  * 导入时复制文件到 userData/custom-providers/，避免源文件被删后失效。
  * 删除时同时清理配置文件中的记录和复制到 userData 下的副本。
  */
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const { app } = require('electron');
 
 const isRenderer = process.type === 'renderer';
@@ -215,7 +218,7 @@ function removeCustomProviderPath(filePath) {
   }
 }
 
-module.exports = {
+export {
   loadCustomProviders,
   importCustomProvider,
   replaceCustomProvider,
