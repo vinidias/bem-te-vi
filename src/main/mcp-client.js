@@ -2,13 +2,16 @@
  * MCP Client 管理
  * 连接/管理多个 MCP server（stdio + HTTP），提供工具列表和调用能力。
  */
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import * as mcpConfig from './mcp-config.js';
+
+const require = createRequire(import.meta.url);
 const { app } = require('electron');
 const { Client } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js');
 const { StdioClientTransport } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/stdio.js');
 const { StreamableHTTPClientTransport } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/streamableHttp.js');
-const mcpConfig = require('./mcp-config');
 
 // server name -> { client, transport, tools, connected }
 const connections = new Map();
@@ -233,7 +236,7 @@ async function getToolsByServer(name) {
   }));
 }
 
-module.exports = {
+export {
   connectServer,
   disconnectServer,
   refreshServerTools,
