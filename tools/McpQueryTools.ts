@@ -29,6 +29,8 @@ class McpListServersTool extends Tool {
 
   async execute(): Promise<ToolResult> {
     try {
+      // TODO(P4): tools 依赖 src/main 违反架构方向，待 mcp-client 下沉到 infra 后移除
+      //            详见 docs/refactor/01-architecture.md
       const mcpClient = require('../src/main/mcp-client');
       const servers = mcpClient.listConfiguredServers();
       if (servers.length === 0) {
@@ -86,6 +88,8 @@ class McpGetToolsTool extends Tool {
       return ToolResult.error('server 不能为空');
     }
     try {
+      // TODO(P4): tools 依赖 src/main 违反架构方向，待 mcp-client 下沉到 infra 后移除
+      //            详见 docs/refactor/01-architecture.md
       const mcpClient = require('../src/main/mcp-client');
       const tools = await mcpClient.getToolsByServer(server);
       if (tools.length === 0) {
