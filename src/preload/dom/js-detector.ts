@@ -12,12 +12,12 @@ const JS_TOOL_CALL_RE = /\bawait\s+(?:read|write|edit|glob|grep|bash|pwsh|todoWr
 /**
  * 判断一段 JS 代码是否调用了工具函数
  */
-function looksLikeIncompleteCodeError(error) {
+function looksLikeIncompleteCodeError(error: any): boolean {
   if (!error || typeof error !== 'string') return false;
   return /SyntaxError|Missing initializer|Unexpected end of input|Unexpected token|Unexpected identifier|Unexpected reserved word|Invalid or unexpected token/i.test(error);
 }
 
-function looksLikeToolScript(code) {
+function looksLikeToolScript(code: any): boolean {
   const c = code || '';
   // 1. 内置工具白名单：await write( 等
   if (JS_TOOL_CALL_RE.test(c)) return true;
@@ -31,10 +31,10 @@ function looksLikeToolScript(code) {
 /**
  * 判断原始文本去掉所有围栏代码块后是否只剩空白（整条回复只包含代码块）
  */
-function hasOnlyFences(text) {
+function hasOnlyFences(text: any): boolean {
   if (!text || typeof text !== 'string') return false;
   const lines = text.split(String.fromCharCode(10));
-  const rest = [];
+  const rest: string[] = [];
   let inFence = false;
   for (const line of lines) {
     const t = line.trim();
@@ -54,8 +54,8 @@ function hasOnlyFences(text) {
  * - js / javascript 代码块：仅当整条回复只包含代码块、且代码调用了工具函数时才视为工具脚本
  *   （避免把正常回答里的示例代码误当作工具脚本执行）
  */
-function extractJsToolBlocks(text) {
-  const blocks = [];
+function extractJsToolBlocks(text: any): string[] {
+  const blocks: string[] = [];
   if (!text || typeof text !== 'string') return blocks;
 
   const onlyFences = hasOnlyFences(text);
@@ -63,7 +63,7 @@ function extractJsToolBlocks(text) {
   const lines = text.split(String.fromCharCode(10));
   let inBlock = false;
   let lang = '';
-  let buf = [];
+  let buf: string[] = [];
 
   const flush = () => {
     const code = buf.join(String.fromCharCode(10)).trim();
