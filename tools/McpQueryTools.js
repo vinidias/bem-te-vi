@@ -1,4 +1,6 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 /**
  * MCP 查询工具 - 列出已配置的 MCP server
@@ -107,4 +109,4 @@ class McpGetToolsTool extends Tool {
   }
 }
 
-module.exports = { McpListServersTool, McpGetToolsTool };
+export { McpListServersTool, McpGetToolsTool };
