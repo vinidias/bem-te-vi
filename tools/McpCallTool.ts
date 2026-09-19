@@ -32,7 +32,7 @@ class McpCallTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { server, tool, args } = params;
     try {
       if (!server || typeof server !== 'string') {
@@ -64,7 +64,7 @@ class McpCallTool extends Tool {
 
       // 成功：返回纯文本，若有非文本内容则附带提示
       return ToolResult.success(text);
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('MCP 调用失败: ' + (err.message || String(err)));
     }
   }
