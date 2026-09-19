@@ -13,7 +13,7 @@ const MAX_FILE_SIZE = 30 * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 15000;
 
 // 常见扩展名 → MIME 映射（兜底 application/octet-stream）
-const MIME_MAP = {
+const MIME_MAP: Record<string, string> = {
   '.txt': 'text/plain',
   '.md': 'text/markdown',
   '.markdown': 'text/markdown',
@@ -72,11 +72,11 @@ const MIME_MAP = {
 
 /**
  * 解析文件路径：绝对路径原样返回；相对路径基于 projectDir（无则基于 cwd）。
- * @param {string} filePath
- * @param {string|null} projectDir
- * @returns {string} 绝对路径
+ * @param filePath
+ * @param projectDir
+ * @returns 绝对路径
  */
-function resolveFilePath(filePath, projectDir) {
+function resolveFilePath(filePath: any, projectDir: string | null): string {
   if (!filePath || typeof filePath !== 'string') {
     throw new Error('filePath must be a non-empty string');
   }
@@ -88,24 +88,22 @@ function resolveFilePath(filePath, projectDir) {
 
 /**
  * 按扩展名推断 MIME 类型，未知扩展名返回 application/octet-stream。
- * @param {string} fileName
- * @returns {string}
  */
-function guessMimeType(fileName) {
+function guessMimeType(fileName: string): string {
   const ext = path.extname(fileName || '').toLowerCase();
   return MIME_MAP[ext] || 'application/octet-stream';
 }
 
 /**
  * 生成注入到页面的上传脚本（在主 world 执行，使用标准 DOM API）。
- * @param {string} base64 文件内容的 base64
- * @param {string} fileName 文件名
- * @param {string} mimeType MIME 类型
- * @param {number} timeoutMs 等待附件出现的超时
- * @param {number} waitMs 触发 change 后先等待的时间（附件上传间隔）
- * @returns {string} IIFE 代码字符串
+ * @param base64 文件内容的 base64
+ * @param fileName 文件名
+ * @param mimeType MIME 类型
+ * @param timeoutMs 等待附件出现的超时
+ * @param waitMs 触发 change 后先等待的时间（附件上传间隔）
+ * @returns IIFE 代码字符串
  */
-function buildInjectCode(base64, fileName, mimeType, timeoutMs, waitMs) {
+function buildInjectCode(base64: string, fileName: string, mimeType: string, timeoutMs: number, waitMs: number): string {
   return (
     '(async () => {\n' +
     '  try {\n' +
@@ -174,12 +172,12 @@ class AttachFileTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { filePath, projectDir, currentWindowId, windowId, attachDelayMin, attachDelayMax } = params || {};
-    let absPath;
+    let absPath: string;
     try {
       absPath = resolveFilePath(filePath, projectDir || null);
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error(err.message);
     }
 
@@ -208,7 +206,7 @@ class AttachFileTool extends Tool {
     let buffer;
     try {
       buffer = fs.readFileSync(absPath);
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('读取文件失败: ' + err.message);
     }
 
@@ -223,7 +221,7 @@ class AttachFileTool extends Tool {
     let result;
     try {
       result = await win.webContents.executeJavaScript(code, true);
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error('注入上传脚本失败: ' + (err.message || String(err)));
     }
     if (!result || result.success !== true) {
