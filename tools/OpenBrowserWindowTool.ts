@@ -29,9 +29,9 @@ class OpenBrowserWindowTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { url, id, width, height } = params;
-    const options = {};
+    const options: { width?: number; height?: number } = {};
     if (width) options.width = width;
     if (height) options.height = height;
     const windowId = windowManager.openWindow(id || null, url, options);
