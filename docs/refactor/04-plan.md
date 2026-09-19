@@ -149,10 +149,17 @@
 - **结果**：`src/main/` 与 `src/utils/` 已清空；typecheck/vitest/lint 全绿；真机验证通过
 
 ### P4.2 preload 归位
-- [ ] `src/preload/dom/state.js` 拆解到各领域
-- [ ] `src/preload/dom/*` → `src/bridge/**` 或 `src/overlay/**`
-- [ ] `src/preload/tool-names.js` 删除，白名单从 registry 生成
-- [ ] `src/preload/overlay/*` → `src/overlay/**`
+**B 步（文件归位）✅ 完成（ba26cc6）**：`src/preload/` 已清空
+- [x] `dom/*` → `bridge/**`（intercept/parser/loop）或 `overlay/**`
+- [x] `overlay/*` → `overlay/**`（panel/template/events/project-dir）
+- [x] `dom/compaction` → `session/compaction`
+- [x] `index.ts` → `bridge/entry.ts`、`api` → `bridge/api`、`tool-names` → `bridge/tool-names`
+- [x] `state.ts` → `overlay/state.ts`（暂作共享）
+
+**A 步（回调注入解耦）⏳ 待做**：见 P4-input.md 第 8 条
+- [ ] 拆 `overlay/chat-input`（UI 留 overlay，"发消息"变回调）
+- [ ] state 跨层字段改推送
+- [ ] `bridge/tool-names` 删除（从 registry 生成）
 
 ### P4.3 tools 重组
 - [ ] `tools/` → `src/tools/`

@@ -106,6 +106,30 @@ readConfig = withLog(readConfig, 'retry.readConfig');   ← 运行时猴子补�
 
 ---
 
+## 8. P4.2-B 遗留：overlay ↔ bridge 违规依赖（待 P4.2-A 解耦）
+
+**背景**：P4.2 分两步。B 步（文件归位）已完成，但为控制风险，**临时保留**了以下
+违反"overlay 不依赖 bridge"铁律的依赖，待 A 步（回调注入）解决：
+
+| 位置 | 依赖 | 应改为 |
+|---|---|---|
+| `overlay/chat-input.ts` | `bridge/loop/watchdog`、`bridge/parser/js-detector` | 回调注入 |
+| `overlay/events.ts` | `bridge/intercept/observer` | 回调注入 |
+
+**A 步方向**（架构文档 3.1）：
+- overlay 模块不 import bridge，而是接受回调（如 `onSendToChat`、`onInterceptedResponse`）
+- 由 `bridge/entry` 初始化时注入实现
+- `chat-input` 需**拆**：输入框操作（纯 UI）留 overlay；"发消息给 AI 页面"能力变回调
+
+**其它遗留**：
+- `overlay/state.ts` 的 `serverTokenUsage`（bridge 写、overlay 读）、
+  `lastResponseMsgIds`（bridge 写、session 读）→ 改**推送**而非共享读写
+- `state.pendingToolCall` **死字段**（0 引用）→ 删
+- `bridge/tool-names.ts` 应删（从 `tools/index` 注册表生成，见 D12）
+- `test/preload/` 目录名过时（源码已不在 preload）→ 可改名 `test/bridge`+`test/overlay`
+
+---
+
 ## 汇总：P4 待办清单
 
 - [ ] 解耦 preload 循环依赖（事件总线/公共模块）
@@ -113,4 +137,9 @@ readConfig = withLog(readConfig, 'retry.readConfig');   ← 运行时猴子补�
 - [ ] flashBadge title 语义决策
 - [ ] retry-engine AOP 改为显式包装
 - [ ] 补失败路径测试
+- [x] mcp-client 移至 src/mcp（P4.1）
+- [x] preload 文件归位（P4.2-B）
+- [ ] overlay↔bridge 回调注入解耦（P4.2-A）
+- [ ] state 跨层字段改推送 + 删死字段
+- [ ] bridge/tool-names 从 registry 生成
 - [ ] （P5）ESLint 覆盖 .ts + 护栏识别 import
