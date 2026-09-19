@@ -14,6 +14,7 @@
 | P1 | 清理死代码 | 1-2 周 | 低 |
 | P2 | TS 基建 + 依赖护栏 | 1 周 | 低 |
 | P3 | TS 渐进迁移 | 2-4 周 | 中 |
+| P4.1 | 主进程拆分（已完成） | — | 中 |
 | P4 | 按新边界重构 | 4-8 周 | 高 |
 | P5 | 收紧与收尾 | 1 周 | 低 |
 
@@ -135,12 +136,17 @@
 
 **分 5 个子阶段，每阶段独立可交付**：
 
-### P4.1 主进程拆分
-- [ ] `src/main/index.js` → `src/app/entry.ts` + `infra/paths.ts`
-- [ ] `src/main/ipc.js` → `src/app/ipc/{project,session,command,tool}.ts`
-- [ ] `src/main/window.js` → `src/app/window.ts`
-- [ ] `src/main/profile-manager.js` → `src/app/profile.ts`
-- [ ] 其余 main 文件按映射表归位
+### P4.1 主进程拆分 ✅
+- [x] `src/main/index.js` → `src/app/entry.ts`（+ `infra/paths.ts` 已于 P3b 建立）
+- [x] `src/main/ipc.js` → `src/app/ipc/{project,session,command,tool,renderer}.ts`
+- [x] `src/main/window.js` → `src/app/window.ts`
+- [x] `src/main/profile-manager.js` → `src/app/profile.ts`
+- [x] 其余 main 文件按映射表归位：
+      `session-store→session/store`、`project-context→session/project-context`、
+      `mcp-client→mcp/client`、`mcp-config→mcp/config`、`updater→updater/index`、
+      `dangerous-commands→infra`、`with-log→infra`、删 `tool-registry`（并入 tools/index）
+- [x] `package.json main` → `out/src/app/entry.js`
+- **结果**：`src/main/` 与 `src/utils/` 已清空；typecheck/vitest/lint 全绿；真机验证通过
 
 ### P4.2 preload 归位
 - [ ] `src/preload/dom/state.js` 拆解到各领域
