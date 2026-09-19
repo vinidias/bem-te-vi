@@ -1,7 +1,7 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const { exec } = require('child_process');
-const path = require('path');
-const { decodeOutput, normalizeCommand } = require('./decodeOutput');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import { exec } from 'node:child_process';
+import path from 'node:path';
+import { decodeOutput, normalizeCommand } from './decodeOutput.js';
 
 // 危险命令列表（保持不变）
 const DANGEROUS_CMDS = [
@@ -137,4 +137,4 @@ class BashTool extends Tool {
   }
 }
 
-module.exports = { BashTool, DANGEROUS_CMDS };
+export { BashTool, DANGEROUS_CMDS };
