@@ -20,7 +20,7 @@ global.clearInterval = () => {};
 global.setTimeout = (fn, ms) => 0;
 global.clearTimeout = () => {};
 
-const ui = await import('../../src/preload/overlay/ui.js');
+const ui = await import('../../src/overlay/panel.js');
 
 test('generateId 格式', () => {
   const id1 = ui.generateId();

@@ -4,9 +4,9 @@
  */
 import { createRequire } from 'node:module';
 import { state } from './state.js';
-import { BT } from './js-detector.js';
-import { getProviderByUrl } from '../../../src/providers/index.js';
-import * as watchdog from './tool-loop-watchdog.js';
+import { BT } from '../bridge/parser/js-detector.js';
+import { getProviderByUrl } from '../providers/index.js';
+import * as watchdog from '../bridge/loop/watchdog.js';
 
 // electron 特殊：其 index.js 导出字符串，须用 createRequire（见 P3a 手册 1.5）
 const require = createRequire(import.meta.url);

@@ -9,7 +9,7 @@ import {
   looksLikeToolScript,
   hasOnlyFences,
   extractJsToolBlocks,
-} from '../../src/preload/dom/js-detector.js';
+} from '../../src/bridge/parser/js-detector.js';
 
 test('BT 和 FENCE 定义', () => {
   assert.strictEqual(BT, '`');

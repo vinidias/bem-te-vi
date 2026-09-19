@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { OVERLAY_HTML, OVERLAY_CSS } from '../../src/preload/overlay/template.js';
+import { OVERLAY_HTML, OVERLAY_CSS } from '../../src/overlay/template.js';
 
 test('OVERLAY_HTML 包含核心元素', () => {
   assert.ok(OVERLAY_HTML.includes('cuckoo-overlay'));

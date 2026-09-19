@@ -9,14 +9,14 @@ console.log('[Cuckoo Code] Preload script 开始执行');
 import './api.js';
 
 import { createRequire } from 'node:module';
-import * as ui from './overlay/ui.js';
-import * as projectDir from './overlay/project-dir.js';
-import { bindEvents } from './overlay/events.js';
-import * as chatInput from './dom/chat-input.js';
+import * as ui from '../overlay/panel.js';
+import * as projectDir from '../overlay/project-dir.js';
+import { bindEvents } from '../overlay/events.js';
+import * as chatInput from '../overlay/chat-input.js';
 import { getProviderByUrl } from '../providers/index.js';
-import { startInterceptObserver } from './dom/intercept-observer.js';
-import { startRetryEngine } from './dom/retry-engine.js';
-import { startSessionWatcher } from './dom/tool-loop-watchdog.js';
+import { startInterceptObserver } from './intercept/observer.js';
+import { startRetryEngine } from './loop/retry.js';
+import { startSessionWatcher } from './loop/watchdog.js';
 
 const require = createRequire(import.meta.url);
 const { webFrame } = require('electron');

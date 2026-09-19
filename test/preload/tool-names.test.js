@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { TOOL_NAMES, hasTool, toolNamesList } from '../../src/preload/tool-names.js';
+import { TOOL_NAMES, hasTool, toolNamesList } from '../../src/bridge/tool-names.js';
 
 test('TOOL_NAMES 包含全部工具名', () => {
   assert.ok(Array.isArray(TOOL_NAMES));

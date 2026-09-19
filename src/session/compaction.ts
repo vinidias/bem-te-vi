@@ -14,12 +14,12 @@
  *  - hook 已把真实请求头缓存到 localStorage['cuckoo-ds-headers']
  *  - DeepSeek 把会话消息缓存在 IndexedDB 'deepseek-chat' 的 'history-message' store
  */
-import { state } from './state.js';
-import { sendToChat } from './chat-input.js';
-import { onInterceptedResponse } from './intercept-observer.js';
-import { showToast } from '../overlay/ui.js';
-import * as retryEngine from './retry-engine.js';
-import * as watchdog from './tool-loop-watchdog.js';
+import { state } from '../overlay/state.js';
+import { sendToChat } from '../overlay/chat-input.js';
+import { onInterceptedResponse } from '../bridge/intercept/observer.js';
+import { showToast } from '../overlay/panel.js';
+import * as retryEngine from '../bridge/loop/retry.js';
+import * as watchdog from '../bridge/loop/watchdog.js';
 
 const SUMMARY_INSTRUCTION =
   '请把以上对话总结成一份详细的摘要，尽可能完整地保留关键信息、背景上下文、' +

@@ -2,12 +2,12 @@
  * 覆盖层按钮事件绑定
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-import { state } from '../dom/state.js';
-import { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } from './ui.js';
-import { handleInitProject, renderSessions } from '../dom/session-list.js';
-import { sendToChat } from '../dom/chat-input.js';
-import { runCompaction, checkPendingInit } from '../dom/compaction.js';
-import { onInterceptedResponse } from '../dom/intercept-observer.js';
+import { state } from './state.js';
+import { hideOverlay, showOverlay, renderHistory, commandHistory, showToast, showConfirmDialog, hideFirstTimeDialog } from './panel.js';
+import { handleInitProject, renderSessions } from './session-list.js';
+import { sendToChat } from './chat-input.js';
+import { runCompaction, checkPendingInit } from '../session/compaction.js';
+import { onInterceptedResponse } from '../bridge/intercept/observer.js';
 
 /**
  * 渲染窗口列表（浮动管理面板内）

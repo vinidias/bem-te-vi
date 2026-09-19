@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseJsonWithRepair, repairJsonString, tryParseToolCall, extractJsonObject } from '../../src/preload/dom/tool-parser.js';
+import { parseJsonWithRepair, repairJsonString, tryParseToolCall, extractJsonObject } from '../../src/bridge/parser/json-detector.js';
 
 test('parseJsonWithRepair 严格 JSON 直接解析', () => {
   assert.deepStrictEqual(parseJsonWithRepair('{"a":1}'), { a: 1 });

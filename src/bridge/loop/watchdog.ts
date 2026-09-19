@@ -16,9 +16,9 @@
  *  - cuckoo-watchdog-prompt    超时提示词（默认"请继续"）
  *  - cuckoo-watchdog-count     最大催次数（默认 3，负数=无限）
  */
-import { showToast } from '../overlay/ui.js';
-import { getProviderByUrl } from '../../../src/providers/index.js';
-import { sendToChat } from './chat-input.js';
+import { showToast } from '../../overlay/panel.js';
+import { getProviderByUrl } from '../../providers/index.js';
+import { sendToChat } from '../../overlay/chat-input.js';
 
 const DEFAULT_PROMPT = '请继续';
 const DEFAULT_TIMEOUT = 300000;

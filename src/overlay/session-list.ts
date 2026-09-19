@@ -2,7 +2,7 @@
  * 会话列表功能（渲染、导航、初始化项目按钮）
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-import { escapeHtml, showToast } from '../overlay/ui.js';
+import { escapeHtml, showToast } from './panel.js';
 
 // ========== 会话列表功能 ==========
 

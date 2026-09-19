@@ -3,9 +3,9 @@
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
 import { createRequire } from 'node:module';
-import { renderSessions } from '../dom/session-list.js';
-import { state } from '../dom/state.js';
-import { hideFirstTimeDialog } from './ui.js';
+import { renderSessions } from './session-list.js';
+import { state } from './state.js';
+import { hideFirstTimeDialog } from './panel.js';
 
 const require = createRequire(import.meta.url);
 const { ipcRenderer } = require('electron');

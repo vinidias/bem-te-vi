@@ -81,9 +81,8 @@ function createWindow(profile) {
     icon: resolveAsset('assets/icon.png'),
     title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
     webPreferences: {
-      // preload 入口：src/main 与 src/preload 是兄弟目录，
-      // 编译前后该相对路径均成立（D: 入口即 src/preload/index.*）
-      preload: path.join(import.meta.dirname, '..', 'preload', 'index.js'),
+      // preload 入口：app 与 bridge 是兄弟目录（编译后 out/src/{app,bridge}）
+      preload: path.join(import.meta.dirname, '..', 'bridge', 'entry.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

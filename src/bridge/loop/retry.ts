@@ -12,11 +12,11 @@
  *  - cuckoo-retry-429-count      429 次数，默认 20；负数=无限
  *  - cuckoo-retry-prompt         提示词文案
  */
-import { sendToChat } from './chat-input.js';
-import { onAiError, onInterceptedResponse } from './intercept-observer.js';
-import { showToast } from '../overlay/ui.js';
+import { sendToChat } from '../../overlay/chat-input.js';
+import { onAiError, onInterceptedResponse } from '../intercept/observer.js';
+import { showToast } from '../../overlay/panel.js';
 import { withLog } from '../../infra/with-log.js';
-import { getProviderByUrl } from '../../../src/providers/index.js';
+import { getProviderByUrl } from '../../providers/index.js';
 
 const DEFAULT_PROMPT = '刚才的回复似乎中断了，请重新完整回答上一个问题。';
 const DEFAULTS = {

@@ -2,8 +2,8 @@
  * 工具/JS 脚本执行器（与回复获取方式无关）
  * 拦截模式和 DOM 模式共用的执行逻辑：执行工具调用、执行 JS 脚本、通知 UI。
  */
-import { showToast, setTaskStatus, addHistory, truncate, flashBadge } from '../overlay/ui.js';
-import { sendToolResultToChat } from './chat-input.js';
+import { showToast, setTaskStatus, addHistory, truncate, flashBadge } from '../../overlay/panel.js';
+import { sendToolResultToChat } from '../../overlay/chat-input.js';
 
 // 是否正在执行命令或工具
 let isExecuting = false;
