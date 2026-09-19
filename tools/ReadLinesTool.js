@@ -1,7 +1,7 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const fs = require('fs');
-const path = require('path');
-const { READ_LIMIT, parseReadArgs, buildWindow } = require('./ReadTool');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { READ_LIMIT, parseReadArgs, buildWindow } from './ReadTool.js';
 
 /**
  * readLines 工具 - 返回结构化行数据（数组），供 AI 在内存中精确处理。
@@ -93,4 +93,4 @@ class ReadLinesTool extends Tool {
   }
 }
 
-module.exports = { ReadLinesTool };
+export { ReadLinesTool };
