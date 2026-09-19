@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import * as windowState from '../app/window.js';
 import * as profileManager from '../app/profile.js';
 import { registry as toolRegistry, jsRunner } from '../../tools/index.js';
-import { initProject } from './project-context.js';
+import { initProject } from '../session/project-context.js';
 import { isDangerous } from '../infra/dangerous-commands.js';
 import { decodeOutput, normalizeCommand } from '../../tools/decodeOutput.js';
 import { getProviderByUrl } from '../providers/index.js';
