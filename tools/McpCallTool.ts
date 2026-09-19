@@ -41,11 +41,10 @@ class McpCallTool extends Tool {
       if (!tool || typeof tool !== 'string') {
         return ToolResult.error('tool 不能为空');
       }
-      // TODO(P4): tools 依赖 src/main 违反架构方向，待 mcp-client 下沉到 infra 后移除
-      //            详见 docs/refactor/01-architecture.md
-      // 注意：此 require 在源码态（vitest）会解析失败（找不到 .ts），
-      //       仅编译产物 out/ 下正常。当前测试未触发，故暂绿。
-      //       P4 解耦 mcp-client 到 infra 时必须处理。
+      // TODO(P4.3/P4.4): tools 跨领域依赖 src/mcp（分层待定）。
+      //   详见 docs/refactor/01-architecture.md 依赖规则。
+      //   注意：源码态（vitest）require 无扩展名会解析失败，
+      //   仅编译产物 out/ 下正常；当前测试未触发，故暂绿。
       const mcpClient = require('../src/mcp/client');
       const result = await mcpClient.callMcpTool(server, tool, args || {});
 

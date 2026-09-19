@@ -21,9 +21,9 @@ P3a 改为 ESM 静态 import（活绑定）后可运行，但仍是脆弱结构�
 
 **位置**：
 ```
-tools/McpCallTool.ts:46    const mcpClient = require('../src/main/mcp-client');
-tools/McpQueryTools.ts:34  const mcpClient = require('../src/main/mcp-client');
-tools/McpQueryTools.ts:93  const mcpClient = require('../src/main/mcp-client');
+tools/McpCallTool.ts:49    const mcpClient = require('../src/mcp/client');
+tools/McpQueryTools.ts:37  const mcpClient = require('../src/mcp/client');
+tools/McpQueryTools.ts:99  const mcpClient = require('../src/mcp/client');
 ```
 
 **问题**：违反架构依赖方向（tools 不得依赖 app/main）。
@@ -33,8 +33,12 @@ eslint.config.js 目前用 `except: ['mcp-client']` 豁免（标注"P4 解耦后
 **源码态（vitest）会解析失败**（找不到 .ts），仅编译产物 out/ 下正常。
 当前测试未触发这些路径，故暂绿——**是潜伏雷**。
 
-**P4 方向**：把 mcp-client 下沉到 `src/infra/mcp/`，tools 依赖 infra 而非 main。
-然后移除 eslint 的 except 豁免。
+**P4.1 已部分处理**：mcp-client 已从 `src/main/` 移至 `src/mcp/`（P4.1，commit 372d4b6），
+tools→main 的路径违规已消除。但 **tools→mcp 的跨领域依赖**仍待 P4.3（tools 重组）
+或 P4.4 决定分层归属；3 处 require 保留 TODO。
+
+**仍存风险**：源码态 require 无扩展名，vitest 解析失败（仅 out/ 正常）；
+当前测试未触发。P4.3 重组 tools 时一并处理（改静态 import 或调整分层）。
 
 ---
 
@@ -105,7 +109,7 @@ readConfig = withLog(readConfig, 'retry.readConfig');   ← 运行时猴子补�
 ## 汇总：P4 待办清单
 
 - [ ] 解耦 preload 循环依赖（事件总线/公共模块）
-- [ ] mcp-client 下沉到 infra，消除 tools→main 违规
+- [x] mcp-client 移至 src/mcp（P4.1）；tools→mcp 分层待 P4.3/P4.4
 - [ ] flashBadge title 语义决策
 - [ ] retry-engine AOP 改为显式包装
 - [ ] 补失败路径测试
