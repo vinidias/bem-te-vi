@@ -30,7 +30,7 @@ class FileDeleteTool extends Tool {
     };
   }
 
-  async execute(params) {
+  async execute(params: any): Promise<ToolResult> {
     const { file_path, projectDir } = params;
     if (!file_path) {
       return ToolResult.error('缺少参数 file_path');
@@ -55,7 +55,7 @@ class FileDeleteTool extends Tool {
       // 删除文件
       await fs.promises.unlink(absolutePath);
       return ToolResult.success({ message: `文件已删除: ${absolutePath}`, path: absolutePath });
-    } catch (err) {
+    } catch (err: any) {
       return ToolResult.error(`删除文件失败: ${err.message}`);
     }
   }
