@@ -1,7 +1,7 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const fs = require('fs');
-const path = require('path');
-const { spawn } = require('child_process');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
 
 // 对齐 dsh 默认上限
 const GREP_MAX_MATCHES = 250;
@@ -303,4 +303,4 @@ class GrepToolNew extends Tool {
   }
 }
 
-module.exports = { GrepToolNew, parseGrepArgs, validateInclude, parseGrepMatches, formatGrepOutput, retainGrepMatches, previewLine };
+export { GrepToolNew, parseGrepArgs, validateInclude, parseGrepMatches, formatGrepOutput, retainGrepMatches, previewLine };
