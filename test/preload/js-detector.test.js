@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-const {
+import {
   BT,
   FENCE,
   JS_TOOL_CALL_RE,
@@ -9,7 +9,7 @@ const {
   looksLikeToolScript,
   hasOnlyFences,
   extractJsToolBlocks,
-} = require('../../src/preload/dom/js-detector');
+} from '../../src/preload/dom/js-detector.js';
 
 test('BT 和 FENCE 定义', () => {
   assert.strictEqual(BT, '`');
