@@ -9,15 +9,15 @@ const require = createRequire(import.meta.url);
 
 const BUILTIN_PROVIDER_NAMES = ['deepseek', 'claude', 'chatgpt'];
 
-function loadBuiltinProviders() {
-  const list = [];
+function loadBuiltinProviders(): any[] {
+  const list: any[] = [];
   for (const name of BUILTIN_PROVIDER_NAMES) {
     try {
       const mod = require('./' + name + '.js');
       const p = mod[name];
       if (p && p.id) list.push(p);
       else console.warn('[Provider] 内置 provider 无效，跳过:', name);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[Provider] 内置 provider 加载失败，跳过:', name, err && err.message);
     }
   }
@@ -26,16 +26,16 @@ function loadBuiltinProviders() {
 
 const builtinProviders = loadBuiltinProviders();
 
-function getAllProviders() {
+function getAllProviders(): any[] {
   return [...builtinProviders, ...loadCustomProviders()];
 }
 
-function getProvider(id) {
+function getProvider(id: string): any {
   return getAllProviders().find((p) => p.id === id) || null;
 }
 
 /** 根据 URL 自动识别所属平台 */
-function getProviderByUrl(url) {
+function getProviderByUrl(url: string): any {
   if (!url) return null;
   return getAllProviders().find((p) => typeof p.matchesUrl === 'function' && p.matchesUrl(url)) || null;
 }
