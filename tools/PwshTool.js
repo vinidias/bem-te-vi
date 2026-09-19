@@ -1,7 +1,7 @@
-const { Tool, ToolResult } = require('./ToolRegistry');
-const { execFile } = require('child_process');
-const path = require('path');
-const { decodeOutput } = require('./decodeOutput');
+import { Tool, ToolResult } from './ToolRegistry.js';
+import { execFile } from 'node:child_process';
+import path from 'node:path';
+import { decodeOutput } from './decodeOutput.js';
 
 // PowerShell 危险命令列表（额外覆盖 PowerShell 特有危险操作）
 const DANGEROUS_PWSH_CMDS = [
@@ -144,4 +144,4 @@ class PwshTool extends Tool {
   }
 }
 
-module.exports = { PwshTool, DANGEROUS_PWSH_CMDS };
+export { PwshTool, DANGEROUS_PWSH_CMDS };
