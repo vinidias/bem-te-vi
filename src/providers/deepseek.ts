@@ -58,7 +58,7 @@ function deepseekHookInstaller() {
     return st;
   }
 
-  function dispatch(text, status, tokenUsage, msgIds, extra) {
+  function dispatch(text, status, tokenUsage, msgIds, extra?) {
     try {
       if (status === 'error') {
         var detail = { text: text || '', status: 'error', tokenUsage: tokenUsage || null, msgIds: msgIds || null };
@@ -348,7 +348,7 @@ function deepseekHookInstaller() {
   // ---------- fetch 拦截 ----------
   var origFetch = window.fetch;
   if (typeof origFetch === 'function') {
-    window.fetch = function (input, init) {
+    window.fetch = function (input: any, init: any) {
       var url = typeof input === 'string' ? input
         : (input && input.url) ? input.url
         : (input && input.href) ? input.href : '';
@@ -528,7 +528,7 @@ const deepseek = {
     ];
     for (const sel of selectors) {
       try {
-        const btn = document.querySelector(sel);
+        const btn = document.querySelector(sel) as any;
         if (this.isElementVisible(btn) && !btn.disabled) return btn;
       } catch (_) {}
     }
@@ -545,7 +545,7 @@ const deepseek = {
   homeUrlPattern: /^https:\/\/chat\.deepseek\.com\/?(\?.*)?$/,
 
   // 从 URL 提取会话 ID
-  extractSessionId(url) {
+  extractSessionId(url: string): string | null {
     if (!url) return null;
     const match = url.match(/\/chat\/s\/([a-f0-9-]+)/i);
     if (match) return match[1];
@@ -554,12 +554,12 @@ const deepseek = {
   },
 
   // 判断 URL 是否属于本平台
-  matchesUrl(url) {
+  matchesUrl(url: string) {
     return url.includes('chat.deepseek.com');
   },
 
   // 判断元素是否可见（offsetWidth/offsetHeight > 0）
-  isElementVisible(el) {
+  isElementVisible(el: any) {
     if (!el) return false;
     return el.offsetWidth > 0 && el.offsetHeight > 0;
   },
