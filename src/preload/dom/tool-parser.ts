@@ -19,10 +19,10 @@
 /**
  * 宽容解析 JSON：先严格解析，失败后修复常见格式问题再解析
  * 常见问题：字符串值内未转义的换行、tab、引号（AI 生成的 JSON 经常忘记转义）
- * @param {string} str - 待解析的 JSON 字符串
- * @returns {Object|null} 解析后的对象，解析失败返回 null
+ * @param str - 待解析的 JSON 字符串
+ * @returns 解析后的对象，解析失败返回 null
  */
-function parseJsonWithRepair(str) {
+function parseJsonWithRepair(str: any): any {
   if (!str) return null;
   try {
     return JSON.parse(str);
@@ -41,7 +41,7 @@ function parseJsonWithRepair(str) {
  * 修复 JSON 字符串：逐字符扫描，把字符串值内的裸换行、\r、\t 转义，
  * 并把明显是内容而非边界的裸引号转义为 \"
  */
-function repairJsonString(str) {
+function repairJsonString(str: string): string {
   let result = '';
   let inString = false;
   let escapeNext = false;
@@ -97,18 +97,18 @@ function repairJsonString(str) {
   return result;
 }
 
-function tryParseToolCall(content) {
+function tryParseToolCall(content: any): any {
   if (!content || typeof content !== 'string') return null;
   const str = content.trim();
 
-  let parsed = null;
+  let parsed: any = null;
 
   // 1. 尝试直接解析 JSON（纯 JSON 响应，含容错修复）
   parsed = parseJsonWithRepair(str);
 
   // 2. 提取代码块 ```json/tool ... ```
   if (!parsed) {
-    const codeBlockMatch = str.match(/```(?:json|tool)?\s*\n?(\{[\s\S]*?\})\s*```/);
+    const codeBlockMatch = str.match(/```(?:json|tool)?\s*\n?({[\s\S]*?})\s*```/);
     if (codeBlockMatch) {
       const extracted = codeBlockMatch[1].trim();
       parsed = parseJsonWithRepair(extracted);
@@ -151,7 +151,7 @@ function tryParseToolCall(content) {
  * 从文本中提取完整的 JSON 对象字符串（从 startPos 的 { 开始）
  * 通过括号配对找到对应的 } 结束位置
  */
-function extractJsonObject(str, startPos) {
+function extractJsonObject(str: string, startPos: number): string | null {
   let braceCount = 0;
   let inString = false;
   let escapeNext = false;
