@@ -27,17 +27,23 @@ const SUMMARY_INSTRUCTION =
   '直接输出摘要，不要输出其他解释。';
 
 /** 日志前缀 */
-function logStep(step, msg) {
+function logStep(step: string, msg: string): void {
   console.log('[Cuckoo Compact] [' + step + '] ' + msg);
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+interface MessageItem {
+  message_id: number;
+  role: string;
+  parent_id?: any;
+}
 
 /** 等待 AI 回复完成（拦截到完整回复） */
-function waitForResponse(timeoutMs) {
+function waitForResponse(timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
     let done = false;
-    const off = onInterceptedResponse((text) => {
+    const off = onInterceptedResponse((text: string) => {
       if (done) return;
       done = true;
       off();
@@ -54,13 +60,13 @@ function waitForResponse(timeoutMs) {
 }
 
 /** 从当前 URL 获取 chat_session_id */
-function getSessionIdFromUrl() {
+function getSessionIdFromUrl(): string | null {
   const m = String(location.href).match(/\/chat\/s\/([a-f0-9-]+)/i);
   return m ? m[1] : null;
 }
 
 /** 从 localStorage 读取缓存的真实请求头 */
-function getCachedHeaders() {
+function getCachedHeaders(): any {
   try {
     const raw = localStorage.getItem('cuckoo-ds-headers');
     if (!raw) return null;
@@ -72,12 +78,10 @@ function getCachedHeaders() {
 
 /**
  * 从 IndexedDB 读取指定会话的全量消息（含 role），按 message_id 升序
- * @param {string} sessionId
- * @returns {Promise<Array<{message_id:number, role:string}>>}
  */
-function getMessagesFromIndexedDB(sessionId) {
+function getMessagesFromIndexedDB(sessionId: string): Promise<MessageItem[]> {
   return new Promise((resolve, reject) => {
-    let req;
+    let req: any;
     try { req = indexedDB.open('deepseek-chat'); } catch (e) { reject(e); return; }
     req.onerror = () => reject(new Error('打开 IndexedDB 失败'));
     req.onsuccess = () => {
@@ -92,9 +96,9 @@ function getMessagesFromIndexedDB(sessionId) {
           const msgs = val && val.data && val.data.chat_messages;
           if (!Array.isArray(msgs)) { reject(new Error('IndexedDB 无该会话消息')); return; }
           const list = msgs
-            .filter((m) => typeof m.message_id === 'number')
-            .map((m) => ({ message_id: m.message_id, role: m.role || '', parent_id: m.parent_id }))
-            .sort((a, b) => a.message_id - b.message_id);
+            .filter((m: any) => typeof m.message_id === 'number')
+            .map((m: any) => ({ message_id: m.message_id, role: m.role || '', parent_id: m.parent_id }))
+            .sort((a: any, b: any) => a.message_id - b.message_id);
           resolve(list);
         };
         g.onerror = () => { db.close(); reject(new Error('读取消息失败')); };
@@ -106,7 +110,7 @@ function getMessagesFromIndexedDB(sessionId) {
 /**
  * 读取某会话在 IndexedDB 中的最大 message_id（无则返回 0）
  */
-async function getMaxMessageId(sessionId) {
+async function getMaxMessageId(sessionId: string): Promise<number> {
   try {
     const msgs = await getMessagesFromIndexedDB(sessionId);
     if (!msgs.length) return 0;
@@ -120,11 +124,8 @@ async function getMaxMessageId(sessionId) {
  * 从消息列表中取最近 ratio 比例的消息，保证成对（USER + ASSISTANT）
  * DeepSeek 要求 share/create 的 message_ids 必须成对出现，否则报
  * MESSAGES_MUST_APPEAR_IN_PAIRS。
- * @param {Array<{message_id:number, role:string}>} msgs 升序消息
- * @param {number} ratio
- * @returns {number[]}
  */
-function pickRecentPairedIds(msgs, ratio) {
+function pickRecentPairedIds(msgs: MessageItem[], ratio: number): number[] {
   const total = msgs.length;
   if (total === 0) return [];
   // 目标条数（至少 2 条 = 1 组）
@@ -142,12 +143,9 @@ function pickRecentPairedIds(msgs, ratio) {
 
 /**
  * 调用 share/create 创建分享
- * @param {string} sessionId
- * @param {number[]} messageIds
- * @param {object} headers
- * @returns {Promise<string>} share_id
+ * @returns share_id
  */
-async function createShare(sessionId, messageIds, headers) {
+async function createShare(sessionId: string, messageIds: number[], headers: any): Promise<string> {
   const h = Object.assign({}, headers);
   h['content-type'] = 'application/json';
   const resp = await fetch('/api/v0/share/create', {
@@ -157,7 +155,7 @@ async function createShare(sessionId, messageIds, headers) {
   });
   const txt = await resp.text();
   console.log('[Cuckoo Compact] [api] share/create HTTP ' + resp.status + ' 响应: ' + txt.slice(0, 600));
-  let json = null;
+  let json: any = null;
   try { json = JSON.parse(txt); } catch (_) {}
   if (!json || json.code !== 0) {
     throw new Error('创建分享失败: ' + (json ? json.msg : txt.slice(0, 200)));
@@ -170,8 +168,8 @@ async function createShare(sessionId, messageIds, headers) {
 /**
  * 主流程
  */
-async function runCompaction() {
-  const btn = document.getElementById('cuckoo-btn-compact');
+async function runCompaction(): Promise<void> {
+  const btn = document.getElementById('cuckoo-btn-compact') as any;
   if (btn) { btn.disabled = true; btn.textContent = '压缩中...'; }
   // 压缩进行中：暂停自动重试与看门狗，避免它们的回复被 waitForResponse 误当成摘要
   retryEngine.setCompacting(true);
@@ -219,7 +217,7 @@ async function runCompaction() {
     // 补入摘要消息：IndexedDB 可能未及时写入摘要，但 SSE 已给出其精确 id
     if (typeof summaryRespId === 'number') {
       const idSet = new Set(tailIds);
-      const extra = [];
+      const extra: number[] = [];
       if (!idSet.has(summaryRespId)) extra.push(summaryRespId);
       if (typeof summaryReqId === 'number' && !idSet.has(summaryReqId)) extra.push(summaryReqId);
       if (extra.length) {
@@ -245,7 +243,7 @@ async function runCompaction() {
     } catch (_) {}
     window.location.href = link;
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Cuckoo Compact] 压缩失败:', err);
     showToast('压缩失败: ' + err.message, 5000);
   } finally {
@@ -259,7 +257,7 @@ async function runCompaction() {
  * 页面加载后检查是否有待执行的"压缩后初始化"
  * 若有，读取被压缩项目的目录，自动初始化项目（不弹目录选择框）
  */
-function checkPendingInit() {
+function checkPendingInit(): void {
   let pending = null;
   let projectDir = null;
   try {
@@ -274,7 +272,7 @@ function checkPendingInit() {
   console.log('[Cuckoo Compact] 检测到压缩后待初始化，3 秒后执行；项目目录=' + (projectDir || '(无)'));
   setTimeout(() => {
     try {
-      window.electronAPI.initProject(projectDir || null, true);
+      (window as any).electronAPI.initProject(projectDir || null, true);
     } catch (err) {
       console.error('[Cuckoo Compact] 压缩后初始化失败:', err);
     }
