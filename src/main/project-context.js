@@ -2,16 +2,19 @@
  * 项目初始化：目录选择、系统提示词组合与发送
  * 由原 main.js 拆分而来，逻辑保持不变。
  */
-const { app, dialog } = require('electron');
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import * as windowState from './window.js';
+import { toolRegistry } from './tool-registry.js';
+import * as mcpClient from './mcp-client.js';
+import { getProvider } from '../providers/index.js';
 
-const windowState = require('./window');
-const { toolRegistry } = require('./tool-registry');
-const mcpClient = require('./mcp-client');
+const require = createRequire(import.meta.url);
+const { app, dialog } = require('electron');
 
 // 提示词模板目录
-const PROMPT_DIR = path.join(__dirname, '..', 'prompt');
+const PROMPT_DIR = path.join(import.meta.dirname, '..', 'prompt');
 
 /**
  * 同时输出到终端和对应平台的日志文件（与渲染进程日志同目录）
@@ -116,7 +119,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
   // 1. provider.getPromptTemplate() 返回的非空字符串
   // 2. src/prompt/{providerId}.md
   // 3. src/prompt/default.md
-  const provider = require('../providers').getProvider(providerId);
+  const provider = getProvider(providerId);
   let templateContent = '';
   let templatePath = '';
 
@@ -168,7 +171,7 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
   let toolApiTypes = '';
   const toolApiTypePaths = [
     path.join(process.resourcesPath || '', 'tools', 'cuckoo-tools.d.ts'),
-    path.join(__dirname, '..', '..', 'tools', 'cuckoo-tools.d.ts'),
+    path.join(import.meta.dirname, '..', '..', 'tools', 'cuckoo-tools.d.ts'),
   ];
   for (const p of toolApiTypePaths) {
     try {
@@ -284,4 +287,4 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
   return { success: true, message: '初始化完成，已发送系统提示词、工具规则和工具库' };
 }
 
-module.exports = { PROMPT_DIR, initProject };
+export { PROMPT_DIR, initProject };
