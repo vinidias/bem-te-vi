@@ -195,4 +195,4 @@ class ToolResult {
   }
 }
 
-module.exports = { Tool, ToolRegistry, ToolResult };
+export { Tool, ToolRegistry, ToolResult };
