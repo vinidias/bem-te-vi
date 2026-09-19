@@ -2,9 +2,9 @@ import { test, beforeEach, afterEach, vi } from 'vitest';
 import assert from 'node:assert';
 import Module from 'node:module';
 
+// electron 在源码里用 createRequire 加载，vi.mock 拦不到，须 Module._load 打桩
 const origLoad = Module._load;
-
-function installMock() {
+function installElectronMock() {
   Module._load = function (request, parent, isMain) {
     if (request === 'electron') {
       return {
@@ -13,45 +13,49 @@ function installMock() {
         Notification: { isSupported: () => false },
       };
     }
-    if (request === 'electron-updater') {
-      return {
-        autoUpdater: {
-          logger: null,
-          autoDownload: true,
-          autoInstallOnAppQuit: true,
-          on: () => {},
-          checkForUpdates: async () => {},
-          downloadUpdate: async () => {},
-          quitAndInstall: () => {},
-        },
-      };
-    }
-    if (request === 'electron-log') {
-      return {
-        transports: { file: { level: '' } },
-        info: () => {},
-        error: () => {},
-        warn: () => {},
-        debug: () => {},
-      };
-    }
     return origLoad.apply(this, arguments);
   };
 }
-function uninstallMock() {
-  Module._load = origLoad;
-}
+function uninstallElectronMock() { Module._load = origLoad; }
+
+// electron-updater / electron-log 用 ESM import，vi.mock 拦截
+const mocks = vi.hoisted(() => ({
+  autoUpdater: {
+    logger: null,
+    autoDownload: true,
+    autoInstallOnAppQuit: true,
+    on: () => {},
+    checkForUpdates: async () => {},
+    downloadUpdate: async () => {},
+    quitAndInstall: () => {},
+  },
+  fakeLog: {
+    transports: { file: { level: '' } },
+    info: () => {},
+    error: () => {},
+    warn: () => {},
+    debug: () => {},
+  },
+}));
+
+vi.mock('electron-updater', () => ({
+  default: { autoUpdater: mocks.autoUpdater },
+}));
+
+vi.mock('electron-log', () => ({
+  default: mocks.fakeLog,
+}));
 
 let updater;
 
 beforeEach(async () => {
-  installMock();
+  installElectronMock();
   vi.resetModules();
   updater = await import('../../src/main/updater.js');
 });
 
 afterEach(() => {
-  uninstallMock();
+  uninstallElectronMock();
   vi.resetModules();
 });
 
@@ -81,6 +85,5 @@ test('isGitHubAccessError 非 GitHub 错误返回 false', () => {
 });
 
 test('initAutoUpdater 开发环境不检查更新', () => {
-  // app.isPackaged 是 false，initAutoUpdater 应该直接返回，不抛异常
   assert.doesNotThrow(() => updater.initAutoUpdater({ isDestroyed: () => false }));
 });

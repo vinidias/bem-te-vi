@@ -4,17 +4,19 @@
  * 职责：检查更新、下载进度提示、下载完成提醒、网络错误友好提示。
  */
 import { createRequire } from 'node:module';
+import updaterPkg from 'electron-updater';
 
+// electron 特殊：其 index.js 导出字符串，须用 createRequire（见 P3a 手册 1.5）
 const require = createRequire(import.meta.url);
 const { app, dialog, Notification } = require('electron');
-const { autoUpdater } = require('electron-updater');
+const { autoUpdater } = updaterPkg;
 
 // ========== 日志配置 ==========
 // 打包版禁用文件日志持久化：不加载 electron-log，也不写文件
 if (app.isPackaged) {
   autoUpdater.logger = console;
 } else {
-  const log = require('electron-log');
+  const { default: log } = await import('electron-log');
   autoUpdater.logger = log;
   autoUpdater.logger.transports.file.level = 'info';
 }

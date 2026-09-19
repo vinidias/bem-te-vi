@@ -6,12 +6,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import * as mcpConfig from './mcp-config.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
+// electron 特殊：其 index.js 导出字符串，须用 createRequire（见 P3a 手册 1.5）
 const require = createRequire(import.meta.url);
 const { app } = require('electron');
-const { Client } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js');
-const { StdioClientTransport } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/stdio.js');
-const { StreamableHTTPClientTransport } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/streamableHttp.js');
 
 // server name -> { client, transport, tools, connected }
 const connections = new Map();
