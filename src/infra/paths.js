@@ -11,7 +11,11 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
-import { app } from 'electron';
+import { createRequire } from 'node:module';
+
+// electron 特殊：其 index.js 导出字符串，须用 createRequire（见 P3a 手册 1.5）
+const require = createRequire(import.meta.url);
+const { app } = require('electron');
 
 /** 应用根目录：开发=项目根，打包=asar 根 */
 export const APP_ROOT = app.getAppPath();

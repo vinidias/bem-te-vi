@@ -12,6 +12,7 @@ import { getProvider } from '../providers/index.js';
 import * as updater from './updater.js';
 import * as mcpConfig from './mcp-config.js';
 import * as mcpClient from './mcp-client.js';
+import { resolveAsset, resolveSrc } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
 const { app, BrowserWindow, Menu, dialog, ipcMain: ipcMainForProfile } = require('electron');
@@ -77,7 +78,7 @@ function createWindow(profile) {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
-    icon: path.join(import.meta.dirname, '..', '..', 'assets', 'icon.png'),
+    icon: resolveAsset('assets/icon.png'),
     title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
     webPreferences: {
       preload: path.join(import.meta.dirname, '..', '..', 'preload.js'),
@@ -136,7 +137,7 @@ function createWindow(profile) {
     mainWindow.loadURL(provider.homeUrl);
   } else {
     // 平台未确定（或对应 provider 已缺失），显示平台选择页
-    const selectPage = path.join(import.meta.dirname, '..', 'ui', 'platform-select.html');
+    const selectPage = resolveSrc('ui/platform-select.html');
     mainWindow.loadFile(selectPage);
   }
 

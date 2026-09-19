@@ -8,6 +8,8 @@ const fakeElectron = {
       if (name === 'appData') return path.join(process.cwd(), 'test', 'tmp');
       return path.join(process.cwd(), 'test', 'tmp');
     },
+    // 应用根：开发时=项目根（D20 路径锚点用）
+    getAppPath: () => process.cwd(),
     setPath: () => {},
     isPackaged: false,
     whenReady: () => Promise.resolve(),

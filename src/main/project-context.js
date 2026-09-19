@@ -9,12 +9,13 @@ import * as windowState from './window.js';
 import { toolRegistry } from './tool-registry.js';
 import * as mcpClient from './mcp-client.js';
 import { getProvider } from '../providers/index.js';
+import { resolveSrc, resolveToolSpec } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
 const { app, dialog } = require('electron');
 
-// 提示词模板目录
-const PROMPT_DIR = path.join(import.meta.dirname, '..', 'prompt');
+// 提示词模板目录（D20：锚定应用根，与 dist 结构解耦）
+const PROMPT_DIR = resolveSrc('prompt');
 
 /**
  * 同时输出到终端和对应平台的日志文件（与渲染进程日志同目录）
@@ -169,17 +170,10 @@ async function initProject(skipPrompt = false, windowContext = null, presetDir =
   // 打包后文件位于 resources/tools/（asar 外），开发环境位于项目根 tools/
   // 注意：electron-builder 默认排除 *.d.ts 不进 asar，故通过 extraResources 复制
   let toolApiTypes = '';
-  const toolApiTypePaths = [
-    path.join(process.resourcesPath || '', 'tools', 'cuckoo-tools.d.ts'),
-    path.join(import.meta.dirname, '..', '..', 'tools', 'cuckoo-tools.d.ts'),
-  ];
-  for (const p of toolApiTypePaths) {
-    try {
-      toolApiTypes = fs.readFileSync(p, 'utf-8');
-      break;
-    } catch (err) {
-      // 继续尝试下一个候选路径
-    }
+  try {
+    toolApiTypes = fs.readFileSync(resolveToolSpec(), 'utf-8');
+  } catch (err) {
+    // 找不到工具规范文件时保持空串
   }
   if (!toolApiTypes) {
     console.error('[Cuckoo Code] 读取 cuckoo-tools.d.ts 失败：所有候选路径均不可读', toolApiTypePaths);
