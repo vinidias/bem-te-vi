@@ -16,7 +16,7 @@ async function renderWindowList() {
   const list = document.getElementById('cuckoo-window-list');
   if (!list) return;
   try {
-    const res = await window.electronAPI.listProfiles();
+    const res = await (window as any).electronAPI.listProfiles();
     const profiles = res && res.success ? res.profiles : [];
     if (!profiles || profiles.length === 0) {
       list.innerHTML = '<div class="cuckoo-session-empty">暂无窗口</div>';
@@ -25,7 +25,7 @@ async function renderWindowList() {
     // 获取平台名映射
     const providerMap = {};
     try {
-      const pvRes = await window.electronAPI.listProviders();
+      const pvRes = await (window as any).electronAPI.listProviders();
       if (pvRes && pvRes.success) {
         (pvRes.providers || []).forEach(pv => { providerMap[pv.id] = pv.name; });
       }
@@ -45,10 +45,10 @@ async function renderWindowList() {
     list.querySelectorAll('.cuckoo-window-item').forEach(el => {
       el.addEventListener('click', async (e) => {
         // 点击删除按钮不触发切换
-        if (e.target.classList.contains('cuckoo-window-del')) return;
-        const profileId = el.dataset.profileId;
+        if ((e.target as any).classList.contains('cuckoo-window-del')) return;
+        const profileId = (el as any).dataset.profileId;
         try {
-          const r = await window.electronAPI.openProfileWindow(profileId);
+          const r = await (window as any).electronAPI.openProfileWindow(profileId);
           if (r && r.success) {
             showToast(r.focused ? '已切换到该窗口' : '已打开窗口', 2000);
             closeWindowManager();
@@ -64,9 +64,9 @@ async function renderWindowList() {
     list.querySelectorAll('.cuckoo-window-del').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const profileId = btn.dataset.profileId;
+        const profileId = (btn as any).dataset.profileId;
         try {
-          const r = await window.electronAPI.deleteProfileWindow(profileId);
+          const r = await (window as any).electronAPI.deleteProfileWindow(profileId);
           if (r && r.success) {
             showToast('已删除窗口', 2000);
             await renderWindowList();
@@ -116,12 +116,12 @@ function handleGenerateDoc() {
  * 加载配置到 JSON 框
  */
 async function loadMcpConfigToJson() {
-  const res = await window.electronAPI.listMcpServers();
+  const res = await (window as any).electronAPI.listMcpServers();
   const servers = res && res.success ? res.servers : [];
   // 转成主流 mcpServers 格式
   const mcpServers = {};
   for (const s of servers) {
-    const def = {};
+    const def: any = {};
     if (s.type === 'http') {
       if (s.url) def.url = s.url;
       if (s.headers) def.headers = s.headers;
@@ -133,7 +133,7 @@ async function loadMcpConfigToJson() {
     mcpServers[s.name] = def;
   }
   const jsonInput = document.getElementById('cuckoo-mcp-json');
-  if (jsonInput) jsonInput.value = JSON.stringify({ mcpServers }, null, 2);
+  if (jsonInput) (jsonInput as any).value = JSON.stringify({ mcpServers }, null, 2);
 }
 
 /**
@@ -143,7 +143,7 @@ async function renderMcpList() {
   const list = document.getElementById('cuckoo-mcp-list');
   if (!list) return;
   try {
-    const res = await window.electronAPI.listMcpServers();
+    const res = await (window as any).electronAPI.listMcpServers();
     const servers = res && res.success ? res.servers : [];
     if (!servers || servers.length === 0) {
       list.innerHTML = '<div class="cuckoo-session-empty">暂无 MCP Server</div>';
@@ -160,23 +160,23 @@ async function renderMcpList() {
 
     list.querySelectorAll('.cuckoo-mcp-item').forEach(el => {
       el.addEventListener('click', async () => {
-        const name = el.dataset.mcpName;
+        const name = (el as any).dataset.mcpName;
         const server = servers.find(s => s.name === name);
         if (!server) return;
 
         // 点击后立即显示 loading
         const dot = el.querySelector('.cuckoo-mcp-dot');
-        if (dot) dot.style.background = '#ffc107';
-        el.style.pointerEvents = 'none';
+        if (dot) (dot as any).style.background = '#ffc107';
+        (el as any).style.pointerEvents = 'none';
 
         try {
           if (server.connected || server.enabled) {
             // 已连接或已启用 → 断开/禁用
-            await window.electronAPI.disableMcpServer(name);
+            await (window as any).electronAPI.disableMcpServer(name);
             showToast('已断开 ' + name, 2000);
           } else {
             // 未启用 → 连接
-            await window.electronAPI.enableMcpServer(name);
+            await (window as any).electronAPI.enableMcpServer(name);
             showToast('已连接 ' + name, 2000);
           }
           await renderMcpList();
@@ -277,16 +277,16 @@ function loadAutoCompactConfig() {
   } catch (_) {}
   const enEl = document.getElementById('cuckoo-auto-compact-enabled');
   const thEl = document.getElementById('cuckoo-auto-compact-threshold');
-  if (enEl) enEl.checked = autoCompactEnabled;
-  if (thEl) thEl.value = autoCompactThresholdWan;
+  if (enEl) (enEl as any).checked = autoCompactEnabled;
+  if (thEl) (thEl as any).value = autoCompactThresholdWan;
 }
 
 /** 保存自动压缩配置 */
 function saveAutoCompactConfig() {
   const enEl = document.getElementById('cuckoo-auto-compact-enabled');
   const thEl = document.getElementById('cuckoo-auto-compact-threshold');
-  const enabled = !!(enEl && enEl.checked);
-  let th = thEl ? parseFloat(thEl.value) : 80;
+  const enabled = !!(enEl && (enEl as any).checked);
+  let th = thEl ? parseFloat((thEl as any).value) : 80;
   if (!Number.isFinite(th) || th <= 0) {
     showToast('阈值需为正数（万）', 3000);
     return;
@@ -324,7 +324,7 @@ function checkAutoCompact() {
 function openSettings() {
   function setVal(id, v) {
     const el = document.getElementById(id);
-    if (el) el.value = v;
+    if (el) (el as any).value = v;
   }
   // localStorage 存毫秒，UI 显示秒（毫秒/1000）
   const msToSec = (ms, dft) => {
@@ -334,7 +334,7 @@ function openSettings() {
   try {
     const en = localStorage.getItem('cuckoo-retry-enabled');
     const enEl = document.getElementById('cuckoo-retry-enabled');
-    if (enEl) enEl.checked = en === null ? true : en === '1';
+    if (enEl) (enEl as any).checked = en === null ? true : en === '1';
     setVal('cuckoo-retry-delay-min', msToSec(localStorage.getItem('cuckoo-retry-delay-min') || '4000', 4));
     setVal('cuckoo-retry-delay-max', msToSec(localStorage.getItem('cuckoo-retry-delay-max') || '10000', 10));
     setVal('cuckoo-retry-count', localStorage.getItem('cuckoo-retry-count') || '10');
@@ -379,7 +379,7 @@ function resetSettings() {
 
 /** 保存设置弹窗的所有配置 */
 function saveSettings() {
-  const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const val = (id) => { const el = document.getElementById(id); return el ? (el as any).value : ''; };
   // UI 输入为秒，存储转毫秒
   const secToMs = (s) => Math.round(parseFloat(s) * 1000);
   const dmin = secToMs(val('cuckoo-retry-delay-min'));
@@ -413,7 +413,7 @@ function saveSettings() {
 
   const enEl = document.getElementById('cuckoo-retry-enabled');
   try {
-    localStorage.setItem('cuckoo-retry-enabled', (enEl && enEl.checked) ? '1' : '0');
+    localStorage.setItem('cuckoo-retry-enabled', (enEl && (enEl as any).checked) ? '1' : '0');
     localStorage.setItem('cuckoo-retry-delay-min', String(dmin));
     localStorage.setItem('cuckoo-retry-delay-max', String(dmax));
     localStorage.setItem('cuckoo-retry-count', String(cnt));
@@ -546,8 +546,8 @@ function bindEvents() {
     // 同步到输入框
     const minInput = document.getElementById('cuckoo-delay-min');
     const maxInput = document.getElementById('cuckoo-delay-max');
-    if (minInput) minInput.value = state.sendDelayMin;
-    if (maxInput) maxInput.value = state.sendDelayMax;
+    if (minInput) (minInput as any).value = state.sendDelayMin;
+    if (maxInput) (maxInput as any).value = state.sendDelayMax;
   } catch (e) {}
 
   const minimizeBtn = document.getElementById('cuckoo-btn-minimize');
@@ -599,19 +599,19 @@ function bindEvents() {
   const mcpSaveBtn = document.getElementById('cuckoo-mcp-save');
   mcpSaveBtn?.addEventListener('click', async () => {
     const jsonInput = document.getElementById('cuckoo-mcp-json');
-    if (!jsonInput || !jsonInput.value.trim()) {
+    if (!jsonInput || !(jsonInput as any).value.trim()) {
       showToast('请输入配置', 3000);
       return;
     }
     try {
-      const parsed = JSON.parse(jsonInput.value);
+      const parsed = JSON.parse((jsonInput as any).value);
       if (!parsed.mcpServers || typeof parsed.mcpServers !== 'object') {
         showToast('配置格式错误，需要 mcpServers 对象', 3000);
         return;
       }
 
       // 校验每个 server 定义是否完整合法（发现错误立即中止，不删旧配置、不覆盖编辑框）
-      for (const [name, def] of Object.entries(parsed.mcpServers)) {
+      for (const [name, def] of Object.entries(parsed.mcpServers) as [string, any][]) {
         if (!def || typeof def !== 'object' || Array.isArray(def)) {
           showToast('配置错误：server "' + name + '" 的定义必须是对象', 4000);
           return;
@@ -651,17 +651,17 @@ function bindEvents() {
       }
 
       // 先删除 JSON 里不存在的旧 server
-      const oldRes = await window.electronAPI.listMcpServers();
+      const oldRes = await (window as any).electronAPI.listMcpServers();
       const oldServers = (oldRes && oldRes.success && oldRes.servers) || [];
       const newNames = new Set(Object.keys(parsed.mcpServers));
       for (const old of oldServers) {
         if (!newNames.has(old.name)) {
-          await window.electronAPI.removeMcpServer(old.name);
+          await (window as any).electronAPI.removeMcpServer(old.name);
         }
       }
 
       // 逐个 upsert 新配置
-      for (const [name, def] of Object.entries(parsed.mcpServers)) {
+      for (const [name, def] of Object.entries(parsed.mcpServers) as [string, any][]) {
         const server = {
           name,
           type: def && def.url ? 'http' : 'stdio',
@@ -671,7 +671,7 @@ function bindEvents() {
           headers: def && def.headers,
           env: def && def.env,
         };
-        await window.electronAPI.upsertMcpServer(server);
+        await (window as any).electronAPI.upsertMcpServer(server);
       }
       showToast('配置已保存', 2200);
       await renderMcpList();
@@ -684,7 +684,7 @@ function bindEvents() {
         );
         if (!confirmed) return;
 
-        const res = await window.electronAPI.getMcpTools();
+        const res = await (window as any).electronAPI.getMcpTools();
         const tools = res && res.success ? res.tools : [];
         const serverNames = Array.from(new Set(tools.map(t => t.server)));
         let msg = '【MCP 配置已更新】\n\n';
@@ -709,7 +709,7 @@ function bindEvents() {
   const wmNewWindowBtn = document.getElementById('cuckoo-wm-new-window');
   wmNewWindowBtn?.addEventListener('click', async () => {
     try {
-      await window.electronAPI.createProfileWindow();
+      await (window as any).electronAPI.createProfileWindow();
       showToast('已打开平台选择', 2200);
       await renderWindowList();
     } catch (err) {
