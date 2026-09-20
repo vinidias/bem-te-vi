@@ -229,7 +229,7 @@ autoUpdater.on('update-downloaded', (info: any) => {
     ? dialog.showMessageBox(parent, options)
     : dialog.showMessageBox(options);
 
-  dialogPromise.then((result) => {
+  dialogPromise.then((result: any) => {
     isManualCheck = false;
     if (result.response === 0) {
       autoUpdater.quitAndInstall();

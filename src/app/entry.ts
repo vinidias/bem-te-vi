@@ -24,7 +24,7 @@ const USER_DATA_DIR = path.join(app.getPath('appData'), SESSION_DIR);
 // 用户首次运行或手动删除该目录时，此处负责兜底创建。
 try {
   fs.mkdirSync(USER_DATA_DIR, { recursive: true });
-} catch (err) {
+} catch (err: any) {
   console.error('[Cuckoo Code] 创建 userData 目录失败:', err.message);
 }
 app.setPath('userData', USER_DATA_DIR);
@@ -41,7 +41,7 @@ if (RENDERER_LOG_DIR) {
     for (const f of fs.readdirSync(RENDERER_LOG_DIR)) {
       if (f.endsWith('.log')) fs.writeFileSync(path.join(RENDERER_LOG_DIR, f), '', 'utf-8');
     }
-  } catch (err) {
+  } catch (err: any) {
     console.warn('[Cuckoo Code] 清空平台日志失败:', err.message);
   }
 }
@@ -67,7 +67,7 @@ async function flushAllSessions() {
  * 创建窗口（绑定指定 profile）
  * @param {object|null} profile profile 对象，null 则使用默认 profile
  */
-function createWindow(profile) {
+function createWindow(profile: any) {
   const profileData = profile || profileManager.getDefaultProfile();
   const provider = getProvider(profileData.providerId) || null;
   const storeDir = app.getPath('userData');
@@ -241,7 +241,7 @@ function setupAppMenu() {
         {
           label: '后退',
           accelerator: 'Alt+Left',
-          click: (_item, focusedWindow) => {
+          click: (_item: any, focusedWindow: any) => {
             const ctx = focusedWindow ? windowState.getContextByWebContents(focusedWindow.webContents) : null;
             const view = ctx ? ctx.view : null;
             if (view && view.webContents.navigationHistory.canGoBack()) {
@@ -252,7 +252,7 @@ function setupAppMenu() {
         {
           label: '前进',
           accelerator: 'Alt+Right',
-          click: (_item, focusedWindow) => {
+          click: (_item: any, focusedWindow: any) => {
             const ctx = focusedWindow ? windowState.getContextByWebContents(focusedWindow.webContents) : null;
             const view = ctx ? ctx.view : null;
             if (view && view.webContents.navigationHistory.canGoForward()) {
@@ -264,7 +264,7 @@ function setupAppMenu() {
         {
           label: '重新加载',
           accelerator: 'CmdOrCtrl+R',
-          click: (_item, focusedWindow) => {
+          click: (_item: any, focusedWindow: any) => {
             const ctx = focusedWindow ? windowState.getContextByWebContents(focusedWindow.webContents) : null;
             const view = ctx ? ctx.view : null;
             if (view && view.webContents && !view.webContents.isDestroyed()) {
@@ -275,7 +275,7 @@ function setupAppMenu() {
         {
           label: '停止加载',
           accelerator: 'Esc',
-          click: (_item, focusedWindow) => {
+          click: (_item: any, focusedWindow: any) => {
             const ctx = focusedWindow ? windowState.getContextByWebContents(focusedWindow.webContents) : null;
             const view = ctx ? ctx.view : null;
             if (view && view.webContents && !view.webContents.isDestroyed()) {
@@ -286,7 +286,7 @@ function setupAppMenu() {
         { type: 'separator' },
         {
           label: '主页',
-          click: (_item, focusedWindow) => {
+          click: (_item: any, focusedWindow: any) => {
             if (!focusedWindow) return;
             const ctx = windowState.getContextByWebContents(focusedWindow.webContents);
             const view = ctx ? ctx.view : null;
@@ -357,7 +357,7 @@ ipcMainForProfile.handle('list-profiles', async () => {
 });
 
 // 删除指定 profile（会关闭其窗口）
-ipcMainForProfile.handle('delete-profile', async (_event, { profileId }) => {
+ipcMainForProfile.handle('delete-profile', async (_event: any, { profileId }: any) => {
   if (!profileId) return { success: false, error: '缺少窗口ID' };
   const ctx = windowState.getWindowByProfileId(profileId);
   if (ctx && ctx.win && !ctx.win.isDestroyed()) {
@@ -382,7 +382,7 @@ ipcMainForProfile.handle('list-providers', async () => {
 });
 
 // 导入自定义 Provider（弹文件选择框，复制到 userData，并处理重名）
-ipcMainForProfile.handle('import-provider', async (event, { replace = false } = {}) => {
+ipcMainForProfile.handle('import-provider', async (event: any, { replace = false }: any = {}) => {
   const win = windowState.getMainWindow();
   const result = dialog.showOpenDialogSync(win, {
     properties: ['openFile'],
@@ -415,13 +415,13 @@ ipcMainForProfile.handle('import-provider', async (event, { replace = false } = 
       return { success: true, provider: { id: finalRes.provider.id, name: finalRes.provider.name, path: finalRes.targetPath } };
     }
     return { success: true, provider: { id: res.provider.id, name: res.provider.name, path: res.targetPath } };
-  } catch (err) {
+  } catch (err: any) {
     return { success: false, error: '加载失败: ' + err.message };
   }
 });
 
 // 删除自定义 Provider（先检查是否有窗口在使用）
-ipcMainForProfile.handle('remove-provider', async (_event, { path: filePath, providerId }) => {
+ipcMainForProfile.handle('remove-provider', async (_event: any, { path: filePath, providerId }: any) => {
   if (!filePath) return { success: false, error: '缺少文件路径' };
 
   // 检查是否有窗口正在使用该 provider
@@ -448,7 +448,7 @@ ipcMainForProfile.handle('remove-provider', async (_event, { path: filePath, pro
 });
 
 // 替换自定义 Provider（弹文件选择框，校验 id 一致后覆盖）
-ipcMainForProfile.handle('replace-provider', async (event, { providerId }) => {
+ipcMainForProfile.handle('replace-provider', async (event: any, { providerId }: any) => {
   if (!providerId) return { success: false, error: '缺少 providerId' };
   const win = windowState.getMainWindow();
   const result = dialog.showOpenDialogSync(win, {
@@ -465,13 +465,13 @@ ipcMainForProfile.handle('replace-provider', async (event, { providerId }) => {
   try {
     const res = replaceCustomProvider(providerId, filePath);
     return { success: true, provider: { id: res.provider.id, name: res.provider.name, path: res.targetPath } };
-  } catch (err) {
+  } catch (err: any) {
     return { success: false, error: '替换失败: ' + err.message };
   }
 });
 
 // 用户在平台选择页选择平台后，绑定 profile 并重建窗口（partition 必须随 profile 更新）
-ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
+ipcMainForProfile.handle('select-platform', async (event: any, { providerId }: any) => {
   if (!providerId) return { success: false, error: '缺少平台ID' };
   const ctx = windowState.getContextByWebContents(event.sender);
   if (!ctx) return { success: false, error: '窗口上下文不存在' };
@@ -499,7 +499,7 @@ ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
 });
 
 // 打开指定 profile 的窗口（若已存在则聚焦）
-ipcMainForProfile.handle('open-profile-window', async (_event, { profileId }) => {
+ipcMainForProfile.handle('open-profile-window', async (_event: any, { profileId }: any) => {
   const existing = windowState.getWindowByProfileId(profileId);
   if (existing && existing.win && !existing.win.isDestroyed()) {
     const win = existing.win;
@@ -514,7 +514,7 @@ ipcMainForProfile.handle('open-profile-window', async (_event, { profileId }) =>
 });
 
 // 更新窗口名称（提取到 DeepSeek 用户信息后）
-ipcMainForProfile.handle('update-window-name', async (event, { displayName }) => {
+ipcMainForProfile.handle('update-window-name', async (event: any, { displayName }: any) => {
   if (!displayName || !displayName.trim()) return { success: false };
   const ctx = windowState.getContextByWebContents(event.sender);
   if (!ctx) return { success: false, error: '窗口上下文不存在' };
@@ -537,7 +537,7 @@ ipcMainForProfile.handle('list-mcp-servers', async () => {
 });
 
 // 添加或更新 MCP server 配置
-ipcMainForProfile.handle('upsert-mcp-server', async (_event, { server }) => {
+ipcMainForProfile.handle('upsert-mcp-server', async (_event: any, { server }: any) => {
   if (!server || !server.name || !server.type) {
     return { success: false, error: 'server 配置不完整（需要 name 和 type）' };
   }
@@ -546,27 +546,27 @@ ipcMainForProfile.handle('upsert-mcp-server', async (_event, { server }) => {
 });
 
 // 删除 MCP server
-ipcMainForProfile.handle('remove-mcp-server', async (_event, { name }) => {
+ipcMainForProfile.handle('remove-mcp-server', async (_event: any, { name }: any) => {
   await mcpClient.disconnectServerByName(name);
   mcpConfig.removeServer(name);
   return { success: true };
 });
 
 // 启用 MCP server（连接并拉取工具）
-ipcMainForProfile.handle('enable-mcp-server', async (_event, { name }) => {
+ipcMainForProfile.handle('enable-mcp-server', async (_event: any, { name }: any) => {
   try {
     mcpConfig.setServerEnabled(name, true);
     await mcpClient.connectServerByName(name);
     console.log('[MCP DEBUG] enable 完成, connections:', JSON.stringify(Array.from(mcpClient.getConnectedServers().map(s => s.name))));
     return { success: true };
-  } catch (err) {
+  } catch (err: any) {
     console.error('[MCP DEBUG] enable 失败:', err);
     return { success: false, error: err.message };
   }
 });
 
 // 禁用 MCP server（断开连接）
-ipcMainForProfile.handle('disable-mcp-server', async (_event, { name }) => {
+ipcMainForProfile.handle('disable-mcp-server', async (_event: any, { name }: any) => {
   mcpConfig.setServerEnabled(name, false);
   await mcpClient.disconnectServerByName(name);
   return { success: true };
@@ -614,7 +614,7 @@ app.on('window-all-closed', () => {
 
 // 退出前刷新所有 session 数据
 let quitFlushed = false;
-app.on('before-quit', (event) => {
+app.on('before-quit', (event: any) => {
   if (quitFlushed) return;
   event.preventDefault();
   quitFlushed = true;

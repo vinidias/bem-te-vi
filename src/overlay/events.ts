@@ -211,7 +211,7 @@ function bindEvents() {
       await (window as any).electronAPI.createProfileWindow();
       showToast('已打开平台选择', 2200);
       await renderWindowList();
-    } catch (err) {
+    } catch (err: any) {
       showToast('创建新窗口失败: ' + (err.message || err), 3000);
     }
   });

@@ -18,15 +18,15 @@ async function renderWindowList() {
       return;
     }
     // 获取平台名映射
-    const providerMap = {};
+    const providerMap: Record<string, string> = {};
     try {
       const pvRes = await (window as any).electronAPI.listProviders();
       if (pvRes && pvRes.success) {
-        (pvRes.providers || []).forEach(pv => { providerMap[pv.id] = pv.name; });
+        (pvRes.providers || []).forEach((pv: any) => { providerMap[pv.id] = pv.name; });
       }
     } catch (_) {}
 
-    list.innerHTML = profiles.map(p => {
+    list.innerHTML = profiles.map((p: any) => {
       const pname = providerMap[p.providerId] || '平台';
       return '<div class="cuckoo-window-item" data-profile-id="' + p.id + '">' +
         '<span class="cuckoo-window-left">' +
@@ -50,7 +50,7 @@ async function renderWindowList() {
           } else {
             showToast((r && r.error) || '打开失败', 3000);
           }
-        } catch (err) {
+        } catch (err: any) {
           showToast('打开窗口失败: ' + (err.message || err), 3000);
         }
       });
@@ -68,7 +68,7 @@ async function renderWindowList() {
           } else {
             showToast((r && r.error) || '删除失败', 3000);
           }
-        } catch (err) {
+        } catch (err: any) {
           showToast('删除失败: ' + (err.message || err), 3000);
         }
       });
@@ -94,7 +94,7 @@ function closeWindowManager() {
 }
 
 /** 生成项目说明文档按钮点击处理 */
-function handleGenerateDoc(sendToChat) {
+function handleGenerateDoc(sendToChat: any) {
   const message = '根据当前项目生成一个类似 claude.md 的项目说明文件，并将文件放到当前项目 .cuckooCode/CUCKOO.md';
   if (!sendToChat(message, '生成文档', 300)) {
     showToast('未找到输入框，请确保已打开聊天界面', 3000);

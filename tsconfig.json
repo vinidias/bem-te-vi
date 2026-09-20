@@ -9,7 +9,7 @@
     ],
     "allowJs": true,
     "checkJs": false,
-    "strict": false,
+    "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -29,6 +29,7 @@
     "build",
     "wyp",
     ".cuckooCode",
-    ".playwright-mcp"
+    ".playwright-mcp",
+    "src/providers/hooks"
   ]
 }

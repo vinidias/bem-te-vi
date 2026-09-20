@@ -19,6 +19,7 @@
     "wyp",
     "test",
     ".cuckooCode",
-    ".playwright-mcp"
+    ".playwright-mcp",
+    "src/providers/hooks"
   ]
 }

@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ci": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.hooks.json",
     "lint": "eslint .",
     "build": "electron-builder --publish always",
     "build:win": "electron-builder --win --publish always",

@@ -54,8 +54,8 @@ async function setInputContent(input: any, msg: string): Promise<boolean> {
     }
     if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
       input.focus();
-      document.execCommand('selectAll', false, null);
-      document.execCommand('delete', false, null);
+      document.execCommand('selectAll', false, undefined);
+      document.execCommand('delete', false, undefined);
 
       // 分段 Paste：每段 ≤6000 字符，不会触发 ChatGPT 的附件行为，且每段都很快。
       // 实测 12000 字符只需约 350ms。

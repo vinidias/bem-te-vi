@@ -230,7 +230,7 @@ async function getToolsByServer(name: string): Promise<any[]> {
   if (!entry) {
     entry = await connectServerByName(name);
   }
-  return entry.tools.map(t => ({
+  return entry.tools.map((t: any) => ({
     name: t.name,
     description: t.description || '',
     inputSchema: t.inputSchema || {},

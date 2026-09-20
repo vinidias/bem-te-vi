@@ -7,14 +7,14 @@
  * 拖动超过阈值视为移动，否则视为点击（保留切换面板功能）
  * @param badge 悬浮球元素
  */
-function makeFabDraggable(badge) {
+function makeFabDraggable(badge: any) {
   const THRESHOLD = 4;
   const POS_KEY = 'cuckoo-fab-pos';
   let dragging = false;
   let moved = false;
   let startX = 0, startY = 0, startLeft = 0, startTop = 0;
 
-  function applyPos(left, top) {
+  function applyPos(left: number, top: number) {
     const w = badge.offsetWidth || 48;
     const h = badge.offsetHeight || 48;
     left = Math.max(0, Math.min(left, window.innerWidth - w));
@@ -36,7 +36,7 @@ function makeFabDraggable(badge) {
     }
   } catch (_) { /* ignore */ }
 
-  badge.addEventListener('pointerdown', (e) => {
+  badge.addEventListener('pointerdown', (e: any) => {
     if (e.button !== 0) return;
     const rect = badge.getBoundingClientRect();
     dragging = true;
@@ -48,7 +48,7 @@ function makeFabDraggable(badge) {
     try { badge.setPointerCapture(e.pointerId); } catch (_) {}
   });
 
-  badge.addEventListener('pointermove', (e) => {
+  badge.addEventListener('pointermove', (e: any) => {
     if (!dragging) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
@@ -57,7 +57,7 @@ function makeFabDraggable(badge) {
     applyPos(startLeft + dx, startTop + dy);
   });
 
-  function endDrag(e) {
+  function endDrag(e: any) {
     if (!dragging) return;
     dragging = false;
     try { badge.releasePointerCapture(e.pointerId); } catch (_) {}
@@ -72,7 +72,7 @@ function makeFabDraggable(badge) {
   badge.addEventListener('pointercancel', endDrag);
 
   // 拖动后拦截本次 click，避免误触切换面板（捕获阶段优先执行）
-  badge.addEventListener('click', (e) => {
+  badge.addEventListener('click', (e: any) => {
     if (moved) {
       e.stopImmediatePropagation();
       e.preventDefault();

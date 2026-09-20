@@ -97,7 +97,7 @@ class MySQLTool extends Tool {
           if (actualRows === 0) {
             output += '(no rows)';
           } else {
-            const columns = Array.isArray(fields) ? fields.map((f: any) => f.name) : Object.keys(rows[0] as any);
+            const columns = Array.isArray(fields) ? fields.map((f: any) => f.name) : Object.keys((rows as any)[0]);
             output += renderTable(columns, rows as any[]);
           }
 

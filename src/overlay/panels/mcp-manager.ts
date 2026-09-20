@@ -9,7 +9,7 @@ async function loadMcpConfigToJson() {
   const res = await (window as any).electronAPI.listMcpServers();
   const servers = res && res.success ? res.servers : [];
   // 转成主流 mcpServers 格式
-  const mcpServers = {};
+  const mcpServers: Record<string, any> = {};
   for (const s of servers) {
     const def: any = {};
     if (s.type === 'http') {
@@ -37,7 +37,7 @@ async function renderMcpList() {
       list.innerHTML = '<div class="cuckoo-session-empty">暂无 MCP Server</div>';
       return;
     }
-    list.innerHTML = servers.map(s => {
+    list.innerHTML = servers.map((s: any) => {
       const status = s.connected ? '已连接' : (s.enabled ? '未连接' : '已禁用');
       const statusColor = s.connected ? '#4ade80' : (s.enabled ? '#ffc107' : '#5d6280');
       return '<div class="cuckoo-window-item cuckoo-mcp-item" data-mcp-name="' + s.name + '">' +
@@ -49,7 +49,7 @@ async function renderMcpList() {
     list.querySelectorAll('.cuckoo-mcp-item').forEach(el => {
       el.addEventListener('click', async () => {
         const name = (el as any).dataset.mcpName;
-        const server = servers.find(s => s.name === name);
+        const server = servers.find((s: any) => s.name === name);
         if (!server) return;
 
         // 点击后立即显示 loading
@@ -69,7 +69,7 @@ async function renderMcpList() {
           }
           await renderMcpList();
           await loadMcpConfigToJson();
-        } catch (err) {
+        } catch (err: any) {
           showToast('操作失败: ' + (err.message || err), 3000);
           await renderMcpList();
         }
@@ -100,7 +100,7 @@ function closeMcpManager() {
  * 保存 MCP 配置（校验 → 删除旧 server → upsert → 询问是否通知 AI）
  * @param sendToChat 发送消息到聊天的函数（由 events 注入，避免跨层依赖）
  */
-async function handleMcpSave(sendToChat) {
+async function handleMcpSave(sendToChat: any) {
   const jsonInput = document.getElementById('cuckoo-mcp-json');
   if (!jsonInput || !(jsonInput as any).value.trim()) {
     showToast('请输入配置', 3000);
@@ -189,7 +189,7 @@ async function handleMcpSave(sendToChat) {
 
       const res = await (window as any).electronAPI.getMcpTools();
       const tools = res && res.success ? res.tools : [];
-      const serverNames = Array.from(new Set(tools.map(t => t.server)));
+      const serverNames = Array.from(new Set(tools.map((t: any) => t.server)));
       let msg = '【MCP 配置已更新】\n\n';
       if (serverNames.length === 0) {
         msg += '当前没有已连接的 MCP server。';
@@ -198,10 +198,10 @@ async function handleMcpSave(sendToChat) {
         msg += '需要时用 mcpListServers() 查看概览，或用 mcpGetTools(serverName) 查看具体工具。';
       }
       sendToChat(msg, 'MCP信息', 300);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Cuckoo Code] 发送 MCP 信息失败:', err);
     }
-  } catch (err) {
+  } catch (err: any) {
     showToast('保存失败: ' + (err.message || err), 3000);
   }
 }

@@ -7,12 +7,12 @@ import { state } from '../state.js';
 
 /** 打开设置弹窗：从 localStorage 加载配置到输入框 */
 function openSettings() {
-  function setVal(id, v) {
+  function setVal(id: string, v: any) {
     const el = document.getElementById(id);
     if (el) (el as any).value = v;
   }
   // localStorage 存毫秒，UI 显示秒（毫秒/1000）
-  const msToSec = (ms, dft) => {
+  const msToSec = (ms: any, dft: any) => {
     const n = parseInt(ms, 10);
     return String(Number.isFinite(n) ? n / 1000 : dft);
   };
@@ -64,9 +64,9 @@ function resetSettings() {
 
 /** 保存设置弹窗的所有配置 */
 function saveSettings() {
-  const val = (id) => { const el = document.getElementById(id); return el ? (el as any).value : ''; };
+  const val = (id: string) => { const el = document.getElementById(id); return el ? (el as any).value : ''; };
   // UI 输入为秒，存储转毫秒
-  const secToMs = (s) => Math.round(parseFloat(s) * 1000);
+  const secToMs = (s: any) => Math.round(parseFloat(s) * 1000);
   const dmin = secToMs(val('cuckoo-retry-delay-min'));
   const dmax = secToMs(val('cuckoo-retry-delay-max'));
   if (Number.isNaN(dmin) || dmin < 0) { showToast('普通失败最小间隔必须是非负数字（秒）', 3000); return; }

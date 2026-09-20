@@ -34,15 +34,15 @@ let readConfig = function readConfig(): any {
   try {
     const en = localStorage.getItem('cuckoo-retry-enabled');
     if (en !== null) cfg.enabled = en === '1';
-    const dmin = parseInt(localStorage.getItem('cuckoo-retry-delay-min'), 10);
+    const dmin = parseInt(localStorage.getItem('cuckoo-retry-delay-min') || '', 10);
     if (Number.isFinite(dmin)) cfg.delayMin = dmin;
-    const dmax = parseInt(localStorage.getItem('cuckoo-retry-delay-max'), 10);
+    const dmax = parseInt(localStorage.getItem('cuckoo-retry-delay-max') || '', 10);
     if (Number.isFinite(dmax)) cfg.delayMax = dmax;
-    const cnt = parseInt(localStorage.getItem('cuckoo-retry-count'), 10);
+    const cnt = parseInt(localStorage.getItem('cuckoo-retry-count') || '', 10);
     if (Number.isFinite(cnt)) cfg.count = cnt;
-    const d429 = parseInt(localStorage.getItem('cuckoo-retry-429-delay'), 10);
+    const d429 = parseInt(localStorage.getItem('cuckoo-retry-429-delay') || '', 10);
     if (Number.isFinite(d429)) cfg.delay429 = d429;
-    const c429 = parseInt(localStorage.getItem('cuckoo-retry-429-count'), 10);
+    const c429 = parseInt(localStorage.getItem('cuckoo-retry-429-count') || '', 10);
     if (Number.isFinite(c429)) cfg.count429 = c429;
     const p = localStorage.getItem('cuckoo-retry-prompt');
     if (p) cfg.prompt = p;
