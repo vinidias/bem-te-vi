@@ -15,6 +15,8 @@ const OUT = path.join(ROOT, 'src', 'providers', 'generated', 'hook-sources.ts');
 // 平台 hook 入口（顺序即生成顺序）
 const HOOKS = [
   ['DEEPSEEK', 'src/providers/hooks/deepseek.ts'],
+  ['CLAUDE', 'src/providers/hooks/claude.ts'],
+  ['CHATGPT', 'src/providers/hooks/chatgpt.ts'],
 ];
 
 // 让 .js 后缀的 import 解析到 .ts 源文件（tsc 要求带 .js 后缀，esbuild 默认不认）
