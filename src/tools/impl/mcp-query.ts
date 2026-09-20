@@ -1,7 +1,5 @@
 import { Tool } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
 
 /**
  * MCP 查询工具 - 列出已配置的 MCP server
@@ -30,11 +28,8 @@ class McpListServersTool extends Tool {
 
   async execute(): Promise<ToolResult> {
     try {
-      // TODO(P4.3/P4.4): tools 跨领域依赖 src/mcp（分层待定）。
-      //   详见 docs/refactor/01-architecture.md 依赖规则。
-      //   注意：源码态（vitest）require 无扩展名会解析失败，
-      //   仅编译产物 out/ 下正常；当前测试未触发，故暂绿。
-      const mcpClient = require('../src/mcp/client');
+      // 惰性加载 MCP client（避免 tools 模块加载期依赖 electron）
+      const mcpClient = await import('../../mcp/client.js');
       const servers = mcpClient.listConfiguredServers();
       if (servers.length === 0) {
         return ToolResult.success('当前没有配置任何 MCP server。');
@@ -91,11 +86,8 @@ class McpGetToolsTool extends Tool {
       return ToolResult.error('server 不能为空');
     }
     try {
-      // TODO(P4.3/P4.4): tools 跨领域依赖 src/mcp（分层待定）。
-      //   详见 docs/refactor/01-architecture.md 依赖规则。
-      //   注意：源码态（vitest）require 无扩展名会解析失败，
-      //   仅编译产物 out/ 下正常；当前测试未触发，故暂绿。
-      const mcpClient = require('../src/mcp/client');
+      // 惰性加载 MCP client（避免 tools 模块加载期依赖 electron）
+      const mcpClient = await import('../../mcp/client.js');
       const tools = await mcpClient.getToolsByServer(server);
       if (tools.length === 0) {
         return ToolResult.success('server "' + server + '" 没有提供任何工具。');
