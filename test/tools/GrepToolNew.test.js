@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseGrepArgs, validateInclude, parseGrepMatches, formatGrepOutput, retainGrepMatches, previewLine } from '../../tools/GrepToolNew.js';
+import { parseGrepArgs, validateInclude, parseGrepMatches, formatGrepOutput, retainGrepMatches, previewLine } from '../../src/tools/impl/grep.js';
 
 test('validateInclude 合法', () => {
   assert.doesNotThrow(() => validateInclude('*.js'));

@@ -8,8 +8,7 @@
     "sourceMap": true
   },
   "include": [
-    "src/**/*",
-    "tools/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",

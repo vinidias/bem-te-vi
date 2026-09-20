@@ -1,6 +1,8 @@
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { Tool, ToolRegistry, ToolResult } from '../../tools/ToolRegistry.js';
+import { Tool } from '../../src/tools/core/Tool.js';
+import { ToolRegistry } from '../../src/tools/core/ToolRegistry.js';
+import { ToolResult } from '../../src/tools/core/ToolResult.js';
 
 test('Tool 构造与 getDescription', () => {
   const t = new Tool('test', 'desc', { type: 'object' }, 'test()');

@@ -1,7 +1,8 @@
-import { Tool, ToolResult } from './ToolRegistry.js';
+import { Tool } from '../core/Tool.js';
+import { ToolResult } from '../core/ToolResult.js';
 import { exec } from 'node:child_process';
 import path from 'node:path';
-import { decodeOutput, normalizeCommand } from './decodeOutput.js';
+import { decodeOutput, normalizeCommand } from '../../infra/decode-output.js';
 
 // 危险命令列表（保持不变）
 const DANGEROUS_CMDS = [

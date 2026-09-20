@@ -3,7 +3,7 @@
  */
 import { createRequire } from 'node:module';
 import * as windowState from '../window.js';
-import { registry as toolRegistry, jsRunner } from '../../../tools/index.js';
+import { registry as toolRegistry, jsRunner } from '../../tools/index.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');

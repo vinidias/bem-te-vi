@@ -31,13 +31,13 @@ export function resolveSrc(rel: string): string {
 }
 
 /**
- * 解析工具 API 类型定义（tools/cuckoo-tools.d.ts）。
- * 打包后位于 resources/tools/（asar 外），开发时位于项目根 tools/。
+ * 解析工具 API 类型定义（契约文件）。
+ * 打包后位于 resources/tools/（asar 外），开发时位于 src/tools/api.d.ts。
  */
 export function resolveToolSpec(): string {
   const candidates = [
     path.join(process.resourcesPath || '', 'tools', 'cuckoo-tools.d.ts'),
-    path.join(APP_ROOT, 'tools', 'cuckoo-tools.d.ts'),
+    path.join(APP_ROOT, 'src', 'tools', 'api.d.ts'),
   ];
   for (const p of candidates) {
     if (p && fs.existsSync(p)) return p;

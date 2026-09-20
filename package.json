@@ -124,7 +124,7 @@
     ],
     "extraResources": [
       {
-        "from": "tools/cuckoo-tools.d.ts",
+        "from": "src/tools/api.d.ts",
         "to": "tools/cuckoo-tools.d.ts"
       }
     ],

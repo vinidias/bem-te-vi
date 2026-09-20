@@ -12,8 +12,8 @@
 import vm from 'node:vm';
 import { exec } from 'node:child_process';
 import path from 'node:path';
-import { DANGEROUS_CMDS } from './BashTool.js';
-import { decodeOutput, normalizeCommand } from './decodeOutput.js';
+import { DANGEROUS_CMDS } from '../impl/bash.js';
+import { decodeOutput, normalizeCommand } from '../../infra/decode-output.js';
 
 // 同步执行超时（vm timeout，覆盖无 await 的死循环）
 const SYNC_TIMEOUT = 30 * 1000;

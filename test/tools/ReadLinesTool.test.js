@@ -4,8 +4,8 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { ReadLinesTool } from '../../tools/ReadLinesTool.js';
-import { READ_LIMIT } from '../../tools/ReadTool.js';
+import { ReadLinesTool } from '../../src/tools/impl/read-lines.js';
+import { READ_LIMIT } from '../../src/tools/impl/read.js';
 
 function makeTmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'cuckoo-readlines-'));

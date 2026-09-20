@@ -1,8 +1,8 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { JsRunner } from '../../tools/JsRunner.js';
-import { registry } from '../../tools/index.js';
+import { JsRunner } from '../../src/tools/runtime/JsRunner.js';
+import { registry } from '../../src/tools/index.js';
 
 test('JsRunner 执行简单 JS 代码', async () => {
   const runner = new JsRunner(registry);

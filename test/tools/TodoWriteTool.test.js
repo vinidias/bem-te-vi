@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseTodoList, formatTodoOutput, STATUSES } from '../../tools/TodoWriteTool.js';
+import { parseTodoList, formatTodoOutput, STATUSES } from '../../src/tools/impl/todo-write.js';
 
 test('parseTodoList 正常列表', () => {
   const list = [

@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseReadArgs, buildWindow, formatReadOutput, READ_LIMIT, READ_MAX_LINE_LENGTH, READ_MAX_BYTES } from '../../tools/ReadTool.js';
+import { parseReadArgs, buildWindow, formatReadOutput, READ_LIMIT, READ_MAX_LINE_LENGTH, READ_MAX_BYTES } from '../../src/tools/impl/read.js';
 
 test('parseReadArgs 默认值', () => {
   const r = parseReadArgs('a.txt', undefined, undefined);

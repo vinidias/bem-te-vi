@@ -1,4 +1,5 @@
-import { Tool, ToolResult } from './ToolRegistry.js';
+import { Tool } from '../core/Tool.js';
+import { ToolResult } from '../core/ToolResult.js';
 import TurndownService from 'turndown';
 import { gfm } from '@joplin/turndown-plugin-gfm';
 

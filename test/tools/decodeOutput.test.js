@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { decodeOutput, normalizeCommand } from '../../tools/decodeOutput.js';
+import { decodeOutput, normalizeCommand } from '../../src/infra/decode-output.js';
 
 test('decodeOutput 空/无输入返回空串', () => {
   assert.strictEqual(decodeOutput(null), '');

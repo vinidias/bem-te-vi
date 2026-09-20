@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseWriteArgs, formatWriteOutput } from '../../tools/WriteTool.js';
+import { parseWriteArgs, formatWriteOutput } from '../../src/tools/impl/write.js';
 
 test('parseWriteArgs 正常', () => {
   assert.deepStrictEqual(parseWriteArgs('a.txt', 'hello'), { filePath: 'a.txt', content: 'hello' });

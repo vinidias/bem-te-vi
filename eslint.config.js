@@ -61,7 +61,7 @@ export default [
   },
   {
     // 依赖护栏只作用于 src / tools
-    files: ['src/**/*.js', 'tools/**/*.js'],
+    files: ['src/**/*.js'],
     plugins: { local: noRestrictedRequires },
     rules: {
       'local/no-restricted-requires': ['error', { zones: DEPENDENCY_ZONES }],

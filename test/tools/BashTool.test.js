@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { BashTool, DANGEROUS_CMDS } from '../../tools/BashTool.js';
+import { BashTool, DANGEROUS_CMDS } from '../../src/tools/impl/bash.js';
 
 test('DANGEROUS_CMDS 定义完整', () => {
   assert.ok(Array.isArray(DANGEROUS_CMDS));

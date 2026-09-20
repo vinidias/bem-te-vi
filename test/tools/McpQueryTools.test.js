@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { McpListServersTool, McpGetToolsTool } from '../../tools/McpQueryTools.js';
+import { McpListServersTool, McpGetToolsTool } from '../../src/tools/impl/mcp-query.js';
 
 test('McpListServersTool 构造器', () => {
   const t = new McpListServersTool();

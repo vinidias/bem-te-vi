@@ -1,7 +1,8 @@
-import { Tool, ToolResult } from './ToolRegistry.js';
+import { Tool } from '../core/Tool.js';
+import { ToolResult } from '../core/ToolResult.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import { READ_LIMIT, parseReadArgs, buildWindow } from './ReadTool.js';
+import { READ_LIMIT, parseReadArgs, buildWindow } from './read.js';
 
 /**
  * readLines 工具 - 返回结构化行数据（数组），供 AI 在内存中精确处理。

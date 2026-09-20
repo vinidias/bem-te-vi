@@ -1,7 +1,8 @@
-import { Tool, ToolResult } from './ToolRegistry.js';
+import { Tool } from '../core/Tool.js';
+import { ToolResult } from '../core/ToolResult.js';
 import { execFile } from 'node:child_process';
 import path from 'node:path';
-import { decodeOutput } from './decodeOutput.js';
+import { decodeOutput } from '../../infra/decode-output.js';
 
 // PowerShell 危险命令列表（额外覆盖 PowerShell 特有危险操作）
 const DANGEROUS_PWSH_CMDS = [

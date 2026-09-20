@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES } from '../../tools/GlobToolNew.js';
+import { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES } from '../../src/tools/impl/glob.js';
 
 test('parseGlobArgs 正常', () => {
   assert.deepStrictEqual(parseGlobArgs('**/*.js', undefined), { pattern: '**/*.js' });

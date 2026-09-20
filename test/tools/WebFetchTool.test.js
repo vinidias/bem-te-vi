@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseFetchArgs, formatFetchOutput } from '../../tools/WebFetchTool.js';
+import { parseFetchArgs, formatFetchOutput } from '../../src/tools/impl/web-fetch.js';
 
 test('parseFetchArgs 正常', () => {
   assert.deepStrictEqual(parseFetchArgs('https://example.com'), { url: 'https://example.com' });

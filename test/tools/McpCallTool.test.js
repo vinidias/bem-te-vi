@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { McpCallTool } from '../../tools/McpCallTool.js';
+import { McpCallTool } from '../../src/tools/impl/mcp-call.js';
 
 test('McpCallTool 构造器', () => {
   const t = new McpCallTool();

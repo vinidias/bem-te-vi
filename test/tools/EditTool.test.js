@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseEditArgs, formatEditOutput, formatDryRunOutput } from '../../tools/EditTool.js';
+import { parseEditArgs, formatEditOutput, formatDryRunOutput } from '../../src/tools/impl/edit.js';
 
 test('parseEditArgs 正常', () => {
   assert.deepStrictEqual(parseEditArgs('a.txt', 'old', 'new', false), { filePath: 'a.txt', oldString: 'old', newString: 'new', replaceAll: false, dryRun: false });

@@ -1,4 +1,5 @@
-import { Tool, ToolResult } from './ToolRegistry.js';
+import { Tool } from '../core/Tool.js';
+import { ToolResult } from '../core/ToolResult.js';
 import { windowManager } from './browser-window-manager.js';
 
 class OpenBrowserWindowTool extends Tool {

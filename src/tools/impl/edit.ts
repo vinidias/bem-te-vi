@@ -1,4 +1,5 @@
-import { Tool, ToolResult } from './ToolRegistry.js';
+import { Tool } from '../core/Tool.js';
+import { ToolResult } from '../core/ToolResult.js';
 import fs from 'node:fs';
 import path from 'node:path';
 

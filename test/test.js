@@ -3,8 +3,10 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
-import { ToolRegistry, ToolResult } from '../tools/ToolRegistry.js';
-import { WriteTool } from '../tools/WriteTool.js';
+import { Tool } from '../src/tools/core/Tool.js';
+import { ToolRegistry } from '../src/tools/core/ToolRegistry.js';
+import { ToolResult } from '../src/tools/core/ToolResult.js';
+import { WriteTool } from '../src/tools/impl/write.js';
 
 async function test() {
   console.log('=== 测试工具库 ===\n');

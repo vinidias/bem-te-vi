@@ -2,25 +2,25 @@
  * 工具库统一入口
  * 导出所有可用工具（主进程注册工具的唯一入口，与 src/main/tool-registry.js 配套）
  */
-import { ToolRegistry } from './ToolRegistry.js';
-import { JsRunner } from './JsRunner.js';
-import { WriteTool } from './WriteTool.js';
-import { ReadTool } from './ReadTool.js';
-import { ReadLinesTool } from './ReadLinesTool.js';
-import { EditTool } from './EditTool.js';
-import { GlobToolNew } from './GlobToolNew.js';
-import { GrepToolNew } from './GrepToolNew.js';
-import { TodoWriteTool } from './TodoWriteTool.js';
-import { BashTool } from './BashTool.js';
-import { PwshTool } from './PwshTool.js';
-import { FileDeleteTool } from './FileDeleteTool.js';
-import { WebFetchTool } from './WebFetchTool.js';
-import { MySQLTool } from './MySQLTool.js';
-import { OpenBrowserWindowTool } from './OpenBrowserWindowTool.js';
-import { InjectJSTool } from './InjectJSTool.js';
-import { AttachFileTool } from './AttachFileTool.js';
-import { McpCallTool } from './McpCallTool.js';
-import { McpListServersTool, McpGetToolsTool } from './McpQueryTools.js';
+import { ToolRegistry } from './core/ToolRegistry.js';
+import { JsRunner } from './runtime/JsRunner.js';
+import { WriteTool } from './impl/write.js';
+import { ReadTool } from './impl/read.js';
+import { ReadLinesTool } from './impl/read-lines.js';
+import { EditTool } from './impl/edit.js';
+import { GlobToolNew } from './impl/glob.js';
+import { GrepToolNew } from './impl/grep.js';
+import { TodoWriteTool } from './impl/todo-write.js';
+import { BashTool } from './impl/bash.js';
+import { PwshTool } from './impl/pwsh.js';
+import { FileDeleteTool } from './impl/delete-file.js';
+import { WebFetchTool } from './impl/web-fetch.js';
+import { MySQLTool } from './impl/mysql.js';
+import { OpenBrowserWindowTool } from './impl/open-browser-window.js';
+import { InjectJSTool } from './impl/inject-js.js';
+import { AttachFileTool } from './impl/attach-file.js';
+import { McpCallTool } from './impl/mcp-call.js';
+import { McpListServersTool, McpGetToolsTool } from './impl/mcp-query.js';
 
 // 创建全局工具注册表
 const registry = new ToolRegistry();

@@ -1,4 +1,5 @@
-import { Tool, ToolResult } from './ToolRegistry.js';
+import { Tool } from '../core/Tool.js';
+import { ToolResult } from '../core/ToolResult.js';
 
 // 对齐 dsh STATUSES
 const STATUSES = ['pending', 'in_progress', 'completed'];

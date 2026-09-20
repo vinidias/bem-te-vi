@@ -5,7 +5,7 @@ import { exec } from 'node:child_process';
 import { createRequire } from 'node:module';
 import * as windowState from '../window.js';
 import { isDangerous } from '../../infra/dangerous-commands.js';
-import { decodeOutput, normalizeCommand } from '../../../tools/decodeOutput.js';
+import { decodeOutput, normalizeCommand } from '../../infra/decode-output.js';
 
 const require = createRequire(import.meta.url);
 const { app, dialog, ipcMain } = require('electron');

@@ -3,10 +3,10 @@ import { test, beforeEach, afterEach } from 'vitest';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { FileDeleteTool } from '../../tools/FileDeleteTool.js';
-import { WriteTool } from '../../tools/WriteTool.js';
-import { ReadTool } from '../../tools/ReadTool.js';
-import { EditTool } from '../../tools/EditTool.js';
+import { FileDeleteTool } from '../../src/tools/impl/delete-file.js';
+import { WriteTool } from '../../src/tools/impl/write.js';
+import { ReadTool } from '../../src/tools/impl/read.js';
+import { EditTool } from '../../src/tools/impl/edit.js';
 
 const tmpRoot = path.join(process.cwd(), 'test', 'tmp', 'filetools');
 

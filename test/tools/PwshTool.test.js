@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { PwshTool, DANGEROUS_PWSH_CMDS } from '../../tools/PwshTool.js';
+import { PwshTool, DANGEROUS_PWSH_CMDS } from '../../src/tools/impl/pwsh.js';
 
 test('DANGEROUS_PWSH_CMDS 定义完整', () => {
   assert.ok(Array.isArray(DANGEROUS_PWSH_CMDS));

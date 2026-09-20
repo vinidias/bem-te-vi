@@ -1,4 +1,5 @@
-import { Tool, ToolResult } from './ToolRegistry.js';
+import { Tool } from '../core/Tool.js';
+import { ToolResult } from '../core/ToolResult.js';
 import mysql from 'mysql2/promise';
 
 /**
