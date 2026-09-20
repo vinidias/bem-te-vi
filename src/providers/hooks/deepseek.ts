@@ -47,20 +47,29 @@ function install(): void {
     } catch (e) { return null; }
   }
 
-  // 终态判定：'finished' 正常完成 / 'stopped' 用户停止 / 'error' 失败
-  // 用户停止信号：SSE INCOMPLETE 或 拦截到 stop_stream 请求（更可靠，二者取或）
+  // 终态判定：'finished' 正常完成 / 'stopped' 用户主动停止 / 'error' 失败或服务端截断
+  // 触发重试（归 error）的两种情况：
+  //  1) 仅 SSE INCOMPLETE 而无 stop_stream：服务端自己截断；
+  //  2) 已收到 FINISHED，但正文为空、只有思考内容：思考被中断、正文未生成
+  //     （网页显示"已停止"但正文一个字都没有，此前会被当作正常完成而丢弃）。
+  // 用户主动停止的可靠证据：拦截到 stop_stream 请求（点停止按钮才会发）。
   function resolveStatus(extractor) {
     var st = 'error';
-    if (extractor.finished) st = 'finished';
-    else if (extractor.incomplete || userStopped) st = 'stopped';
-    console.log('[Cuckoo Code][hook] resolveStatus => ' + st + ' (finished=' + extractor.finished + ', incomplete=' + extractor.incomplete + ', userStopped=' + userStopped + ')');
+    if (extractor.finished) {
+      // 完成帧已到，但正文为空、只有思考内容：属"思考被中断、正文未生成"，
+      // 归为 error 以触发自动重试（否则会被当作正常完成而静默丢弃）。
+      if (extractor.thinkLen > 0 && extractor.textLen === 0) st = 'error';
+      else st = 'finished';
+    } else if (userStopped) st = 'stopped';
+    console.log('[Cuckoo Code][hook] resolveStatus => ' + st + ' (finished=' + extractor.finished + ', incomplete=' + extractor.incomplete + ', userStopped=' + userStopped + ', thinkLen=' + extractor.thinkLen + ', textLen=' + extractor.textLen + ')');
     return st;
   }
 
-  function dispatch(text, status, tokenUsage, msgIds, extra?) {
+  function dispatch(text, status, tokenUsage, msgIds, extra?, dbg?) {
     try {
       if (status === 'error') {
-        var detail = { text: text || '', status: 'error', tokenUsage: tokenUsage || null, msgIds: msgIds || null };
+        var detail: any = { text: text || '', status: 'error', tokenUsage: tokenUsage || null, msgIds: msgIds || null };
+        if (dbg) detail.dbg = dbg;
         if (extra) {
           for (var k in extra) {
             if (Object.prototype.hasOwnProperty.call(extra, k)) detail[k] = extra[k];
@@ -68,9 +77,9 @@ function install(): void {
         }
         window.dispatchEvent(new CustomEvent('cuckoo-ai-error', { detail: detail }));
       } else {
-        window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
-          detail: { text: text || '', finished: status === 'finished', status: status, tokenUsage: tokenUsage || null, msgIds: msgIds || null }
-        }));
+        var respDetail: any = { text: text || '', finished: status === 'finished', status: status, tokenUsage: tokenUsage || null, msgIds: msgIds || null };
+        if (dbg) respDetail.dbg = dbg;
+        window.dispatchEvent(new CustomEvent('cuckoo-ai-response', { detail: respDetail }));
       }
     } catch (e) { /* ignore */ }
   }
@@ -81,6 +90,8 @@ function install(): void {
     var currentIndex = -1;
     var observed = false;
     var text = '';
+    // 思考内容（THINK 片段）：单独累计，用于识别"只有思考、正文为空"的截断
+    var thinkText = '';
     var finished = false;
     // 用户主动停止：服务端下发 response/status = INCOMPLETE
     var incomplete = false;
@@ -88,6 +99,8 @@ function install(): void {
     var tokenUsage = null;
     // 本条回复的消息 id：requestMessageId（用户提问）+ responseMessageId（AI 回复）
     var msgIds = null;
+    // 诊断：记录收到的所有 status 帧（response/status、quasi_status）
+    var statusFrames = [];
 
     // 从对象里捕获消息 id 字段
     function captureMsgIds(src) {
@@ -160,7 +173,8 @@ function install(): void {
       for (var i = 0; i < fragments.length; i++) {
         var c = fragText(fragments[i]);
         if (!c) continue;
-        if (!isThink(types[i])) text += c;
+        if (isThink(types[i])) thinkText += c;
+        else text += c;
       }
     }
 
@@ -215,14 +229,18 @@ function install(): void {
       if (typeof parsed.p === 'string' && isResponseTextPatch(parsed.p) && typeof parsed.v === 'string') {
         var m = /^response\/fragments\/(-?\d+)\//.exec(parsed.p);
         var idx = m ? Number(m[1]) : -1;
-        if (!isThink(typeAt(idx))) text += parsed.v;
+        if (isThink(typeAt(idx))) thinkText += parsed.v;
+        else text += parsed.v;
         return;
       }
       if (parsed.p === undefined && typeof parsed.v === 'string') {
-        if (!isThink(typeAt(currentIndex))) text += parsed.v;
+        if (isThink(typeAt(currentIndex))) thinkText += parsed.v;
+        else text += parsed.v;
         return;
       }
       if (parsed.p === 'response/status' || parsed.p === 'quasi_status') {
+        statusFrames.push(parsed.p + '=' + parsed.v);
+        if (statusFrames.length > 20) statusFrames.shift();
         if (parsed.v === 'FINISHED') finished = true;
         else if (parsed.v === 'INCOMPLETE') incomplete = true;
       }
@@ -234,7 +252,21 @@ function install(): void {
       get finished() { return finished; },
       get incomplete() { return incomplete; },
       get tokenUsage() { return tokenUsage; },
-      get msgIds() { return msgIds; }
+      get msgIds() { return msgIds; },
+      get thinkLen() { return thinkText.length; },
+      get textLen() { return text.length; },
+      snapshot: function () {
+        return {
+          finished: finished,
+          incomplete: incomplete,
+          userStopped: userStopped,
+          thinkLen: thinkText.length,
+          textLen: text.length,
+          textTail: text.slice(-200),
+          thinkTail: thinkText.slice(-200),
+          statusFrames: statusFrames.slice()
+        };
+      }
     };
   }
 
@@ -254,7 +286,7 @@ function install(): void {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, 'finished', extractor.tokenUsage, extractor.msgIds);
+        dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds, null, Object.assign({ path: 'feed-finished-frame' }, extractor.snapshot()));
       }
     }
 
@@ -270,7 +302,7 @@ function install(): void {
           }
           if (!dispatched) {
             dispatched = true;
-            dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds);
+            dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds, null, Object.assign({ path: 'stream-end' }, extractor.snapshot()));
           }
           return;
         }
@@ -280,7 +312,7 @@ function install(): void {
         if (!dispatched) {
           dispatched = true;
           console.log('[Cuckoo Code][hook] fetch stream error name=' + (e && e.name));
-          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'stream', name: e && e.name, sessionId: getSessionIdFromUrl() });
+          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'stream', name: e && e.name, sessionId: getSessionIdFromUrl() }, Object.assign({ path: 'stream-error' }, extractor.snapshot()));
         }
       });
     }
@@ -335,7 +367,7 @@ function install(): void {
       return p.then(function (response) {
         try {
           if (response && response.ok === false) {
-            dispatch('', 'error', null, null, { reason: 'http', httpStatus: response.status, sessionId: fetchSessionId });
+            dispatch('', 'error', null, null, { reason: 'http', httpStatus: response.status, sessionId: fetchSessionId }, { path: 'http-error', httpStatus: response.status });
           } else if (response && response.body) {
             observeBody(response.clone().body);
           }
@@ -343,7 +375,7 @@ function install(): void {
         return response;
       }, function (err) {
         console.log('[Cuckoo Code][hook] fetch completion reject name=' + (err && err.name));
-        dispatch('', 'error', null, null, { reason: 'network', name: err && err.name, sessionId: fetchSessionId });
+        dispatch('', 'error', null, null, { reason: 'network', name: err && err.name, sessionId: fetchSessionId }, { path: 'network-error', name: err && err.name });
         throw err;
       });
     };
@@ -406,7 +438,7 @@ function install(): void {
       }
       if (extractor.finished && !dispatched) {
         dispatched = true;
-        dispatch(extractor.text, 'finished', extractor.tokenUsage, extractor.msgIds);
+        dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds, null, Object.assign({ path: 'xhr-finished-frame' }, extractor.snapshot()));
       }
     }
 
@@ -421,9 +453,9 @@ function install(): void {
         dispatched = true;
         var st = resolveStatus(extractor);
         if (st === 'error') {
-          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'xhr', httpStatus: xhr.status, sessionId: reqSessionId });
+          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'xhr', httpStatus: xhr.status, sessionId: reqSessionId }, Object.assign({ path: 'xhr-error', httpStatus: xhr.status }, extractor.snapshot()));
         } else {
-          dispatch(extractor.text, st, extractor.tokenUsage, extractor.msgIds);
+          dispatch(extractor.text, st, extractor.tokenUsage, extractor.msgIds, null, Object.assign({ path: 'xhr-end' }, extractor.snapshot()));
         }
       }
     });
