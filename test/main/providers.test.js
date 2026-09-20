@@ -78,6 +78,7 @@ test('渲染进程经注入的 userData 路径可加载自定义 Provider', asyn
   const providerFile = path.join(dir, 'demo.js');
   fs.writeFileSync(providerFile,
     "module.exports = { id: 'demo', name: 'Demo', homeUrl: 'https://demo.example.com', " +
+    "sessionUrlBase: 'https://demo.example.com/chat/', " +
     "matchesUrl: (u) => String(u).includes('demo.example.com'), extractSessionId: () => '1' };");
   fs.writeFileSync(path.join(tmp, 'custom-providers.json'),
     JSON.stringify({ paths: [providerFile.replace(/\\/g, '/')] }));
