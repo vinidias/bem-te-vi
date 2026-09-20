@@ -133,4 +133,16 @@ class ReadLinesTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.readLines。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).readLines = async function (filePath: any, options: any) {
+    options = options || {};
+    return await __call('readLines', {
+      filePath: filePath,
+      offset: options.offset,
+      limit: options.limit,
+    });
+  };
+}
+
 export { ReadLinesTool };

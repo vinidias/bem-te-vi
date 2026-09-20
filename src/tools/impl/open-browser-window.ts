@@ -58,4 +58,17 @@ class OpenBrowserWindowTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.openBrowserWindow。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).openBrowserWindow = async function (url: any, options: any) {
+    options = options || {};
+    return await __call('openBrowserWindow', {
+      url: url,
+      id: options.id,
+      width: options.width,
+      height: options.height,
+    });
+  };
+}
+
 export { OpenBrowserWindowTool };

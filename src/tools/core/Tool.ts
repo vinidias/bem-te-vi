@@ -75,30 +75,8 @@ export interface ToolApiMeta {
   returnsDoc?: string;
   /** @throws 描述 */
   throws?: string;
-}
-
-/** 工具 API 契约元数据（D12：构建期据此生成 api.d.ts） */
-export interface ToolApiMeta {
-  /** 全局排序（决定 api.d.ts 中的出现顺序） */
-  order: number;
-  /** 分类（同分类聚合，出现分类小标题） */
-  category: string;
-  /** 函数名 */
-  name: string;
-  /** 该工具用到的 interface/type 声明块（原样写入 api.d.ts） */
-  types?: string;
-  /** 函数 JSDoc 正文（不含 @param/@returns/@throws） */
-  doc: string;
-  /** 参数列表（带类型），如 "command: string, options?: BashOptions" */
-  params: string;
-  /** 返回类型，如 "Promise<string>" */
-  returns: string;
-  /** @param 描述 */
-  paramDocs?: Record<string, string>;
-  /** @returns 描述 */
-  returnsDoc?: string;
-  /** @throws 描述 */
-  throws?: string;
+  /** JsRunner 沙箱注入的 bootstrap 代码（globalThis.x = async function ...） */
+  bootstrap?: string;
 }
 
 export { Tool };

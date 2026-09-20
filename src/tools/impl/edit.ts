@@ -192,4 +192,17 @@ class EditTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.edit。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).edit = async function (filePath: any, oldString: any, newString: any, replaceAll: any, dryRun: any) {
+    return await __call('edit', {
+      filePath: filePath,
+      oldString: oldString,
+      newString: newString,
+      replaceAll: replaceAll === true,
+      dryRun: dryRun === true,
+    });
+  };
+}
+
 export { EditTool, parseEditArgs, formatEditOutput, formatDryRunOutput };

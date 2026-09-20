@@ -53,4 +53,11 @@ class InjectJSTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.injectJS。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).injectJS = async function (windowId: any, code: any) {
+    return await __call('injectJS', { windowId: windowId, code: code });
+  };
+}
+
 export { InjectJSTool };

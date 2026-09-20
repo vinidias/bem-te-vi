@@ -224,4 +224,11 @@ class GlobToolNew extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.glob。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).glob = async function (pattern: any, searchPath: any) {
+    return await __call('glob', { pattern: pattern, path: searchPath });
+  };
+}
+
 export { GlobToolNew, parseGlobArgs, formatGlobOutput, MAX_RESULTS, GLOB_VCS_EXCLUDES, buildGlobArgs };

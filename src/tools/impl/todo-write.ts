@@ -167,4 +167,11 @@ class TodoWriteTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.todoWrite。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).todoWrite = async function (todos: any) {
+    return await __call('todoWrite', { todos: todos });
+  };
+}
+
 export { TodoWriteTool, parseTodoList, formatTodoOutput, STATUSES };

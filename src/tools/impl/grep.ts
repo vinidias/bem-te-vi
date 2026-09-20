@@ -341,4 +341,16 @@ class GrepToolNew extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.grep。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).grep = async function (pattern: any, options: any) {
+    options = options || {};
+    return await __call('grep', {
+      pattern: pattern,
+      path: options.path,
+      include: options.include,
+    });
+  };
+}
+
 export { GrepToolNew, parseGrepArgs, validateInclude, parseGrepMatches, formatGrepOutput, retainGrepMatches, previewLine };

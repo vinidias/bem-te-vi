@@ -191,4 +191,11 @@ class WebFetchTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.webFetch。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).webFetch = async function (url: any) {
+    return await __call('webFetch', { url: url });
+  };
+}
+
 export { WebFetchTool, parseFetchArgs, formatFetchOutput };

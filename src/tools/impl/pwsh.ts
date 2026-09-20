@@ -181,4 +181,17 @@ class PwshTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.pwsh。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).pwsh = async function (command: any, options: any) {
+    options = options || {};
+    return await __call('pwsh', {
+      command: command,
+      description: options.description,
+      workdir: options.workdir || options.cwd,
+      timeoutMs: options.timeoutMs || options.timeout,
+    });
+  };
+}
+
 export { PwshTool, DANGEROUS_PWSH_CMDS };

@@ -205,4 +205,12 @@ function renderTable(columns: string[], rows: any[]): string {
   return lines.join('\n');
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.mysql。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).mysql = async function (options: any) {
+    options = options || {};
+    return await __call('mysql', options);
+  };
+}
+
 export { MySQLTool, renderTable };

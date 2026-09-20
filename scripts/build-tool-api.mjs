@@ -18,13 +18,30 @@ const OUT = process.argv[2]
 
 async function collect() {
   const metas = [];
+  const bootstraps = [];
   for (const f of fs.readdirSync(IMPL_DIR)) {
     if (!f.endsWith('.js')) continue;
     const mod = await import(pathToFileURL(path.join(IMPL_DIR, f)).href);
     if (Array.isArray(mod.apiMetas)) metas.push(...mod.apiMetas);
+    if (typeof mod.bootstrap === 'function') bootstraps.push(mod.bootstrap);
   }
   metas.sort((a, b) => a.order - b.order);
-  return metas;
+  return { metas, bootstraps };
+}
+
+/**
+ * 从 bootstrap 函数源码提取函数体（去掉 wrapper），保留相对缩进。
+ * 例：function bootstrap(__call) {\n  globalThis.x = ...\n} → "  globalThis.x = ..."
+ */
+function extractBody(fn) {
+  const src = fn.toString();
+  const start = src.indexOf('{');
+  const end = src.lastIndexOf('}');
+  const raw = src.slice(start + 1, end);
+  const lines = raw.split(NL).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return '';
+  const minIndent = Math.min(...lines.map((l) => l.match(/^ */)[0].length));
+  return lines.map((l) => '  ' + l.slice(minIndent)).join(NL);
 }
 
 function render(metas) {
@@ -92,10 +109,27 @@ function render(metas) {
   return L.join(NL);
 }
 
-const metas = await collect();
+const { metas, bootstraps } = await collect();
 if (metas.length === 0) {
   console.error('[build-tool-api] 未收集到任何 apiMetas');
   process.exit(1);
 }
 fs.writeFileSync(OUT, render(metas), 'utf8');
 console.log('[build-tool-api] 生成 ' + path.relative(ROOT, OUT) + '（' + metas.length + ' 个工具）');
+
+// ========== JsRunner 沙箱注入脚本（工具部分）==========
+const BOOTSTRAP_OUT = path.join(ROOT, 'src', 'tools', 'runtime', 'bootstrap.generated.ts');
+const b = [];
+b.push('// 本文件由 scripts/build-tool-api.mjs 自动生成，请勿手动编辑。');
+b.push('// 真相源：各工具的 bootstrap 函数（src/tools/impl/*.ts）。');
+b.push('// JsRunner 用它组装沙箱注入脚本（工具函数的 globalThis 定义）。');
+b.push('');
+b.push('const TOOL_BOOTSTRAP = [');
+for (const fn of bootstraps) {
+  b.push('  ' + JSON.stringify(extractBody(fn)) + ',');
+}
+b.push("].join('\\n');");
+b.push('');
+b.push('export { TOOL_BOOTSTRAP };');
+fs.writeFileSync(BOOTSTRAP_OUT, b.join(NL) + NL, 'utf8');
+console.log('[build-tool-api] 生成 ' + path.relative(ROOT, BOOTSTRAP_OUT) + '（' + bootstraps.length + ' 个 bootstrap）');

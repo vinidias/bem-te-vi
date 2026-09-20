@@ -126,4 +126,11 @@ class WriteTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.write。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).write = async function (filePath: any, content: any) {
+    return await __call('write', { filePath: filePath, content: content });
+  };
+}
+
 export { WriteTool, parseWriteArgs, formatWriteOutput };

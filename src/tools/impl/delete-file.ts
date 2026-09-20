@@ -87,4 +87,11 @@ class DeleteFileTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.deleteFile。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).deleteFile = async function (filePath: any) {
+    return await __call('deleteFile', { filePath: filePath });
+  };
+}
+
 export { DeleteFileTool };

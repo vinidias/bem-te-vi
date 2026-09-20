@@ -93,4 +93,11 @@ class McpCallTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.mcpCall。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).mcpCall = async function (server: any, tool: any, args: any) {
+    return await __call('mcpCall', { server: server, tool: tool, args: args || {} });
+  };
+}
+
 export { McpCallTool };

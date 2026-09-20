@@ -40,6 +40,23 @@ export const apiMetas: ToolApiMeta[] = [
   },
 ];
 
+/**
+ * JsRunner 沙箱注入：定义 globalThis.bash。
+ * 源码经 scripts/build-tool-api.mjs 提取（.toString()），组装进 JsRunner 的 BOOTSTRAP。
+ * 必须在沙箱内自包含（只能引用 __call）。
+ */
+export function bootstrap(__call: any): void {
+  (globalThis as any).bash = async function (command: any, options: any) {
+    options = options || {};
+    return await __call('bash', {
+      command: command,
+      description: options.description,
+      workdir: options.workdir || options.cwd,
+      timeoutMs: options.timeoutMs || options.timeout,
+    });
+  };
+}
+
 // 危险命令列表（保持不变）
 const DANGEROUS_CMDS = [
   /^rm\s+-rf\s+\//i,

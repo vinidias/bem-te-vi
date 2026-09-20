@@ -267,4 +267,11 @@ class AttachFileTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.attachFile。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).attachFile = async function (filePath: any) {
+    return await __call('attachFile', { filePath: filePath });
+  };
+}
+
 export { AttachFileTool, resolveFilePath, guessMimeType, buildInjectCode };

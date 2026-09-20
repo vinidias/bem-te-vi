@@ -239,4 +239,19 @@ class ReadTool extends Tool {
   }
 }
 
+/**
+ * JsRunner 沙箱注入：定义 globalThis.read。
+ * 源码经 scripts/build-tool-api.mjs 提取组装进 JsRunner 的 BOOTSTRAP。
+ */
+export function bootstrap(__call: any): void {
+  (globalThis as any).read = async function (filePath: any, options: any) {
+    options = options || {};
+    return await __call('read', {
+      filePath: filePath,
+      offset: options.offset,
+      limit: options.limit,
+    });
+  };
+}
+
 export { ReadTool, READ_LIMIT, READ_MAX_LINE_LENGTH, READ_MAX_BYTES, parseReadArgs, buildWindow, formatReadOutput };

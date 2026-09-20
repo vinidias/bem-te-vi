@@ -143,4 +143,14 @@ class McpGetToolsTool extends Tool {
   }
 }
 
+/** JsRunner 沙箱注入：定义 globalThis.mcpListServers / globalThis.mcpGetTools。 */
+export function bootstrap(__call: any): void {
+  (globalThis as any).mcpListServers = async function () {
+    return await __call('mcpListServers', {});
+  };
+  (globalThis as any).mcpGetTools = async function (serverName: any) {
+    return await __call('mcpGetTools', { server: serverName });
+  };
+}
+
 export { McpListServersTool, McpGetToolsTool };
