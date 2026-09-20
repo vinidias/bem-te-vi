@@ -9,7 +9,7 @@
   <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/github/stars/wangyongpeng90/cuckoo-code?style=flat-square&color=yellow" alt="Stars"></a>
   <a href="https://github.com/wangyongpeng90/cuckoo-code/releases"><img src="https://img.shields.io/github/downloads/wangyongpeng90/cuckoo-code/total?style=flat-square&color=green" alt="Downloads"></a>
   <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-8b93ff?style=flat-square" alt="Platform"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/badge/Electron-33-47848f?style=flat-square&logo=electron&logoColor=white" alt="Electron"></a>
+  <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square&logo=electron&logoColor=white" alt="Electron"></a>
 </p>
 
 [English](README.en.md) | 中文
@@ -30,7 +30,7 @@
 
 ### 多平台 Provider 框架
 
-- 内置 **DeepSeek** 和 **Claude** 两个平台
+- 内置 **DeepSeek**、**Claude**、**ChatGPT** 三个平台
 - 每个平台独立封装输入框定位、发送按钮检测、回复完成判断、消息解析等差异
 - 新建窗口时可选择平台，也可**导入自定义 Provider**（提供类型声明和模板，降低扩展门槛）
 
@@ -58,7 +58,7 @@
 
 ### 环境要求
 
-- Node.js >= 16.0.0
+- Node.js >= 22.0.0
 - npm
 
 ### 步骤
@@ -162,7 +162,7 @@ MCP 配置采用 **Claude Desktop 兼容格式**（可直接分享/导入）：
 - `matchesUrl()`、`extractSessionId()` 等方法
 - 自动解析相关方法（完成检测、消息定位等）
 
-类型声明见 `src/providers/custom/provider.d.ts`。在应用内通过平台选择页导入 JS 文件即可使用。
+类型声明见 `src/providers/types.ts`。在应用内通过平台选择页导入 JS 文件即可使用。
 
 ---
 
@@ -170,37 +170,49 @@ MCP 配置采用 **Claude Desktop 兼容格式**（可直接分享/导入）：
 
 ```
 cuckoo-code/
-├── main.js                 # Electron 主进程入口（薄壳，转发到 src/main/）
-├── start.js                # 跨平台启动脚本（日志写入 wyp/log/）
-├── preload.js              # Preload 入口
+├── main.js                  # Electron 主进程入口（薄壳，加载 out/src/app/entry.js）
+├── start.js                 # 跨平台启动脚本（先编译再启动，日志写入 wyp/log/）
+├── preload.js               # Preload 入口（薄壳）
 ├── src/
-│   ├── main/               # 主进程逻辑
-│   │   ├── index.js        # 应用入口、窗口创建、IPC 注册
-│   │   ├── window.js       # 多窗口管理（每窗口 profile 上下文）
-│   │   ├── ipc.js          # IPC 处理器
-│   │   ├── profile-manager.js  # 窗口 Profile 管理
-│   │   ├── project-context.js  # 项目初始化、目录树、systemPrompt 组装
-│   │   ├── session-store.js    # 会话持久化
-│   │   ├── mcp-config.js       # MCP 配置管理
-│   │   ├── mcp-client.js       # MCP SDK 客户端
-│   │   ├── tool-registry.js    # 工具注册（主进程侧）
-│   │   ├── dangerous-commands.js  # 危险命令检测
-│   │   └── updater.js          # 自动更新
-│   ├── preload/            # 渲染进程逻辑
-│   │   ├── index.js        # Preload 入口
-│   │   ├── api.js          # contextBridge API 暴露
-│   │   ├── overlay/        # 覆盖层 UI（模板、事件、样式）
-│   │   └── dom/            # DOM 监测、解析、执行
-│   └── providers/          # 平台 Provider
-│       ├── deepseek.js     # DeepSeek 平台定义
-│       ├── claude.js       # Claude 平台定义
-│       └── custom/         # 自定义 Provider 加载器和模板
-├── tools/                  # 工具实现
-│   ├── ToolRegistry.js     # 工具注册表
-│   ├── JsRunner.js         # JS 沙箱执行器
-│   └── *.js                # 各工具实现
-├── test/                   # 单元测试
-└── dist/                   # 构建产物
+│   ├── app/                 # 应用外壳（主进程）
+│   │   ├── entry.ts         # 应用入口、窗口创建、应用菜单
+│   │   ├── shell-preload.ts # 地址栏壳页面 preload
+│   │   ├── window.ts        # 多窗口管理（WebContentsView 架构）
+│   │   ├── profile.ts       # 窗口 Profile 管理
+│   │   └── ipc/             # IPC 处理器（project/session/command/tool/renderer/shell）
+│   ├── session/             # 会话与项目上下文
+│   │   ├── store.ts         # 会话-目录映射持久化
+│   │   ├── project-context.ts # 项目初始化
+│   │   ├── prompt-builder.ts  # 系统提示词组装
+│   │   └── compaction.ts      # 上下文压缩
+│   ├── bridge/              # 与 AI 网页桥接（preload）
+│   │   ├── entry.ts         # preload 入口
+│   │   ├── api.ts           # contextBridge API 暴露
+│   │   ├── intercept/       # 网络拦截响应处理
+│   │   ├── parser/          # JS/JSON 工具调用解析
+│   │   └── loop/            # 执行器、看门狗、重试引擎
+│   ├── overlay/             # 覆盖层 UI
+│   │   ├── panel.ts         # 面板基础能力（注入、提示、历史）
+│   │   ├── events.ts        # 事件绑定（编排）
+│   │   ├── panels/          # 各面板（窗口管理 / MCP / 设置）
+│   │   ├── fab.ts           # 悬浮球拖动
+│   │   └── template/        # HTML/CSS 模板（构建期生成 TS）
+│   ├── tools/               # 工具系统
+│   │   ├── api.d.ts         # AI 工具契约（构建期生成）
+│   │   ├── core/            # Tool / ToolRegistry / ToolResult
+│   │   ├── runtime/         # JsRunner 沙箱执行器
+│   │   └── impl/            # 各工具实现
+│   ├── providers/           # 平台 Provider
+│   │   ├── types.ts         # Provider 接口
+│   │   ├── deepseek.ts / claude.ts / chatgpt.ts
+│   │   ├── hooks/           # 网络拦截器源码（构建期打包为字符串）
+│   │   └── custom/          # 自定义 Provider 加载器与模板
+│   ├── mcp/                 # MCP 客户端与配置
+│   ├── infra/               # 基础设施（路径 / 日志 / 危险命令）
+│   └── prompt/              # 各平台提示词模板
+├── scripts/                 # 构建脚本（hook 打包、工具 API 生成）
+├── test/                    # 单元测试
+└── out/                     # TypeScript 编译产物
 ```
 
 ---

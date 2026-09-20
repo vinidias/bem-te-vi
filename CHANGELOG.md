@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased] - 架构重构
+
+### Changed
+- **全仓迁移 TypeScript**：所有源码由 JS 迁移到 TS，编译产物输出到 `out/`；
+  主应用开启 `strict` 模式（hook 作为独立编译单元，单独规则）
+- **全面转向 ESM**：统一使用 ES 模块，原生动态 `import()`
+- **依赖升级**：Electron 33 → 44、TypeScript 5 → 7、ESLint 9 → 10 等
+- **目录按领域重组**：`src/{app, session, bridge, overlay, tools, providers, mcp, infra}`，
+  取代原先的 `main / preload / utils / tools` 分层
+- **工具系统重组**：`tools/` → `src/tools/`，内部按 `core / runtime / impl` 分层
+- **工具 API 契约自动生成**：每个工具自持 API 元数据与沙箱注入函数，
+  构建期自动生成 `api.d.ts` 与 `bootstrap.generated.ts`（工具成为唯一真相源）
+- **Provider hook 模块化**：网络拦截器改为正常 TS 模块，构建期用 esbuild
+  打包为自包含字符串（消除三平台 SSE 解码重复）
+- **窗口地址栏**：窗口改用 `WebContentsView` 架构，顶部提供地址栏
+  （显示 URL、复制、粘贴跳转、前进/后退/刷新/主页）
+- **工具调用模式收敛**：仅保留 JS（cuckoo 代码块）调用方式
+
+### Removed
+- 旧工具别名（`FileReadTool` / `FileWriteTool` / `FileEditTool` / `GlobTool` / `GrepTool`）
+- JSON 工具调用执行模式（改为仅识别并提示）
+- `tool-names` 手工维护的工具白名单
+
 ## [0.5.3] - 2026-09-18
 
 ### Added
