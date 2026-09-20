@@ -3,21 +3,9 @@
  * 拦截模式和 DOM 模式共用的执行逻辑：执行工具调用、执行 JS 脚本、通知 UI。
  */
 import { showToast, setTaskStatus, addHistory, truncate, flashBadge } from '../../overlay/panel.js';
-import { sendToolResultToChat } from '../../overlay/chat-input.js';
 
 // 是否正在执行命令或工具
 let isExecuting = false;
-
-/**
- * 通知用户检测到工具调用（闪烁状态徽章 + 更新预览）
- */
-function notifyToolCallDetected(toolCall: any): void {
-  const preview = document.getElementById('cuckoo-cmd-preview');
-  if (preview) {
-    preview.textContent = '[工具] ' + toolCall.toolName + '\n参数: ' + JSON.stringify(toolCall.params, null, 2);
-  }
-  flashBadge('Cuckoo Code - 工具调用检测到');
-}
 
 /**
  * 通知用户检测到 JS 工具脚本（更新预览 + 闪烁徽章）
@@ -96,74 +84,8 @@ async function handleJsToolScript(code: string): Promise<{ code: string; result:
   }
 }
 
-/**
- * 执行工具调用
- */
-async function handleToolCall(toolCall: any): Promise<void> {
-  const { toolName, params, callId } = toolCall;
-  console.log('[Cuckoo Code] 执行工具: ' + toolName, params);
-
-  isExecuting = true;
-  setTaskStatus(true);
-  showToast('开始执行命令');
-
-  try {
-    const result = await (window as any).electronAPI.executeTool(toolName, params, callId);
-
-    const resultSection = document.getElementById('cuckoo-result-section');
-    const resultStatus = document.getElementById('cuckoo-result-status');
-    const resultOutput = document.getElementById('cuckoo-result-output');
-
-    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
-
-    if (result.success) {
-      if (resultStatus) {
-        resultStatus.textContent = '✅ 工具 ' + toolName + ' 执行成功';
-        resultStatus.className = 'cuckoo-result-status success';
-      }
-      if (resultOutput) {
-        resultOutput.textContent = JSON.stringify(result.data, null, 2);
-      }
-    } else {
-      if (resultStatus) {
-        resultStatus.textContent = '❌ 工具 ' + toolName + ' 执行失败';
-        resultStatus.className = 'cuckoo-result-status error';
-      }
-      if (resultOutput) {
-        resultOutput.textContent = result.error || '未知错误';
-      }
-    }
-
-    addHistory({
-      id: callId,
-      command: '[工具] ' + toolName,
-      success: result.success,
-      output: result.success ? JSON.stringify(result.data, null, 2) : (result.error || '未知错误'),
-      timestamp: Date.now(),
-    });
-
-    sendToolResultToChat(toolCall, result);
-  } catch (err: any) {
-    console.error('[Cuckoo Code] 工具执行异常:', err);
-    const resultSection = document.getElementById('cuckoo-result-section');
-    const resultStatus = document.getElementById('cuckoo-result-status');
-    const resultOutput = document.getElementById('cuckoo-result-output');
-    if (resultSection) resultSection.classList.remove('cuckoo-hidden');
-    if (resultStatus) {
-      resultStatus.textContent = '❌ 系统错误';
-      resultStatus.className = 'cuckoo-result-status error';
-    }
-    if (resultOutput) resultOutput.textContent = err.message || String(err);
-    sendToolResultToChat(toolCall, { success: false, error: '系统异常: ' + (err.message || String(err)) });
-  } finally {
-    isExecuting = false;
-    setTaskStatus(false);
-  }
-}
-
 export {
-  handleToolCall,
   handleJsToolScript,
-  notifyToolCallDetected,
   notifyJsScriptDetected,
 };
+

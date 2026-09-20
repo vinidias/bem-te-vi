@@ -117,29 +117,6 @@ function sendMessageToChat(msg: string, tag?: string): Promise<boolean> {
   return sendToChat(msg, tag);
 }
 /**
- * 将 JSON 工具执行结果发送回 DeepSeek 聊天，让 AI 看到结果并继续工作
- */
-function sendToolResultToChat(toolCall: any, result: any): void {
-  // 构造回传消息（明确的成功/失败信息，AI 可据此修正并继续）
-  let msg;
-  if (result.success) {
-    const data = result.data || {};
-    // 大内容截断保护（20KB），避免超长消息
-    if (typeof data.content === 'string' && data.content.length > 20000) {
-      data.content = data.content.substring(0, 20000) + String.fromCharCode(10) + '...[内容过长已截断]...';
-    }
-    msg = '【工具执行结果】' + toolCall.toolName + ' 执行成功 (callId: ' + (toolCall.callId || '') + ')' + String.fromCharCode(10) +
-      JSON.stringify(data, null, 2);
-  } else {
-    msg = '【工具执行结果】' + toolCall.toolName + ' 执行失败 (callId: ' + (toolCall.callId || '') + ')' + String.fromCharCode(10) +
-      '错误原因: ' + (result.error || '未知错误') + String.fromCharCode(10) +
-      '请根据错误原因修正参数后重新调用工具。';
-  }
-
-  console.log('[Cuckoo Code] 回传工具结果, 消息长度=' + msg.length);
-  sendMessageToChat(msg, '工具=' + toolCall.toolName);
-}
-/**
  * 将 JS 工具脚本执行结果发送回 DeepSeek 聊天，让 AI 看到结果并继续工作
  */
 function sendCombinedJsResultsToChat(results: any): void {
@@ -341,7 +318,6 @@ export {
   setInputContent,
   sendToChat,
   sendMessageToChat,
-  sendToolResultToChat,
   sendCombinedJsResultsToChat,
   findInputArea,
   isInputVisible,

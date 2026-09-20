@@ -5,16 +5,15 @@
  */
 import { state } from '../../overlay/state.js';
 import { extractJsToolBlocks, BT } from '../parser/js-detector.js';
-import { tryParseToolCall } from '../parser/json-detector.js';
-import { handleToolCall, handleJsToolScript } from '../loop/executor.js';
-import { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } from '../../overlay/chat-input.js';
-import { hasTool, toolNamesList } from '../tool-names.js';
+import { looksLikeJsonToolCall } from '../parser/json-detector.js';
+import { handleJsToolScript } from '../loop/executor.js';
+import { sendCombinedJsResultsToChat, sendMessageToChat } from '../../overlay/chat-input.js';
 import * as watchdog from '../loop/watchdog.js';
 
 const MAX_JS_RETRY = 3;
-// 连续 XML 提示次数（防止无限循环）
-let xmlHintCount = 0;
-const XML_HINT_MAX = 10;
+// 连续"格式提示"次数（JSON/XML 共用，防止 AI 来回切换格式绕过上限）
+let formatHintCount = 0;
+const FORMAT_HINT_MAX = 10;
 // 上次已处理的文本（去重，防同一条回复重复处理）
 let lastProcessedText = '';
 // 最近一次拦截到的完整回复文本（供手动解析复用，不依赖 DOM）
@@ -68,27 +67,24 @@ async function processInterceptedResponse(text: string, force?: boolean): Promis
   if (jsBlocks.length > 0) {
     console.log('[Cuckoo Code][拦截] 检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
     try { watchdog.onToolCallDetected(); } catch (_) { /* ignore */ }
-    xmlHintCount = 0;
+    formatHintCount = 0;
     const results = await executeJsBlocksWithRetry(jsBlocks);
     if (results.length > 0) sendCombinedJsResultsToChat(results);
     return;
   }
 
-  // 2. JSON 工具调用
-  const toolCall = tryParseToolCall(raw);
-  if (toolCall) {
-    try { watchdog.onToolCallDetected(); } catch (_) { /* ignore */ }
-    xmlHintCount = 0;
-    if (!hasTool(toolCall.toolName)) {
-      console.log('[Cuckoo Code][拦截] 工具不存在: ' + toolCall.toolName);
-      sendToolResultToChat(
-        toolCall,
-        { success: false, error: '工具 ' + toolCall.toolName + ' 不存在，可用工具: ' + toolNamesList() }
-      );
+  // 2. JSON 格式工具调用（D11：已废除执行，仅识别并提示改用 cuckoo 代码块）
+  if (looksLikeJsonToolCall(raw)) {
+    if (formatHintCount >= FORMAT_HINT_MAX) {
+      console.log('[Cuckoo Code][拦截] 已连续提示 ' + formatHintCount + ' 次格式问题，停止发送');
       return;
     }
-    console.log('[Cuckoo Code][拦截] 工具存在: ' + toolCall.toolName + ', 开始执行');
-    await handleToolCall(toolCall);
+    formatHintCount++;
+    console.log('[Cuckoo Code][拦截] 检测到 JSON 格式工具调用（第 ' + formatHintCount + ' 次提示）');
+    sendMessageToChat(
+      '请使用' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' 代码块进行工具调用，不要输出 JSON 格式。',
+      'JSON工具调用提示'
+    );
     return;
   }
 
@@ -98,12 +94,12 @@ async function processInterceptedResponse(text: string, force?: boolean): Promis
   const hasXmlClose = /<\s*\/\s*(?:[\w-]+:)?invoke\s*>/i.test(raw);
   const hasXmlParam = /<\s*(?:[\w-]+:)?parameter\s+name=/i.test(raw);
   if (hasAntmlXml || (hasXmlInvoke && (hasXmlClose || hasXmlParam))) {
-    if (xmlHintCount >= XML_HINT_MAX) {
-      console.log('[Cuckoo Code][拦截] 已连续提示 ' + xmlHintCount + ' 次 XML 格式，停止发送');
+    if (formatHintCount >= FORMAT_HINT_MAX) {
+      console.log('[Cuckoo Code][拦截] 已连续提示 ' + formatHintCount + ' 次格式问题，停止发送');
       return;
     }
-    xmlHintCount++;
-    console.log('[Cuckoo Code][拦截] 检测到 XML 格式工具调用（第 ' + xmlHintCount + ' 次提示）');
+    formatHintCount++;
+    console.log('[Cuckoo Code][拦截] 检测到 XML 格式工具调用（第 ' + formatHintCount + ' 次提示）');
     sendMessageToChat(
       '请使用' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' 代码块进行工具调用，不要使用 XML invoke 格式。',
       'XML工具调用提示'

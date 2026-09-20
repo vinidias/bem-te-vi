@@ -37,7 +37,7 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ['**/*.js'],
+    files: ['**/*.js', '**/*.mjs'],
     languageOptions: {
       ecmaVersion: 2022,
       // 迁移期：模块模式（兼容 ESM import/export 与 CJS require；
