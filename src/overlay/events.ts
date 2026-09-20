@@ -14,7 +14,9 @@ import { openSettings, closeSettings, resetSettings, saveSettings } from './pane
 import { makeFabDraggable } from './fab.js';
 
 // 回调注入（P4.2-A：overlay 不依赖 bridge）
-let hooks: { onInterceptedResponse?: (cb: () => void) => void } = {};
+let hooks: { onInterceptedResponse?: (cb: (text: string, meta: any) => void) => void } = {};
+// 服务端权威 token 统计（由 bridge 经回调推送，不共享状态）
+let serverTokenUsage: any = null;
 /** 由 bridge/entry 在初始化时注入 bridge 能力 */
 function wireEvents(h: typeof hooks): void {
   hooks = h;
@@ -52,7 +54,7 @@ function updateConversationTokenDisplay() {
   const countEl = document.getElementById('cuckoo-conv-token-count');
   if (!countEl) return;
 
-  const server = state.serverTokenUsage;
+  const server = serverTokenUsage;
   if (server && typeof server.accumulatedTokens === 'number') {
     countEl.textContent = formatTokenCount(server.accumulatedTokens);
   } else {
@@ -106,7 +108,7 @@ function saveAutoCompactConfig() {
  */
 function checkAutoCompact() {
   if (!autoCompactEnabled || autoCompactTriggering) return;
-  const server = state.serverTokenUsage;
+  const server = serverTokenUsage;
   if (!server || typeof server.accumulatedTokens !== 'number') return;
   const thresholdTokens = autoCompactThresholdWan * 10000;
   if (server.accumulatedTokens < thresholdTokens) return;
@@ -114,7 +116,7 @@ function checkAutoCompact() {
   autoCompactTriggering = true;
   console.log('[Cuckoo Compact] 自动触发：当前 ' + server.accumulatedTokens + ' >= 阈值 ' + thresholdTokens);
   showToast('Token 超阈值（' + autoCompactThresholdWan + '万），自动压缩中...', 4000);
-  runCompaction().finally(() => {
+  runCompaction(state.currentProjectDir || undefined).finally(() => {
     // 压缩会跳转页面；若未跳转（失败），重置标志允许下次重试
     autoCompactTriggering = false;
   });
@@ -126,7 +128,8 @@ function checkAutoCompact() {
  * 避免失败/停止时因旧 token 值反复触发压缩。
  */
 function startTokenCounter() {
-  hooks.onInterceptedResponse?.(() => {
+  hooks.onInterceptedResponse?.((_text: string, meta: any) => {
+    serverTokenUsage = (meta && meta.tokenUsage) || null;
     updateConversationTokenDisplay();
     checkAutoCompact();
   });
@@ -164,7 +167,7 @@ function bindEvents() {
 
   // 压缩上下文按钮
   const compactBtn = document.getElementById('cuckoo-btn-compact');
-  compactBtn?.addEventListener('click', runCompaction);
+  compactBtn?.addEventListener('click', () => runCompaction(state.currentProjectDir || undefined));
 
   // 首次使用提示浮窗：初始化按钮（与右侧初始化项目逻辑一致）
   const firstInitBtn = document.getElementById('cuckoo-btn-first-init');

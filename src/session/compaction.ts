@@ -14,7 +14,6 @@
  *  - hook 已把真实请求头缓存到 localStorage['cuckoo-ds-headers']
  *  - DeepSeek 把会话消息缓存在 IndexedDB 'deepseek-chat' 的 'history-message' store
  */
-import { state } from '../overlay/state.js';
 import { sendToChat } from '../overlay/chat-input.js';
 import { onInterceptedResponse } from '../bridge/intercept/observer.js';
 import { showToast } from '../overlay/panel.js';
@@ -39,16 +38,16 @@ interface MessageItem {
   parent_id?: any;
 }
 
-/** 等待 AI 回复完成（拦截到完整回复） */
-function waitForResponse(timeoutMs: number): Promise<string> {
+/** 等待 AI 回复完成（拦截到完整回复），返回文本 + 服务端 meta（msgIds 等） */
+function waitForResponse(timeoutMs: number): Promise<{ text: string; meta: any }> {
   return new Promise((resolve, reject) => {
     let done = false;
-    const off = onInterceptedResponse((text: string) => {
+    const off = onInterceptedResponse((text: string, meta: any) => {
       if (done) return;
       done = true;
       off();
       clearTimeout(timer);
-      resolve(text);
+      resolve({ text, meta: meta || {} });
     });
     const timer = setTimeout(() => {
       if (done) return;
@@ -168,7 +167,7 @@ async function createShare(sessionId: string, messageIds: number[], headers: any
 /**
  * 主流程
  */
-async function runCompaction(): Promise<void> {
+async function runCompaction(projectDir?: string): Promise<void> {
   const btn = document.getElementById('cuckoo-btn-compact') as any;
   if (btn) { btn.disabled = true; btn.textContent = '压缩中...'; }
   // 压缩进行中：暂停自动重试与看门狗，避免它们的回复被 waitForResponse 误当成摘要
@@ -184,15 +183,15 @@ async function runCompaction(): Promise<void> {
     logStep('summary', '发送前 maxMessageId=' + maxIdBefore);
 
     // 步骤 1：让 AI 写摘要
-    state.lastResponseMsgIds = null; // 清空，避免拿到上一条
+    // 注意：waitForResponse 在 sendToChat 之前注册，确保拿到的就是本次摘要回复
     logStep('summary', '发送摘要指令');
     const waitReply = waitForResponse(120000);
     sendToChat(SUMMARY_INSTRUCTION, '压缩-摘要', 300);
-    const summaryText = await waitReply;
+    const { text: summaryText, meta: summaryMeta } = await waitReply;
     logStep('summary', '收到摘要回复，长度=' + (summaryText || '').length);
 
     // 摘要回复的 id（来自 SSE 流，最准确）
-    const summaryIds = state.lastResponseMsgIds;
+    const summaryIds = summaryMeta.msgIds;
     const summaryRespId = summaryIds && summaryIds.responseMessageId;
     const summaryReqId = summaryIds && summaryIds.requestMessageId;
     logStep('summary', '摘要消息 id: response=' + (summaryRespId || '?') + ' request=' + ((summaryIds && summaryIds.requestMessageId) || '?'));
@@ -237,8 +236,8 @@ async function runCompaction(): Promise<void> {
     showToast('压缩完成，正在打开新会话...', 3000);
     try {
       localStorage.setItem('cuckoo-compact-pending-init', String(Date.now()));
-      if (state.currentProjectDir) {
-        localStorage.setItem('cuckoo-compact-project-dir', state.currentProjectDir);
+      if (projectDir) {
+        localStorage.setItem('cuckoo-compact-project-dir', projectDir);
       }
     } catch (_) {}
     window.location.href = link;

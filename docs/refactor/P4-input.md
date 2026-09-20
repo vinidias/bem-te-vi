@@ -111,10 +111,11 @@ readConfig = withLog(readConfig, 'retry.readConfig');   ← 运行时猴子补�
 **背景**：P4.2 分两步。B 步（文件归位）已完成，但为控制风险，**临时保留**了以下
 违反"overlay 不依赖 bridge"铁律的依赖，待 A 步（回调注入）解决：
 
-| 位置 | 依赖 | 应改为 |
+| 位置 | 依赖 | 状态 |
 |---|---|---|
-| `overlay/chat-input.ts` | `bridge/loop/watchdog`、`bridge/parser/js-detector` | 回调注入 |
-| `overlay/events.ts` | `bridge/intercept/observer` | 回调注入 |
+| `overlay/chat-input.ts` | `bridge/loop/watchdog`、`bridge/parser/js-detector` | ✅ 已解（db39e6a） |
+| `overlay/events.ts` | `bridge/intercept/observer` | ✅ 已解（db39e6a） |
+| `bridge/intercept/observer`、`session/compaction` | `overlay/state`（反向依赖） | ✅ 已解（回调推送 meta） |
 
 **A 步方向**（架构文档 3.1）：
 - overlay 模块不 import bridge，而是接受回调（如 `onSendToChat`、`onInterceptedResponse`）

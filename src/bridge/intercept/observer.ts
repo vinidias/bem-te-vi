@@ -3,7 +3,6 @@
  * 监听主世界注入的 'cuckoo-ai-response' 事件，收到完整回复后走与 DOM 模式
  * 相同的工具调用/JS 代码块处理流程。
  */
-import { state } from '../../overlay/state.js';
 import { extractJsToolBlocks, BT } from '../parser/js-detector.js';
 import { looksLikeJsonToolCall } from '../parser/json-detector.js';
 import { handleJsToolScript } from '../loop/executor.js';
@@ -116,16 +115,18 @@ async function processInterceptedResponse(text: string, force?: boolean): Promis
 }
 
 // 回复完成监听器（供压缩等流程等待 AI 回复完成）
-const responseListeners = new Set<(text: string) => void>();
+// meta 携带服务端权威数据（tokenUsage / msgIds），由监听方按需取用，
+// 避免共享状态跨层（bridge 不依赖 overlay）。
+const responseListeners = new Set<(text: string, meta: any) => void>();
 // 失败监听器（供自动重试引擎订阅）
 const errorListeners = new Set<(detail: any) => void>();
 
 /**
  * 注册"AI 回复完成"监听器
- * @param cb 收到完成回复时调用，参数为完整文本
+ * @param cb 收到完成回复时调用，参数为完整文本 + meta（{ tokenUsage, msgIds }）
  * @returns 取消注册
  */
-function onInterceptedResponse(cb: (text: string) => void): () => void {
+function onInterceptedResponse(cb: (text: string, meta: any) => void): () => void {
   responseListeners.add(cb);
   return () => responseListeners.delete(cb);
 }
@@ -158,17 +159,10 @@ function startInterceptObserver(): void {
       try { watchdog.onResponseReceived('finished'); } catch (_) { /* ignore */ }
       // 缓存最近一次完整回复文本，供手动解析复用（不依赖 DOM）
       lastInterceptedText = detail.text || '';
-      // 保存服务端权威 token 统计（供面板显示）
-      if (detail.tokenUsage) {
-        state.serverTokenUsage = detail.tokenUsage;
-      }
-      // 保存最近一次回复的消息 id（压缩时定位摘要用）
-      if (detail.msgIds) {
-        state.lastResponseMsgIds = detail.msgIds;
-      }
-      // 通知监听器（每次成功回复都触发，供 token 判断等）
+      // 通知监听器（每次成功回复都触发），携带服务端权威数据
+      const meta = { tokenUsage: detail.tokenUsage || null, msgIds: detail.msgIds || null };
       for (const cb of responseListeners) {
-        try { cb(detail.text || ''); } catch (_) { /* ignore */ }
+        try { cb(detail.text || '', meta); } catch (_) { /* ignore */ }
       }
       processInterceptedResponse(detail.text);
     } catch (err) {

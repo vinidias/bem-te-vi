@@ -1,7 +1,7 @@
 /**
  * 共享状态（overlay 层）
- * 说明：serverTokenUsage / lastResponseMsgIds 由 bridge 写入、overlay/session 读取，
- * 属跨层共享（P4.2-A 遗留，待改推送机制，见 docs/refactor/P4-input.md 第 8 条）。
+ * 仅承载 overlay 内部共享；bridge/session 的数据经 onInterceptedResponse 回调推送，
+ * 不放在这里（避免下层依赖上层）。
  */
 interface PreloadState {
   initialPromptContent: string;
@@ -12,10 +12,6 @@ interface PreloadState {
   sendDelayMax: number;
   // 当前项目目录（null 表示未初始化）
   currentProjectDir: string | null;
-  // 服务端返回的权威 token 统计（{ accumulatedTokens, insertedAt, updatedAt, modelType }）
-  serverTokenUsage: any;
-  // 最近一次 AI 回复的消息 id（{ requestMessageId, responseMessageId }）
-  lastResponseMsgIds: any;
 }
 
 const state: PreloadState = {
@@ -27,10 +23,6 @@ const state: PreloadState = {
   sendDelayMax: 4000,
   // 当前项目目录（null 表示未初始化）
   currentProjectDir: null,
-  // 服务端返回的权威 token 统计（{ accumulatedTokens, insertedAt, updatedAt, modelType }）
-  serverTokenUsage: null,
-  // 最近一次 AI 回复的消息 id（{ requestMessageId, responseMessageId }）
-  lastResponseMsgIds: null,
 };
 
 export { state };
