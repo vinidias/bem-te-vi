@@ -3,14 +3,13 @@
 import js from '@eslint/js';
 import noRestrictedRequires from './eslint-rules/no-restricted-requires.js';
 
-// 依赖护栏（P2 先配"现状目录"，P4 重组后按目标结构重配）
+// 依赖护栏（P4.3 后按新目录重配；因 D22 当前 ESLint 只检查 .js，P5 启用 .ts 后生效）
 const DEPENDENCY_ZONES = [
-  // tools/ 不得反向依赖 src/main/（上层）
+  // src/tools 不得反向依赖 src/app（上层）
   {
-    target: 'tools',
-    from: 'src/main',
-    except: ['mcp-client'], // 现状豁免（路径不带 .js），P4 解耦后移除
-    reason: 'tools 不得依赖主进程，应在 P4 解耦',
+    target: 'src/tools',
+    from: 'src/app',
+    reason: 'tools 不得依赖 app（架构：infra ← providers ← tools ← bridge ← session ← app）',
   },
 ];
 

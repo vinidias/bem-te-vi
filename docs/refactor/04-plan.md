@@ -163,10 +163,15 @@
 - [ ] `bridge/tool-names` 删除（**推迟 P5**：需 D12 构建期生成，不能在 preload 引主进程 registry）
 - [ ] `test/preload/` 改名（源码已不在 preload）
 
-### P4.3 tools 重组
-- [ ] `tools/` → `src/tools/`
-- [ ] 内部按 `core/ runtime/ impl/` 重组
-- [ ] 同步改 `package.json`（extraResources）、electron-builder、测试路径
+### P4.3 tools 重组 ✅（23383b9）
+- [x] `tools/` → `src/tools/`（根目录 tools/ 已删）
+- [x] 按 `core/`（Tool/ToolRegistry/ToolResult）、`runtime/`（JsRunner）、`impl/`（各工具）重组
+- [x] `ToolRegistry.ts` 拆为 3 文件（B 方案）
+- [x] impl 文件名改 kebab-case（read.ts/write.ts/bash.ts...）
+- [x] `decodeOutput` → `src/infra/decode-output.ts`
+- [x] `cuckoo-tools.d.ts` → `src/tools/api.d.ts`
+- [x] 同步改 package.json（extraResources）、tsconfig、eslint、vitest、paths.ts、测试
+- **验收**：typecheck ✅ / 218 测试 ✅ / compile ✅ / lint 0 error
 
 ### P4.4 providers 对齐新约定（D13/D14/D15）
 - [ ] **保持单文件自包含**（D13）：`deepseek.ts`/`claude.ts`/`chatgpt.ts` 各自
