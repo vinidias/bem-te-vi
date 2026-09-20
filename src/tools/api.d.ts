@@ -2,7 +2,7 @@
  * Cuckoo Code 工具 API（TypeScript 声明）
  *
  * 本文件描述 cuckoo 代码块中可以调用的全部全局函数与数据类型。
- * 运行时由 tools/JsRunner.js 在受限沙箱中注入这些函数；本声明用于帮助
+ * 运行时由 JsRunner 在受限沙箱中注入这些函数；本声明用于帮助
  * AI 理解调用方式，与运行时行为保持一致。
  *
  * 使用规则速览：
@@ -12,6 +12,9 @@
  * - 工具出错时抛出异常（Error.message 为错误描述），可用 try/catch 处理；
  *   唯一例外是 bash()/pwsh()：非零退出不抛异常，通过返回文本中的 [exit code] 标记报告
  * - 用 log() 输出中间过程；脚本最后可用 return 返回结果值
+ *
+ * ⚠️ 本文件由 scripts/build-tool-api.mjs 自动生成，请勿手动编辑。
+ *    真相源：各工具的 apiMetas 元数据（src/tools/impl/*.ts）。
  */
 
 /** 当前项目根目录（初始化项目后由系统注入）。未初始化时为 null。 */
@@ -100,6 +103,7 @@ declare function write(filePath: string, content: string): Promise<string>;
  */
 declare function edit(filePath: string, oldString: string, newString: string, replaceAll?: boolean, dryRun?: boolean): Promise<string>;
 
+
 // ================= 搜索 =================
 
 /**
@@ -130,6 +134,7 @@ interface GrepOptions {
  * @throws pattern 为空、include 非法、ripgrep 执行失败时抛出异常
  */
 declare function grep(pattern: string, options?: GrepOptions): Promise<string>;
+
 
 // ================= 命令执行 =================
 
@@ -179,6 +184,7 @@ interface PwshOptions {
  */
 declare function pwsh(command: string, options?: PwshOptions): Promise<string>;
 
+
 // ================= 任务管理 =================
 
 /** todo 条目状态 */
@@ -202,6 +208,7 @@ interface TodoItem {
  */
 declare function todoWrite(todos: TodoItem[]): Promise<string>;
 
+
 // ================= 删除 =================
 
 /** deleteFile 的返回值 */
@@ -213,9 +220,11 @@ interface FileDeleteResult {
 
 /**
  * 删除指定文件（不可恢复，请谨慎使用；只能删除文件，不能删除目录）。
+ * @param filePath 要删除的文件路径
  * @throws 文件不存在或路径不是文件时抛出异常
  */
 declare function deleteFile(filePath: string): Promise<FileDeleteResult>;
+
 
 // ================= MySQL =================
 
@@ -247,6 +256,7 @@ interface MySQLOptions {
  */
 declare function mysql(options: MySQLOptions): Promise<string>;
 
+
 // ================= WebFetch =================
 
 /**
@@ -275,6 +285,7 @@ declare function openBrowserWindow(url: string, options?: { id?: string; width?:
  */
 declare function injectJS(windowId: string, code: string): Promise<any>;
 
+
 // ================= 附件上传 =================
 
 /**
@@ -287,6 +298,7 @@ declare function injectJS(windowId: string, code: string): Promise<any>;
  * @throws 文件不存在、不是文件、超过 30MB、缺少窗口上下文或上传超时时抛出异常
  */
 declare function attachFile(filePath: string): Promise<{ fileName: string; size: number; message: string }>;
+
 
 // ================= MCP =================
 

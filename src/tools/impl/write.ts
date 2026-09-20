@@ -1,7 +1,28 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import fs from 'node:fs';
 import path from 'node:path';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 3,
+    category: '文件读写',
+    name: 'write',
+    doc: [
+      '创建或完全覆盖 UTF-8 文本文件。',
+      '返回格式化 envelope：<path>...</path><type>file</type><content>Created/Updated file</content>',
+    ].join('\n'),
+    params: 'filePath: string, content: string',
+    returns: 'Promise<string>',
+    paramDocs: {
+      filePath: '相对（基于项目根目录）或绝对路径',
+      content: '完整 UTF-8 文本内容；空字符串合法（写入空文件）',
+    },
+    throws: '路径为空、写入失败时抛出异常',
+  },
+];
 
 /**
  * 校验 write 参数：

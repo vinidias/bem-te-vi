@@ -1,8 +1,31 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 5,
+    category: '搜索',
+    name: 'glob',
+    doc: [
+      '按 glob 模式查找文件路径，返回纯文本路径列表（以 / 分隔，如 "src/utils/a.js"）。',
+      '使用 ripgrep，包含隐藏文件和已忽略文件，只排除 VCS 元数据目录（.git、.svn 等）。',
+      'glob 语法：* 匹配单层内任意字符，** 匹配任意层级目录，? 匹配单个字符。',
+      '结果包含 footer：未超限时 "(Found N files)"，超限时 "(Showing M of N paths...)"。',
+    ].join('\n'),
+    params: 'pattern: string, searchPath?: string',
+    returns: 'Promise<string>',
+    paramDocs: {
+      pattern: 'glob 匹配模式，如 src 下所有 .js / .ts，或 *.json',
+      searchPath: '搜索起始目录（相对路径），默认项目根目录',
+    },
+    throws: 'pattern 为空、搜索目录不存在或不是目录时抛出异常',
+  },
+];
 
 // @vscode/ripgrep 是 ES Module，CommonJS 里不能用 require() 同步加载；
 // 改为惰性动态 import()，只在首次执行 ripgrep 时解析一次。

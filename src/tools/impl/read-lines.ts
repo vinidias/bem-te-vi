@@ -1,8 +1,47 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { READ_LIMIT, parseReadArgs, buildWindow } from './read.js';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 2,
+    category: '文件读写',
+    name: 'readLines',
+    types: [
+      '/** readLines 返回的单行数据 */',
+      'interface ReadLine {',
+      '  /** 1-based 行号 */',
+      '  number: number;',
+      '  /** 行文本（不含换行符） */',
+      '  text: string;',
+      '}',
+      '',
+      '/** readLines 的返回结果 */',
+      'interface ReadLinesResult {',
+      '  /** 窗口内的行数据 */',
+      '  lines: ReadLine[];',
+      '  /** 文件总行数 */',
+      '  totalLines: number;',
+      '  /** 本次起始行号 */',
+      '  offset: number;',
+      '  /** 是否因字节上限被截断 */',
+      '  truncatedByBytes: boolean;',
+      '}',
+    ].join('\n'),
+    doc: '读取 UTF-8 文本文件并返回结构化行数组，供 AI 在内存中精确处理。',
+    params: 'filePath: string, options?: ReadOptions',
+    returns: 'Promise<ReadLinesResult>',
+    paramDocs: {
+      filePath: '相对（基于项目根目录）或绝对路径',
+      options: '可选，offset/limit',
+    },
+    throws: '文件不存在、不是文件、offset 越界或读取失败时抛出异常',
+  },
+];
 
 /**
  * readLines 工具 - 返回结构化行数据（数组），供 AI 在内存中精确处理。

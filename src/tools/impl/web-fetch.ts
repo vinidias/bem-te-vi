@@ -1,7 +1,29 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import TurndownService from 'turndown';
 import { gfm } from '@joplin/turndown-plugin-gfm';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 12,
+    category: 'WebFetch',
+    name: 'webFetch',
+    doc: [
+      '获取指定 HTTP(S) URL 的内容并解码为文本。',
+      'HTML 会转换为 Markdown（turndown + GFM）。',
+      '返回纯文本：Fetched <url> (HTTP <status>) + 正文。',
+      '内容超过上限（约 20000 字符）会截断并附 footer。',
+    ].join('\n'),
+    params: 'url: string',
+    returns: 'Promise<string>',
+    paramDocs: {
+      url: '要获取的 HTTP(S) URL',
+    },
+    throws: 'URL 为空、非 http/https、请求超时或失败时抛出异常',
+  },
+];
 
 // 内部固定上限，不暴露给模型
 const FETCH_TIMEOUT_MS = 15000;

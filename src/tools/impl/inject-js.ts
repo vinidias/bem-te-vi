@@ -1,6 +1,24 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import { windowManager } from './browser-window-manager.js';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 14,
+    category: 'WebFetch',
+    name: 'injectJS',
+    doc: '向指定窗口注入 JS 代码并返回执行结果（支持 async/await）。 如果需要可以使用js模拟点击等任何操作.',
+    params: 'windowId: string, code: string',
+    returns: 'Promise<any>',
+    paramDocs: {
+      windowId: '目标窗口 ID',
+      code: '要注入的 JS 代码（支持 await，返回值会被返回）',
+    },
+    returnsDoc: 'JS 执行结果',
+  },
+];
 
 class InjectJSTool extends Tool {
   constructor() {

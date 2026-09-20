@@ -2,7 +2,30 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 15,
+    category: '附件上传',
+    name: 'attachFile',
+    doc: [
+      '将本地文件作为附件上传到当前对话输入框（不发送）。',
+      '当你需要基于无法用 read 读取的文件内容（PDF、DOC、XLSX、PPT、图片等）作答，或需要把文件交给用户看时使用——无需用户明确要求上传。',
+      '若只需判断文件是否存在或读取其文本内容，用 read/glob 即可，不要上传。',
+      '上传成功后文件会随下一条消息一起发出，之后可基于其内容作答。',
+    ].join('\n'),
+    params: 'filePath: string',
+    returns: 'Promise<{ fileName: string; size: number; message: string }>',
+    paramDocs: {
+      filePath: '要上传的文件路径（相对项目根目录或绝对路径）',
+    },
+    returnsDoc: '{ fileName: string, size: number, message: string }',
+    throws: '文件不存在、不是文件、超过 30MB、缺少窗口上下文或上传超时时抛出异常',
+  },
+];
 
 const require = createRequire(import.meta.url);
 const { BrowserWindow } = require('electron');

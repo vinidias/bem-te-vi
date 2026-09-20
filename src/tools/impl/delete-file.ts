@@ -1,7 +1,32 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import fs from 'node:fs';
 import path from 'node:path';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 10,
+    category: '删除',
+    name: 'deleteFile',
+    types: [
+      '/** deleteFile 的返回值 */',
+      'interface FileDeleteResult {',
+      '  message: string;',
+      '  /** 被删除文件的绝对路径 */',
+      '  path: string;',
+      '}',
+    ].join('\n'),
+    doc: '删除指定文件（不可恢复，请谨慎使用；只能删除文件，不能删除目录）。',
+    params: 'filePath: string',
+    returns: 'Promise<FileDeleteResult>',
+    paramDocs: {
+      filePath: '要删除的文件路径',
+    },
+    throws: '文件不存在或路径不是文件时抛出异常',
+  },
+];
 
 /**
  * 文件删除工具

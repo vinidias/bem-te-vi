@@ -5,7 +5,7 @@
   "type": "module",
   "main": "out/src/app/entry.js",
   "scripts": {
-    "compile": "node scripts/build-hooks.mjs && tsc -p tsconfig.build.json",
+    "compile": "node scripts/build-hooks.mjs && tsc -p tsconfig.build.json && node scripts/build-tool-api.mjs",
     "start": "node start.js",
     "test": "vitest run",
     "test:watch": "vitest",

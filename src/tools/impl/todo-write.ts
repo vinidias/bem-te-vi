@@ -1,5 +1,39 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 9,
+    category: '任务管理',
+    name: 'todoWrite',
+    types: [
+      '/** todo 条目状态 */',
+      "type TodoStatus = 'pending' | 'in_progress' | 'completed';",
+      '',
+      '/** todo 条目 */',
+      'interface TodoItem {',
+      '  /** 任务内容，简短的祈使句 */',
+      '  content: string;',
+      '  /** pending（未开始）| in_progress（进行中）| completed（已完成） */',
+      '  status: TodoStatus;',
+      '}',
+    ].join('\n'),
+    doc: [
+      '记录并更新当前工作的结构化任务列表。',
+      '每次发送完整列表，替换之前的列表（无部分更新）。',
+      '串行模式：最多一条 in_progress。',
+    ].join('\n'),
+    params: 'todos: TodoItem[]',
+    returns: 'Promise<string>',
+    paramDocs: {
+      todos: '完整任务列表',
+    },
+    returnsDoc: '统计确认消息，如 "Updated todo list: 2 pending, 1 in progress, 0 completed."',
+    throws: 'content 为空、重复、状态非法、超过一条 in_progress 时抛出异常',
+  },
+];
 
 // 对齐 dsh STATUSES
 const STATUSES = ['pending', 'in_progress', 'completed'];

@@ -1,7 +1,32 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import fs from 'node:fs';
 import path from 'node:path';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 4,
+    category: '文件读写',
+    name: 'edit',
+    doc: [
+      '在现有 UTF-8 文本文件中精确替换 oldString 为 newString。',
+      '默认 oldString 必须唯一匹配；多匹配需设置 replaceAll。',
+      '返回 Claude-style 确认消息。',
+    ].join('\n'),
+    params: 'filePath: string, oldString: string, newString: string, replaceAll?: boolean, dryRun?: boolean',
+    returns: 'Promise<string>',
+    paramDocs: {
+      filePath: '相对或绝对路径',
+      oldString: '要替换的字面文本',
+      newString: '替换后的字面文本（可空字符串删除匹配）',
+      replaceAll: '是否替换所有匹配，默认 false',
+      dryRun: '是否只预览不写入，默认 false；true 时返回将替换的处数和内容，不修改文件',
+    },
+    throws: '文件不存在、oldString 未找到、多匹配未设置 replaceAll、oldString===newString 时抛出异常',
+  },
+];
 
 /**
  * 校验 edit 参数（对齐 dsh parseEditArgs）：

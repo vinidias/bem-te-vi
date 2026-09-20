@@ -1,8 +1,44 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import { exec } from 'node:child_process';
 import path from 'node:path';
 import { decodeOutput, normalizeCommand } from '../../infra/decode-output.js';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 7,
+    category: '命令执行',
+    name: 'bash',
+    types: [
+      '/** bash 的选项 */',
+      'interface BashOptions {',
+      '  /** 命令用途说明（清晰、简洁、主动语态，5-10 词） */',
+      '  description?: string;',
+      '  /** 工作目录（相对路径基于项目根目录），默认项目根目录 */',
+      '  workdir?: string;',
+      '  /** 超时毫秒数，默认 30000 */',
+      '  timeoutMs?: number;',
+      '}',
+    ].join('\n'),
+    doc: [
+      '执行 shell 命令（Windows 使用 cmd.exe）。',
+      '返回纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）。',
+      '必须用 log() 方法打印才能看到返回内容。',
+      '非零退出不抛异常，通过 [exit code] 标记报告。',
+      '危险命令会被安全策略拒绝并抛异常。',
+    ].join('\n'),
+    params: 'command: string, options?: BashOptions',
+    returns: 'Promise<string>',
+    paramDocs: {
+      command: '要执行的 shell 命令',
+      options: '可选，{ description?: string, workdir?: string, timeoutMs?: number }',
+    },
+    returnsDoc: '纯文本：stdout + [stderr] 分节 + 状态标记（[exit code]、[timed out]）',
+    throws: '危险命令被安全策略拒绝时抛出异常',
+  },
+];
 
 // 危险命令列表（保持不变）
 const DANGEROUS_CMDS = [

@@ -225,7 +225,8 @@
 **目标**：提升质量，清理残留。
 
 **任务**：
-- [ ] `tsconfig` 开 `strict: true`，逐个消灭 `any` 与 `@ts-ignore`
+- [x] `tsconfig` 开 `strict: true`（c5c444e）：主应用 0 错误；
+      hook 独立类型环境（`tsconfig.hooks.json`，承认 hook 是注入脚本这一不同性质）
 - [ ] **工具规范自动生成（D12）**：用 TS 编译器从工具类型定义生成
       `cuckoo-tools.d.ts` 与提示词中的工具章节，消除三处手动同步
 - [ ] 删残留的兼容层/旧别名（若 P1 未清完）

@@ -1,5 +1,38 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 17,
+    category: 'MCP',
+    name: 'mcpListServers',
+    doc: [
+      '列出所有已配置的 MCP server（含启用状态、连接状态和工具数量）。',
+      '使用 MCP 前先调用此函数查看当前可用 server。',
+    ].join('\n'),
+    params: '',
+    returns: 'Promise<string>',
+    returnsDoc: '纯文本 server 列表',
+  },
+  {
+    order: 18,
+    category: 'MCP',
+    name: 'mcpGetTools',
+    doc: [
+      '查看指定 MCP server 提供的工具列表（含描述和参数）。',
+      '确认工具能力后再调用 mcpCall。',
+    ].join('\n'),
+    params: 'serverName: string',
+    returns: 'Promise<string>',
+    paramDocs: {
+      serverName: 'MCP server 名称',
+    },
+    returnsDoc: '纯文本工具列表',
+    throws: 'server 不存在或连接失败时抛出异常',
+  },
+];
 
 /**
  * MCP 查询工具 - 列出已配置的 MCP server

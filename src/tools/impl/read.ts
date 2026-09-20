@@ -1,7 +1,44 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import fs from 'node:fs';
 import path from 'node:path';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 1,
+    category: '文件读写',
+    name: 'read',
+    types: [
+      '/** read 的选项 */',
+      'interface ReadOptions {',
+      '  /** 1-based 起始行号，默认 1 */',
+      '  offset?: number;',
+      '  /** 最大返回行数，默认 2000，上限 2000 */',
+      '  limit?: number;',
+      '}',
+    ].join('\n'),
+    doc: [
+      '读取 UTF-8 文本文件并返回带行号的内容窗口。',
+      '通过 offset 和 limit 分段读取大文件。输出为格式化文本：',
+      '<path>...</path>',
+      '<type>file</type>',
+      '<content>',
+      '行号: 内容',
+      '...',
+      '(footer 提示是否继续读取)',
+      '</content>',
+    ].join('\n'),
+    params: 'filePath: string, options?: ReadOptions',
+    returns: 'Promise<string>',
+    paramDocs: {
+      filePath: '相对（基于项目根目录）或绝对路径',
+      options: '可选，offset/limit',
+    },
+    throws: '文件不存在、不是文件、offset 越界或读取失败时抛出异常',
+  },
+];
 
 // 与 dsh read 对齐的默认上限
 const READ_LIMIT = 2000;

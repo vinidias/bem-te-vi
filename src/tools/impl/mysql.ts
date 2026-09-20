@@ -1,6 +1,47 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import mysql from 'mysql2/promise';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 11,
+    category: 'MySQL',
+    name: 'mysql',
+    types: [
+      '/** MySQL 连接与查询参数 */',
+      'interface MySQLOptions {',
+      '  /** MySQL 主机地址，默认 localhost */',
+      '  host?: string;',
+      '  /** MySQL 端口，默认 3306 */',
+      '  port?: number;',
+      '  /** 用户名 */',
+      '  user: string;',
+      '  /** 密码 */',
+      '  password?: string;',
+      '  /** 数据库名 */',
+      '  database: string;',
+      '  /** 要执行的 SQL 语句 */',
+      '  sql: string;',
+      '  /** SELECT 返回行数上限，默认 100，最大 1000 */',
+      '  limit?: number;',
+      '}',
+    ].join('\n'),
+    doc: [
+      '执行 MySQL SQL 语句。',
+      'SELECT/SHOW/DESCRIBE/EXPLAIN 等查询返回纯文本表格；',
+      'INSERT/UPDATE/DELETE/DDL 返回 affectedRows 等执行统计。',
+    ].join('\n'),
+    params: 'options: MySQLOptions',
+    returns: 'Promise<string>',
+    paramDocs: {
+      options: '连接参数 + sql',
+    },
+    returnsDoc: '纯文本表格（查询）或执行统计（写操作）',
+    throws: '连接失败、SQL 错误时抛出异常',
+  },
+];
 
 /**
  * MySQL 工具 - 执行 SQL 查询或写操作。

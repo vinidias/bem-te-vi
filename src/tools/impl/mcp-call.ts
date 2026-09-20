@@ -1,5 +1,28 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 16,
+    category: 'MCP',
+    name: 'mcpCall',
+    doc: [
+      '调用 MCP server 提供的工具。',
+      '使用前先调用 mcpListServers() 和 mcpGetTools() 查询可用能力。',
+    ].join('\n'),
+    params: 'server: string, tool: string, args?: Record<string, unknown>',
+    returns: 'Promise<string>',
+    paramDocs: {
+      server: 'MCP server 名称',
+      tool: '要调用的工具名',
+      args: '工具参数对象',
+    },
+    returnsDoc: '工具执行结果（纯文本）',
+    throws: '连接失败、工具不存在或调用出错时抛出异常',
+  },
+];
 
 /**
  * MCP 调用工具 - 让 AI 通过 mcpCall 调用外部 MCP server 的工具。

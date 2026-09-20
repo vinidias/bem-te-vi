@@ -1,8 +1,39 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 6,
+    category: '搜索',
+    name: 'grep',
+    types: [
+      '/** grep 的选项 */',
+      'interface GrepOptions {',
+      '  /** 搜索起始文件或目录（相对路径基于项目根目录），默认项目根目录 */',
+      '  path?: string;',
+      '  /** 过滤文件，单个正向 glob（如 "*.ts"、"*.{js,jsx}"），不支持否定和逗号列表 */',
+      '  include?: string;',
+      '}',
+    ].join('\n'),
+    doc: [
+      '用 ripgrep 正则表达式搜索文件内容。',
+      '返回纯文本：header（Found N matches）+ 按文件分组的 "Line N: 内容"。',
+      '无匹配返回 "No matches found"。',
+    ].join('\n'),
+    params: 'pattern: string, options?: GrepOptions',
+    returns: 'Promise<string>',
+    paramDocs: {
+      pattern: 'ripgrep 正则表达式',
+      options: '可选，path/include',
+    },
+    throws: 'pattern 为空、include 非法、ripgrep 执行失败时抛出异常',
+  },
+];
 
 // 对齐 dsh 默认上限
 const GREP_MAX_MATCHES = 250;

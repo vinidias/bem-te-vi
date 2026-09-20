@@ -1,6 +1,24 @@
 import { Tool } from '../core/Tool.js';
+import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import { windowManager } from './browser-window-manager.js';
+
+// ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
+export const apiMetas: ToolApiMeta[] = [
+  {
+    order: 13,
+    category: 'WebFetch',
+    name: 'openBrowserWindow',
+    doc: '打开一个 Electron 浏览器窗口并返回窗口 ID。 打开浏览器后可以使用 injectJS 工具对窗口内容注入js , 以具备操控网页能力',
+    params: 'url: string, options?: { id?: string; width?: number; height?: number }',
+    returns: 'Promise<any>',
+    paramDocs: {
+      url: '要打开的网页 URL',
+      options: '可选，{ id?: string, width?: number, height?: number }',
+    },
+    returnsDoc: '返回 { windowId: string, message: string }，用返回的 windowId 传给 injectJS',
+  },
+];
 
 class OpenBrowserWindowTool extends Tool {
   constructor() {
