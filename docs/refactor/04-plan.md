@@ -156,11 +156,11 @@
 - [x] `index.ts` → `bridge/entry.ts`、`api` → `bridge/api`、`tool-names` → `bridge/tool-names`
 - [x] `state.ts` → `overlay/state.ts`（暂作共享）
 
-**A 步（回调注入解耦）🔄 部分完成（db39e6a）**
+**A 步（回调注入解耦）✅ 完成（db39e6a + b78cd3e）**
 - [x] `overlay → bridge` 硬依赖清零（回调注入 wireChatInput/wireEvents）
 - [x] `BT/FENCE` 提取到 `infra/markdown`（共享常量）
 - [ ] state 跨层字段改推送（`serverTokenUsage`/`lastResponseMsgIds`）
-- [ ] `bridge/tool-names` 删除（从 registry 生成）
+- [ ] `bridge/tool-names` 删除（**推迟 P5**：需 D12 构建期生成，不能在 preload 引主进程 registry）
 - [ ] `test/preload/` 改名（源码已不在 preload）
 
 ### P4.3 tools 重组

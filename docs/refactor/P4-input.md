@@ -125,7 +125,9 @@ readConfig = withLog(readConfig, 'retry.readConfig');   ← 运行时猴子补�
 - `overlay/state.ts` 的 `serverTokenUsage`（bridge 写、overlay 读）、
   `lastResponseMsgIds`（bridge 写、session 读）→ 改**推送**而非共享读写
 - `state.pendingToolCall` **死字段**（0 引用）→ 删
-- `bridge/tool-names.ts` 应删（从 `tools/index` 注册表生成，见 D12）
+- `bridge/tool-names.ts`：**保持现状**（纯常量、无耦合）。
+  不能在 preload 里 import registry（tools/index 是主进程代码，含 Electron 主进程 API）。
+  正解是 D12（构建期生成），**推迟到 P5**——届时用编译器生成工具名列表，preload 读静态产物。
 - `test/preload/` 目录名过时（源码已不在 preload）→ 可改名 `test/bridge`+`test/overlay`
 
 ---
