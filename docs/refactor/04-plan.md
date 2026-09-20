@@ -227,8 +227,13 @@
 **任务**：
 - [x] `tsconfig` 开 `strict: true`（c5c444e）：主应用 0 错误；
       hook 独立类型环境（`tsconfig.hooks.json`，承认 hook 是注入脚本这一不同性质）
-- [ ] **工具规范自动生成（D12）**：用 TS 编译器从工具类型定义生成
-      `cuckoo-tools.d.ts` 与提示词中的工具章节，消除三处手动同步
+- [x] **工具规范自动生成（D12）** ✅（984f648 + d335e23）：
+      - 18 个工具自持 `apiMetas` 元数据（doc/params/types/paramDocs 等）
+      - `scripts/build-tool-api.mjs` 构建期生成 `src/tools/api.d.ts`（AI 契约）
+      - 18 个工具自持 `bootstrap()` 函数（沙箱注入），构建期 `.toString()` 提取
+        生成 `src/tools/runtime/bootstrap.generated.ts`
+      - `JsRunner` 用 `TOOL_BOOTSTRAP` 组装（删 90 行手写注入）
+      - **工具成为唯一真相源**：改工具 → api.d.ts + bootstrap 自动同步
 - [ ] 删残留的兼容层/旧别名（若 P1 未清完）
 - [ ] 补关键路径测试（bridge / overlay 覆盖不足）
 - [ ] 更新 `README` / `CONTRIBUTING` / `CHANGELOG`
