@@ -62,3 +62,19 @@ parts.push('');
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, parts.join('\n'), 'utf8');
 console.log('[build-hooks] 生成 ' + path.relative(ROOT, OUT) + '（' + HOOKS.length + ' 个 hook）');
+
+// ========== 覆盖层模板（HTML/CSS 外置 → TS 字符串）==========
+const TPL_DIR = path.join(ROOT, 'src', 'overlay', 'template');
+const TPL_OUT = path.join(ROOT, 'src', 'overlay', 'template.generated.ts');
+const html = fs.readFileSync(path.join(TPL_DIR, 'overlay.html'), 'utf8');
+const css = fs.readFileSync(path.join(TPL_DIR, 'overlay.css'), 'utf8');
+const tpl = [
+  '// 本文件由 scripts/build-hooks.mjs 自动生成，请勿手动编辑。',
+  '// 真源：src/overlay/template/overlay.html 与 overlay.css',
+  'const OVERLAY_HTML: string = ' + JSON.stringify(html) + ';',
+  'const OVERLAY_CSS: string = ' + JSON.stringify(css) + ';',
+  'export { OVERLAY_HTML, OVERLAY_CSS };',
+  '',
+].join('\n');
+fs.writeFileSync(TPL_OUT, tpl, 'utf8');
+console.log('[build-hooks] 生成 ' + path.relative(ROOT, TPL_OUT));

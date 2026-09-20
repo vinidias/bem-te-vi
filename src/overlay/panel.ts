@@ -2,7 +2,7 @@
  * 覆盖层 UI 基础能力：注入、提示、历史记录、徽章、面板显隐与巡检
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
-import { OVERLAY_HTML, OVERLAY_CSS } from './template.js';
+import { OVERLAY_HTML, OVERLAY_CSS } from './template.generated.js';
 import { getProviderByUrl } from '../providers/registry.js';
 import { state } from './state.js';
 
