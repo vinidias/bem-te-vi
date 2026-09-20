@@ -15,7 +15,7 @@ import * as mcpClient from '../mcp/client.js';
 import { resolveAsset, resolveSrc } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
-const { app, BrowserWindow, Menu, dialog, ipcMain: ipcMainForProfile } = require('electron');
+const { app, BrowserWindow, WebContentsView, Menu, dialog, ipcMain: ipcMainForProfile } = require('electron');
 
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
@@ -47,6 +47,7 @@ if (RENDERER_LOG_DIR) {
 }
 
 import { registerIpcHandlers } from './ipc/index.js';
+import { pushUrlState } from './ipc/shell.js';
 
 // 退出前需要 flush 的 sessions
 const sessionsToFlush = new Set<any>();
@@ -75,28 +76,58 @@ function createWindow(profile) {
   // providerId 已确定 → 直接打开；未确定 → 显示平台选择页
   const providerChosen = !!profileData.providerId;
 
+  // 壳窗口：webContents 承载地址栏（src/ui/shell.html），AI 页面放入下方 WebContentsView
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
     icon: resolveAsset('assets/icon.png'),
     title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
     webPreferences: {
-      // preload 入口：app 与 bridge 是兄弟目录（编译后 out/src/{app,bridge}）
-      preload: path.join(import.meta.dirname, '..', 'bridge', 'entry.js'),
+      // 壳页面 preload（只负责地址栏导航，与 AI 页面 preload 分离）
+      preload: path.join(import.meta.dirname, 'shell-preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
       partition: profileData.partition, // 每个 profile 独立持久化 session
-      backgroundThrottling: false,
       additionalArguments: ['--cuckoo-user-data=' + app.getPath('userData')],
     },
   });
 
+  // AI 页面视图（复用现有 bridge preload；与壳共用 partition）
+  const view = new WebContentsView({
+    webPreferences: {
+      preload: path.join(import.meta.dirname, '..', 'bridge', 'entry.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      partition: profileData.partition,
+      backgroundThrottling: false,
+      additionalArguments: ['--cuckoo-user-data=' + app.getPath('userData')],
+    },
+  });
+  mainWindow.contentView.addChildView(view);
+
+  // 布局：AI 页面占地址栏下方区域，随窗口尺寸变化
+  const TOOLBAR_HEIGHT = 44;
+  const layoutView = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const [w, h] = mainWindow.getContentSize();
+    view.setBounds({ x: 0, y: TOOLBAR_HEIGHT, width: w, height: Math.max(0, h - TOOLBAR_HEIGHT) });
+  };
+  layoutView();
+  mainWindow.on('resize', layoutView);
+
+  // 加载地址栏壳页面；壳就绪后主动推一次当前 URL 状态（避免与 view 加载竞态）
+  mainWindow.loadFile(resolveSrc('ui/shell.html'));
+  mainWindow.webContents.on('did-finish-load', () => {
+    pushUrlState(view);
+  });
+
   // 保存 session 引用（窗口销毁后 webContents 不可访问）
-  const winSession = mainWindow.webContents.session;
+  const winSession = view.webContents.session;
 
   // 注册窗口上下文（记录 providerId，未确定时为空字符串）
-  windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore);
+  windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore, view);
   sessionsToFlush.add(winSession);
 
   // 更新主窗口引用
@@ -107,8 +138,8 @@ function createWindow(profile) {
     updater.initAutoUpdater(mainWindow);
   }
 
-  // 转发渲染进程的 console.log 到主进程，并按平台写入独立日志文件
-  mainWindow.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
+  // 转发 AI 页面 console.log 到主进程，并按平台写入独立日志文件
+  view.webContents.on('console-message', (_event: any, level: any, message: any, _line: any, _sourceId: any) => {
     console.log('[Renderer Console][' + profileData.name + ']', message);
 
     // 打包版不进行日志持久化
@@ -116,7 +147,7 @@ function createWindow(profile) {
 
     // 根据当前窗口上下文确定 providerId，未确定用 default
     let providerId = profileData.providerId || 'default';
-    const ctx = windowState.getContextByWebContents(mainWindow.webContents);
+    const ctx = windowState.getContextByWebContents(view.webContents);
     if (ctx && ctx.providerId) providerId = ctx.providerId;
 
     const logFile = path.join(RENDERER_LOG_DIR, providerId + '.log');
@@ -131,35 +162,38 @@ function createWindow(profile) {
   // 2. 与内核版本一致，避免 Google OAuth 因 UA/sec-ch-ua 不一致报“浏览器不安全”
   const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-  mainWindow.webContents.setUserAgent(userAgent);
+  view.webContents.setUserAgent(userAgent);
 
   if (providerChosen && provider) {
     // 平台已确定且存在，直接进入平台首页
-    mainWindow.loadURL(provider.homeUrl);
+    view.webContents.loadURL(provider.homeUrl);
   } else {
     // 平台未确定（或对应 provider 已缺失），显示平台选择页
     const selectPage = resolveSrc('ui/platform-select.html');
-    mainWindow.loadFile(selectPage);
+    view.webContents.loadFile(selectPage);
   }
 
-  mainWindow.webContents.on('did-finish-load', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('page-loaded');
-      sessionStore.tryRestoreSessionFromUrl(mainWindow);
+  view.webContents.on('did-finish-load', () => {
+    if (view.webContents && !view.webContents.isDestroyed()) {
+      view.webContents.send('page-loaded');
+      sessionStore.tryRestoreSessionFromUrl(view);
+      pushUrlState(view);
     }
   });
 
-  mainWindow.webContents.on('did-navigate', (_event, url) => {
-    sessionStore.handleUrlChange(url, mainWindow);
+  view.webContents.on('did-navigate', (_event: any, url: string) => {
+    sessionStore.handleUrlChange(url, view);
+    pushUrlState(view);
   });
 
-  mainWindow.webContents.on('did-navigate-in-page', (_event, url) => {
-    sessionStore.handleUrlChange(url, mainWindow);
+  view.webContents.on('did-navigate-in-page', (_event: any, url: string) => {
+    sessionStore.handleUrlChange(url, view);
+    pushUrlState(view);
   });
 
-  mainWindow.webContents.on('before-input-event', (_event, input) => {
+  view.webContents.on('before-input-event', (_event: any, input: any) => {
     if (input.key === 'F12') {
-      mainWindow.webContents.toggleDevTools();
+      view.webContents.toggleDevTools();
     }
   });
 
@@ -208,14 +242,22 @@ function setupAppMenu() {
           label: '后退',
           accelerator: 'Alt+Left',
           click: (_item, focusedWindow) => {
-            if (focusedWindow) focusedWindow.webContents.navigationHistory.goBack();
+            const ctx = focusedWindow ? windowState.getContextByWebContents(focusedWindow.webContents) : null;
+            const view = ctx ? ctx.view : null;
+            if (view && view.webContents.navigationHistory.canGoBack()) {
+              view.webContents.navigationHistory.goBack();
+            }
           }
         },
         {
           label: '前进',
           accelerator: 'Alt+Right',
           click: (_item, focusedWindow) => {
-            if (focusedWindow) focusedWindow.webContents.navigationHistory.goForward();
+            const ctx = focusedWindow ? windowState.getContextByWebContents(focusedWindow.webContents) : null;
+            const view = ctx ? ctx.view : null;
+            if (view && view.webContents.navigationHistory.canGoForward()) {
+              view.webContents.navigationHistory.goForward();
+            }
           }
         },
         { type: 'separator' },
@@ -223,26 +265,34 @@ function setupAppMenu() {
           label: '重新加载',
           accelerator: 'CmdOrCtrl+R',
           click: (_item, focusedWindow) => {
-            if (focusedWindow) focusedWindow.reload();
+            const ctx = focusedWindow ? windowState.getContextByWebContents(focusedWindow.webContents) : null;
+            const view = ctx ? ctx.view : null;
+            if (view && view.webContents && !view.webContents.isDestroyed()) {
+              view.webContents.reload();
+            }
           }
         },
         {
           label: '停止加载',
           accelerator: 'Esc',
           click: (_item, focusedWindow) => {
-            if (focusedWindow) focusedWindow.webContents.stop();
+            const ctx = focusedWindow ? windowState.getContextByWebContents(focusedWindow.webContents) : null;
+            const view = ctx ? ctx.view : null;
+            if (view && view.webContents && !view.webContents.isDestroyed()) {
+              view.webContents.stop();
+            }
           }
         },
         { type: 'separator' },
         {
           label: '主页',
           click: (_item, focusedWindow) => {
-            if (focusedWindow) {
-              const ctx = windowState.getContextByWebContents(focusedWindow.webContents);
-              if (ctx && ctx.providerId) {
-                const provider = getProvider(ctx.providerId);
-                if (provider) focusedWindow.loadURL(provider.homeUrl);
-              }
+            if (!focusedWindow) return;
+            const ctx = windowState.getContextByWebContents(focusedWindow.webContents);
+            const view = ctx ? ctx.view : null;
+            if (ctx && ctx.providerId && view && view.webContents && !view.webContents.isDestroyed()) {
+              const provider = getProvider(ctx.providerId);
+              if (provider) view.webContents.loadURL(provider.homeUrl);
             }
           }
         }

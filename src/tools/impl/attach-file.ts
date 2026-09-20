@@ -190,6 +190,13 @@ class AttachFileTool extends Tool {
     if (!win || win.isDestroyed()) {
       return ToolResult.error('当前对话窗口不存在或已关闭');
     }
+    // AI 页面位于窗口的 WebContentsView 中（壳窗口自身的 webContents 是地址栏页面）
+    const childViews = (win.contentView && win.contentView.children) || [];
+    const pageView = childViews.find((v: any) => v && v.webContents && !v.webContents.isDestroyed());
+    const pageWc = pageView ? pageView.webContents : null;
+    if (!pageWc) {
+      return ToolResult.error('未找到对话页面视图');
+    }
 
     let stat;
     try {
@@ -221,7 +228,7 @@ class AttachFileTool extends Tool {
 
     let result;
     try {
-      result = await win.webContents.executeJavaScript(code, true);
+      result = await pageWc.executeJavaScript(code, true);
     } catch (err: any) {
       return ToolResult.error('注入上传脚本失败: ' + (err.message || String(err)));
     }

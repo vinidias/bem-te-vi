@@ -66,9 +66,18 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     pendingProjectDir: null,
   };
 
-  function handleUrlChange(url: string, targetWindow?: any): void {
+  /** 取目标 view：显式传入优先，否则取当前主窗口的 AI 页面 view */
+  function resolveView(targetView?: any): any {
+    if (targetView) return targetView;
+    const ctx = windowState && windowState.getMainContext ? windowState.getMainContext() : null;
+    return ctx ? ctx.view : null;
+  }
+
+  function handleUrlChange(url: string, targetView?: any): void {
     const sessionId = extractSessionIdFromUrl(url);
-    const win = targetWindow || (windowState && windowState.getMainWindow());
+    const view = resolveView(targetView);
+    const wc = view && view.webContents ? view.webContents : null;
+    const canSend = wc && !wc.isDestroyed();
 
     if (sessionId) {
       state.currentSessionId = sessionId;
@@ -78,9 +87,9 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
         saveSessionDirMapping(sessionId, state.pendingProjectDir);
         state.selectedProjectDir = state.pendingProjectDir;
         state.pendingProjectDir = null;
-        if (win && !win.isDestroyed()) {
-          win.webContents.send('project-dir-updated', state.selectedProjectDir);
-          win.webContents.send('session-restored', { sessionId, projectDir: state.selectedProjectDir });
+        if (canSend) {
+          wc.send('project-dir-updated', state.selectedProjectDir);
+          wc.send('session-restored', { sessionId, projectDir: state.selectedProjectDir });
         }
         console.log('[Cuckoo Code][' + profileId + '] 暂存目录已绑定');
         return;
@@ -89,15 +98,13 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
       const restoredDir = getProjectDirBySessionId(sessionId);
       if (restoredDir) {
         state.selectedProjectDir = restoredDir;
-        if (win && !win.isDestroyed()) {
-          win.webContents.send('session-restored', { sessionId, projectDir: restoredDir });
-          win.webContents.send('project-dir-updated', restoredDir);
+        if (canSend) {
+          wc.send('session-restored', { sessionId, projectDir: restoredDir });
+          wc.send('project-dir-updated', restoredDir);
         }
       } else {
         state.selectedProjectDir = null;
-        if (win && !win.isDestroyed()) {
-          win.webContents.send('project-dir-updated', null);
-        }
+        if (canSend) wc.send('project-dir-updated', null);
       }
     } else {
       // 提取不到会话 ID（如 ChatGPT 首页 https://chatgpt.com/）：
@@ -105,18 +112,16 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
       state.currentSessionId = null;
       if (!state.pendingProjectDir) {
         state.selectedProjectDir = null;
-        if (win && !win.isDestroyed()) {
-          win.webContents.send('project-dir-updated', null);
-        }
+        if (canSend) wc.send('project-dir-updated', null);
       }
     }
   }
 
-  function tryRestoreSessionFromUrl(targetWindow?: any): void {
-    const win = targetWindow || (windowState && windowState.getMainWindow());
-    if (!win || win.isDestroyed()) return;
-    const url = win.webContents.getURL();
-    handleUrlChange(url, win);
+  function tryRestoreSessionFromUrl(targetView?: any): void {
+    const view = resolveView(targetView);
+    if (!view || !view.webContents || view.webContents.isDestroyed()) return;
+    const url = view.webContents.getURL();
+    handleUrlChange(url, view);
   }
 
   return {

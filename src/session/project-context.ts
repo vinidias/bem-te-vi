@@ -43,6 +43,8 @@ function logWithFile(providerId: string, msg: string): void {
 async function initProject(skipPrompt: boolean = false, windowContext: any = null, presetDir: string | null = null, isCompaction: boolean = false): Promise<any> {
   const ctx = windowContext || windowState.getMainContext();
   const mainWindow = ctx ? ctx.win : windowState.getMainWindow();
+  // AI 页面在 WebContentsView 中（壳窗口的 win.webContents 是地址栏壳页面）
+  const view = ctx ? ctx.view : null;
   const sessionStore = ctx ? ctx.sessionStore : null;
   // providerId 来自窗口上下文（可能为空，表示未确定平台）
   const providerId = (ctx && ctx.providerId) || '';
@@ -63,7 +65,9 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
     // 无论用户是否选择目录，对话框关闭后都恢复主窗口焦点（避免输入框失效）
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.focus();
-      mainWindow.webContents.focus();
+      if (view && view.webContents && !view.webContents.isDestroyed()) {
+        view.webContents.focus();
+      }
     }
 
     if (!result || result.length === 0) {
@@ -88,8 +92,8 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
     } else {
       // 如果未能获取会话ID，尝试从当前URL提取
       let sessionId: string | null = null;
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        const url = mainWindow.webContents.getURL();
+      if (view && view.webContents && !view.webContents.isDestroyed()) {
+        const url = view.webContents.getURL();
         sessionId = sessionStore.extractSessionIdFromUrl(url);
       }
       if (sessionId) {
@@ -106,8 +110,8 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
 
   stepLog('目录保存完成');
   // 发送目录更新事件到渲染进程
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('project-dir-updated', selectedDir);
+  if (view && view.webContents && !view.webContents.isDestroyed()) {
+    view.webContents.send('project-dir-updated', selectedDir);
   }
 
   // 如果只是修改目录，跳过发送初始提示
@@ -273,8 +277,8 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
 
   stepLog('提示词组装完成');
   console.log('[Cuckoo Code] 准备发送初始提示（不含目录树），长度:', combined.length);
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('initial-prompt', combined);
+  if (view && view.webContents && !view.webContents.isDestroyed()) {
+    view.webContents.send('initial-prompt', combined);
   }
   stepLog('initial-prompt 已发送');
 

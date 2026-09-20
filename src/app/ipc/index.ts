@@ -7,6 +7,7 @@ import { registerSessionIpc } from './session.js';
 import { registerCommandIpc } from './command.js';
 import { registerToolIpc } from './tool.js';
 import { registerRendererIpc } from './renderer.js';
+import { registerShellIpc } from './shell.js';
 
 function registerIpcHandlers(): void {
   registerProjectIpc();
@@ -14,6 +15,7 @@ function registerIpcHandlers(): void {
   registerCommandIpc();
   registerToolIpc();
   registerRendererIpc();
+  registerShellIpc();
 }
 
 export { registerIpcHandlers };

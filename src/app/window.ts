@@ -4,6 +4,8 @@
  */
 interface WindowContext {
   win: any;
+  /** AI 网页所在的 WebContentsView（壳窗口的 win.webContents 是地址栏壳页面） */
+  view: any;
   profileId: any;
   providerId: any;
   sessionStore: any;
@@ -12,8 +14,8 @@ interface WindowContext {
 const windows = new Map<number, WindowContext>(); // windowId -> { win, profileId, providerId, sessionStore }
 let lastActiveWindowId: number | null = null;
 
-function addWindow(win: any, profileId: any, providerId: any, sessionStore: any): void {
-  windows.set(win.id, { win, profileId, providerId, sessionStore });
+function addWindow(win: any, profileId: any, providerId: any, sessionStore: any, view: any): void {
+  windows.set(win.id, { win, view, profileId, providerId, sessionStore });
   lastActiveWindowId = win.id;
   win.on('closed', () => {
     windows.delete(win.id);
@@ -39,8 +41,21 @@ function getWindowContext(windowId: number): WindowContext | null {
 function getContextByWebContents(webContents: any): WindowContext | null {
   for (const ctx of windows.values()) {
     if (ctx.win.webContents === webContents) return ctx;
+    if (ctx.view && ctx.view.webContents === webContents) return ctx;
   }
   return null;
+}
+
+/** 取窗口的 AI 页面 view（若已销毁返回 null） */
+function getViewOf(windowId: number): any {
+  const ctx = windows.get(windowId);
+  return ctx ? ctx.view : null;
+}
+
+/** 按 webContents 取 AI 页面 view（IPC 中从 event.sender 反查用） */
+function getViewByWebContents(webContents: any): any {
+  const ctx = getContextByWebContents(webContents);
+  return ctx ? ctx.view : null;
 }
 
 function getMainWindow(): any {
@@ -82,6 +97,8 @@ export {
   removeWindow,
   getWindowContext,
   getContextByWebContents,
+  getViewOf,
+  getViewByWebContents,
   getMainWindow,
   getMainContext,
   setMainWindow,
