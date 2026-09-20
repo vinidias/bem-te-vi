@@ -16,7 +16,7 @@ import { sendToChat } from '../../overlay/chat-input.js';
 import { onAiError, onInterceptedResponse } from '../intercept/observer.js';
 import { showToast } from '../../overlay/panel.js';
 import { withLog } from '../../infra/with-log.js';
-import { getProviderByUrl } from '../../providers/index.js';
+import { getProviderByUrl } from '../../providers/registry.js';
 
 const DEFAULT_PROMPT = '刚才的回复似乎中断了，请重新完整回答上一个问题。';
 const DEFAULTS = {

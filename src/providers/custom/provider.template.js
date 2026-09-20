@@ -9,7 +9,7 @@
  *
  * 类型提示：见下方 @type 注释
  */
-/** @type {import('./custom/provider.d.ts').Provider} */
+/** @type {import('../types.js').Provider} */
 module.exports = {
   id: 'my-platform',
   name: '我的平台',

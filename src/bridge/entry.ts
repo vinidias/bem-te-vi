@@ -14,7 +14,7 @@ import * as projectDir from '../overlay/project-dir.js';
 import { bindEvents } from '../overlay/events.js';
 import * as chatInput from '../overlay/chat-input.js';
 import { wireEvents } from '../overlay/events.js';
-import { getProviderByUrl } from '../providers/index.js';
+import { getProviderByUrl } from '../providers/registry.js';
 import { startInterceptObserver, onInterceptedResponse } from './intercept/observer.js';
 import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, onMessageSent } from './loop/watchdog.js';

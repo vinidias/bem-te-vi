@@ -3,7 +3,7 @@
  */
 import { createRequire } from 'node:module';
 import * as windowState from '../window.js';
-import { getProviderByUrl } from '../../providers/index.js';
+import { getProviderByUrl } from '../../providers/registry.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');

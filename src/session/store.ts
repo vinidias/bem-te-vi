@@ -4,7 +4,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { getProviderByUrl } from '../providers/index.js';
+import { getProviderByUrl } from '../providers/registry.js';
 
 /**
  * 创建 profile 专属的 session store 实例

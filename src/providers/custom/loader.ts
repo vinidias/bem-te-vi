@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { validateProvider } from '../validate.js';
 
 const require = createRequire(import.meta.url);
 const { app } = require('electron');
@@ -73,16 +74,6 @@ function writeConfig(config: CustomProviderConfig): void {
   } catch (err: any) {
     console.error('[CustomProvider] 写入配置失败:', err.message);
   }
-}
-
-function validateProvider(p: any): string | null {
-  if (!p || typeof p !== 'object') return '必须是对象';
-  if (!p.id || typeof p.id !== 'string') return '缺少 id';
-  if (!p.name || typeof p.name !== 'string') return '缺少 name';
-  if (!p.homeUrl || typeof p.homeUrl !== 'string') return '缺少 homeUrl';
-  if (typeof p.matchesUrl !== 'function') return '缺少 matchesUrl 方法';
-  if (typeof p.extractSessionId !== 'function') return '缺少 extractSessionId 方法';
-  return null;
 }
 
 function loadProviderFromFile(filePath: string): any {

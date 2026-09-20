@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import * as windowState from './window.js';
 import * as profileManager from './profile.js';
 import { createSessionStore } from '../session/store.js';
-import { getProvider } from '../providers/index.js';
+import { getProvider } from '../providers/registry.js';
 import * as updater from '../updater/index.js';
 import * as mcpConfig from '../mcp/config.js';
 import * as mcpClient from '../mcp/client.js';
@@ -319,7 +319,7 @@ ipcMainForProfile.handle('delete-profile', async (_event, { profileId }) => {
 
 // 列出所有内置平台
 ipcMainForProfile.handle('list-providers', async () => {
-  const { getAllProviders } = await import('../providers/index.js');
+  const { getAllProviders } = await import('../providers/registry.js');
   return {
     success: true,
     providers: getAllProviders().map(p => ({

@@ -5,7 +5,7 @@
 import { createRequire } from 'node:module';
 import { state } from './state.js';
 import { BT } from '../infra/markdown.js';
-import { getProviderByUrl } from '../providers/index.js';
+import { getProviderByUrl } from '../providers/registry.js';
 
 // 回调注入（P4.2-A：overlay 不依赖 bridge，由 bridge/entry 注入）
 let hooks: { onMessageSent?: () => void } = {};

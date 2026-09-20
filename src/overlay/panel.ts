@@ -3,7 +3,7 @@
  * 由原 preload.js 拆分而来，逻辑保持不变。
  */
 import { OVERLAY_HTML, OVERLAY_CSS } from './template.js';
-import { getProviderByUrl } from '../providers/index.js';
+import { getProviderByUrl } from '../providers/registry.js';
 import { state } from './state.js';
 
 // ========== 注入样式 ==========

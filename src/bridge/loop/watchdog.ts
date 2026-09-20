@@ -17,7 +17,7 @@
  *  - cuckoo-watchdog-count     最大催次数（默认 3，负数=无限）
  */
 import { showToast } from '../../overlay/panel.js';
-import { getProviderByUrl } from '../../providers/index.js';
+import { getProviderByUrl } from '../../providers/registry.js';
 import { sendToChat } from '../../overlay/chat-input.js';
 
 const DEFAULT_PROMPT = '请继续';

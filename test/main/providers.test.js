@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
 
-import { getProvider, getAllProviders, getProviderByUrl } from '../../src/providers/index.js';
+import { getProvider, getAllProviders, getProviderByUrl } from '../../src/providers/registry.js';
 import { deepseek } from '../../src/providers/deepseek.js';
 import { claude } from '../../src/providers/claude.js';
 import { chatgpt } from '../../src/providers/chatgpt.js';

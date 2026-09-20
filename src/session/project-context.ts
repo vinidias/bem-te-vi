@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import * as windowState from '../app/window.js';
 import { registry as toolRegistry } from '../tools/index.js';
 import * as mcpClient from '../mcp/client.js';
-import { getProvider } from '../providers/index.js';
+import { getProvider } from '../providers/registry.js';
 import { resolveSrc, resolveToolSpec } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
