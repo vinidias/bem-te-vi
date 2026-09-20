@@ -5,7 +5,7 @@ import { windowManager } from './browser-window-manager.js';
 class OpenBrowserWindowTool extends Tool {
   constructor() {
     super(
-      'open_browser_window',
+      'openBrowserWindow',
       '打开一个 Electron 浏览器窗口，返回 { windowId, message }，用返回的 windowId 传给 injectJS(windowId, code) 注入 JS 调试',
       {
         type: 'object',
@@ -24,7 +24,7 @@ class OpenBrowserWindowTool extends Tool {
 
   getPromptSection() {
     return {
-      name: 'tool:open_browser_window',
+      name: 'tool:openBrowserWindow',
       order: 112,
       text: '使用 openBrowserWindow 打开 Electron 浏览器窗口。返回 windowId，后续用 injectJS(windowId, code) 注入 JS 并获取返回值。可传自定义 id 便于语义化管理。'
     };

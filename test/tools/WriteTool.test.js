@@ -9,8 +9,8 @@ test('parseWriteArgs 正常', () => {
 });
 
 test('parseWriteArgs 非法路径', () => {
-  assert.throws(() => parseWriteArgs('', 'x'), /file_path must be a non-empty string/);
-  assert.throws(() => parseWriteArgs('   ', 'x'), /file_path must be a non-empty string/);
+  assert.throws(() => parseWriteArgs('', 'x'), /filePath must be a non-empty string/);
+  assert.throws(() => parseWriteArgs('   ', 'x'), /filePath must be a non-empty string/);
 });
 
 test('parseWriteArgs content 非字符串', () => {

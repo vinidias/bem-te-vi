@@ -10,10 +10,6 @@
  */
 
 import vm from 'node:vm';
-import { exec } from 'node:child_process';
-import path from 'node:path';
-import { DANGEROUS_CMDS } from '../impl/bash.js';
-import { decodeOutput, normalizeCommand } from '../../infra/decode-output.js';
 
 // 同步执行超时（vm timeout，覆盖无 await 的死循环）
 const SYNC_TIMEOUT = 30 * 1000;
@@ -57,24 +53,24 @@ const BOOTSTRAP = [
 "  globalThis.read = async function (filePath, options) {",
 "    options = options || {};",
 "    return await __call('read', {",
-"      file_path: filePath,",
+"      filePath: filePath,",
 "      offset: options.offset,",
 "      limit: options.limit",
 "    });",
 "  };",
 "  globalThis.readLines = async function (filePath, options) {",
 "    options = options || {};",
-"    return await __call('read_lines', {",
-"      file_path: filePath,",
+"    return await __call('readLines', {",
+"      filePath: filePath,",
 "      offset: options.offset,",
 "      limit: options.limit",
 "    });",
 "  };",
 "  globalThis.write = async function (filePath, content) {",
-"    return await __call('write', { file_path: filePath, content: content });",
+"    return await __call('write', { filePath: filePath, content: content });",
 "  };",
 "  globalThis.edit = async function (filePath, oldString, newString, replaceAll, dryRun) {",
-"    return await __call('edit', { file_path: filePath, old_string: oldString, new_string: newString, replaceAll: replaceAll === true, dryRun: dryRun === true });",
+"    return await __call('edit', { filePath: filePath, oldString: oldString, newString: newString, replaceAll: replaceAll === true, dryRun: dryRun === true });",
 "  };",
 "  globalThis.glob = async function (pattern, searchPath) {",
 "    return await __call('glob', { pattern: pattern, path: searchPath });",
@@ -88,11 +84,11 @@ const BOOTSTRAP = [
 "    });",
 "  };",
 "  globalThis.todoWrite = async function (todos) {",
-"    return await __call('todo_write', { todos: todos });",
+"    return await __call('todoWrite', { todos: todos });",
 "  };",
 "  globalThis.bash = async function (command, options) {",
 "    options = options || {};",
-"    return await __call('__bash', {",
+"    return await __call('bash', {",
 "      command: command,",
 "      description: options.description,",
 "      workdir: options.workdir || options.cwd,",
@@ -109,27 +105,27 @@ const BOOTSTRAP = [
 "    });",
 "  };",
 "  globalThis.deleteFile = async function (filePath) {",
-"    return await __call('file_delete', { file_path: filePath });",
+"    return await __call('deleteFile', { filePath: filePath });",
 "  };",
 "  globalThis.webFetch = async function (url) {",
-"    return await __call('web_fetch', { url: url });",
+"    return await __call('webFetch', { url: url });",
 "  };",
 "  globalThis.mysql = async function (options) {",
 "    options = options || {};",
 "    return await __call('mysql', options);",
 "  };",
 "  globalThis.mcpCall = async function (server, tool, args) {",
-"    return await __call('mcp_call', { server: server, tool: tool, args: args || {} });",
+"    return await __call('mcpCall', { server: server, tool: tool, args: args || {} });",
 "  };",
   "  globalThis.mcpListServers = async function () {",
-  "    return await __call('mcp_list_servers', {});",
+  "    return await __call('mcpListServers', {});",
   "  };",
   "  globalThis.mcpGetTools = async function (serverName) {",
-  "    return await __call('mcp_get_tools', { server: serverName });",
+  "    return await __call('mcpGetTools', { server: serverName });",
   "  };",
 "  globalThis.openBrowserWindow = async function (url, options) {",
 "    options = options || {};",
-"    return await __call('open_browser_window', {",
+"    return await __call('openBrowserWindow', {",
 "      url: url,",
 "      id: options.id,",
 "      width: options.width,",
@@ -137,10 +133,10 @@ const BOOTSTRAP = [
 "    });",
 "  };",
 "  globalThis.injectJS = async function (windowId, code) {",
-"    return await __call('inject_js', { windowId: windowId, code: code });",
+"    return await __call('injectJS', { windowId: windowId, code: code });",
 "  };",
 "  globalThis.attachFile = async function (filePath) {",
-"    return await __call('attach_file', { filePath: filePath });",
+"    return await __call('attachFile', { filePath: filePath });",
 "  };",
 "",
 "  if (!globalThis.projectDir) {",
@@ -149,66 +145,6 @@ const BOOTSTRAP = [
 "})();",
 "",
 ].join('\n');
-
-/**
- * 解析命令工作目录（相对路径基于项目目录）
- */
-function resolveDir(dir: any, projectDir: any): string {
-  if (!dir) return projectDir || process.env.USERPROFILE || path.resolve('.');
-  const normalized = String(dir).replace(/\//g, path.sep);
-  if (path.isAbsolute(normalized)) return normalized;
-  if (projectDir) return path.join(projectDir, normalized);
-  return path.resolve(normalized);
-}
-
-/**
- * 执行 shell 命令（JS API 专用实现）
- * 与 JSON 工具的 bash 不同：非零退出码不视为失败，而是通过 exitCode/error 字段返回，
- * 让 AI 代码可以像普通 shell 一样判断结果。
- */
-function runBash(args: any, projectDir: any): Promise<any> {
-  const command = normalizeCommand(String(args.command || '').trim());
-  if (!command) return Promise.resolve({ success: false, error: 'invalid command: expected a non-empty string' });
-  if (DANGEROUS_CMDS.some((pattern) => pattern.test(command))) {
-    return Promise.resolve({ success: false, error: '命令被安全策略拒绝（危险命令）: ' + command });
-  }
-  const timeout = typeof args.timeoutMs === 'number' && args.timeoutMs > 0 ? args.timeoutMs : 30000;
-  const cwd = resolveDir(args.workdir || args.cwd, projectDir);
-
-  return new Promise((resolve) => {
-    exec(command, { cwd, timeout, maxBuffer: 1024 * 1024, windowsHide: true, encoding: 'buffer' }, (error: any, stdout: any, stderr: any) => {
-      const out = decodeOutput(stdout);
-      const err = decodeOutput(stderr);
-
-      // dsh 风格渲染：stdout + [stderr] 分节 + 状态标记
-      let body = out;
-      if (err && err.length > 0) {
-        if (body.length > 0 && !body.endsWith('\n')) body += '\n';
-        body += '[stderr]\n' + err;
-      }
-      if (body.length === 0) body = '(no output)';
-
-      const markers = [];
-      if (error) {
-        if (error.killed) {
-          markers.push('[timed out after ' + timeout + 'ms]');
-        } else if (typeof error.code === 'number') {
-          markers.push('[exit code: ' + error.code + ']');
-        } else {
-          markers.push('[exit code: 1]');
-        }
-      }
-
-      if (markers.length > 0) {
-        if (!body.endsWith('\n')) body += '\n';
-        body += markers.join('\n');
-      }
-
-      // 非零退出也正常返回（success:true），模型看到标记自行判断
-      resolve({ success: true, data: body });
-    });
-  });
-}
 
 /**
  * 安全的 JSON 序列化（处理循环引用等异常）
@@ -266,18 +202,14 @@ class JsRunner {
       }
 
       let result;
-      if (op === '__bash') {
-        result = await runBash(args, projectDir);
+      const tool = this.registry.get(op);
+      if (!tool) {
+        result = { success: false, error: '未知工具: ' + op };
       } else {
-        const tool = this.registry.get(op);
-        if (!tool) {
-          result = { success: false, error: '未知工具: ' + op };
-        } else {
-          try {
-            result = await tool.execute(Object.assign({}, settings || {}, args, { projectDir, currentWindowId: windowId }));
-          } catch (err: any) {
-            result = { success: false, error: '工具 ' + op + ' 执行异常: ' + (err.message || String(err)) };
-          }
+        try {
+          result = await tool.execute(Object.assign({}, settings || {}, args, { projectDir, currentWindowId: windowId }));
+        } catch (err: any) {
+          result = { success: false, error: '工具 ' + op + ' 执行异常: ' + (err.message || String(err)) };
         }
       }
       return JSON.stringify(result);
@@ -364,3 +296,4 @@ class JsRunner {
 }
 
 export { JsRunner };
+

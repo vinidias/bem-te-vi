@@ -5,21 +5,21 @@ import { McpListServersTool, McpGetToolsTool } from '../../src/tools/impl/mcp-qu
 
 test('McpListServersTool 构造器', () => {
   const t = new McpListServersTool();
-  assert.strictEqual(t.name, 'mcp_list_servers');
+  assert.strictEqual(t.name, 'mcpListServers');
   assert.strictEqual(t.jsApi, 'mcpListServers()');
 });
 
 test('McpListServersTool getPromptSection', () => {
   const t = new McpListServersTool();
   const s = t.getPromptSection();
-  assert.strictEqual(s.name, 'tool:mcp-list');
+  assert.strictEqual(s.name, 'tool:mcpListServers');
   assert.strictEqual(s.order, 119);
   assert.match(s.text, /mcpListServers/);
 });
 
 test('McpGetToolsTool 构造器', () => {
   const t = new McpGetToolsTool();
-  assert.strictEqual(t.name, 'mcp_get_tools');
+  assert.strictEqual(t.name, 'mcpGetTools');
   assert.strictEqual(t.jsApi, 'mcpGetTools(serverName)');
   assert.ok(t.parameters.required.includes('server'));
 });
@@ -27,7 +27,7 @@ test('McpGetToolsTool 构造器', () => {
 test('McpGetToolsTool getPromptSection', () => {
   const t = new McpGetToolsTool();
   const s = t.getPromptSection();
-  assert.strictEqual(s.name, 'tool:mcp-get-tools');
+  assert.strictEqual(s.name, 'tool:mcpGetTools');
   assert.strictEqual(s.order, 120);
   assert.match(s.text, /mcpGetTools/);
 });

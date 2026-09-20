@@ -8,7 +8,7 @@
 import { BT, FENCE } from '../../infra/markdown.js';
 
 // 工具调用特征：必须出现 "await 工具函数名(" 形式的调用（防止 fs.readFile 等普通示例误判）
-const JS_TOOL_CALL_RE = /\bawait\s+(?:read|write|edit|glob|grep|bash|pwsh|todoWrite|deleteFile|webFetch|openBrowserWindow|injectJS|readFile|readFileWithLines|writeFile|editFile)\s*\(/;
+const JS_TOOL_CALL_RE = /\bawait\s+(?:read|readLines|write|edit|glob|grep|todoWrite|bash|pwsh|deleteFile|webFetch|mysql|mcpCall|mcpListServers|mcpGetTools|openBrowserWindow|injectJS|attachFile)\s*\(/;
 /**
  * 判断一段 JS 代码是否调用了工具函数
  */

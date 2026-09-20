@@ -14,7 +14,7 @@ const READ_MAX_BYTES = 50 * 1024;
  */
 function parseReadArgs(filePath: any, offset: any, limit: any): { offset: number; limit: number } {
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
-    throw new Error('file_path must be a non-empty string');
+    throw new Error('filePath must be a non-empty string');
   }
   const parsedOffset = offset === undefined || offset === null ? 1 : Number(offset);
   const parsedLimit = limit === undefined || limit === null ? READ_LIMIT : Number(limit);
@@ -132,7 +132,7 @@ class ReadTool extends Tool {
       {
         type: 'object',
         properties: {
-          file_path: {
+          filePath: {
             type: 'string',
             description: '要读取的文件路径（相对路径基于项目根目录，或绝对路径）'
           },
@@ -145,7 +145,7 @@ class ReadTool extends Tool {
             description: '最大返回行数，默认 ' + READ_LIMIT + '，上限 ' + READ_LIMIT
           }
         },
-        required: ['file_path'],
+        required: ['filePath'],
         additionalProperties: false
       },
       'read(filePath, options?)'
@@ -161,13 +161,13 @@ class ReadTool extends Tool {
   }
 
   async execute(params: any): Promise<ToolResult> {
-    const { file_path, offset, limit, projectDir } = params;
+    const { filePath, offset, limit, projectDir } = params;
 
     try {
-      const input = parseReadArgs(file_path, offset, limit);
+      const input = parseReadArgs(filePath, offset, limit);
 
       // 路径解析：相对路径基于 projectDir
-      const normalizedPath = String(file_path).replace(/\//g, path.sep);
+      const normalizedPath = String(filePath).replace(/\//g, path.sep);
       let resolvedPath = normalizedPath;
       if (!path.isAbsolute(normalizedPath) && projectDir) {
         resolvedPath = path.join(projectDir, normalizedPath);
@@ -192,10 +192,10 @@ class ReadTool extends Tool {
         maxLineLength: READ_MAX_LINE_LENGTH,
         maxBytes: READ_MAX_BYTES,
       };
-      const window = buildWindow(content, request, file_path);
+      const window = buildWindow(content, request, filePath);
 
       console.log('[ReadTool] 已读取:', resolvedPath, 'offset=' + input.offset, 'limit=' + input.limit, 'totalLines=' + window.totalLines);
-      return ToolResult.success(formatReadOutput(file_path, { ...window, offset: input.offset }));
+      return ToolResult.success(formatReadOutput(filePath, { ...window, offset: input.offset }));
     } catch (err: any) {
       return ToolResult.error('读取文件失败: ' + err.message);
     }

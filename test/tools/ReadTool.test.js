@@ -13,8 +13,8 @@ test('parseReadArgs 自定义正整数', () => {
 });
 
 test('parseReadArgs 空路径抛错', () => {
-  assert.throws(() => parseReadArgs('', 1, 10), /file_path must be a non-empty string/);
-  assert.throws(() => parseReadArgs(null, 1, 10), /file_path must be a non-empty string/);
+  assert.throws(() => parseReadArgs('', 1, 10), /filePath must be a non-empty string/);
+  assert.throws(() => parseReadArgs(null, 1, 10), /filePath must be a non-empty string/);
 });
 
 test('parseReadArgs offset 非法', () => {

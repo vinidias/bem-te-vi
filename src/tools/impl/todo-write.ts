@@ -66,7 +66,7 @@ function formatTodoOutput(counts: TodoCounts): string {
 class TodoWriteTool extends Tool {
   constructor() {
     super(
-      'todo_write',
+      'todoWrite',
       '记录并更新当前工作的结构化任务列表。每次发送完整列表，替换之前的列表（无部分更新）。用于规划多步工作并展示进度。',
       {
         type: 'object',
@@ -101,7 +101,7 @@ class TodoWriteTool extends Tool {
 
   getPromptSection() {
     return {
-      name: 'tool:todo_write',
+      name: 'tool:todoWrite',
       order: 110,
       text: '记录并更新当前工作的结构化任务列表。每次调用发送完整列表——它替换之前的列表（没有部分更新）。完成任务后立即标记为 completed。对于简单的单步任务可跳过列表。'
     };

@@ -13,7 +13,7 @@ import { GrepToolNew } from './impl/grep.js';
 import { TodoWriteTool } from './impl/todo-write.js';
 import { BashTool } from './impl/bash.js';
 import { PwshTool } from './impl/pwsh.js';
-import { FileDeleteTool } from './impl/delete-file.js';
+import { DeleteFileTool } from './impl/delete-file.js';
 import { WebFetchTool } from './impl/web-fetch.js';
 import { MySQLTool } from './impl/mysql.js';
 import { OpenBrowserWindowTool } from './impl/open-browser-window.js';
@@ -35,7 +35,7 @@ registry.register(new GrepToolNew());
 registry.register(new TodoWriteTool());
 registry.register(new BashTool());
 registry.register(new PwshTool());
-registry.register(new FileDeleteTool());
+registry.register(new DeleteFileTool());
 registry.register(new WebFetchTool());
 registry.register(new MySQLTool());
 registry.register(new OpenBrowserWindowTool());
@@ -62,7 +62,7 @@ export {
   TodoWriteTool,
   BashTool,
   PwshTool,
-  FileDeleteTool,
+  DeleteFileTool,
   WebFetchTool,
   // 便捷方法
   getAllTools,

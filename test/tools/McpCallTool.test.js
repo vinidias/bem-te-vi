@@ -5,7 +5,7 @@ import { McpCallTool } from '../../src/tools/impl/mcp-call.js';
 
 test('McpCallTool 构造器', () => {
   const t = new McpCallTool();
-  assert.strictEqual(t.name, 'mcp_call');
+  assert.strictEqual(t.name, 'mcpCall');
   assert.strictEqual(t.jsApi, 'mcpCall(server, tool, args)');
   assert.ok(t.parameters.required.includes('server'));
   assert.ok(t.parameters.required.includes('tool'));
@@ -14,7 +14,7 @@ test('McpCallTool 构造器', () => {
 test('McpCallTool getPromptSection', () => {
   const t = new McpCallTool();
   const s = t.getPromptSection();
-  assert.strictEqual(s.name, 'tool:mcp');
+  assert.strictEqual(s.name, 'tool:mcpCall');
   assert.strictEqual(s.order, 118);
   assert.match(s.text, /mcpCall/);
   assert.match(s.text, /mcpListServers/);

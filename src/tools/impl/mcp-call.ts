@@ -7,7 +7,7 @@ import { ToolResult } from '../core/ToolResult.js';
 class McpCallTool extends Tool {
   constructor() {
     super(
-      'mcp_call',
+      'mcpCall',
       '调用 MCP server 提供的工具。传入 server 名称、工具名和参数。',
       {
         type: 'object',
@@ -25,7 +25,7 @@ class McpCallTool extends Tool {
 
   getPromptSection() {
     return {
-      name: 'tool:mcp',
+      name: 'tool:mcpCall',
       order: 118,
       text: '调用 MCP 工具时使用 mcpCall(server, tool, args)。使用前先通过 mcpListServers() 和 mcpGetTools() 查询可用能力。'
     };

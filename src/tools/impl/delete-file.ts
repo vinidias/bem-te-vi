@@ -7,19 +7,19 @@ import path from 'node:path';
  * 文件删除工具
  * 用于删除指定的文件（不可恢复）
  */
-class FileDeleteTool extends Tool {
+class DeleteFileTool extends Tool {
   constructor() {
     super(
-      'file_delete',
+      'deleteFile',
       '删除指定文件（不可恢复，请谨慎使用）。返回 { message, path }，其中 path 为被删除文件的绝对路径。',
       {
         type: 'object',
         properties: {
-          file_path: { type: 'string', description: '要删除的文件的相对路径（相对于项目目录）' }
+          filePath: { type: 'string', description: '要删除的文件的相对路径（相对于项目目录）' }
         },
-        required: ['file_path']
+        required: ['filePath']
       },
-      'deleteFile(file_path)'
+      'deleteFile(filePath)'
     );
   }
 
@@ -32,17 +32,17 @@ class FileDeleteTool extends Tool {
   }
 
   async execute(params: any): Promise<ToolResult> {
-    const { file_path, projectDir } = params;
-    if (!file_path) {
-      return ToolResult.error('缺少参数 file_path');
+    const { filePath, projectDir } = params;
+    if (!filePath) {
+      return ToolResult.error('缺少参数 filePath');
     }
 
     // 解析绝对路径
-    let absolutePath = file_path;
+    let absolutePath = filePath;
     if (!path.isAbsolute(absolutePath) && projectDir) {
-      absolutePath = path.join(projectDir, file_path);
+      absolutePath = path.join(projectDir, filePath);
     } else if (!path.isAbsolute(absolutePath)) {
-      absolutePath = path.resolve(file_path);
+      absolutePath = path.resolve(filePath);
     }
 
     try {
@@ -62,4 +62,4 @@ class FileDeleteTool extends Tool {
   }
 }
 
-export { FileDeleteTool };
+export { DeleteFileTool };

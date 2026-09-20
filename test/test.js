@@ -34,7 +34,7 @@ async function test() {
 工具库测试成功!`;
 
   const result = await registry.execute('write', {
-    file_path: testFile,
+    filePath: testFile,
     content: testContent
   });
 

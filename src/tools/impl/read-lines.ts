@@ -13,12 +13,12 @@ import { READ_LIMIT, parseReadArgs, buildWindow } from './read.js';
 class ReadLinesTool extends Tool {
   constructor() {
     super(
-      'read_lines',
+      'readLines',
       '读取 UTF-8 文本文件并返回结构化行数组，供 AI 在内存中精确处理。支持 offset/limit 分段读取大文件。',
       {
         type: 'object',
         properties: {
-          file_path: {
+          filePath: {
             type: 'string',
             description: '要读取的文件路径（相对路径基于项目根目录，或绝对路径）'
           },
@@ -31,7 +31,7 @@ class ReadLinesTool extends Tool {
             description: '最大返回行数，默认 ' + READ_LIMIT + '，上限 ' + READ_LIMIT
           }
         },
-        required: ['file_path'],
+        required: ['filePath'],
         additionalProperties: false
       },
       'readLines(filePath, options?)'
@@ -40,20 +40,20 @@ class ReadLinesTool extends Tool {
 
   getPromptSection() {
     return {
-      name: 'tool:read_lines',
+      name: 'tool:readLines',
       order: 101,
       text: '使用 readLines 工具读取文件的结构化行数据（数组，每个元素含 number 和 text 字段），适合在内存中批量处理（如 map/filter/join 后写回）。如果只是查看文件内容，用 read 即可。'
     };
   }
 
   async execute(params: any): Promise<ToolResult> {
-    const { file_path, offset, limit, projectDir } = params;
+    const { filePath, offset, limit, projectDir } = params;
 
     try {
-      const input = parseReadArgs(file_path, offset, limit);
+      const input = parseReadArgs(filePath, offset, limit);
 
       // 路径解析：相对路径基于 projectDir
-      const normalizedPath = String(file_path).replace(/\//g, path.sep);
+      const normalizedPath = String(filePath).replace(/\//g, path.sep);
       let resolvedPath = normalizedPath;
       if (!path.isAbsolute(normalizedPath) && projectDir) {
         resolvedPath = path.join(projectDir, normalizedPath);
@@ -77,7 +77,7 @@ class ReadLinesTool extends Tool {
         limit: input.limit,
         maxLineLength: 2000,
         maxBytes: 50 * 1024,
-      }, file_path);
+      }, filePath);
 
       console.log('[ReadLinesTool] 已读取:', resolvedPath, 'offset=' + input.offset, 'limit=' + input.limit, 'totalLines=' + window.totalLines);
 

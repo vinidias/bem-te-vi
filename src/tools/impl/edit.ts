@@ -5,22 +5,22 @@ import path from 'node:path';
 
 /**
  * 校验 edit 参数（对齐 dsh parseEditArgs）：
- * - file_path trim 后非空
- * - old_string 非空
- * - old_string !== new_string（避免 no-op）
+ * - filePath trim 后非空
+ * - oldString 非空
+ * - oldString !== newString（避免 no-op）
  */
 function parseEditArgs(filePath: any, oldString: any, newString: any, replaceAll: any, dryRun: any) {
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
-    throw new Error('file_path must be a non-empty string');
+    throw new Error('filePath must be a non-empty string');
   }
   if (typeof oldString !== 'string' || oldString.length === 0) {
-    throw new Error('old_string must be a non-empty string');
+    throw new Error('oldString must be a non-empty string');
   }
   if (typeof newString !== 'string') {
-    throw new Error('new_string must be a string');
+    throw new Error('newString must be a string');
   }
   if (oldString === newString) {
-    throw new Error('old_string and new_string must differ');
+    throw new Error('oldString and newString must differ');
   }
   return {
     filePath,
@@ -60,25 +60,25 @@ class EditTool extends Tool {
   constructor() {
     super(
       'edit',
-      '对现有 UTF-8 文本文件做精确替换（old_string → new_string）。默认 old_string 必须唯一匹配；多匹配可设置 replaceAll。',
+      '对现有 UTF-8 文本文件做精确替换（oldString → newString）。默认 oldString 必须唯一匹配；多匹配可设置 replaceAll。',
       {
         type: 'object',
         properties: {
-          file_path: {
+          filePath: {
             type: 'string',
             description: '要编辑的文件路径（相对路径基于项目根目录，或绝对路径）'
           },
-          old_string: {
+          oldString: {
             type: 'string',
             description: '要替换的字面文本，必须与文件内容精确匹配'
           },
-          new_string: {
+          newString: {
             type: 'string',
             description: '替换后的字面文本。可用空字符串删除匹配内容'
           },
           replaceAll: {
             type: 'boolean',
-            description: '是否替换所有匹配。默认 false；false 时 old_string 必须唯一匹配',
+            description: '是否替换所有匹配。默认 false；false 时 oldString 必须唯一匹配',
             default: false
           },
           dryRun: {
@@ -87,7 +87,7 @@ class EditTool extends Tool {
             default: false
           }
         },
-        required: ['file_path', 'old_string', 'new_string'],
+        required: ['filePath', 'oldString', 'newString'],
         additionalProperties: false
       },
       'edit(filePath, oldString, newString, replaceAll?, dryRun?)'
@@ -98,15 +98,15 @@ class EditTool extends Tool {
     return {
       name: 'tool:edit',
       order: 102,
-      text: '使用 edit 工具对现有 UTF-8 文本文件做定向修改。它用 new_string 替换字面量 old_string；默认 old_string 必须唯一匹配。如果 old_string 出现多次，请提供更具体的 old_string 或设置 replaceAll 为 true。批量替换同一文本时优先用 replaceAll: true 一次完成，避免读全文后整体写回；返回结果会包含实际替换处数，可用于自我校验。批量修改前可用 dryRun: true 预览，确认无误后再真实写入。除非你刚在本会话中创建或编辑过该文件，否则先 read 文件。注意：read 输出的内容带行号，old_string/new_string 必须是文件原始文本，不要包含行号或 footer 提示。'
+      text: '使用 edit 工具对现有 UTF-8 文本文件做定向修改。它用 newString 替换字面量 oldString；默认 oldString 必须唯一匹配。如果 oldString 出现多次，请提供更具体的 oldString 或设置 replaceAll 为 true。批量替换同一文本时优先用 replaceAll: true 一次完成，避免读全文后整体写回；返回结果会包含实际替换处数，可用于自我校验。批量修改前可用 dryRun: true 预览，确认无误后再真实写入。除非你刚在本会话中创建或编辑过该文件，否则先 read 文件。注意：read 输出的内容带行号，oldString/newString 必须是文件原始文本，不要包含行号或 footer 提示。'
     };
   }
 
   async execute(params: any): Promise<ToolResult> {
-    const { file_path, old_string, new_string, replaceAll, dryRun, projectDir } = params;
+    const { filePath, oldString, newString, replaceAll, dryRun, projectDir } = params;
 
     try {
-      const input = parseEditArgs(file_path, old_string, new_string, replaceAll, dryRun);
+      const input = parseEditArgs(filePath, oldString, newString, replaceAll, dryRun);
 
       // 路径解析：相对路径基于 projectDir
       const normalizedPath = input.filePath.replace(/\//g, path.sep);
@@ -130,26 +130,26 @@ class EditTool extends Tool {
       const content = fs.readFileSync(resolvedPath, 'utf-8');
 
       // 保留原 FileEditTool 的 CRLF 适配能力：
-      // 先原样匹配，失败后把 old_string 转 CRLF 再试；new_string 统一转 CRLF
-      let oldString = input.oldString;
-      let newString = input.newString.replace(/\r?\n/g, '\r\n');
+      // 先原样匹配，失败后把 oldString 转 CRLF 再试；newString 统一转 CRLF
+      let matchOld = input.oldString;
+      const matchNew = input.newString.replace(/\r?\n/g, '\r\n');
 
-      let occurrences = content.split(oldString).length - 1;
+      let occurrences = content.split(matchOld).length - 1;
       if (occurrences === 0) {
-        oldString = oldString.replace(/\r?\n/g, '\r\n');
-        occurrences = content.split(oldString).length - 1;
+        matchOld = matchOld.replace(/\r?\n/g, '\r\n');
+        occurrences = content.split(matchOld).length - 1;
       }
       if (occurrences === 0) {
-        return ToolResult.error('未找到要替换的文本，请检查 old_string 是否与文件内容精确匹配。文件路径: ' + resolvedPath);
+        return ToolResult.error('未找到要替换的文本，请检查 oldString 是否与文件内容精确匹配。文件路径: ' + resolvedPath);
       }
       if (occurrences > 1 && !input.replaceAll) {
-        return ToolResult.error('old_string 在文件中出现 ' + occurrences + ' 次。若要全部替换，请设置 replaceAll: true；若只替换其中一处，请提供更长的唯一片段（更多上下文）。');
+        return ToolResult.error('oldString 在文件中出现 ' + occurrences + ' 次。若要全部替换，请设置 replaceAll: true；若只替换其中一处，请提供更长的唯一片段（更多上下文）。');
       }
 
       // 执行替换
       const newContent = input.replaceAll
-        ? content.split(oldString).join(newString)
-        : content.replace(oldString, newString);
+        ? content.split(matchOld).join(matchNew)
+        : content.replace(matchOld, matchNew);
 
       // dry-run：只预览，不写文件
       if (input.dryRun) {

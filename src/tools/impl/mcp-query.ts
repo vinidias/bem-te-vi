@@ -7,7 +7,7 @@ import { ToolResult } from '../core/ToolResult.js';
 class McpListServersTool extends Tool {
   constructor() {
     super(
-      'mcp_list_servers',
+      'mcpListServers',
       '列出所有已配置的 MCP server（含启用状态、连接状态和工具数量）',
       {
         type: 'object',
@@ -20,7 +20,7 @@ class McpListServersTool extends Tool {
 
   getPromptSection() {
     return {
-      name: 'tool:mcp-list',
+      name: 'tool:mcpListServers',
       order: 119,
       text: 'mcpListServers() 列出已配置的 MCP server（含启用/连接状态）。'
     };
@@ -59,7 +59,7 @@ class McpListServersTool extends Tool {
 class McpGetToolsTool extends Tool {
   constructor() {
     super(
-      'mcp_get_tools',
+      'mcpGetTools',
       '查看指定 MCP server 提供的工具列表（含描述和参数）',
       {
         type: 'object',
@@ -74,7 +74,7 @@ class McpGetToolsTool extends Tool {
 
   getPromptSection() {
     return {
-      name: 'tool:mcp-get-tools',
+      name: 'tool:mcpGetTools',
       order: 120,
       text: 'mcpGetTools(serverName) 查看指定 MCP server 的工具和参数。'
     };

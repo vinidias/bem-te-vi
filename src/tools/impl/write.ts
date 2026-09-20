@@ -5,12 +5,12 @@ import path from 'node:path';
 
 /**
  * 校验 write 参数：
- * - file_path 必须是非空字符串
+ * - filePath 必须是非空字符串
  * - content 允许为空字符串（写空文件是合法的）
  */
 function parseWriteArgs(filePath: any, content: any): { filePath: string; content: string } {
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
-    throw new Error('file_path must be a non-empty string');
+    throw new Error('filePath must be a non-empty string');
   }
   if (typeof content !== 'string') {
     throw new Error('content must be a string');
@@ -38,7 +38,7 @@ class WriteTool extends Tool {
       {
         type: 'object',
         properties: {
-          file_path: {
+          filePath: {
             type: 'string',
             description: '要写入的文件路径（相对路径基于项目根目录，或绝对路径）'
           },
@@ -47,7 +47,7 @@ class WriteTool extends Tool {
             description: '完整 UTF-8 文本内容。空字符串合法（写入空文件）'
           }
         },
-        required: ['file_path', 'content'],
+        required: ['filePath', 'content'],
         additionalProperties: false
       },
       'write(filePath, content)'
@@ -63,10 +63,10 @@ class WriteTool extends Tool {
   }
 
   async execute(params: any): Promise<ToolResult> {
-    const { file_path, content, projectDir } = params;
+    const { filePath, content, projectDir } = params;
 
     try {
-      const input = parseWriteArgs(file_path, content);
+      const input = parseWriteArgs(filePath, content);
 
       // 路径解析：相对路径基于 projectDir
       const normalizedPath = input.filePath.replace(/\//g, path.sep);

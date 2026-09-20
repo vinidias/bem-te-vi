@@ -3,7 +3,7 @@ import { test, beforeEach, afterEach } from 'vitest';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { FileDeleteTool } from '../../src/tools/impl/delete-file.js';
+import { DeleteFileTool } from '../../src/tools/impl/delete-file.js';
 import { WriteTool } from '../../src/tools/impl/write.js';
 import { ReadTool } from '../../src/tools/impl/read.js';
 import { EditTool } from '../../src/tools/impl/edit.js';
@@ -19,43 +19,43 @@ afterEach(() => {
   fs.rmSync(tmpRoot, { recursive: true, force: true });
 });
 
-test('FileDeleteTool 删除文件', async () => {
+test('DeleteFileTool 删除文件', async () => {
   const f = path.join(tmpRoot, 'a.txt');
   fs.writeFileSync(f, 'x');
-  const tool = new FileDeleteTool();
-  const r = await tool.execute({ file_path: 'a.txt', projectDir: tmpRoot });
+  const tool = new DeleteFileTool();
+  const r = await tool.execute({ filePath: 'a.txt', projectDir: tmpRoot });
   assert.strictEqual(r.success, true);
   assert.strictEqual(fs.existsSync(f), false);
 });
 
-test('FileDeleteTool 文件不存在', async () => {
-  const tool = new FileDeleteTool();
-  const r = await tool.execute({ file_path: 'missing.txt', projectDir: tmpRoot });
+test('DeleteFileTool 文件不存在', async () => {
+  const tool = new DeleteFileTool();
+  const r = await tool.execute({ filePath: 'missing.txt', projectDir: tmpRoot });
   assert.strictEqual(r.success, false);
   assert.match(r.error, /删除文件失败/);
 });
 
-test('FileDeleteTool 目录不是文件', async () => {
+test('DeleteFileTool 目录不是文件', async () => {
   fs.mkdirSync(path.join(tmpRoot, 'dir'));
-  const tool = new FileDeleteTool();
-  const r = await tool.execute({ file_path: 'dir', projectDir: tmpRoot });
+  const tool = new DeleteFileTool();
+  const r = await tool.execute({ filePath: 'dir', projectDir: tmpRoot });
   assert.strictEqual(r.success, false);
   assert.match(r.error, /路径不是文件/);
 });
 
-test('FileDeleteTool 缺少 file_path', async () => {
-  const tool = new FileDeleteTool();
+test('DeleteFileTool 缺少 filePath', async () => {
+  const tool = new DeleteFileTool();
   const r = await tool.execute({ projectDir: tmpRoot });
   assert.strictEqual(r.success, false);
-  assert.match(r.error, /缺少参数 file_path/);
+  assert.match(r.error, /缺少参数 filePath/);
 });
 
 test('WriteTool 新建与覆盖', async () => {
   const tool = new WriteTool();
-  const r1 = await tool.execute({ file_path: 'b.txt', content: 'one', projectDir: tmpRoot });
+  const r1 = await tool.execute({ filePath: 'b.txt', content: 'one', projectDir: tmpRoot });
   assert.strictEqual(r1.success, true);
   assert.match(r1.data, /Created file/);
-  const r2 = await tool.execute({ file_path: 'b.txt', content: 'two', projectDir: tmpRoot });
+  const r2 = await tool.execute({ filePath: 'b.txt', content: 'two', projectDir: tmpRoot });
   assert.strictEqual(r2.success, true);
   assert.match(r2.data, /Updated file/);
   assert.strictEqual(fs.readFileSync(path.join(tmpRoot, 'b.txt'), 'utf8'), 'two');
@@ -64,7 +64,7 @@ test('WriteTool 新建与覆盖', async () => {
 test('WriteTool 目标是目录报错', async () => {
   fs.mkdirSync(path.join(tmpRoot, 'dir'));
   const tool = new WriteTool();
-  const r = await tool.execute({ file_path: 'dir', content: 'x', projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'dir', content: 'x', projectDir: tmpRoot });
   assert.strictEqual(r.success, false);
   assert.match(r.error, /目标路径是目录/);
 });
@@ -72,7 +72,7 @@ test('WriteTool 目标是目录报错', async () => {
 test('ReadTool 读取带行号', async () => {
   fs.writeFileSync(path.join(tmpRoot, 'c.txt'), 'line1\nline2\nline3');
   const tool = new ReadTool();
-  const r = await tool.execute({ file_path: 'c.txt', projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'c.txt', projectDir: tmpRoot });
   assert.strictEqual(r.success, true);
   assert.match(r.data, /1: line1/);
   assert.match(r.data, /3: line3/);
@@ -81,7 +81,7 @@ test('ReadTool 读取带行号', async () => {
 
 test('ReadTool 文件不存在', async () => {
   const tool = new ReadTool();
-  const r = await tool.execute({ file_path: 'missing.txt', projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'missing.txt', projectDir: tmpRoot });
   assert.strictEqual(r.success, false);
   assert.match(r.error, /文件不存在/);
 });
@@ -89,16 +89,16 @@ test('ReadTool 文件不存在', async () => {
 test('EditTool 成功替换', async () => {
   fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'hello world');
   const tool = new EditTool();
-  const r = await tool.execute({ file_path: 'd.txt', old_string: 'world', new_string: 'cuckoo', projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'd.txt', oldString: 'world', newString: 'cuckoo', projectDir: tmpRoot });
   assert.strictEqual(r.success, true);
   assert.match(r.data, /updated successfully/);
   assert.strictEqual(fs.readFileSync(path.join(tmpRoot, 'd.txt'), 'utf8'), 'hello cuckoo');
 });
 
-test('EditTool old_string 不存在', async () => {
+test('EditTool oldString 不存在', async () => {
   fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'abc');
   const tool = new EditTool();
-  const r = await tool.execute({ file_path: 'd.txt', old_string: 'zzz', new_string: 'y', projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'd.txt', oldString: 'zzz', newString: 'y', projectDir: tmpRoot });
   assert.strictEqual(r.success, false);
   assert.match(r.error, /未找到要替换的文本/);
 });
@@ -106,7 +106,7 @@ test('EditTool old_string 不存在', async () => {
 test('EditTool 多次匹配需要 replace_all', async () => {
   fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'x x x');
   const tool = new EditTool();
-  const r = await tool.execute({ file_path: 'd.txt', old_string: 'x', new_string: 'y', projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'd.txt', oldString: 'x', newString: 'y', projectDir: tmpRoot });
   assert.strictEqual(r.success, false);
   assert.match(r.error, /出现 3 次/);
 });
@@ -114,7 +114,7 @@ test('EditTool 多次匹配需要 replace_all', async () => {
 test('EditTool replace_all', async () => {
   fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'x x x');
   const tool = new EditTool();
-  const r = await tool.execute({ file_path: 'd.txt', old_string: 'x', new_string: 'y', replaceAll: true, projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'd.txt', oldString: 'x', newString: 'y', replaceAll: true, projectDir: tmpRoot });
   assert.strictEqual(r.success, true);
   assert.strictEqual(fs.readFileSync(path.join(tmpRoot, 'd.txt'), 'utf8'), 'y y y');
 });
@@ -122,7 +122,7 @@ test('EditTool replace_all', async () => {
 test('EditTool dry-run 预览不写入', async () => {
   fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'x x x');
   const tool = new EditTool();
-  const r = await tool.execute({ file_path: 'd.txt', old_string: 'x', new_string: 'y', replaceAll: true, dryRun: true, projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'd.txt', oldString: 'x', newString: 'y', replaceAll: true, dryRun: true, projectDir: tmpRoot });
   assert.strictEqual(r.success, true);
   assert.match(r.data, /DRY-RUN/);
   assert.match(r.data, /将全部替换 3 处/);
@@ -132,7 +132,7 @@ test('EditTool dry-run 预览不写入', async () => {
 test('EditTool dry-run 唯一替换预览', async () => {
   fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'hello world');
   const tool = new EditTool();
-  const r = await tool.execute({ file_path: 'd.txt', old_string: 'world', new_string: 'cuckoo', dryRun: true, projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'd.txt', oldString: 'world', newString: 'cuckoo', dryRun: true, projectDir: tmpRoot });
   assert.strictEqual(r.success, true);
   assert.match(r.data, /DRY-RUN/);
   assert.match(r.data, /将替换 1 处/);
@@ -142,7 +142,7 @@ test('EditTool dry-run 唯一替换预览', async () => {
 test('EditTool dry-run 删除预览', async () => {
   fs.writeFileSync(path.join(tmpRoot, 'd.txt'), 'remove me');
   const tool = new EditTool();
-  const r = await tool.execute({ file_path: 'd.txt', old_string: 'remove', new_string: '', dryRun: true, projectDir: tmpRoot });
+  const r = await tool.execute({ filePath: 'd.txt', oldString: 'remove', newString: '', dryRun: true, projectDir: tmpRoot });
   assert.strictEqual(r.success, true);
   assert.match(r.data, /DRY-RUN/);
   assert.match(r.data, /old: "remove" → new: ""/);

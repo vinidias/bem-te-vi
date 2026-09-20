@@ -18,8 +18,8 @@ test('BT 和 FENCE 定义', () => {
 
 test('looksLikeToolScript 识别 await 工具调用', () => {
   assert.strictEqual(looksLikeToolScript('await bash("echo hi")'), true);
-  assert.strictEqual(looksLikeToolScript('const x = await readFile("a.txt")'), true);
-  assert.strictEqual(looksLikeToolScript('await writeFile("a", "b")'), true);
+  assert.strictEqual(looksLikeToolScript('const x = await read("a.txt")'), true);
+  assert.strictEqual(looksLikeToolScript('await write("a", "b")'), true);
 });
 
 test('looksLikeToolScript 拒绝普通代码', () => {
