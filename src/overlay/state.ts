@@ -1,13 +1,12 @@
 /**
- * preload 全局共享状态
- * 由原 preload.js 中的模块级变量拆分而来，各模块通过同一对象共享。
+ * 共享状态（overlay 层）
+ * 说明：serverTokenUsage / lastResponseMsgIds 由 bridge 写入、overlay/session 读取，
+ * 属跨层共享（P4.2-A 遗留，待改推送机制，见 docs/refactor/P4-input.md 第 8 条）。
  */
 interface PreloadState {
   initialPromptContent: string;
   // 是否有待发送的初始提示
   pendingInitialPrompt: boolean;
-  // 待执行的工具调用
-  pendingToolCall: any;
   // 发送延迟配置（毫秒）
   sendDelayMin: number;
   sendDelayMax: number;
@@ -23,8 +22,6 @@ const state: PreloadState = {
   initialPromptContent: '',
   // 是否有待发送的初始提示
   pendingInitialPrompt: false,
-  // 待执行的工具调用
-  pendingToolCall: null,
   // 发送延迟配置（毫秒）
   sendDelayMin: 2000,
   sendDelayMax: 4000,
