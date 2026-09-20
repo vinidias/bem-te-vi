@@ -1,8 +1,12 @@
 # Cuckoo Code 重构计划
 
-> 状态：草稿 v0.1
+> 状态：✅ **已完成**（P0–P5 全部结束，2026-09-20）
 > 配套：`01-architecture.md` / `02-modules.md` / `03-decisions.md`
 > 原则：每阶段可独立验证；每 PR 只做一件事；测试全绿才进下一步。
+
+> **最终成果**：全仓 TypeScript（主应用 `strict`）+ ESM + 依赖升级；
+> 按领域重组目录；工具 API 契约自动生成；窗口地址栏；
+> 208+ 测试全绿、typecheck 0 错误。详见 `CHANGELOG.md`。
 
 ---
 
@@ -234,11 +238,12 @@
         生成 `src/tools/runtime/bootstrap.generated.ts`
       - `JsRunner` 用 `TOOL_BOOTSTRAP` 组装（删 90 行手写注入）
       - **工具成为唯一真相源**：改工具 → api.d.ts + bootstrap 自动同步
-- [ ] 删残留的兼容层/旧别名（若 P1 未清完）
-- [ ] 补关键路径测试（bridge / overlay 覆盖不足）
-- [ ] 更新 `README` / `CONTRIBUTING` / `CHANGELOG`
-- [ ] 更新 `docs/refactor/` 状态为「已完成」
-- [ ] 归档本目录到 `docs/archive/refactor-2026/`
+- [x] 删残留的兼容层/旧别名：无 `@ts-ignore`、无 TODO；`_legacy` 旧测试已清理
+- [x] 补关键路径测试（bootstrap-consistency 集成测试）
+- [x] 更新 `README`（项目结构）/ `CHANGELOG`（重构条目）
+- [x] 消除 bridge/session → overlay 反向依赖（8422a9d）
+- [x] 更新 `docs/refactor/` 状态为「已完成」
+- [x] 归档本目录到 `docs/archive/refactor-2026/`
 
 **验收**：
 - `strict` 通过
@@ -260,9 +265,7 @@
 
 ## 当前行动
 
-**P0 收尾**：
-1. ✅ review `01`–`04`
-2. ✅ 拍板 D1–D15
-3. [ ] 补 `00-goal.md`（用户口述目标）
+✅ **重构全部完成**（P0–P5）。
 
-**完成后进入 P1（清理死代码）。**
+- 本目录已归档至 `docs/archive/refactor-2026/`
+- 后续开发请以当前代码结构为准（见 `README.md` 项目结构段）
