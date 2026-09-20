@@ -199,9 +199,12 @@
 - [x] **工具命名统一（B1）** ✅（ce1bd00）：registry name / JS API / section 名
       **三者全 camelCase 一致**（18:18:18）；参数名 `file_path`→`filePath`、
       `old_string`→`oldString`；删 `__bash` 冗余（与 `BashTool` 重复）
-- [ ] `overlay/events.ts`（818 行）→ 按面板区域拆
-- [ ] `overlay/template.ts`（525 行）→ 外置为 `.html`/`.css`（②B）
-- [ ] `session/project-context.ts`（284 行）→ 拆提示词渲染
+- [x] `overlay/template.ts` → 外置 `.html`/`.css`（②B，397ca65）：构建期生成
+      `template.generated.ts`
+- [x] `overlay/events.ts` 拆分（f901a2e，819→330 行）：`panels/window-manager`、
+      `panels/mcp-manager`、`panels/settings`、`fab.ts`；`events.ts` 保留编排
+- [x] `session/project-context.ts` 拆分（81e5191，289→150 行）：
+      提示词组装抽出到 `session/prompt-builder.ts`
 
 **B1 的架构价值**：一个工具一个名字 → `getPromptSection` 可写 `'tool:' + this.name`，
 `JsRunner` 无需 snake↔camel 翻译 → **为 P5 的 D12（工具规范自动生成）铺路**。
