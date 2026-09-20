@@ -173,12 +173,24 @@
 - [x] 同步改 package.json（extraResources）、tsconfig、eslint、vitest、paths.ts、测试
 - **验收**：typecheck ✅ / 218 测试 ✅ / compile ✅ / lint 0 error
 
-### P4.4 providers 对齐新约定（D13/D14/D15）
-- [ ] **保持单文件自包含**（D13）：`deepseek.ts`/`claude.ts`/`chatgpt.ts` 各自
-      含元数据 + 提示词 + hook 源码，**不拆目录**
-- [ ] 抽出公共 SSE 解码到 `providers/shared/`（仅内置可引用）
-- [ ] 加 `providers/validate.ts`，加载时校验 provider 必需字段（D14）
-- [ ] 自定义 provider 加载改为**只收 `.js`**（D15），加载后过 validate
+### P4.4 providers 对齐新约定（D13/D14/D15）✅
+- [x] `providers/types.ts`（原 provider.d.ts 提升为真类型模块）+ `validate.ts`（D14，内置也过校验）
+- [x] `index.ts` → `registry.ts`
+- [x] 自定义 provider 加载过 validate（D15）
+- [x] 删 `custom/provider.d.ts`
+- **注**：D13「单文件自包含」在 P4.4.1 被**修正**——hook 因序列化约束，
+      改为 `hooks/*.ts`（正常模块）+ 构建期 esbuild 打包成自包含 IIFE
+
+### P4.4.1 hook 模块化 ✅（P4.4 衍生，76edc6a/b2ffb0a/9a74614）
+**问题**：hook 经 `.toString()` 注入主世界，序列化只含函数体 → 内部 SSE 解码
+三平台各复制一份。架构文档"抽 shared/sse.ts"因该约束**不可行**。
+**方案**：hook 写成正常 TS 模块（可 import），构建期 esbuild bundle 成自包含 IIFE 字符串。
+- [x] `hooks/shared/sse.ts`（createFrameDecoder/extractData/parseBlock）
+- [x] `hooks/deepseek.ts` / `hooks/claude.ts` / `hooks/chatgpt.ts`
+- [x] `scripts/build-hooks.mjs`（esbuild bundle → `generated/hook-sources.ts`）
+- [x] `compile` 脚本先 build-hooks 再 tsc
+- [x] provider 的 `getHookSource()` 返回生成的常量
+- **效果**：deepseek 574→110、claude 299→86、chatgpt 379→123 行
 
 ### P4.5 拆分与模式收敛
 - [ ] `overlay/events.ts`（813 行）→ 按面板区域拆
