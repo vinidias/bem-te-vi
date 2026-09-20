@@ -193,12 +193,18 @@
 - **效果**：deepseek 574→110、claude 299→86、chatgpt 379→123 行
 
 ### P4.5 拆分与模式收敛
-- [ ] `overlay/events.ts`（813 行）→ 按面板区域拆
-- [ ] `overlay/template.ts`（526 行）→ 按区块拆或外置 HTML
-- [ ] `session/project-context.ts`（288 行）→ 拆提示词渲染
-- [ ] **废除 JSON 调用模式（D11）**：删 `tool-parser` 的解析分支、
-      `handleToolCall`；改为 `json-detector` 只识别、检测到则发工具规范更新章节
-- [ ] 工具统一为 `read`/`write`/`edit` 一套名字
+- [x] **废除 JSON 调用模式（D11）** ✅（47267bd）：`json-detector` 改为只识别
+      （`looksLikeJsonToolCall`）+ 发提示；删 `handleToolCall`/`sendToolResultToChat`/
+      `tool-names`（净减 390 行）
+- [x] **工具命名统一（B1）** ✅（ce1bd00）：registry name / JS API / section 名
+      **三者全 camelCase 一致**（18:18:18）；参数名 `file_path`→`filePath`、
+      `old_string`→`oldString`；删 `__bash` 冗余（与 `BashTool` 重复）
+- [ ] `overlay/events.ts`（818 行）→ 按面板区域拆
+- [ ] `overlay/template.ts`（525 行）→ 外置为 `.html`/`.css`（②B）
+- [ ] `session/project-context.ts`（284 行）→ 拆提示词渲染
+
+**B1 的架构价值**：一个工具一个名字 → `getPromptSection` 可写 `'tool:' + this.name`，
+`JsRunner` 无需 snake↔camel 翻译 → **为 P5 的 D12（工具规范自动生成）铺路**。
 
 **验收（每子阶段）**：
 - ESLint 依赖规则零违规
