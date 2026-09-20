@@ -1,5 +1,5 @@
 // ESLint 配置（flat config，ESLint 9+）
-// 目的：固化模块依赖方向（见 docs/refactor/01-architecture.md 第 3 节）
+// 目的：固化模块依赖方向（见 docs/archive/refactor-2026/01-architecture.md 第 3 节）
 import js from '@eslint/js';
 import noRestrictedRequires from './eslint-rules/no-restricted-requires.js';
 

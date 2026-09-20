@@ -4,7 +4,6 @@ import assert from 'node:assert';
 import {
   BT,
   FENCE,
-  JS_TOOL_CALL_RE,
   looksLikeIncompleteCodeError,
   looksLikeToolScript,
   hasOnlyFences,

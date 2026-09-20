@@ -17,7 +17,7 @@ global.requestAnimationFrame = (fn) => fn();
 global.window = { location: { href: 'https://chat.deepseek.com/' } };
 global.setInterval = () => 0;
 global.clearInterval = () => {};
-global.setTimeout = (fn, ms) => 0;
+global.setTimeout = (_fn, _ms) => 0;
 global.clearTimeout = () => {};
 
 const ui = await import('../../src/overlay/panel.js');
