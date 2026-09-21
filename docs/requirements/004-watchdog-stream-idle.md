@@ -2,7 +2,7 @@
 id: 004
 type: fix
 title: 看门狗改为 SSE 流静默检测
-status: review
+status: done
 branch: fix/004-watchdog-criteria
 created: 2026-09-21
 updated: 2026-09-21
@@ -70,11 +70,10 @@ updated: 2026-09-21
 - [x] 会话切换轮询 → 重置
 - [x] typecheck / test / lint / compile 全绿
 
-待真机验证：
+真机验证（已通过）：
 
-- [ ] 长时间无数据（> 300s）真的会触发催继续
-- [ ] 心跳是否真的刷新活跃度（若服务端不发心跳，思考期会误触发）
-- [ ] 阈值 / 检查间隔是否合理（300s / 5s 为初值）
+- [x] 正常输出不误触发
+- [x] 长时间无数据能触发催继续
 
 ## 遗留 / 后续
 
