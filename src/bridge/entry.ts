@@ -17,7 +17,7 @@ import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/registry.js';
 import { startInterceptObserver, onInterceptedResponse } from './intercept/observer.js';
 import { startRetryEngine } from './loop/retry.js';
-import { startSessionWatcher, onMessageSent } from './loop/watchdog.js';
+import { startSessionWatcher, startWatchdog } from './loop/watchdog.js';
 
 const require = createRequire(import.meta.url);
 const { webFrame } = require('electron');
@@ -51,7 +51,6 @@ if (useIntercept) {
 chatInput.registerIpcListeners();
 
 // ========== P4.2-A：回调注入（overlay 不依赖 bridge）==========
-chatInput.wireChatInput({ onMessageSent });
 wireEvents({ onInterceptedResponse });
 
 // ========== 初始化 ==========
@@ -84,7 +83,8 @@ function init(): void {
     // 启动自动重试引擎（订阅失败事件）
     startRetryEngine();
 
-    // 启动看门狗的会话切换监视
+    // 启动看门狗（订阅 SSE 流静默事件）+ 会话切换监视
+    startWatchdog();
     startSessionWatcher();
   } catch (err) {
     console.error('[Cuckoo Code] init() 出错:', err);

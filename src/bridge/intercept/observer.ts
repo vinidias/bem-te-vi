@@ -66,7 +66,6 @@ async function processInterceptedResponse(text: string, force?: boolean): Promis
   const jsBlocks = extractJsToolBlocks(raw);
   if (jsBlocks.length > 0) {
     console.log('[Cuckoo Code][拦截] 检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
-    try { watchdog.onToolCallDetected(); } catch (_) { /* ignore */ }
     formatHintCount = 0;
     // 从检测到工具调用到结果发送完成，全程遮盖页面，禁止用户额外操作
     showToolMask();
@@ -123,7 +122,6 @@ async function processInterceptedResponse(text: string, force?: boolean): Promis
 
   // 4. 普通文本回复：任务完成，退出工具循环
   console.log('[Cuckoo Code][拦截] 正常文本回复，未检测到工具调用');
-  try { watchdog.exitToolLoop(); } catch (_) { /* ignore */ }
   try {
     (window as any).electronAPI.showAiNotification().catch(() => {});
   } catch (e) { /* ignore */ }
