@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.hooks.json",
     "lint": "eslint .",
     "docs:index": "node scripts/build-docs-index.mjs",
+    "prepare": "git config core.hooksPath .githooks || true",
     "build": "electron-builder --publish always",
     "build:win": "electron-builder --win --publish always",
     "build:win:nsis": "electron-builder --win --config.win.target=nsis --publish always",

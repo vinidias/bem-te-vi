@@ -1,0 +1,9 @@
+#!/bin/sh
+# 提交前自动刷新需求索引（docs/requirements/INDEX.md）
+# 由 package.json 的 prepare 脚本挂载（git config core.hooksPath .githooks）
+
+# 仅在需求目录有变化时才重生成，避免无谓开销
+if git diff --cached --name-only | grep -q "^docs/requirements/"; then
+  npm run docs:index --silent
+  git add docs/requirements/INDEX.md
+fi

@@ -37,10 +37,17 @@ updated: 2026-09-21
 ### INDEX.md
 `INDEX.md` 是**自动生成**的总览表，**不要手改**。
 
-改完任何需求文档后，运行：
+**自动更新**（两道保障）：
+- **pre-commit 钩子**：提交时若 `docs/requirements/` 有改动，自动重生成并加入本次提交
+- **CI 校验**：若 INDEX 与文档不一致，CI 会失败（见 `.github/workflows/quality.yml`）
+
+手动执行（通常不需要）：
 ```bash
 npm run docs:index
 ```
+
+> 钩子随仓库分发，`npm install` 时经 `prepare` 脚本自动挂载（`git config core.hooksPath .githooks`）。
+> 换机器后若钩子没生效，手动跑一次 `npm install` 或 `npm run prepare`。
 
 ## 何时建档案
 
