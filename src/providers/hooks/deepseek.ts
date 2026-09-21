@@ -374,14 +374,20 @@ function install(): void {
             var ct = '';
             try { ct = (response.headers && response.headers.get && response.headers.get('content-type')) || ''; } catch (e2) { /* ignore */ }
             if (ct.indexOf('json') !== -1) {
-              // 非流式 JSON 响应：可能是业务错误（如 biz_code=40029 操作过于频繁）
+              // 非流式 JSON 响应：可能是限流等业务错误。
+              // DeepSeek 响应信封：{ code, msg, data: { biz_code, biz_msg, biz_data } }
+              //  - 顶层 code=40029 → "请求过于频繁"（HTTP 层全局鉴权拦截）
+              //  - data.biz_code=40029 → "操作过于频繁"（completion 非流式错误）
+              // 两者都是限流，统一标记 reason='rate_limit'。
               var sid = fetchSessionId;
               response.clone().json().then(function (j) {
+                var gcode = j && j.code;
                 var biz = j && j.data && j.data.biz_code;
-                if (biz !== undefined && biz !== null && biz !== 0) {
-                  var rl = biz === 40029;
-                  console.log('[Cuckoo Code][hook] 非流式业务错误 biz_code=' + biz + (rl ? '（操作过于频繁）' : ''));
-                  dispatch('', 'error', null, null, { reason: rl ? 'rate_limit' : 'biz', bizCode: biz, sessionId: sid }, { path: 'biz-error', bizCode: biz });
+                var code = (biz !== undefined && biz !== null && biz !== 0) ? biz : gcode;
+                if (code !== undefined && code !== null && code !== 0) {
+                  var rl = code === 40029;
+                  console.log('[Cuckoo Code][hook] 非流式错误 code=' + code + (rl ? '（操作/请求过于频繁）' : ''));
+                  dispatch('', 'error', null, null, { reason: rl ? 'rate_limit' : 'biz', bizCode: code, sessionId: sid }, { path: 'biz-error', bizCode: code });
                 }
               }).catch(function () { /* 非 JSON，忽略 */ });
             } else {

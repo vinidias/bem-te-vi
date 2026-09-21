@@ -49,9 +49,13 @@ hook 把 error 状态通过 `cuckoo-ai-error` 事件发出，`src/bridge/loop/re
 **hook 侧**（`deepseek.ts` fetch 拦截）：
 
 - HTTP 非 2xx 且 `status === 429` → `reason: 'rate_limit'`
-- HTTP 200 但 `content-type` 非 `text/event-stream`（非流式 JSON）→ 解析 `data.biz_code`：
-  - `40029`（操作过于频繁）→ `reason: 'rate_limit'`
-  - 其它非 0 业务码 → `reason: 'biz'`（普通失败）
+- HTTP 200 但 `content-type` 非 `text/event-stream`（非流式 JSON）→ 解析两级错误码：
+  - **顶层 `code`=40029** → "请求过于频繁"（HTTP 层全局鉴权拦截）→ `reason: 'rate_limit'`
+  - **`data.biz_code`=40029** → "操作过于频繁"（completion 非流式错误）→ `reason: 'rate_limit'`
+  - 其它非 0 码 → `reason: 'biz'`（普通失败）
+
+  > DeepSeek 响应信封：`{ code, msg, data: { biz_code, biz_msg, biz_data } }`
+  > 两个 toast（`ipAccessRestrictedToast` / `operationTooFastToast`）本质都是 40029，只是出现在不同层级。
 - 否则照旧按 SSE 解析
 
 **重试引擎侧**（`retry.ts`）：
@@ -70,10 +74,11 @@ hook 把 error 状态通过 `cuckoo-ai-error` 事件发出，`src/bridge/loop/re
 - [x] 服务端截断（正文为空）自动重试
 - [x] 真机验证通过（终态判定）
 - [ ] 操作频繁（HTTP 429）走"操作频繁"策略
-- [ ] 操作频繁（biz_code=40029）走"操作频繁"策略
+- [ ] 操作频繁（顶层 code=40029，请求过于频繁）走"操作频繁"策略
+- [ ] 操作频繁（data.biz_code=40029，操作过于频繁）走"操作频繁"策略
 
 ## 遗留 / 后续
 
 - 诊断代码（`dbg` / `snapshot` / 诊断 log）暂留，后续可清理
 - `resolveStatus` 的中断判定目前只在 deepseek hook；claude / chatgpt 无对应逻辑
-- "操作频繁"的另一个入口 `ipAccessRestrictedToast`（HTTP 层全局鉴权）尚未处理
+- hook 侧的非流式 JSON 判定为通用规则；若未来出现其它限流码，需在 `deepseek.ts` 补充
