@@ -179,6 +179,22 @@ function setTaskStatus(running: boolean): void {
 }
 
 /**
+ * 显示工具调用遮罩（执行工具期间阻止用户操作）
+ */
+function showToolMask(): void {
+  const el = document.getElementById('cuckoo-tool-mask');
+  if (el) el.classList.remove('cuckoo-hidden');
+}
+
+/**
+ * 隐藏工具调用遮罩
+ */
+function hideToolMask(): void {
+  const el = document.getElementById('cuckoo-tool-mask');
+  if (el) el.classList.add('cuckoo-hidden');
+}
+
+/**
  * 显示覆盖层（移除 hidden 类）
  */
 function showOverlay(): void {
@@ -377,6 +393,8 @@ export {
   showToast,
   showConfirmDialog,
   setTaskStatus,
+  showToolMask,
+  hideToolMask,
   showOverlay,
   hideOverlay,
   displayCommand,

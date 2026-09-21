@@ -17,7 +17,11 @@ function parseFrontmatter(text) {
     const i = line.indexOf(':');
     if (i === -1) continue;
     const k = line.slice(0, i).trim();
-    const v = line.slice(i + 1).trim();
+    let v = line.slice(i + 1).trim();
+    // 去掉 YAML 值两侧的引号（手写/不同 AI 可能加引号，统一剥掉）
+    if (v.length >= 2 && ((v[0] === '"' && v[v.length - 1] === '"') || (v[0] === "'" && v[v.length - 1] === "'"))) {
+      v = v.slice(1, -1);
+    }
     if (k) obj[k] = v;
   }
   return obj;

@@ -7,6 +7,7 @@ import { extractJsToolBlocks, BT } from '../parser/js-detector.js';
 import { looksLikeJsonToolCall } from '../parser/json-detector.js';
 import { handleJsToolScript } from '../loop/executor.js';
 import { sendCombinedJsResultsToChat, sendMessageToChat } from '../../overlay/chat-input.js';
+import { showToolMask, hideToolMask } from '../../overlay/panel.js';
 import * as watchdog from '../loop/watchdog.js';
 
 const MAX_JS_RETRY = 3;
@@ -67,8 +68,22 @@ async function processInterceptedResponse(text: string, force?: boolean): Promis
     console.log('[Cuckoo Code][拦截] 检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
     try { watchdog.onToolCallDetected(); } catch (_) { /* ignore */ }
     formatHintCount = 0;
-    const results = await executeJsBlocksWithRetry(jsBlocks);
-    if (results.length > 0) sendCombinedJsResultsToChat(results);
+    // 从检测到工具调用到结果发送完成，全程遮盖页面，禁止用户额外操作
+    showToolMask();
+    let results: any[] = [];
+    try {
+      results = await executeJsBlocksWithRetry(jsBlocks);
+    } catch (err) {
+      hideToolMask();
+      throw err;
+    }
+    if (results.length === 0) {
+      hideToolMask();
+      return;
+    }
+    // afterSent 在"结果已发出"时触发隐藏；发送失败（找不到输入框等）则立即隐藏兜底
+    const sent = await sendCombinedJsResultsToChat(results, hideToolMask);
+    if (!sent) hideToolMask();
     return;
   }
 

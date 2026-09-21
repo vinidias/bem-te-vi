@@ -113,14 +113,14 @@ async function sendToChat(msg: string, tag?: string, fixedDelay?: number, afterS
 /**
  * 将消息填入 DeepSeek 聊天输入框并触发发送（工具结果回传的公共实现）
  */
-function sendMessageToChat(msg: string, tag?: string): Promise<boolean> {
-  return sendToChat(msg, tag);
+function sendMessageToChat(msg: string, tag?: string, afterSent?: () => void): Promise<boolean> {
+  return sendToChat(msg, tag, undefined, afterSent);
 }
 /**
  * 将 JS 工具脚本执行结果发送回 DeepSeek 聊天，让 AI 看到结果并继续工作
  */
-function sendCombinedJsResultsToChat(results: any): void {
-  if (!Array.isArray(results) || results.length === 0) return;
+async function sendCombinedJsResultsToChat(results: any, onSent?: () => void): Promise<boolean> {
+  if (!Array.isArray(results) || results.length === 0) return false;
 
   const MAX_OUTPUT = 15000;
   const sep = String.fromCharCode(10);
@@ -145,7 +145,7 @@ function sendCombinedJsResultsToChat(results: any): void {
   }
 
   console.log('[Cuckoo Code] 回传 JS 汇总执行结果, 消息长度=' + msg.length);
-  sendMessageToChat(msg, 'JS汇总');
+  return sendMessageToChat(msg, 'JS汇总', onSent);
 }
 /**
  * 查找 DeepSeek 的输入框元素

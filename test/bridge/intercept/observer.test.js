@@ -34,14 +34,33 @@ function dispatch(listeners, type, detail) {
   for (const fn of fns) fn({ detail });
 }
 
-function setupGlobals() {
+function setupGlobals(idMap) {
   const { win, listeners } = makeFakeWindow();
   globalThis.window = win;
+  globalThis.requestAnimationFrame = (cb) => setTimeout(cb, 0);
   globalThis.document = {
     querySelectorAll: () => [],
     querySelector: () => null,
+    getElementById: (id) => (idMap && idMap[id]) || null,
+    createElement: () => ({
+      id: '', className: '', textContent: '', style: {},
+      classList: { add() {}, remove() {} },
+    }),
+    body: { appendChild() {} },
   };
   return listeners;
+}
+
+// 极简假元素：只保留遮罩用到的 classList 语义
+function makeFakeMask() {
+  const classes = new Set(['cuckoo-hidden']);
+  return {
+    classList: {
+      add: (c) => classes.add(c),
+      remove: (c) => classes.delete(c),
+      contains: (c) => classes.has(c),
+    },
+  };
 }
 
 test('onInterceptedResponse 返回可取消函数', () => {
@@ -159,6 +178,26 @@ test('processInterceptedResponse：JSON 格式工具调用发提示', async () =
 test('processInterceptedResponse：XML 格式工具调用发提示', async () => {
   setupGlobals();
   await processInterceptedResponse('<invoke name="bash"></invoke>');
+});
+
+test('processInterceptedResponse：JS 工具块执行期间显示遮罩，发送结束后隐藏', async () => {
+  const mask = makeFakeMask();
+  setupGlobals({ 'cuckoo-tool-mask': mask });
+  let visibleDuringExec = false;
+  globalThis.window.electronAPI.executeJs = async () => {
+    visibleDuringExec = !mask.classList.contains('cuckoo-hidden');
+    return { success: true, output: 'ok' };
+  };
+  await processInterceptedResponse('\`\`\`cuckoo\nawait read({ filePath: "a.txt" });\n\`\`\`');
+  assert.strictEqual(visibleDuringExec, true, '执行期间遮罩应可见');
+  assert.ok(mask.classList.contains('cuckoo-hidden'), '结束后遮罩应隐藏');
+});
+
+test('processInterceptedResponse：非工具回复不显示遮罩', async () => {
+  const mask = makeFakeMask();
+  setupGlobals({ 'cuckoo-tool-mask': mask });
+  await processInterceptedResponse('一段没有工具调用的普通说明文字');
+  assert.ok(mask.classList.contains('cuckoo-hidden'), '普通回复不应显示遮罩');
 });
 
 test('processInterceptedResponse：force 跳过去重重复执行', async () => {

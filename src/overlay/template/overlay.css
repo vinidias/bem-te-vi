@@ -183,6 +183,28 @@
   border: 2px solid rgba(139,147,255,0.25); border-top-color: #8b93ff;
   animation: cuckoo-spin 0.8s linear infinite;
 }
+/* 工具调用执行期间的全局遮罩：阻止用户操作，提示等待 */
+.cuckoo-tool-mask {
+  position: fixed; inset: 0; z-index: 2147483648;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  cursor: wait; user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--ck-text);
+}
+.cuckoo-tool-mask-box {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 22px 32px; border-radius: 16px;
+  background: rgba(17, 19, 34, 0.95);
+  border: 1px solid rgba(139, 147, 255, 0.35);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55);
+}
+.cuckoo-tool-mask-spinner {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 3px solid rgba(139,147,255,0.25); border-top-color: #8b93ff;
+  animation: cuckoo-spin 0.8s linear infinite;
+}
+.cuckoo-tool-mask-text { font-size: 13px; font-weight: 600; color: #dde1ff; letter-spacing: 0.3px; }
 @keyframes cuckoo-spin { to { transform: rotate(360deg); } }
 @keyframes cuckoo-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes cuckoo-attention {
