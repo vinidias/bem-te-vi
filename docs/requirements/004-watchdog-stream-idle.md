@@ -2,7 +2,7 @@
 id: 004
 type: fix
 title: 看门狗改为 SSE 流静默检测
-status: done
+status: review
 branch: fix/004-watchdog-criteria
 created: 2026-09-21
 updated: 2026-09-21
@@ -70,10 +70,19 @@ updated: 2026-09-21
 - [x] 会话切换轮询 → 重置
 - [x] typecheck / test / lint / compile 全绿
 
-真机验证（已通过）：
+真机验证：
 
-- [x] 正常输出不误触发
-- [x] 长时间无数据能触发催继续
+- [x] 正常使用不误触发（长时间使用，未出现异常催继续）
+- [ ] **未验证：流静默真能触发催继续**
+
+  原因：需"服务端保持 SSE 连接但不发数据"才能触发，该场景**无法人为稳定复现**。
+
+  可行的补验方式：
+  1. **手动派发事件**（验证"事件 → 催继续"链路）——AI 页面 DevTools Console 执行：
+     `window.dispatchEvent(new CustomEvent('cuckoo-stream-idle', { detail: {} }))`
+     预期：弹出「等待 AI 回复超时，发送『请继续』催继续」
+  2. **调小阈值 + 长期观察**——设置里超时改为 10~30 秒，日常使用中留意真卡住时是否触发
+  3. ⚠️ **断网不可用于验证**——断网走的是 `stream-error` 分支，不是"静默"
 
 ## 遗留 / 后续
 

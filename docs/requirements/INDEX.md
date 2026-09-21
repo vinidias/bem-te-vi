@@ -8,6 +8,6 @@
 | 001 | feature | [窗口地址栏](./001-address-bar.md) | done | feat/address-bar | 2026-09-21 |
 | 002 | fix | [AI 回复中断的检测与自动重试](./002-interrupt-retry.md) | done | — | 2026-09-21 |
 | 003 | feature | [工具调用执行遮罩](./003-tool-execution-mask.md) | done | feat/003-tool-execution-mask | 2026-09-21 |
-| 004 | fix | [看门狗改为 SSE 流静默检测](./004-watchdog-stream-idle.md) | done | fix/004-watchdog-criteria | 2026-09-21 |
+| 004 | fix | [看门狗改为 SSE 流静默检测](./004-watchdog-stream-idle.md) | review | fix/004-watchdog-criteria | 2026-09-21 |
 
 共 4 个需求。
