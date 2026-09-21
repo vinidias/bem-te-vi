@@ -1,9 +1,9 @@
 'use strict';
-const { test, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
-const { createSessionStore } = require('../../src/main/session-store');
+import { test, beforeEach, afterEach } from 'vitest';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createSessionStore } from '../../src/session/store.js';
 
 const tmpDir = path.join(process.cwd(), 'test', 'tmp', 'session-store-test');
 
@@ -90,11 +90,11 @@ test('不同 profile 的存储文件互相隔离', () => {
 
 test('handleUrlChange 非会话清空状态', () => {
   const sent = [];
-  const fakeWin = { isDestroyed: () => false, webContents: { send: (ch, data) => sent.push([ch, data]) } };
+  const fakeView = { webContents: { isDestroyed: () => false, send: (ch, data) => sent.push([ch, data]) } };
   const store = createSessionStore('p1', tmpDir, { getMainWindow: () => fakeWin });
   store.state.currentSessionId = 'old';
   store.state.selectedProjectDir = 'C:/old';
-  store.handleUrlChange('https://chat.deepseek.com/', fakeWin);
+  store.handleUrlChange('https://chat.deepseek.com/', fakeView);
   assert.strictEqual(store.state.currentSessionId, null);
   assert.strictEqual(store.state.selectedProjectDir, null);
   assert.ok(sent.some(([ch]) => ch === 'project-dir-updated'));
@@ -102,12 +102,13 @@ test('handleUrlChange 非会话清空状态', () => {
 
 test('handleUrlChange 恢复已保存目录', () => {
   const sent = [];
-  const fakeWin = { isDestroyed: () => false, webContents: { send: (ch, data) => sent.push([ch, data]) } };
+  const fakeView = { webContents: { isDestroyed: () => false, send: (ch, data) => sent.push([ch, data]) } };
   const store = createSessionStore('p1', tmpDir, { getMainWindow: () => fakeWin });
   store.saveSessionDirMapping('abc123', 'C:/proj');
-  store.handleUrlChange('https://chat.deepseek.com/a/chat/s/abc123', fakeWin);
+  store.handleUrlChange('https://chat.deepseek.com/a/chat/s/abc123', fakeView);
   assert.strictEqual(store.state.currentSessionId, 'abc123');
   assert.strictEqual(store.state.selectedProjectDir, 'C:/proj');
   assert.ok(sent.some(([ch]) => ch === 'session-restored'));
   assert.ok(sent.some(([ch]) => ch === 'project-dir-updated'));
 });
+

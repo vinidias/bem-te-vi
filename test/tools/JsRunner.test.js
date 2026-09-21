@@ -1,8 +1,8 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { JsRunner } = require('../../tools/JsRunner');
-const { registry } = require('../../tools');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { JsRunner } from '../../src/tools/runtime/JsRunner.js';
+import { registry } from '../../src/tools/index.js';
 
 test('JsRunner 执行简单 JS 代码', async () => {
   const runner = new JsRunner(registry);
@@ -45,3 +45,4 @@ test('JsRunner 未知工具报错', async () => {
   assert.strictEqual(r.success, false);
   assert.ok(r.error);
 });
+

@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { DANGEROUS_CMDS, isDangerous } = require('../../src/main/dangerous-commands');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { DANGEROUS_CMDS, isDangerous } from '../../src/infra/dangerous-commands.js';
 
 test('DANGEROUS_CMDS 非空数组', () => {
   assert.ok(Array.isArray(DANGEROUS_CMDS));
@@ -36,3 +36,4 @@ test('isDangerous 识别安全命令', () => {
 test('isDangerous 忽略首尾空白', () => {
   assert.strictEqual(isDangerous('  shutdown /s  '), true);
 });
+

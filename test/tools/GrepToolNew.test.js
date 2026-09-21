@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseGrepArgs, validateInclude, parseGrepMatches, formatGrepOutput, retainGrepMatches, previewLine } = require('../../tools/GrepToolNew');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseGrepArgs, validateInclude, parseGrepMatches, formatGrepOutput, retainGrepMatches, previewLine } from '../../src/tools/impl/grep.js';
 
 test('validateInclude 合法', () => {
   assert.doesNotThrow(() => validateInclude('*.js'));
@@ -91,4 +91,5 @@ test('previewLine 超长截断', () => {
   assert.match(out, /\(line truncated\)/);
   assert.strictEqual(previewLine('short', 100), 'short');
 });
+
 

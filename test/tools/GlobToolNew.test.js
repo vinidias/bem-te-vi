@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES } = require('../../tools/GlobToolNew');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES } from '../../src/tools/impl/glob.js';
 
 test('parseGlobArgs 正常', () => {
   assert.deepStrictEqual(parseGlobArgs('**/*.js', undefined), { pattern: '**/*.js' });
@@ -55,3 +55,4 @@ test('formatGlobOutput 截断', () => {
 test('MAX_RESULTS 为 100', () => {
   assert.strictEqual(MAX_RESULTS, 100);
 });
+
