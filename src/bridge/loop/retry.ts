@@ -145,10 +145,11 @@ let handleError = function handleError(detail: any): void {
     }
   }
 
-  const is429 = detail && detail.httpStatus === 429;
+  // 操作频繁：HTTP 429，或 hook 标记的 reason='rate_limit'（如 biz_code=40029）
+  const is429 = detail && (detail.httpStatus === 429 || detail.reason === 'rate_limit');
   if (is429) {
     if (cfg.count429 >= 0 && count429 >= cfg.count429) {
-      showToast('429 超限重试已达上限（' + cfg.count429 + ' 次），停止自动重试', 4000);
+      showToast('操作频繁重试已达上限（' + cfg.count429 + ' 次），停止自动重试', 4000);
       clearPending();
       return;
     }
@@ -174,7 +175,7 @@ let handleError = function handleError(detail: any): void {
     if (pending && pending.countdownTimer) clearInterval(pending.countdownTimer);
     pending = null;
     try {
-      sendToChat(cfg.prompt, is429 ? '重试(429)' : '重试', 300);
+      sendToChat(cfg.prompt, is429 ? '重试(操作频繁)' : '重试', 300);
     } catch (e: any) {
       console.error('[Cuckoo Code][重试] 发送提示词失败: ' + e.message);
     }

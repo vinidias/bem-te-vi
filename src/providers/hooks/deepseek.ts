@@ -367,9 +367,26 @@ function install(): void {
       return p.then(function (response) {
         try {
           if (response && response.ok === false) {
-            dispatch('', 'error', null, null, { reason: 'http', httpStatus: response.status, sessionId: fetchSessionId }, { path: 'http-error', httpStatus: response.status });
+            // HTTP 429 = 操作频繁，标记 reason 供重试引擎走"操作频繁"策略
+            var isRL = response.status === 429;
+            dispatch('', 'error', null, null, { reason: isRL ? 'rate_limit' : 'http', httpStatus: response.status, sessionId: fetchSessionId }, { path: 'http-error', httpStatus: response.status });
           } else if (response && response.body) {
-            observeBody(response.clone().body);
+            var ct = '';
+            try { ct = (response.headers && response.headers.get && response.headers.get('content-type')) || ''; } catch (e2) { /* ignore */ }
+            if (ct.indexOf('json') !== -1) {
+              // 非流式 JSON 响应：可能是业务错误（如 biz_code=40029 操作过于频繁）
+              var sid = fetchSessionId;
+              response.clone().json().then(function (j) {
+                var biz = j && j.data && j.data.biz_code;
+                if (biz !== undefined && biz !== null && biz !== 0) {
+                  var rl = biz === 40029;
+                  console.log('[Cuckoo Code][hook] 非流式业务错误 biz_code=' + biz + (rl ? '（操作过于频繁）' : ''));
+                  dispatch('', 'error', null, null, { reason: rl ? 'rate_limit' : 'biz', bizCode: biz, sessionId: sid }, { path: 'biz-error', bizCode: biz });
+                }
+              }).catch(function () { /* 非 JSON，忽略 */ });
+            } else {
+              observeBody(response.clone().body);
+            }
           }
         } catch (e) { /* ignore */ }
         return response;

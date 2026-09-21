@@ -74,9 +74,9 @@ function saveSettings() {
   const cnt = parseInt(val('cuckoo-retry-count'), 10);
   if (Number.isNaN(cnt)) { showToast('普通失败重试次数必须是整数', 3000); return; }
   const d429 = secToMs(val('cuckoo-retry-429-delay'));
-  if (Number.isNaN(d429) || d429 < 0) { showToast('429 间隔必须是非负数字（秒）', 3000); return; }
+  if (Number.isNaN(d429) || d429 < 0) { showToast('操作频繁重试间隔必须是非负数字（秒）', 3000); return; }
   const c429 = parseInt(val('cuckoo-retry-429-count'), 10);
-  if (Number.isNaN(c429)) { showToast('429 次数必须是整数', 3000); return; }
+  if (Number.isNaN(c429)) { showToast('操作频繁重试次数必须是整数', 3000); return; }
   const prompt = val('cuckoo-retry-prompt').trim();
   if (!prompt) { showToast('重试提示词不能为空', 3000); return; }
   const idleTimeout = secToMs(val('cuckoo-xhr-idle-timeout'));
