@@ -79,6 +79,19 @@ Cuckoo Code 是一个**零 Token 成本**的 AI Agent 桌面应用：
 
 ---
 
+## 四·五、任务提示词（docs/prompts/）
+
+开新 AI 对话做任务时，把对应提示词发给它：
+
+| 任务 | 提示词 |
+|---|---|
+| 做一个新需求（建分支+档案） | [new-requirement.md](./prompts/new-requirement.md) |
+| 补全单元测试 | [write-unit-tests.md](./prompts/write-unit-tests.md) |
+
+需求档案规则见 [docs/requirements/README.md](./requirements/README.md)，总览见 [INDEX.md](./requirements/INDEX.md)。
+
+---
+
 ## 五、三条必记规则
 
 1. **依赖方向单向**（见 [02-依赖.md](./arch/02-dependency.md)）：`infra ← providers ← tools ← bridge ← session ← app`，overlay 不依赖 bridge/session。
