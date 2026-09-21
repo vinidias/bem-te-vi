@@ -7,13 +7,6 @@ import { state } from './state.js';
 import { BT } from '../infra/markdown.js';
 import { getProviderByUrl } from '../providers/registry.js';
 
-// 回调注入（P4.2-A：overlay 不依赖 bridge，由 bridge/entry 注入）
-let hooks: { onMessageSent?: () => void } = {};
-/** 由 bridge/entry 在初始化时注入 bridge 能力 */
-function wireChatInput(h: typeof hooks): void {
-  hooks = h;
-}
-
 // electron 特殊：其 index.js 导出字符串，须用 createRequire（见 P3a 手册 1.5）
 const require = createRequire(import.meta.url);
 const { ipcRenderer } = require('electron');
@@ -105,7 +98,6 @@ async function sendToChat(msg: string, tag?: string, fixedDelay?: number, afterS
     console.log('[Cuckoo Code] 等待结束，开始触发发送');
     triggerSend(input);
     console.log('[Cuckoo Code] 已触发发送, ' + (tag || '') + ', 长度=' + msg.length);
-    try { hooks.onMessageSent?.(); } catch (_) { /* ignore */ }
     if (typeof afterSent === 'function') afterSent();
   }, sendDelay);
   return true;
@@ -313,7 +305,6 @@ ipcRenderer.on('initial-prompt', (_event: any, content: string) => {
 
 
 export {
-  wireChatInput,
   randomDelay,
   setInputContent,
   sendToChat,

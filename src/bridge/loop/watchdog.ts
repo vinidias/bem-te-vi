@@ -1,18 +1,14 @@
 /**
- * 工具循环看门狗
+ * 工具循环看门狗（改为 SSE 流静默检测）
  *
- * 目的：AI 进入"工具调用循环"后，若某轮发出消息却迟迟等不到回复（AI 卡住/中断），
+ * 目的：AI 生成过程中若 SSE 流长时间无任何数据（含心跳），说明卡住/中断，
  * 超时后发提示词催 AI 继续，避免任务无声中断。
  *
- * 开关时机：
- *  - 检测到工具调用            → 进入工具循环（inToolLoop=true），关看门狗
- *  - 发出消息等待 AI 回复       → 若在工具循环中，开看门狗计时
- *  - 收到任意终态（finished/stopped/error） → 关看门狗
- *  - 回复不含工具调用（纯文本）  → 退出工具循环，关看门狗
- *  - 看门狗超时                → 计数 +1，发提示词催继续，重新计时；超过上限则停止
+ * 检测方式：hook（主世界）在流静默超过阈值时派发 'cuckoo-stream-idle' 事件，
+ * 本模块（隔离世界）订阅后按次数发提示词。
  *
  * 配置（localStorage，每窗口独立）：
- *  - cuckoo-xhr-idle-timeout   等待超时（毫秒，默认 300000，<=0 禁用）
+ *  - cuckoo-xhr-idle-timeout   静默阈值（毫秒，默认 300000，<=0 禁用；hook 侧读取）
  *  - cuckoo-watchdog-prompt    超时提示词（默认"请继续"）
  *  - cuckoo-watchdog-count     最大催次数（默认 3，负数=无限）
  */
@@ -21,15 +17,10 @@ import { getProviderByUrl } from '../../providers/registry.js';
 import { sendToChat } from '../../overlay/chat-input.js';
 
 const DEFAULT_PROMPT = '请继续';
-const DEFAULT_TIMEOUT = 300000;
 const DEFAULT_COUNT = 3;
 
-let inToolLoop = false;
-let timer: any = null;
-let timeoutCount = 0;
-// 开启看门狗时所在会话的 ID，用于超时时校验会话是否已切换
-let armedSessionId: string | null = null;
-// 暂停开关：压缩等流程进行中时置 true，看门狗完全停摆
+let idleCount = 0;
+// 暂停开关：压缩等流程进行中时置 true，完全停摆
 let suspended = false;
 
 /** 取当前页面 URL 对应的会话 ID（无则返回 null） */
@@ -43,59 +34,39 @@ function getCurrentSessionId(): string | null {
   return null;
 }
 
-function readConfig(): { timeout: number; prompt: string; count: number } {
-  let timeout = DEFAULT_TIMEOUT;
+function readConfig(): { prompt: string; count: number } {
   let prompt = DEFAULT_PROMPT;
   let count = DEFAULT_COUNT;
   try {
-    const t = parseInt(localStorage.getItem('cuckoo-xhr-idle-timeout') as string, 10);
-    if (Number.isFinite(t)) timeout = t;
     const p = localStorage.getItem('cuckoo-watchdog-prompt');
     if (p) prompt = p;
     const c = parseInt(localStorage.getItem('cuckoo-watchdog-count') as string, 10);
     if (Number.isFinite(c)) count = c;
   } catch (_) {}
-  return { timeout, prompt, count };
+  return { prompt, count };
 }
 
-function clearTimer(): void {
-  if (timer) { clearTimeout(timer); timer = null; }
-}
+/** 测试用：当前静默催继续计数 */
+function getIdleCount(): number { return idleCount; }
 
-function armWatchdog(): void {
-  clearTimer();
+/** 收到流静默事件 */
+function onStreamIdle(detail: any): void {
   if (suspended) return;
-  if (!inToolLoop) return;
-  const cfg = readConfig();
-  if (!(cfg.timeout > 0)) return; // <=0 禁用
-  armedSessionId = getCurrentSessionId();
-  timer = setTimeout(onTimeout, cfg.timeout);
-}
-
-function disarmWatchdog(): void {
-  clearTimer();
-}
-
-function onTimeout(): void {
-  timer = null;
-  if (suspended) return;
-  if (!inToolLoop) return;
-  // 会话已切换：看门狗已失效，静默退出，不打扰新会话
-  const nowSession = getCurrentSessionId();
-  if (nowSession !== armedSessionId) {
-    console.log('[Cuckoo Code][看门狗] 会话已切换（' + armedSessionId + ' -> ' + nowSession + '），跳过催继续');
-    inToolLoop = false;
-    timeoutCount = 0;
-    return;
+  // 会话校验：静默发生的会话与当前不一致 → 忽略
+  if (detail && detail.sessionId !== undefined) {
+    const cur = getCurrentSessionId();
+    if (detail.sessionId !== cur) {
+      console.log('[Cuckoo Code][看门狗] 会话已切换（' + detail.sessionId + ' -> ' + cur + '），忽略');
+      return;
+    }
   }
   const cfg = readConfig();
-
-  if (cfg.count >= 0 && timeoutCount >= cfg.count) {
-    showToast('工具循环等待超时已达上限（' + cfg.count + ' 次），停止催继续', 4000);
+  if (cfg.count >= 0 && idleCount >= cfg.count) {
+    showToast('等待 AI 回复超时已达上限（' + cfg.count + ' 次），停止催继续', 4000);
     return;
   }
-  timeoutCount++;
-  showToast('等待 AI 回复超时，发送「' + cfg.prompt + '」催继续（第 ' + timeoutCount + ' 次）', 3000);
+  idleCount++;
+  showToast('等待 AI 回复超时，发送「' + cfg.prompt + '」催继续（第 ' + idleCount + ' 次）', 3000);
   try {
     sendToChat(cfg.prompt, '看门狗', 300);
   } catch (e: any) {
@@ -103,53 +74,26 @@ function onTimeout(): void {
   }
 }
 
-/** 检测到工具调用：进入工具循环，先关看门狗（工具执行期间不监控） */
-function onToolCallDetected(): void {
-  if (suspended) return;
-  inToolLoop = true;
-  clearTimer();
-}
-
-/** 发出一条消息、等待 AI 回复：若在工具循环中则开看门狗 */
-function onMessageSent(): void {
-  if (inToolLoop) armWatchdog();
-}
-
-/** 收到任意终态回复：关看门狗；成功回复重置超时计数 */
+/** 收到任意终态回复：成功则重置计数 */
 function onResponseReceived(status: string): void {
-  clearTimer();
-  if (status === 'finished') timeoutCount = 0;
-}
-
-/** 回复不含工具调用（纯文本）：退出工具循环 */
-function exitToolLoop(): void {
-  inToolLoop = false;
-  timeoutCount = 0;
-  armedSessionId = null;
-  clearTimer();
+  if (status === 'finished') idleCount = 0;
 }
 
 /** 手动重置（压缩等流程可调用） */
 function reset(): void {
-  inToolLoop = false;
-  timeoutCount = 0;
-  armedSessionId = null;
-  clearTimer();
+  idleCount = 0;
 }
 
-/** 暂停/恢复看门狗：暂停时所有钩子都不动作（压缩等流程用） */
+/** 暂停/恢复看门狗：暂停时忽略所有静默事件 */
 function setSuspended(v: any): void {
   suspended = !!v;
   if (suspended) {
-    inToolLoop = false;
-    timeoutCount = 0;
-    armedSessionId = null;
-    clearTimer();
+    idleCount = 0;
   }
 }
 
 // ===== 会话切换监视：SPA 路由（pushState）不触发 popstate/hashchange，
-// 用轮询检测 session 变化，一旦切换立即重置看门狗，避免误打扰新会话。=====
+// 用轮询检测 session 变化，一旦切换立即重置，避免误打扰新会话。=====
 let sessionWatcherTimer: any = null;
 let lastSeenSessionId: string | null = null;
 
@@ -159,22 +103,30 @@ function startSessionWatcher(): void {
   sessionWatcherTimer = setInterval(function () {
     const sid = getCurrentSessionId();
     if (sid !== lastSeenSessionId) {
-      console.log('[Cuckoo Code][看门狗] 检测到会话切换（' + lastSeenSessionId + ' -> ' + sid + '），重置看门狗');
+      console.log('[Cuckoo Code][看门狗] 检测到会话切换（' + lastSeenSessionId + ' -> ' + sid + '），重置');
       lastSeenSessionId = sid;
       reset();
     }
   }, 1500);
 }
 
+/** 启动：订阅流静默事件 */
+let started = false;
+function startWatchdog(): void {
+  if (started) return;
+  started = true;
+  window.addEventListener('cuckoo-stream-idle', function (ev: any) {
+    try { onStreamIdle(ev && ev.detail); } catch (e) { /* ignore */ }
+  });
+  console.log('[Cuckoo Code][看门狗] 已启动（SSE 流静默检测）');
+}
+
 export {
-  onToolCallDetected,
-  onMessageSent,
+  startWatchdog,
   onResponseReceived,
-  exitToolLoop,
   reset,
   setSuspended,
   startSessionWatcher,
   readConfig as _readConfig,
+  getIdleCount as _getIdleCount,
 };
-
-export function _isInLoop() { return inToolLoop; }

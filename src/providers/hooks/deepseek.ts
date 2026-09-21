@@ -270,6 +270,15 @@ function install(): void {
     };
   }
 
+  // 读看门狗超时配置（毫秒，<=0 禁用）；默认 300000
+  function readIdleTimeout() {
+    try {
+      var v = parseInt(localStorage.getItem('cuckoo-xhr-idle-timeout') || '', 10);
+      if (isFinite(v)) return v;
+    } catch (e) { /* ignore */ }
+    return 300000;
+  }
+
   function observeBody(body) {
     if (!body) return;
     var reader = body.getReader();
@@ -277,6 +286,27 @@ function install(): void {
     var frameDecoder = createFrameDecoder();
     var extractor = createExtractor();
     var dispatched = false;
+    // ---- 流活跃度自检：任何数据（含心跳）到达都刷新 lastActiveAt ----
+    var lastActiveAt = Date.now();
+    var idleTimer = null;
+    var idleSessionId = getSessionIdFromUrl();
+    var idleTimeout = readIdleTimeout();
+
+    function stopIdleTimer() {
+      if (idleTimer) { clearInterval(idleTimer); idleTimer = null; }
+    }
+
+    if (idleTimeout > 0) {
+      idleTimer = setInterval(function () {
+        if (dispatched) { stopIdleTimer(); return; }
+        if (Date.now() - lastActiveAt > idleTimeout) {
+          lastActiveAt = Date.now(); // 重置，避免连续触发
+          try {
+            window.dispatchEvent(new CustomEvent('cuckoo-stream-idle', { detail: { sessionId: idleSessionId } }));
+          } catch (e) { /* ignore */ }
+        }
+      }, 5000);
+    }
 
     function feed(chunk) {
       var frames = frameDecoder.push(chunk);
@@ -293,6 +323,7 @@ function install(): void {
     function pump() {
       reader.read().then(function (r) {
         if (r.done) {
+          stopIdleTimer();
           var tail = decoder.decode();
           if (tail) feed(tail);
           var rest = frameDecoder.finish();
@@ -306,9 +337,11 @@ function install(): void {
           }
           return;
         }
+        lastActiveAt = Date.now(); // 收到任意数据（含心跳）即刷新
         feed(decoder.decode(r.value, { stream: true }));
         pump();
       }).catch(function (e) {
+        stopIdleTimer();
         if (!dispatched) {
           dispatched = true;
           console.log('[Cuckoo Code][hook] fetch stream error name=' + (e && e.name));

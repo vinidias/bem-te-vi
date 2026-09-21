@@ -4,6 +4,7 @@ import assert from 'node:assert';
 
 // watchdog 是带模块级状态的单例，用 resetModules + 动态 import 隔离
 let wd;
+let win;
 
 function setupGlobals() {
   const store = {};
@@ -13,10 +14,18 @@ function setupGlobals() {
     removeItem: (k) => { delete store[k]; },
     clear: () => { for (const k of Object.keys(store)) delete store[k]; },
   };
-  globalThis.window = {
+  // 支持事件派发的 window 模拟
+  const listeners = {};
+  win = {
     location: { href: 'https://chat.deepseek.com/a/chat/s/abc123' },
+    addEventListener: (type, fn) => { (listeners[type] = listeners[type] || []).push(fn); },
+    removeEventListener: () => {},
+    _dispatch: (type, detail) => {
+      for (const fn of listeners[type] || []) fn({ type, detail });
+    },
   };
-  // deepseek provider 的 extractSessionId 会识别 sess-1
+  globalThis.window = win;
+  globalThis.CustomEvent = class { constructor(type, opts) { this.type = type; this.detail = opts && opts.detail; } };
   globalThis.document = {
     getElementById: () => null,
     querySelector: () => null,
@@ -26,6 +35,11 @@ function setupGlobals() {
   };
   globalThis.requestAnimationFrame = (fn) => setTimeout(fn, 0);
   return store;
+}
+
+/** 派发一次流静默事件（默认用当前会话 ID） */
+function emitIdle(sessionId) {
+  win._dispatch('cuckoo-stream-idle', { sessionId });
 }
 
 beforeEach(async () => {
@@ -43,130 +57,121 @@ afterEach(() => {
 
 test('_readConfig 返回默认值', () => {
   const cfg = wd._readConfig();
-  assert.strictEqual(cfg.timeout, 300000);
   assert.strictEqual(cfg.prompt, '请继续');
   assert.strictEqual(cfg.count, 3);
 });
 
 test('_readConfig 从 localStorage 覆盖', () => {
-  localStorage.setItem('cuckoo-xhr-idle-timeout', '1000');
   localStorage.setItem('cuckoo-watchdog-prompt', '继续吧');
   localStorage.setItem('cuckoo-watchdog-count', '5');
   const cfg = wd._readConfig();
-  assert.strictEqual(cfg.timeout, 1000);
   assert.strictEqual(cfg.prompt, '继续吧');
   assert.strictEqual(cfg.count, 5);
 });
 
 test('_readConfig 非法值回退默认', () => {
-  localStorage.setItem('cuckoo-xhr-idle-timeout', 'abc');
   localStorage.setItem('cuckoo-watchdog-count', 'xyz');
   const cfg = wd._readConfig();
-  assert.strictEqual(cfg.timeout, 300000);
   assert.strictEqual(cfg.count, 3);
 });
 
-test('非工具循环中 onMessageSent 不开看门狗', () => {
-  assert.strictEqual(wd._isInLoop(), false);
-  wd.onMessageSent();
-  // 没有工具循环，无计时器，推进时间不应触发任何动作（不抛错）
-  vi.advanceTimersByTime(400000);
+test('未启动时派发静默事件不计数', () => {
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 0);
 });
 
-test('进入工具循环后 onMessageSent 开看门狗并超时催继续', () => {
-  // 借用 sendToChat 无法直接断言，改为监听 toast 不可行；这里验证流程不抛错 + 计时器触发
-  wd.onToolCallDetected();
-  assert.strictEqual(wd._isInLoop(), true);
-  wd.onMessageSent();
-  // 默认超时 300000ms，推进到超时
-  vi.advanceTimersByTime(300001);
-  // 无异常即通过（真实发送失败会被内部 try/catch 吞掉）
+test('启动后派发静默事件计数 +1', () => {
+  wd.startWatchdog();
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 1);
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 2);
 });
 
-test('超时次数达上限后停止催继续', () => {
-  localStorage.setItem('cuckoo-xhr-idle-timeout', '1000');
+test('startWatchdog 幂等（重复调用不重复注册）', () => {
+  wd.startWatchdog();
+  wd.startWatchdog();
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 1);
+});
+
+test('会话不匹配时忽略静默事件', () => {
+  wd.startWatchdog();
+  emitIdle('other-session'); // 与当前 URL 会话 abc123 不符
+  assert.strictEqual(wd._getIdleCount(), 0);
+});
+
+test('会话匹配时处理静默事件', () => {
+  wd.startWatchdog();
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 1);
+});
+
+test('次数达上限后停止催继续', () => {
   localStorage.setItem('cuckoo-watchdog-count', '1');
-  wd.onToolCallDetected();
-  wd.onMessageSent();
-  vi.advanceTimersByTime(1001); // 第 1 次催
-  // 重新计时（onTimeout 不再 arm，需手动再 onMessageSent 模拟下一轮）
-  wd.onMessageSent();
-  vi.advanceTimersByTime(1001); // 达到上限，不再催
-  // 无异常即通过
+  wd.startWatchdog();
+  emitIdle('abc123'); // 第 1 次
+  assert.strictEqual(wd._getIdleCount(), 1);
+  emitIdle('abc123'); // 达上限，不再增
+  assert.strictEqual(wd._getIdleCount(), 1);
 });
 
-test('onResponseReceived(finished) 重置超时计数', () => {
-  localStorage.setItem('cuckoo-xhr-idle-timeout', '1000');
-  wd.onToolCallDetected();
-  wd.onMessageSent();
-  vi.advanceTimersByTime(1001); // 计数 +1
-  wd.onResponseReceived('finished'); // 重置计数
-  // 再超时应重新从 1 开始（不抛错）
-  wd.onMessageSent();
-  vi.advanceTimersByTime(1001);
+test('次数为负数表示无限', () => {
+  localStorage.setItem('cuckoo-watchdog-count', '-1');
+  wd.startWatchdog();
+  for (let i = 0; i < 5; i++) emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 5);
 });
 
-test('onResponseReceived 关闭计时器', () => {
-  localStorage.setItem('cuckoo-xhr-idle-timeout', '1000');
-  wd.onToolCallDetected();
-  wd.onMessageSent();
+test('onResponseReceived(finished) 重置计数', () => {
+  wd.startWatchdog();
+  emitIdle('abc123');
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 2);
+  wd.onResponseReceived('finished');
+  assert.strictEqual(wd._getIdleCount(), 0);
+});
+
+test('onResponseReceived(error) 不重置计数', () => {
+  wd.startWatchdog();
+  emitIdle('abc123');
   wd.onResponseReceived('error');
-  vi.advanceTimersByTime(5000); // 不应再触发（无异常）
+  assert.strictEqual(wd._getIdleCount(), 1);
 });
 
-test('exitToolLoop 退出并清状态', () => {
-  wd.onToolCallDetected();
-  assert.strictEqual(wd._isInLoop(), true);
-  wd.exitToolLoop();
-  assert.strictEqual(wd._isInLoop(), false);
-});
-
-test('reset 清理所有状态', () => {
-  wd.onToolCallDetected();
+test('reset 清理计数', () => {
+  wd.startWatchdog();
+  emitIdle('abc123');
   wd.reset();
-  assert.strictEqual(wd._isInLoop(), false);
+  assert.strictEqual(wd._getIdleCount(), 0);
 });
 
-test('setSuspended(true) 后 onToolCallDetected 不进入循环', () => {
+test('setSuspended(true) 后忽略静默事件', () => {
+  wd.startWatchdog();
   wd.setSuspended(true);
-  wd.onToolCallDetected();
-  assert.strictEqual(wd._isInLoop(), false);
-  wd.setSuspended(false);
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 0);
 });
 
-test('setSuspended(true) 会清空进行中状态', () => {
-  wd.onToolCallDetected();
-  assert.strictEqual(wd._isInLoop(), true);
+test('setSuspended(true) 会清空进行中计数', () => {
+  wd.startWatchdog();
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 1);
   wd.setSuspended(true);
-  assert.strictEqual(wd._isInLoop(), false);
+  assert.strictEqual(wd._getIdleCount(), 0);
   wd.setSuspended(false);
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 1);
 });
 
-test('timeout<=0 禁用看门狗', () => {
-  localStorage.setItem('cuckoo-xhr-idle-timeout', '0');
-  wd.onToolCallDetected();
-  wd.onMessageSent();
-  vi.advanceTimersByTime(10000000); // 无计时器，无异常
-});
-
-test('会话切换后超时不催继续', () => {
-  localStorage.setItem('cuckoo-xhr-idle-timeout', '1000');
-  wd.onToolCallDetected();
-  wd.onMessageSent();
-  // 切换会话
-  globalThis.window.location.href = 'https://chat.deepseek.com/a/chat/s/def456';
-  vi.advanceTimersByTime(1001);
-  // 会话切换 → 静默退出工具循环
-  assert.strictEqual(wd._isInLoop(), false);
-});
-
-test('startSessionWatcher 检测会话切换后 reset', () => {
-  wd.onToolCallDetected();
-  assert.strictEqual(wd._isInLoop(), true);
+test('startSessionWatcher 检测会话切换后重置', () => {
+  wd.startWatchdog();
+  emitIdle('abc123');
+  assert.strictEqual(wd._getIdleCount(), 1);
   wd.startSessionWatcher();
-  globalThis.window.location.href = 'https://chat.deepseek.com/a/chat/s/def456';
+  win.location.href = 'https://chat.deepseek.com/a/chat/s/def456';
   vi.advanceTimersByTime(1501); // 轮询间隔 1500ms
-  assert.strictEqual(wd._isInLoop(), false);
+  assert.strictEqual(wd._getIdleCount(), 0);
 });
 
 test('startSessionWatcher 幂等（重复调用不报错）', () => {
