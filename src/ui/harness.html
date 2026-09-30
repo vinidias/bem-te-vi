@@ -61,6 +61,20 @@
     font-family: inherit; transition: all .14s;
   }
   .tb-btn:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
+  .settings-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; align-items: center; justify-content: center; }
+  .settings-mask.show { display: flex; }
+  .settings-modal { background: var(--bg-elev); border: 1px solid var(--border-strong); border-radius: 12px; padding: 20px; width: 340px; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+  .sm-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 16px; }
+  .sm-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .sm-label { font-size: 13px; color: var(--text-2); }
+  .sm-row input[type="number"] { width: 90px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; color: var(--text); font-size: 13px; font-family: inherit; text-align: center; }
+  .sm-row input[type="number"]:focus { outline: none; border-color: var(--accent); }
+  .sm-hint { font-size: 11.5px; color: var(--text-dim); margin-bottom: 18px; line-height: 1.5; }
+  .sm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .sm-btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-2); font-size: 12.5px; cursor: pointer; font-family: inherit; }
+  .sm-btn:hover { background: var(--surface); color: var(--text); }
+  .sm-btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  .sm-btn.primary:hover { opacity: .9; }
 
   /* ===== 消息流 ===== */
   .stream { flex: 1; overflow-y: auto; padding: 20px 0 8px; position: relative; }
@@ -363,6 +377,7 @@
   }
   .goalbar .g-btn:hover { background: var(--surface); color: var(--text); }
   .goalbar .g-btn.danger:hover { color: var(--red); border-color: rgba(224,108,117,.5); }
+  .goalbar .g-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
   /* ===== Plan 计划面板 ===== */
   .plan-panel { display: none; flex-shrink: 0; background: var(--bg-elev); border-bottom: 1px solid var(--border-soft); }
@@ -415,7 +430,22 @@
     <div class="spacer"></div>
     <div class="status ready" id="status"><span class="dot"></span><span id="status-text">就绪</span></div>
     <button class="tb-btn" id="btn-clear" title="清空当前对话">新对话</button>
+    <button class="tb-btn" id="btn-settings" title="设置">设置</button>
     <button class="tb-btn" id="btn-web" title="返回网页模式 (Ctrl+Shift+H)">网页模式</button>
+  </div>
+  <div class="settings-mask" id="settings-mask">
+    <div class="settings-modal">
+      <div class="sm-title">设置</div>
+      <div class="sm-row">
+        <span class="sm-label">目标最大迭代次数</span>
+        <input type="number" id="sm-goal-max" min="1" max="999" value="50" />
+      </div>
+      <div class="sm-hint">目标自动推进到达此次数后停止（防止无限烧 token）。</div>
+      <div class="sm-actions">
+        <button class="sm-btn" id="sm-cancel">取消</button>
+        <button class="sm-btn primary" id="sm-save">保存</button>
+      </div>
+    </div>
   </div>
   <div class="goalbar" id="goalbar">
     <span class="g-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg></span>
@@ -423,7 +453,11 @@
       <div class="g-text" id="goal-text"></div>
       <div class="g-meta"><span class="g-state" id="goal-state"><i></i><span id="goal-state-text">进行中</span></span><span>·</span><span id="goal-round"></span></div>
     </div>
-    <button class="g-btn danger" id="goal-btn">停止目标</button>
+    <div class="g-actions">
+      <button class="g-btn" id="goal-toggle">暂停</button>
+      <button class="g-btn" id="goal-edit">修改</button>
+      <button class="g-btn danger" id="goal-cancel">取消</button>
+    </div>
   </div>
   <div class="plan-panel" id="plan-panel">
     <div class="plan-head" id="plan-head">
@@ -654,12 +688,25 @@
   function renderGoalBar() {
     if (!goalbar) return;
     if (!goal) { goalbar.classList.remove('show'); return; }
-    goalbar.className = 'goalbar show ' + (goal.done ? 'done' : 'running');
+    goalbar.className = 'goalbar show ' + (goal.done ? 'done' : (goal.paused ? 'paused' : 'running'));
     goalTextEl.textContent = goal.text;
-    goalStateTextEl.textContent = goal.done ? '已完成' : '进行中';
-    goalRoundEl.textContent = '自动推进 ' + goal.round + ' 轮';
-    goalBtn.textContent = goal.done ? '清除目标' : '停止目标';
-    goalBtn.className = 'g-btn' + (goal.done ? '' : ' danger');
+    goalStateTextEl.textContent = goal.done ? '已完成' : (goal.paused ? '已暂停' : '进行中');
+    goalRoundEl.textContent = '迭代 ' + goal.round + (goal.maxIterations ? ' / ' + goal.maxIterations : '');
+    var tg = document.getElementById('goal-toggle');
+    if (tg) { tg.textContent = goal.done ? '完成' : (goal.paused ? '继续' : '暂停'); tg.style.display = goal.done ? 'none' : ''; }
+    var ed = document.getElementById('goal-edit');
+    if (ed) ed.style.display = goal.done ? 'none' : '';
+    var cc = document.getElementById('goal-cancel');
+    if (cc) cc.textContent = goal.done ? '清除' : '取消';
+  }
+
+  /** 读最大迭代次数（设置项，默认 50） */
+  function goalMaxIterations() {
+    try {
+      var v = parseInt(localStorage.getItem('cuckoo-goal-max-iterations') || '', 10);
+      if (Number.isFinite(v) && v > 0) return v;
+    } catch (e) { /* ignore */ }
+    return 50;
   }
 
   // 构造目标推进指令（发给 AI 的完整文本）
@@ -673,10 +720,10 @@
 
   function startGoal(text) {
     cancelGoalNudge();
-    goal = { text: text, round: 0, done: false };
+    goal = { text: text, round: 0, done: false, paused: false, maxIterations: goalMaxIterations(), lastText: '' };
     saveGoalState();
     renderGoalBar();
-    appendSystem('目标已设定（自动多轮推进，AI 完成时输出 [[GOAL_DONE]] 结束）');
+    appendSystem('目标已设定（自动迭代，最多 ' + goal.maxIterations + ' 轮；完成时 AI 输出 [[GOAL_DONE]]）');
     pushHist({ t: 'system', text: '目标已设定：' + text });
   }
 
@@ -695,18 +742,39 @@
     if (goalNudgeTimer) { clearTimeout(goalNudgeTimer); goalNudgeTimer = null; }
   }
 
-  /** 纯文本回合结束 → 延迟自动催促；期间出现工具调用/新流式则取消（工具轮次由工具循环自然推进） */
+  /** goal 无进展检测：连续多轮输出相同 → 停（防死循环烧 token） */
+  var goalNoProgress = 0;
+  function checkProgress(text) {
+    if (!goal) return;
+    var t = String(text || '').trim();
+    if (t && t === goal.lastText) goalNoProgress++;
+    else goalNoProgress = 0;
+    goal.lastText = t;
+  }
+
+  /** 纯文本回合结束 → 延迟自动续跑（goal 状态机：暂停/max/无进展） */
   function scheduleGoalNudge() {
-    if (!goal || goal.done) return;
+    if (!goal || goal.done || goal.paused) return;
     cancelGoalNudge();
     goalNudgeTimer = setTimeout(function () {
       goalNudgeTimer = null;
-      if (!goal || goal.done) return;
-      if (generating || toolRunningCount > 0) return; // 仍在忙：等下一个事件再调度
+      if (!goal || goal.done || goal.paused) return;
+      if (generating || toolRunningCount > 0) return;
+      if (goal.maxIterations && goal.round >= goal.maxIterations) {
+        goal.done = true; saveGoalState(); renderGoalBar();
+        appendSystem('目标已达最大迭代次数（' + goal.maxIterations + ' 轮），停止');
+        pushHist({ t: 'system', text: '目标达最大迭代次数，停止' });
+        return;
+      }
+      if (goalNoProgress >= 3) {
+        goal.done = true; saveGoalState(); renderGoalBar();
+        appendSystem('目标连续多轮无进展，停止');
+        pushHist({ t: 'system', text: '目标无进展，停止' });
+        return;
+      }
       goal.round++;
       saveGoalState();
       renderGoalBar();
-      // 自动推进指令只发给 AI，不写入对话框/历史
       setStatus('生成中…', 'busy');
       if (!cur) {
         cur = createAssistant();
@@ -714,8 +782,7 @@
         cur.body.innerHTML = '<span class="pending-dots"><i></i><i></i><i></i></span>';
         scrollBottom(true);
       }
-      var nudge = '请继续推进目标：' + goal.text +
-        '\n（若目标已完成，请在回复末尾单独一行输出 [[GOAL_DONE]]；若遇到无法解决的阻碍，请说明原因并暂停）';
+      var nudge = '继续。若目标已完成，请只回复 [[GOAL_DONE]]。';
       if (api.sendMessage) api.sendMessage(nudge);
     }, GOAL_NUDGE_DELAY);
   }
@@ -731,12 +798,33 @@
     }
   }
 
-  if (goalBtn) {
-    goalBtn.addEventListener('click', function () {
-      if (goal && goal.done) stopGoal('');
-      else stopGoal('已手动停止目标自动推进');
-    });
-  }
+  // 暂停/继续
+  var goalToggleBtn = document.getElementById('goal-toggle');
+  if (goalToggleBtn) goalToggleBtn.addEventListener('click', function () {
+    if (!goal || goal.done) return;
+    goal.paused = !goal.paused;
+    if (goal.paused) { cancelGoalNudge(); appendSystem('目标已暂停'); }
+    else { appendSystem('目标继续'); scheduleGoalNudge(); }
+    saveGoalState(); renderGoalBar();
+  });
+  // 修改（弹出输入，替换目标文本）
+  var goalEditBtn = document.getElementById('goal-edit');
+  if (goalEditBtn) goalEditBtn.addEventListener('click', function () {
+    if (!goal || goal.done) return;
+    var nt = window.prompt('修改目标描述：', goal.text);
+    if (nt != null && nt.trim()) {
+      goal.text = nt.trim(); goal.round = 0; goal.lastText = ''; goalNoProgress = 0;
+      saveGoalState(); renderGoalBar();
+      appendSystem('目标已修改：' + goal.text);
+      if (!goal.paused) scheduleGoalNudge();
+    }
+  });
+  // 取消/清除
+  var goalCancelBtn = document.getElementById('goal-cancel');
+  if (goalCancelBtn) goalCancelBtn.addEventListener('click', function () {
+    if (goal && goal.done) stopGoal('');
+    else stopGoal('已取消目标');
+  });
 
   // ----- Plan（计划，数据来自官方 todoWrite 工具） -----
   var planPanel = document.getElementById('plan-panel');
@@ -1144,6 +1232,7 @@
           var adThink = (cur && cur.thinkBody) ? cur.thinkBody.textContent : '';
           onAssistantDone(payload.text);
           if (adText && adText !== lastPushedAssistant) { lastPushedAssistant = adText; pushHist({ t: 'assistant', text: payload.text, think: adThink }); }
+          if (goal && !goal.done && !goal.paused) checkProgress(adText);
           scheduleGoalNudge();
           break;
         }
