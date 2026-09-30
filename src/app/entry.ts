@@ -67,41 +67,6 @@ async function flushAllSessions() {
 }
 
 /**
- * 动态测量"AI 网页内容区"的左偏移（= 网页自带侧边栏宽度）。
- * 不写死：注入 JS 在页面里按布局实时测量；各平台通用（取"宽度>半屏且左边>0 的最靠左祖先"）。
- * 支持平台自定义：页面若定义了 window.__cuckooMeasureContentLeft() 则优先用它。
- * @returns 内容区左偏移（px），无法测量时 0
- */
-async function measureContentLeft(wc: any): Promise<number> {
-  const JS = '(' + function () {
-    try {
-      var custom = (window as any).__cuckooMeasureContentLeft;
-      if (typeof custom === 'function') {
-        var cv = custom();
-        if (typeof cv === 'number' && cv >= 0) return Math.round(cv);
-      }
-      var vw = (window as any).innerWidth || 0;
-      var ta = document.querySelector('textarea, div[contenteditable="true"], [role="textbox"]');
-      if (!ta) return 0;
-      var el: any = (ta as any).parentElement;
-      var best = 0;
-      for (var d = 0; d < 14 && el; d++) {
-        var r = el.getBoundingClientRect();
-        if (r.width > vw * 0.5 && r.left > 2 && (best === 0 || r.left < best)) best = r.left;
-        el = el.parentElement;
-      }
-      return Math.round(best);
-    } catch (e) { return 0; }
-  }.toString() + ')()';
-  try {
-    const v = await wc.executeJavaScript(JS);
-    return (typeof v === 'number' && v >= 0) ? v : 0;
-  } catch (_) {
-    return 0;
-  }
-}
-
-/**
  * 创建窗口（绑定指定 profile）
  * @param {object|null} profile profile 对象，null 则使用默认 profile
  */
@@ -231,15 +196,13 @@ function createWindow(profile: any) {
       width: Math.max(0, w - sbw),
       height: Math.max(0, h - tbh),
     });
-    // harness 覆盖"网页内容区"（避开网页自带侧边栏）：x = Cuckoo侧栏 + 动态测量的网页侧栏宽
+    // harness 覆盖整个"网页区域"（与 AI view 同位置）
     const hv = (mainWindow as any).__ckHarnessView;
     if (hv && !hv.webContents.isDestroyed()) {
       if ((mainWindow as any).__ckHarnessVisible) {
-        const cLeft = (mainWindow as any).__ckContentLeft || 0;
-        const hvX = sbw + cLeft;
         hv.setBounds({
-          x: hvX, y: tbh,
-          width: Math.max(0, w - hvX),
+          x: sbw, y: tbh,
+          width: Math.max(0, w - sbw),
           height: Math.max(0, h - tbh),
         });
       } else {
@@ -279,11 +242,10 @@ function createWindow(profile: any) {
     } catch (_) { /* ignore */ }
   };
   // 切换纯净模式（同窗口）：true=显示 harness，false=显示网页
-  (mainWindow as any).__ckToggleHarness = async (show?: boolean) => {
+  (mainWindow as any).__ckToggleHarness = (show?: boolean) => {
     if (mainWindow.isDestroyed()) return;
     const next = typeof show === 'boolean' ? show : !(mainWindow as any).__ckHarnessVisible;
     (mainWindow as any).__ckHarnessVisible = next;
-    if (next) {
     if (next) {
       // 懒加载：首次进入纯净模式才创建 harness 视图
       const hv = ensureHarnessView();
@@ -299,19 +261,6 @@ function createWindow(profile: any) {
       }
     } catch (_) {}
   };
-
-  // 纯净模式可见时定期重测（用户可能收起/展开网页侧边栏）
-  setInterval(async () => {
-    if (mainWindow.isDestroyed()) return;
-    if (!(mainWindow as any).__ckHarnessVisible) return;
-    try {
-      const l = await measureContentLeft(view.webContents);
-      if (l !== ((mainWindow as any).__ckContentLeft || 0)) {
-        (mainWindow as any).__ckContentLeft = l;
-        layoutView();
-      }
-    } catch (_) { /* ignore */ }
-  }, 1500);
 
   // 更新主窗口引用
   windowState.setMainWindow(mainWindow);
