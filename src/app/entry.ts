@@ -161,6 +161,7 @@ function createWindow(profile: any) {
     hv.webContents.loadFile(resolveSrc('ui/harness.html'));
     hv.webContents.on('did-finish-load', () => {
       console.log('[Cuckoo Harness] 页面加载完成');
+      try { notifyHarnessSession(view.webContents.getURL()); } catch (_) {}
     });
     hv.webContents.on('did-fail-load', (_e: any, code: any, desc: any) => {
       console.error('[Cuckoo Harness] 页面加载失败: ' + code + ' ' + desc);
@@ -228,6 +229,18 @@ function createWindow(profile: any) {
   windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore, view);
   sessionsToFlush.add(winSession);
 
+  // 通知 harness 当前会话已变化（用于按会话隔离历史/目标/计划）
+  const notifyHarnessSession = (url: string) => {
+    try {
+      const c: any = windowState.getContextByWebContents(view.webContents);
+      const hv = c && c.harnessView;
+      if (!hv || hv.webContents.isDestroyed()) return; // 懒加载下 view 可能尚未创建
+      let sid = '';
+      const provider = c.providerId ? getProvider(c.providerId) : null;
+      if (provider && typeof provider.extractSessionId === 'function') sid = provider.extractSessionId(url) || '';
+      hv.webContents.send('harness-event', { type: 'session-changed', sessionId: sid });
+    } catch (_) { /* ignore */ }
+  };
   // 切换纯净模式（同窗口）：true=显示 harness，false=显示网页
   (mainWindow as any).__ckToggleHarness = (show?: boolean) => {
     if (mainWindow.isDestroyed()) return;
@@ -331,6 +344,7 @@ function createWindow(profile: any) {
     pushUrlState(view);
     // 通知 AI 页面（overlay/看门狗）URL 已变，替代原先的渲染进程轮询
     try { view.webContents.send('cuckoo-url-changed', { url }); } catch (_) {}
+    notifyHarnessSession(url);
     autoConnectMcp();
   });
 
@@ -339,6 +353,7 @@ function createWindow(profile: any) {
     pushUrlState(view);
     // SPA 路由（pushState）变化也在此触发，替代轮询
     try { view.webContents.send('cuckoo-url-changed', { url }); } catch (_) {}
+    notifyHarnessSession(url);
     autoConnectMcp();
   });
 

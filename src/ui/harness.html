@@ -448,10 +448,13 @@
   var cur = null;
 
   // ===== 对话历史持久化（localStorage，刷新/重开不丢）=====
-  var HIST_KEY = 'cuckoo-harness-history-v1';
+  var HIST_BASE = 'cuckoo-harness-history-v1';
+  var currentSessionId = '';
   var history = [];
+  function histKeyOf(sid) { return HIST_BASE + (sid ? ':' + sid : ''); }
+  function histKey() { return histKeyOf(currentSessionId); }
   function loadHist() {
-    try { history = JSON.parse(localStorage.getItem(HIST_KEY) || '[]') || []; } catch (e) { history = []; }
+    try { history = JSON.parse(localStorage.getItem(histKey()) || '[]') || []; } catch (e) { history = []; }
   }
   // 单条字段截断上限（防止超大工具输出撑爆 localStorage）
   var HIST_FIELD_MAX = 6000;
@@ -474,14 +477,14 @@
       if (history.length > 400) history = history.slice(-400);
       compactHist();
       try {
-        localStorage.setItem(HIST_KEY, JSON.stringify(history));
+        localStorage.setItem(histKey(), JSON.stringify(history));
       } catch (e) {
         // 配额溢出：丢弃最旧的一半后重试，最多重试 5 次
         var tries = 0;
         while (tries < 5) {
           tries++;
           history = history.slice(Math.ceil(history.length / 2));
-          try { localStorage.setItem(HIST_KEY, JSON.stringify(history)); break; }
+          try { localStorage.setItem(histKey(), JSON.stringify(history)); break; }
           catch (e2) { /* continue */ }
         }
       }
@@ -554,6 +557,28 @@
     saveHist();
     stream.innerHTML = '';
     cur = null;
+  }
+
+  // 会话切换：保存旧会话历史，加载新会话历史
+  function onSessionChanged(sid) {
+    sid = sid || '';
+    if (sid === currentSessionId) return;
+    try { localStorage.setItem(histKeyOf(currentSessionId), JSON.stringify(history)); } catch (e) { /* ignore */ }
+    currentSessionId = sid;
+    loadHist();
+    cur = null;
+    stream.innerHTML = '';
+    if (!history.length) { showEmptyState(); return; }
+    restoreHist();
+    scrollBottom(true);
+  }
+
+  // 恢复空态占位
+  var EMPTY_HTML = null;
+  function showEmptyState() {
+    if (EMPTY_HTML == null) return;
+    stream.innerHTML = EMPTY_HTML;
+    empty = document.getElementById('empty');
   }
 
   // ===== Goal（目标）/ Plan（计划）=====
@@ -1025,6 +1050,7 @@
           }
           break;
         }
+        case 'session-changed': onSessionChanged(payload.sessionId); break;
         case 'status': setStatus(payload.text, payload.busy ? 'busy' : 'ready'); break;
       }
     });
@@ -1485,6 +1511,7 @@
     updateScrollBtn();
   });
 
+  try { EMPTY_HTML = stream.innerHTML; } catch (e) { /* ignore */ }
   loadHist();
   restoreHist();
   loadGoalState();
