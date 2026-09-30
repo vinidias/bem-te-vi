@@ -95,6 +95,49 @@ function registerShellIpc(): void {
   });
 
 
+  // ===== 侧栏「对话」分页：读网页端会话列表（DOM 实时读取，天然同步）+ 导航 =====
+  ipcMain.handle('web-list-sessions', async (event: any) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    const view = ctx ? ctx.view : null;
+    if (!view || !view.webContents || view.webContents.isDestroyed()) return { success: false, sessions: [] };
+    const provider = (ctx && ctx.providerId) ? getProvider(ctx.providerId) : null;
+    const base = (provider && provider.sessionUrlBase) || '';
+    try {
+      const fn = function (doc: any, win: any, base: any) {
+        try {
+          var basePath = '';
+          try { basePath = new win.URL(base).pathname; } catch (e) { basePath = ''; }
+          var anchors = doc.querySelectorAll('a[href]');
+          var seen: any = {}, out: any[] = [];
+          for (var i = 0; i < anchors.length; i++) {
+            var a = anchors[i];
+            var href = a.href || '';
+            if (!href || href === win.location.href) continue;
+            if (basePath && href.indexOf(basePath) === -1) continue;
+            var title = String(a.innerText || a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+            if (!title) continue;
+            if (seen[href]) continue;
+            seen[href] = 1;
+            var cls = (typeof a.className === 'string') ? a.className : '';
+            out.push({ title: title, href: href, active: cls.indexOf('active') !== -1 || a.getAttribute('aria-current') === 'page' });
+          }
+          return out.slice(0, 100);
+        } catch (e) { return []; }
+      };
+      const list = await view.webContents.executeJavaScript('(' + fn.toString() + ')(document, window, ' + JSON.stringify(base) + ')');
+      return { success: true, sessions: list || [], currentUrl: view.webContents.getURL() };
+    } catch (err: any) {
+      return { success: false, error: err.message, sessions: [] };
+    }
+  });
+  ipcMain.handle('web-navigate-session', async (event: any, { url }: any) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    const view = ctx ? ctx.view : null;
+    if (!view || !url) return { success: false };
+    try { await view.webContents.loadURL(url); return { success: true }; }
+    catch (err: any) { return { success: false, error: err.message }; }
+  });
+
   ipcMain.handle('shell-navigate', async (event: any, { url }: any) => {
     const view = viewOf(event);
     if (!view || !url) return { success: false };
