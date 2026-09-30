@@ -3,7 +3,7 @@
  *
  * 运行在 AI 页面（preload）。职责：
  *   1. 订阅 AI 回复（onInterceptedResponse）→ 上报主进程 → harness 页面显示
- *   2. 订阅工具调用事件（onToolCall）→ 上报；解析 todoWrite → 上报计划
+ *   2. 订阅工具调用事件（onToolCall）→ 上报工具开始/结束
  *   3. 监听主进程转发的 'harness-user-message' → 调 sendToChat 发到 AI
  *   4. 目标模式：识别 [[GOAL_DONE]] 标记 → 上报 goal-done
  *
