@@ -1223,14 +1223,20 @@
   }
 
   // ===== 对话（读网页端会话列表，实时同步）=====
-  async function loadWebConversations() {
+  // retainOnEmpty=true：读到空时保留旧列表（页面正在导航/DOM 未就绪时避免误清空）
+  async function loadWebConversations(retainOnEmpty) {
     var listEl = document.getElementById('conv-list');
     if (!listEl || !api.listWebSessions) return;
     var res = null;
     try { res = await api.listWebSessions(); } catch (e) { res = null; }
     var sessions = (res && res.success && Array.isArray(res.sessions)) ? res.sessions : [];
     var curUrl = (res && res.currentUrl) || '';
-    if (!sessions.length) { listEl.innerHTML = '<div class="ck-list-empty">暂无对话（或当前页未加载）</div>'; return; }
+    if (!sessions.length) {
+      if (retainOnEmpty) return; // 保留现有列表
+      if (listEl.querySelector('.ck-conv-item')) return; // 已有内容也不清
+      listEl.innerHTML = '<div class="ck-list-empty">加载中…（若持续为空，请点刷新）</div>';
+      return;
+    }
     listEl.innerHTML = sessions.map(function (s) {
       var active = (s.href === curUrl) ? ' ck-conv-active' : '';
       return '<div class="ck-conv-item' + active + '" data-url="' + escapeAttr(s.href) + '" title="' + escapeAttr(s.title) + '">' +
@@ -1248,16 +1254,23 @@
       });
     });
   }
+  // 导航后延迟多次重试读取（网页导航中 DOM 未就绪 → 等加载完再读）
+  function reloadConversationsAfterNav() {
+    loadWebConversations(true);
+    setTimeout(function () { loadWebConversations(true); }, 800);
+    setTimeout(function () { loadWebConversations(true); }, 1800);
+    setTimeout(function () { loadWebConversations(false); }, 3200);
+  }
   var convRefreshBtn = document.getElementById('conv-refresh');
   if (convRefreshBtn) convRefreshBtn.addEventListener('click', loadWebConversations);
   var convNewBtn = document.getElementById('conv-new');
   if (convNewBtn) convNewBtn.addEventListener('click', function () {
-    if (api.newWebConversation) api.newWebConversation().then(function () { setTimeout(loadWebConversations, 1200); });
+    if (api.newWebConversation) api.newWebConversation().then(function () { reloadConversationsAfterNav(); });
   });
   // 网页导航变化 → 自动刷新对话列表（切换对话时同步高亮）
   if (api.onWebUrlChanged) api.onWebUrlChanged(function () {
     var panel = document.querySelector('.ck-tab[data-panel="conversations"]');
-    if (panel && panel.classList.contains('ck-tab-active')) { try { loadWebConversations(); } catch (e) {} }
+    if (panel && panel.classList.contains('ck-tab-active')) { try { reloadConversationsAfterNav(); } catch (e) {} }
   });
 
   // ===== 提示词（Snippets）=====
