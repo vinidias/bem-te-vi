@@ -125,6 +125,30 @@
   .msg.assistant .body pre code { background: none; padding: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.62; }
   .msg.assistant .body strong { color: #fff; font-weight: 600; }
   .msg.assistant .body ul { margin: 8px 0; padding-left: 20px; }
+  .msg.assistant .body ol { margin: 8px 0; padding-left: 22px; }
+  .msg.assistant .body h1, .msg.assistant .body h2, .msg.assistant .body h3,
+  .msg.assistant .body h4, .msg.assistant .body h5, .msg.assistant .body h6 {
+    margin: 14px 0 8px; font-weight: 600; line-height: 1.4; color: #fff;
+  }
+  .msg.assistant .body h1 { font-size: 18px; }
+  .msg.assistant .body h2 { font-size: 16px; }
+  .msg.assistant .body h3 { font-size: 14.5px; }
+  .msg.assistant .body h4, .msg.assistant .body h5, .msg.assistant .body h6 { font-size: 13.5px; }
+  .msg.assistant .body table {
+    border-collapse: collapse; margin: 10px 0; font-size: 12.5px;
+    display: block; max-width: 100%; overflow-x: auto;
+  }
+  .msg.assistant .body th, .msg.assistant .body td {
+    border: 1px solid var(--border-soft); padding: 6px 10px; text-align: left;
+    white-space: nowrap;
+  }
+  .msg.assistant .body th { background: var(--surface); font-weight: 600; color: var(--text); }
+  .msg.assistant .body blockquote {
+    margin: 8px 0; padding: 4px 12px; border-left: 3px solid var(--border-strong);
+    color: var(--text-2);
+  }
+  .msg.assistant .body hr { border: none; border-top: 1px solid var(--border-soft); margin: 12px 0; }
+  .msg.assistant .body del { color: var(--text-dim); }
   .msg.assistant .body li { margin: 3px 0; }
 
   /* 流式光标 */
@@ -767,24 +791,49 @@
     var reInline = new RegExp(BT + '([^' + BT + '\n]+)' + BT, 'g');
     src = src.replace(reInline, '<code>$1</code>');
     src = src.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    // 无序列表
+    src = src.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    // 行级块解析：表格 / 标题 / 分割线 / 引用 / 有序/无序列表 / 段落
     var lines = src.split('\n');
-    var out = [], listBuf = [];
-    function flushList() {
-      if (listBuf.length) { out.push('<ul>' + listBuf.join('') + '</ul>'); listBuf = []; }
+    var out = [];
+    function isTableSep(s) { return /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(s); }
+    function splitRow(s) {
+      s = s.trim();
+      if (s.charAt(0) === '|') s = s.slice(1);
+      if (s.charAt(s.length - 1) === '|') s = s.slice(0, -1);
+      return s.split('|').map(function (c) { return c.trim(); });
     }
-    for (var i = 0; i < lines.length; i++) {
-      var m = /^\s*[-*]\s+(.*)$/.exec(lines[i]);
-      if (m) { listBuf.push('<li>' + m[1] + '</li>'); }
-      else { flushList(); out.push(lines[i]); }
+    var bi = 0, paraBuf = [];
+    function flushPara() { if (paraBuf.length) { out.push('<p>' + paraBuf.join('<br>') + '</p>'); paraBuf = []; } }
+    while (bi < lines.length) {
+      var line = lines[bi], t = line.trim();
+      if (t.indexOf('|') >= 0 && bi + 1 < lines.length && isTableSep(lines[bi + 1])) {
+        flushPara();
+        var head = splitRow(t); bi += 2; var rows = [];
+        while (bi < lines.length && lines[bi].trim() !== '' && lines[bi].indexOf('|') >= 0) { rows.push(splitRow(lines[bi])); bi++; }
+        out.push('<table><thead><tr>' + head.map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>');
+        continue;
+      }
+      var hm = /^(#{1,6})\s+(.*)$/.exec(t);
+      if (hm) { flushPara(); var lv = hm[1].length; out.push('<h' + lv + '>' + hm[2] + '</h' + lv + '>'); bi++; continue; }
+      if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flushPara(); out.push('<hr>'); bi++; continue; }
+      if (/^>\s?/.test(t)) { flushPara(); out.push('<blockquote>' + t.replace(/^>\s?/, '') + '</blockquote>'); bi++; continue; }
+      if (/^\s*[-*+]\s+/.test(line)) {
+        flushPara(); var uitems = [];
+        while (bi < lines.length && /^\s*[-*+]\s+/.test(lines[bi])) { uitems.push(lines[bi].replace(/^\s*[-*+]\s+/, '')); bi++; }
+        out.push('<ul>' + uitems.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>');
+        continue;
+      }
+      if (/^\s*\d+[.)]\s+/.test(line)) {
+        flushPara(); var oitems = [];
+        while (bi < lines.length && /^\s*\d+[.)]\s+/.test(lines[bi])) { oitems.push(lines[bi].replace(/^\s*\d+[.)]\s+/, '')); bi++; }
+        out.push('<ol>' + oitems.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ol>');
+        continue;
+      }
+      if (t === '') { flushPara(); bi++; continue; }
+      paraBuf.push(line); bi++;
     }
-    flushList();
-    src = out.join('\n');
-    var parts = src.split(/\n{2,}/).map(function (p) {
-      if (p.indexOf('<ul>') === 0) return p;
-      return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
-    }).join('');
-    return parts.replace(/@@BLOCK(\d+)@@/g, function (m, i) { return blocks[+i] || ''; });
+    flushPara();
+    return out.join('').replace(/@@BLOCK(\d+)@@/g, function (m, idx) { return blocks[+idx] || ''; });
   }
 
   // force=true 时总是滚到底；否则仅在用户仍"跟随底部"时才跟随（不打扰往上翻看）
