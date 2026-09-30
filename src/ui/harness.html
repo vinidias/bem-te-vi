@@ -1700,6 +1700,30 @@
     // 真正在 AI 网页中开新对话
     if (api.newConversation) api.newConversation().catch(function () { /* ignore */ });
   });
+  // 设置弹窗
+  var settingsMask = document.getElementById('settings-mask');
+  var smGoalMax = document.getElementById('sm-goal-max');
+  function openSettings() {
+    if (!settingsMask) return;
+    try { smGoalMax.value = String(goalMaxIterations()); } catch (e) { /* ignore */ }
+    settingsMask.classList.add('show');
+  }
+  function closeSettings() { if (settingsMask) settingsMask.classList.remove('show'); }
+  var btnSettings = document.getElementById('btn-settings');
+  if (btnSettings) btnSettings.addEventListener('click', openSettings);
+  var smCancel = document.getElementById('sm-cancel');
+  if (smCancel) smCancel.addEventListener('click', closeSettings);
+  var smSave = document.getElementById('sm-save');
+  if (smSave) smSave.addEventListener('click', function () {
+    var v = parseInt((smGoalMax && smGoalMax.value) || '', 10);
+    if (!Number.isFinite(v) || v <= 0) { appendSystem('迭代次数需为正整数'); return; }
+    try { localStorage.setItem('cuckoo-goal-max-iterations', String(v)); } catch (e) { /* ignore */ }
+    if (goal) { goal.maxIterations = v; renderGoalBar(); }
+    closeSettings();
+    appendSystem('设置已保存：目标最大迭代次数 = ' + v);
+  });
+  if (settingsMask) settingsMask.addEventListener('click', function (e) { if (e.target === settingsMask) closeSettings(); });
+
   // Ctrl+R 重载页面（加载最新 HTML）
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey && !e.shiftKey && (e.key === 'r' || e.key === 'R')) {
