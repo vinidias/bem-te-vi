@@ -569,13 +569,19 @@
     cur = null;
   }
 
-  // 会话切换：保存旧会话历史，加载新会话历史
+  // 会话切换：保存旧会话历史，加载新会话历史 + 切换该会话的 goal/plan
   function onSessionChanged(sid) {
     sid = sid || '';
     if (sid === currentSessionId) return;
+    // 存旧会话的 history + goal
     try { localStorage.setItem(histKeyOf(currentSessionId), JSON.stringify(history)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(goalKeyOf(currentSessionId), goal ? JSON.stringify(goal) : 'null'); } catch (e) { /* ignore */ }
     currentSessionId = sid;
     loadHist();
+    loadGoalState();       // 载入新会话的 goal
+    renderGoalBar();
+    renderPlan(planBySession[sid] || []);  // 载入新会话的 plan
+    cancelGoalNudge();
     cur = null;
     stream.innerHTML = '';
     if (!history.length) { showEmptyState(); return; }
@@ -598,6 +604,8 @@
   var goal = null;               // { text, round, done }
   var goalNudgeTimer = null;
   var toolRunningCount = 0;
+  // 计划按会话缓存（sessionId → todos）
+  var planBySession = {};
 
   var goalbar = document.getElementById('goalbar');
   var goalTextEl = document.getElementById('goal-text');
@@ -605,11 +613,13 @@
   var goalRoundEl = document.getElementById('goal-round');
   var goalBtn = document.getElementById('goal-btn');
 
+  function goalKeyOf(sid) { return GOAL_KEY + (sid ? ':' + sid : ''); }
+  function goalKey() { return goalKeyOf(currentSessionId); }
   function saveGoalState() {
-    try { localStorage.setItem(GOAL_KEY, goal ? JSON.stringify(goal) : 'null'); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(goalKey(), goal ? JSON.stringify(goal) : 'null'); } catch (e) { /* ignore */ }
   }
   function loadGoalState() {
-    try { goal = JSON.parse(localStorage.getItem(GOAL_KEY) || 'null'); } catch (e) { goal = null; }
+    try { goal = JSON.parse(localStorage.getItem(goalKey()) || 'null'); } catch (e) { goal = null; }
     if (goal && (!goal.text)) goal = null;
   }
 
@@ -1066,7 +1076,7 @@
           scheduleGoalNudge();
           break;
         }
-        case 'plan': renderPlan(payload.todos); pushHist({ t: 'plan', todos: payload.todos || [] }); break;
+        case 'plan': planBySession[currentSessionId] = payload.todos || []; renderPlan(payload.todos); pushHist({ t: 'plan', todos: payload.todos || [] }); break;
         case 'goal-done': onGoalDone(); break;
         case 'assistant': {
           var aText = (payload.text || '').trim();
