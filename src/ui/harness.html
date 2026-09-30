@@ -43,6 +43,7 @@
   }
   .brand { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-2); letter-spacing: .2px; }
   .brand svg { width: 15px; height: 15px; color: var(--accent); }
+  .brand-hint { font-size: 10.5px; font-weight: 400; color: var(--amber, #d9a05b); opacity: .85; letter-spacing: 0; }
   .topbar .spacer { flex: 1; }
   .status { font-size: 11.5px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
   .status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
@@ -381,6 +382,7 @@
     <div class="brand">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 5v13a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V5M9 9l3 3M15 9l-3 3"/></svg>
       Cuckoo Harness
+      <span class="brand-hint">（当前版本仅支持单对话，请勿在运行过程切换对话）</span>
     </div>
     <div class="spacer"></div>
     <div class="status ready" id="status"><span class="dot"></span><span id="status-text">就绪</span></div>
