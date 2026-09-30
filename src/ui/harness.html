@@ -890,7 +890,15 @@
     if (t && t === lastDoneText) { if (cur) cur = null; return; }
     if (t) lastDoneText = t;
     if (cur) {
-      if (t) cur.body.innerHTML = renderMarkdown(t);
+      if (t) {
+        cur.body.innerHTML = renderMarkdown(t);
+      } else {
+        // 纯思考/工具回合：仅收尾思考块（"思考中…" → "已思考 (N 字)"），不新增气泡
+        try {
+          var tl = cur.thinkBody ? cur.thinkBody.textContent : '';
+          if (tl && cur.thinkLabel) cur.thinkLabel.textContent = '已思考 (' + tl.length + ' 字)';
+        } catch (e) { /* ignore */ }
+      }
       cur = null;
       scrollBottom(false);
       return;
@@ -1004,7 +1012,10 @@
           if (aText && aText !== lastPushedAssistant) { lastPushedAssistant = aText; pushHist({ t: 'assistant', text: payload.text }); }
           break;
         }
-        case 'tool-start': cancelGoalNudge(); toolRunningCount++; addToolStart(payload.code); setStatus('工具运行中…', 'busy'); pushHist({ t: 'tool', code: payload.code, success: null, output: '', error: '' }); break;
+        case 'tool-start': cancelGoalNudge(); toolRunningCount++;
+          // 工具调用开始 = 当前助手回合结束：收尾思考块并关闭当前气泡，避免"思考中…"悬留
+          if (cur) { try { var tl0 = cur.thinkBody ? cur.thinkBody.textContent : ''; if (tl0 && cur.thinkLabel) cur.thinkLabel.textContent = '已思考 (' + tl0.length + ' 字)'; } catch (e) { /* ignore */ } cur = null; }
+          addToolStart(payload.code); setStatus('工具运行中…', 'busy'); pushHist({ t: 'tool', code: payload.code, success: null, output: '', error: '' }); break;
         case 'tool-end': if (toolRunningCount > 0) toolRunningCount--; addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中…', 'busy'); {
           // 更新最近一个"未完成"的工具历史（从后往前找 success===null）
           for (var ti = history.length - 1; ti >= 0; ti--) {
