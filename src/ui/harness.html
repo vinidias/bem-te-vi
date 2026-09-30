@@ -657,6 +657,25 @@
   var toolRunningCount = 0;
   // 计划按会话缓存（sessionId → todos）
   var planBySession = {};
+  // 计划驱动状态（按会话）
+  var planRoundBySession = {};       // sessionId -> 自动续跑轮数
+  var planLastTextBySession = {};    // sessionId -> 上轮文本（无进展检测）
+  var planNoProgressBySession = {};  // sessionId -> 连续无进展次数
+  /** 计划自动推进开关（默认开） */
+  function planAutoEnabled() {
+    try { var v = localStorage.getItem('cuckoo-plan-auto'); return v === null ? true : v === '1'; } catch (e) { return true; }
+  }
+  function planTodos() { return planBySession[currentSessionId] || []; }
+  /** 计划是否有未完成步骤（pending / in_progress） */
+  function planHasPending() {
+    var todos = planTodos();
+    for (var i = 0; i < todos.length; i++) {
+      var st = String(todos[i].status || 'pending').toLowerCase();
+      if (st === 'completed' || st === 'done' || st === 'complete' || st === 'finished') continue;
+      return true;
+    }
+    return false;
+  }
 
   var goalbar = document.getElementById('goalbar');
   var goalTextEl = document.getElementById('goal-text');
@@ -808,39 +827,83 @@
     goal.lastText = t;
   }
 
-  /** 纯文本回合结束 → 延迟自动续跑（goal 状态机：暂停/max/无进展） */
+  /** 计划无进展检测：连续多轮输出相同 → 停 */
+  function checkPlanProgress(text) {
+    var sid = currentSessionId;
+    var t = String(text || '').trim();
+    if (t && t === planLastTextBySession[sid]) planNoProgressBySession[sid] = (planNoProgressBySession[sid] || 0) + 1;
+    else planNoProgressBySession[sid] = 0;
+    planLastTextBySession[sid] = t;
+  }
+  /** 计划轮数重置（新任务/新计划时） */
+  function resetPlanDrive() {
+    var sid = currentSessionId;
+    planRoundBySession[sid] = 0;
+    planLastTextBySession[sid] = '';
+    planNoProgressBySession[sid] = 0;
+  }
+
+  /**
+   * 纯文本回合结束 → 延迟自动续跑。
+   * goal 优先；否则若 plan 有未完成步骤（默认开）则按 plan 驱动。
+   * 两者共用：最大迭代 + 无进展检测。
+   */
   function scheduleGoalNudge() {
-    if (!goal || goal.done || goal.paused) return;
+    var goalActive = !!(goal && !goal.done && !goal.paused);
+    var planActive = !goalActive && planAutoEnabled() && planHasPending();
+    if (!goalActive && !planActive) return;
     cancelGoalNudge();
     goalNudgeTimer = setTimeout(function () {
       goalNudgeTimer = null;
-      if (!goal || goal.done || goal.paused) return;
       if (isBusy()) return;
-      clearAbortSuppression(); // 主动续跑：解除中止后的抑制窗口
-      if (goal.maxIterations && goal.round >= goal.maxIterations) {
-        goal.done = true; saveGoalState(); renderGoalBar();
-        appendSystem('目标已达最大迭代次数（' + goal.maxIterations + ' 轮），停止');
-        pushHist({ t: 'system', text: '目标达最大迭代次数，停止' });
-        return;
+      var gOn = !!(goal && !goal.done && !goal.paused);
+      var pOn = !gOn && planAutoEnabled() && planHasPending();
+      if (!gOn && !pOn) return;
+      clearAbortSuppression();
+      if (gOn) {
+        // ---- goal 驱动 ----
+        if (goal.maxIterations && goal.round >= goal.maxIterations) {
+          goal.done = true; saveGoalState(); renderGoalBar();
+          appendSystem('目标已达最大迭代次数（' + goal.maxIterations + ' 轮），停止');
+          pushHist({ t: 'system', text: '目标达最大迭代次数，停止' });
+          return;
+        }
+        if (goalNoProgress >= 3) {
+          goal.done = true; saveGoalState(); renderGoalBar();
+          appendSystem('目标连续多轮无进展，停止');
+          pushHist({ t: 'system', text: '目标无进展，停止' });
+          return;
+        }
+        goal.round++;
+        saveGoalState();
+        renderGoalBar();
+      } else {
+        // ---- plan 驱动 ----
+        var sid = currentSessionId;
+        var max = goalMaxIterations();
+        var round = planRoundBySession[sid] || 0;
+        if (max && round >= max) {
+          appendSystem('计划已达最大迭代次数（' + max + ' 轮），停止');
+          pushHist({ t: 'system', text: '计划达最大迭代次数，停止' });
+          return;
+        }
+        if ((planNoProgressBySession[sid] || 0) >= 3) {
+          appendSystem('计划连续多轮无进展，停止');
+          pushHist({ t: 'system', text: '计划无进展，停止' });
+          return;
+        }
+        planRoundBySession[sid] = round + 1;
       }
-      if (goalNoProgress >= 3) {
-        goal.done = true; saveGoalState(); renderGoalBar();
-        appendSystem('目标连续多轮无进展，停止');
-        pushHist({ t: 'system', text: '目标无进展，停止' });
-        return;
-      }
-      goal.round++;
-      saveGoalState();
-      renderGoalBar();
       setStatus('生成中…', 'busy');
       if (!cur) cur = createAssistant();
-      if (api.sendMessage) api.sendMessage(nudgeSendText());
+      if (api.sendMessage) api.sendMessage(nudgeSendText(gOn));
     }, GOAL_NUDGE_DELAY);
   }
 
-  /** 自动续跑时发给 AI 的文本：不向用户暴露内部结束标记 */
-  function nudgeSendText() {
-    return '继续推进当前目标。若目标已全部完成，请直接回复：目标已完成。';
+  /** 自动续跑时发给 AI 的文本（goal / plan 两种语义） */
+  function nudgeSendText(goalMode) {
+    if (goalMode) return '继续推进当前目标。若目标已全部完成，请直接回复：目标已完成。';
+    return '继续执行计划中尚未完成的步骤，并用 todoWrite 更新进度。若计划已全部完成，请把所有步骤标记为 completed。';
   }
 
   function onGoalDone() {
@@ -1343,6 +1406,7 @@
           onAssistantDone(payload.text);
           if (adText && adText !== lastPushedAssistant) { lastPushedAssistant = adText; pushHist({ t: 'assistant', text: payload.text, think: adThink }); }
           if (goal && !goal.done && !goal.paused) checkProgress(adText);
+          else if (planAutoEnabled() && planHasPending()) checkPlanProgress(adText);
           scheduleGoalNudge();
           break;
         }
