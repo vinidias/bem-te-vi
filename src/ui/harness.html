@@ -809,6 +809,7 @@
   var generating = false;
   var lastActivityAt = Date.now();
 
+  var lastBusyNotify = false;
   function setStatus(text, state) {
     statusText.textContent = text;
     statusEl.className = 'status' + (state ? ' ' + state : '');
@@ -816,6 +817,11 @@
     if (generating) lastActivityAt = Date.now();
     progressEl.className = 'progress' + (generating ? ' on' : '');
     updateSendButton();
+    // 忙状态变化 → 通知主进程（用于禁用侧栏对话切换）
+    if (generating !== lastBusyNotify) {
+      lastBusyNotify = generating;
+      try { if (api.setBusy) api.setBusy(generating); } catch (e) { /* ignore */ }
+    }
   }
 
   // 兜底：生成中超过 12 秒无任何事件 → 重置为就绪，避免按钮卡在"停止"

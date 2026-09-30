@@ -35,6 +35,7 @@ const shellAPI = {
   navigateWebSession: (url: string) => ipcRenderer.invoke('web-navigate-session', { url }),
   newWebConversation: () => ipcRenderer.invoke('web-new-conversation'),
   onWebUrlChanged: (cb: () => void) => { ipcRenderer.on('shell-web-url-changed', () => cb()); },
+  onHarnessBusy: (cb: (busy: boolean) => void) => { ipcRenderer.on('shell-harness-busy', (_e: any, d: any) => cb(!!(d && d.busy))); },
   // ========== 窗口管理 ==========
   listProfiles: () => ipcRenderer.invoke('list-profiles'),
   listProviders: () => ipcRenderer.invoke('list-providers'),

@@ -267,6 +267,15 @@ function registerHarnessIpc(): void {
     return { success: true };
   });
 
+  // harness 忙状态（生成中）→ 通知壳页面禁用对话切换
+  ipcMain.on('harness-set-busy', (event: any, payload: any) => {
+    const busy = !!(payload && payload.busy);
+    const ctx = findContext(event.sender);
+    if (!ctx || !ctx.win || ctx.win.isDestroyed()) return;
+    (ctx.win as any).__ckHarnessBusy = busy;
+    try { ctx.win.webContents.send('shell-harness-busy', { busy: busy }); } catch (_) { /* ignore */ }
+  });
+
   // harness 页面就绪
   ipcMain.on('harness-ready', () => {
     console.log('[Cuckoo Harness] 页面已就绪');
