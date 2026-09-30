@@ -718,7 +718,9 @@
     planPanel.classList.add('show');
     var done = 0, html = '';
     for (var i = 0; i < todos.length; i++) {
-      var st = todos[i].status || 'pending';
+      var st = String(todos[i].status || 'pending').toLowerCase();
+      if (st === 'done' || st === 'complete' || st === 'finished') st = 'completed';
+      if (st === 'doing' || st === 'active' || st === 'inprogress') st = 'in_progress';
       if (st === 'completed') done++;
       var cls = st === 'in_progress' ? 'in_progress' : (st === 'completed' ? 'completed' : '');
       html += '<div class="plan-item ' + cls + '">' +

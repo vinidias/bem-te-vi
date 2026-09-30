@@ -30,18 +30,31 @@ function stripToolBlocks(text: string): string {
 /** 目标完成标记（AI 输出即视为目标达成） */
 const GOAL_DONE_RE = /\[\[GOAL_DONE\]\]/;
 
-/** 从工具代码中解析 todoWrite 的待办列表（容错正则，失败返回 null） */
+/** status 归一化（容错 AI 可能用的别名） */
+function normStatus(s: string): string {
+  const t = String(s || '').trim().toLowerCase();
+  if (t === 'completed' || t === 'complete' || t === 'done' || t === 'finished' || t === '已完成') return 'completed';
+  if (t === 'in_progress' || t === 'inprogress' || t === 'doing' || t === 'active' || t === '进行中') return 'in_progress';
+  return 'pending';
+}
+
+/**
+ * 从工具代码中解析 todoWrite 的待办列表。
+ * 不依赖花括号（content 里含 { } 也能解析）：直接配对 content + status。
+ * status 可在 content 前或后。
+ */
 function parseTodos(code: string): any[] | null {
   if (!code || code.indexOf('todoWrite') < 0) return null;
   const items: any[] = [];
-  const re = /\{[^{}]*\}/g;
+  // 先匹配 "content: '...' ... status: '...'"
+  const reCS = /content\s*:\s*(['"`])([\s\S]*?)\1[\s\S]*?status\s*:\s*(['"`])([\s\S]*?)\3/g;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(code))) {
-    const blk = m[0];
-    const c = blk.match(/content\s*:\s*(['"`])([\s\S]*?)\1/);
-    const s = blk.match(/status\s*:\s*(['"`])([\s\S]*?)\1/);
-    if (c && s) items.push({ content: c[2], status: s[2] });
-  }
+  while ((m = reCS.exec(code))) items.push({ content: m[2], status: normStatus(m[4]) });
+  if (items.length) return items;
+  // 反向：status 在 content 前
+  const reSC = /status\s*:\s*(['"`])([\s\S]*?)\1[\s\S]*?content\s*:\s*(['"`])([\s\S]*?)\3/g;
+  while ((m = reSC.exec(code))) items.push({ content: m[4], status: normStatus(m[2]) });
+  try { console.log('[Cuckoo Harness] parseTodos 解析出 ' + items.length + ' 条: ' + JSON.stringify(items).slice(0, 300)); } catch (e) { /* ignore */ }
   return items.length ? items : null;
 }
 
