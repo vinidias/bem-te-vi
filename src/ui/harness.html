@@ -374,19 +374,40 @@
   .goalbar.running .g-state i { background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
   .goalbar.done .g-state { color: var(--green); }
   .goalbar.done .g-state i { background: var(--green); }
-  .goalbar .g-btn {
+  /* bar 上的小按钮（目标条 / 计划条共用） */
+  .g-btn {
     height: 24px; padding: 0 10px; border-radius: 6px; flex-shrink: 0;
     border: 1px solid var(--border); background: transparent;
     color: var(--text-2); font-size: 11px; cursor: pointer;
     font-family: inherit; transition: all .14s;
   }
-  .goalbar .g-btn:hover { background: var(--surface); color: var(--text); }
-  .goalbar .g-btn.danger:hover { color: var(--red); border-color: rgba(224,108,117,.5); }
+  .g-btn:hover { background: var(--surface); color: var(--text); }
+  .g-btn.danger:hover { color: var(--red); border-color: rgba(224,108,117,.5); }
   .goalbar .g-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
   /* ===== Plan 计划面板 ===== */
   .plan-panel { display: none; flex-shrink: 0; background: var(--bg-elev); border-bottom: 1px solid var(--border-soft); }
   .plan-panel.show { display: block; }
+  /* 计划模式状态灯 / 轮数 / 控制（与目标条同构：harness 层显式状态，而非软提示） */
+  .plan-head .p-state { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
+  .plan-head .p-state i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
+  .plan-panel.running .p-state { color: var(--amber); }
+  .plan-panel.running .p-state i { background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
+  .plan-panel.done .p-state { color: var(--green); }
+  .plan-panel.done .p-state i { background: var(--green); }
+  .plan-head .p-round { font-size: 11px; color: var(--text-dim); font-family: var(--mono); flex-shrink: 0; }
+  .plan-head .p-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: 6px; }
+  .plan-empty { padding: 5px 0 9px; font-size: 12px; color: var(--text-dim); }
+  /* 待确认阶段的"执行"主按钮 */
+  .g-btn.primary { border-color: rgba(217,119,87,.55); color: var(--accent); }
+  .g-btn.primary:hover { background: rgba(217,119,87,.14); color: var(--accent); }
+  /* 计划条目的序号 */
+  .plan-item .pi-num {
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-dim);
+    min-width: 17px; text-align: right; flex-shrink: 0; margin-top: 1px;
+  }
+  .plan-item.in_progress .pi-num { color: var(--amber); }
+  .plan-item.completed .pi-num { color: var(--text-dim); }
   .plan-head { display: flex; align-items: center; gap: 8px; padding: 6px 16px; cursor: pointer; user-select: none; }
   .plan-head:hover { background: var(--surface); }
   .plan-head .caret { width: 9px; height: 9px; color: var(--text-dim); transition: transform .15s; flex-shrink: 0; }
@@ -452,8 +473,15 @@
       <svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
       <span class="p-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M3 8h10M3 12h6"/></svg></span>
       <span class="p-title">计划</span>
+      <span class="p-state" id="plan-state"><i></i><span id="plan-state-text">进行中</span></span>
       <span class="p-count" id="plan-count">0/0</span>
+      <span class="p-round" id="plan-round"></span>
       <div class="p-bar"><div class="p-bar-fill" id="plan-bar-fill"></div></div>
+      <div class="p-actions">
+        <button class="g-btn primary" id="plan-confirm">执行</button>
+        <button class="g-btn" id="plan-toggle">暂停</button>
+        <button class="g-btn danger" id="plan-exit">退出</button>
+      </div>
     </div>
     <div class="plan-body" id="plan-body"></div>
   </div>
@@ -579,6 +607,7 @@
     }
     attachCopy(d, function () { return (d.querySelector('.body') || {}).innerText || ''; });
     stream.appendChild(d);
+    return d;
   }
 
   function restoreHist() {
@@ -627,11 +656,14 @@
     // 存旧会话的 history + goal
     try { localStorage.setItem(histKeyOf(currentSessionId), JSON.stringify(history)); } catch (e) { /* ignore */ }
     try { localStorage.setItem(goalKeyOf(currentSessionId), goal ? JSON.stringify(goal) : 'null'); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(planKeyOf(currentSessionId), planState ? JSON.stringify(planState) : 'null'); } catch (e) { /* ignore */ }
     currentSessionId = sid;
     loadHist();
     loadGoalState();       // 载入新会话的 goal
     renderGoalBar();
-    renderPlan(planBySession[sid] || []);  // 载入新会话的 plan
+    loadPlanState();       // 载入新会话的 plan 模式状态
+    renderPlan(planBySession[sid] || []);  // 载入新会话的 plan 步骤
+    renderPlanBar();
     cancelGoalNudge();
     cur = null;
     stream.innerHTML = '';
@@ -657,13 +689,28 @@
   var toolRunningCount = 0;
   // 计划按会话缓存（sessionId → todos）
   var planBySession = {};
-  // 计划驱动状态（按会话）
-  var planRoundBySession = {};       // sessionId -> 自动续跑轮数
-  var planLastTextBySession = {};    // sessionId -> 上轮文本（无进展检测）
-  var planNoProgressBySession = {};  // sessionId -> 连续无进展次数
-  /** 计划自动推进开关（默认开） */
-  function planAutoEnabled() {
-    try { var v = localStorage.getItem('cuckoo-plan-auto'); return v === null ? true : v === '1'; } catch (e) { return true; }
+  // ===== 计划模式状态（确认闸门：草拟 → 待确认 → 执行中，绝不自动开跑）=====
+  var PLAN_KEY = 'cuckoo-harness-plan-v1';
+  // { phase: 'draft' | 'confirm' | 'exec' | 'done', task, round, lastText, noProgress, startedAt, elapsed }
+  //   draft   用户已下 /plan，等模型产出计划条目
+  //   confirm 计划条目已就绪，等用户确认后才执行（闸门，不自动推进）
+  //   exec    用户已确认，按计划执行（此时才有自动续跑）
+  //   done    计划全部完成
+  var planState = null;
+  function planKeyOf(sid) { return PLAN_KEY + (sid ? ':' + sid : ''); }
+  function planKey() { return planKeyOf(currentSessionId); }
+  function savePlanState() {
+    try { localStorage.setItem(planKey(), planState ? JSON.stringify(planState) : 'null'); } catch (e) { /* ignore */ }
+  }
+  function loadPlanState() {
+    try { planState = JSON.parse(localStorage.getItem(planKey()) || 'null'); } catch (e) { planState = null; }
+    if (planState && !planState.phase) planState = null;
+    if (planState) {
+      if (typeof planState.elapsed !== 'number') planState.elapsed = 0;
+      if (planState.phase === 'exec' && !planState.startedAt) planState.startedAt = Date.now();
+      if (typeof planState.noProgress !== 'number') planState.noProgress = 0;
+      if (typeof planState.round !== 'number') planState.round = 0;
+    }
   }
   function planTodos() { return planBySession[currentSessionId] || []; }
   /** 计划是否有未完成步骤（pending / in_progress） */
@@ -675,6 +722,16 @@
       return true;
     }
     return false;
+  }
+  /** 计划模式是否在驱动：显式开启 + 未暂停（不再依赖"AI 恰好写过 todo"这种隐式条件） */
+  /** 计划模式是否处于草拟/待确认（此时 harness 不主动推进，等模型出计划或用户确认） */
+  /** 计划模式是否处于草拟/待确认/等待输入（此时 harness 不主动推进） */
+  function planIsWaiting() {
+    return !!(planState && (planState.phase === 'draft' || planState.phase === 'confirm'));
+  }
+  function planElapsedMs() {
+    if (!planState) return 0;
+    return (planState.elapsed || 0) + (planState.startedAt ? (Date.now() - planState.startedAt) : 0);
   }
 
   var goalbar = document.getElementById('goalbar');
@@ -827,37 +884,38 @@
     goal.lastText = t;
   }
 
-  /** 计划无进展检测：连续多轮输出相同 → 停 */
+  /** 计划无进展检测：连续多轮输出相同 → 退回待确认 */
   function checkPlanProgress(text) {
-    var sid = currentSessionId;
+    if (!planState) return;
     var t = String(text || '').trim();
-    if (t && t === planLastTextBySession[sid]) planNoProgressBySession[sid] = (planNoProgressBySession[sid] || 0) + 1;
-    else planNoProgressBySession[sid] = 0;
-    planLastTextBySession[sid] = t;
+    if (t && t === planState.lastText) planState.noProgress = (planState.noProgress || 0) + 1;
+    else planState.noProgress = 0;
+    planState.lastText = t;
+    savePlanState();
   }
-  /** 计划轮数重置（新任务/新计划时） */
+  /** 新一轮计划驱动开始时清零统计（仅执行阶段重置，不影响闸门阶段） */
   function resetPlanDrive() {
-    var sid = currentSessionId;
-    planRoundBySession[sid] = 0;
-    planLastTextBySession[sid] = '';
-    planNoProgressBySession[sid] = 0;
+    if (!planState || planState.phase !== 'exec') return;
+    planState.lastText = '';
+    planState.noProgress = 0;
+    savePlanState();
   }
 
   /**
    * 纯文本回合结束 → 延迟自动续跑。
-   * goal 优先；否则若 plan 有未完成步骤（默认开）则按 plan 驱动。
-   * 两者共用：最大迭代 + 无进展检测。
+   * 只服务 goal（以及用户已确认执行后的 plan）。
+   * ★ plan 在 confirm 阶段绝不自动推进 —— 那是等待用户确认的闸门。
    */
   function scheduleGoalNudge() {
     var goalActive = !!(goal && !goal.done && !goal.paused);
-    var planActive = !goalActive && planAutoEnabled() && planHasPending();
+    var planActive = !goalActive && planIsExecuting();
     if (!goalActive && !planActive) return;
     cancelGoalNudge();
     goalNudgeTimer = setTimeout(function () {
       goalNudgeTimer = null;
       if (isBusy()) return;
       var gOn = !!(goal && !goal.done && !goal.paused);
-      var pOn = !gOn && planAutoEnabled() && planHasPending();
+      var pOn = !gOn && planIsExecuting();
       if (!gOn && !pOn) return;
       clearAbortSuppression();
       if (gOn) {
@@ -878,21 +936,20 @@
         saveGoalState();
         renderGoalBar();
       } else {
-        // ---- plan 驱动 ----
-        var sid = currentSessionId;
-        var max = goalMaxIterations();
-        var round = planRoundBySession[sid] || 0;
-        if (max && round >= max) {
-          appendSystem('计划已达最大迭代次数（' + max + ' 轮），停止');
-          pushHist({ t: 'system', text: '计划达最大迭代次数，停止' });
+        // ---- plan 执行驱动（仅用户确认后）----
+        if (!planHasPending()) { finishPlan(); return; }
+        if ((planState.noProgress || 0) >= 3) {
+          planState.phase = 'confirm'; // 卡住了 → 退回闸门，交回用户决定
+          planState.elapsed = planElapsedMs();
+          planState.startedAt = 0;
+          savePlanState(); renderPlanBar();
+          appendSystem('计划连续多轮无进展，已回到待确认状态');
+          pushHist({ t: 'system', text: '计划无进展，已回到待确认状态' });
           return;
         }
-        if ((planNoProgressBySession[sid] || 0) >= 3) {
-          appendSystem('计划连续多轮无进展，停止');
-          pushHist({ t: 'system', text: '计划无进展，停止' });
-          return;
-        }
-        planRoundBySession[sid] = round + 1;
+        planState.round++;
+        savePlanState();
+        renderPlanBar();
       }
       setStatus('生成中…', 'busy');
       if (!cur) cur = createAssistant();
@@ -900,10 +957,80 @@
     }, GOAL_NUDGE_DELAY);
   }
 
-  /** 自动续跑时发给 AI 的文本（goal / plan 两种语义） */
+  /** 计划是否处于"已确认、正在执行"状态（只有这个阶段才自动续跑） */
+  function planIsExecuting() {
+    return !!(planState && planState.phase === 'exec');
+  }
+
+  /** 计划全部完成 → 收尾 */
+  function finishPlan() {
+    if (!planState) return;
+    planState.phase = 'done';
+    planState.elapsed = planElapsedMs();
+    planState.startedAt = 0;
+    savePlanState();
+    renderPlanBar();
+    appendSystem('计划已全部完成');
+    pushHist({ t: 'system', text: '计划已全部完成' });
+  }
+
+  /** 自动续跑时发给 AI 的文本（goal / plan 执行两种语义） */
   function nudgeSendText(goalMode) {
     if (goalMode) return '继续推进当前目标。若目标已全部完成，请直接回复：目标已完成。';
-    return '继续执行计划中尚未完成的步骤，并用 todoWrite 更新进度。若计划已全部完成，请把所有步骤标记为 completed。';
+    return '继续执行计划中尚未完成的步骤，并立即用 todoWrite 更新状态：完成的标记为 completed、正在做的标记为 in_progress。' +
+      '全部完成后把所有步骤标记为 completed。' +
+      '（todoWrite 必须写成 ' + FENCE + 'cuckoo 代码块调用，不要输出 JSON 正文。）';
+  }
+
+  /**
+   * 模型是否在向用户索要信息（合理阻塞）。
+   * 此时绝不能自动催"继续" —— 那是把模型的正确判断当故障，会把回复刷成一堆重复索要。
+   */
+  function asksForUserInput(text) {
+    var t = String(text || '');
+    if (!t) return false;
+    // 典型句式：需要你补充 / 请提供 / 需要确认 / 缺少你的输入 / 等你回复 …
+    var pat = /(需要(你|您)?(补充|提供|确认|输入|告知|说明)|请(补充|提供|告知|说明|确认)|缺少(你|您的)?输入|缺少(必要)?信息|无法(继续|凭空|推进)|\bwaiting for (your|user) input\b|需要更多(信息|细节))/;
+    return pat.test(t);
+  }
+
+  /**
+   * 计划执行阶段进入"等待用户输入"：暂停自动续跑并把状态显示出来。
+   * 这不是失败，是计划需要外部输入才能继续。
+   */
+  function planBlockedOnUser() {
+    if (!planState || planState.phase !== 'exec') return;
+    planState.phase = 'blocked';
+    planState.elapsed = planElapsedMs();
+    planState.startedAt = 0;
+    savePlanState();
+    renderPlanBar();
+    appendSystem('计划需要你补充信息才能继续 —— 自动推进已停止');
+    pushHist({ t: 'system', text: '计划等待用户输入，自动推进已停止' });
+  }
+
+  /**
+   * 计划模式首轮指令：只要求"列出计划条目"，明确禁止执行。
+   * ★ 必须显式给出 cuckoo 代码块写法 —— 工具调用是沙箱里的 JS 全局函数
+   *   (globalThis.todoWrite)，裸 JSON 正文不会被执行，harness 也读不到条目。
+   *   另外：代码块外的正文要正常写说明文字，不要整段输出 JSON。
+   */
+  function buildPlanSendText(task) {
+    var head = task ? ('【计划任务】' + task + '\n\n') : '';
+    return head + '本次先只做「计划」，不要执行任何任务：\n' +
+      '1. 用 todoWrite 工具列出完成该任务所需的完整分步计划，每一步一条，status 全部为 pending；\n' +
+      '2. 计划要从头到尾覆盖整个任务，粒度适中（不要合并成一步，也不要把一步拆碎）；\n' +
+      '3. 调用 todoWrite 属于"制定计划"本身，不算执行任务；除 todoWrite 外不要调用任何其它工具；\n' +
+      '4. todoWrite 调用后立即停下，**用一两句自然语言**说明计划已列出并等待用户确认。\n\n' +
+      '注意：工具调用必须写成 ' + FENCE + 'cuckoo 代码块（这是本环境的唯一调用方式），' +
+      '不要把计划以 JSON 正文或 ' + FENCE + 'json 代码块的形式直接输出。写法示例：\n\n' +
+      FENCE + 'cuckoo\n' +
+      'const r = await todoWrite([\n' +
+      '  { content: "第一步说明", status: "pending" },\n' +
+      '  { content: "第二步说明", status: "pending" }\n' +
+      ']);\n' +
+      'log(r);\n' +
+      FENCE + '\n';
   }
 
   function onGoalDone() {
@@ -989,7 +1116,8 @@
   function renderPlan(todos, expand) {
     if (!planPanel) return;
     todos = todos || [];
-    if (!todos.length) { planPanel.classList.remove('show'); return; }
+    // 计划模式开着时，即使还没有 todo 也要显示面板 —— 否则用户看不到模式状态
+    if (!todos.length && !planState) { planPanel.classList.remove('show'); return; }
     var wasShown = planPanel.classList.contains('show');
     planPanel.classList.add('show');
     var done = 0, html = '';
@@ -999,16 +1127,242 @@
       if (st === 'doing' || st === 'active' || st === 'inprogress') st = 'in_progress';
       if (st === 'completed') done++;
       var cls = st === 'in_progress' ? 'in_progress' : (st === 'completed' ? 'completed' : '');
+      // 编号 1 2 3 …（待确认阶段用序号前缀，让用户逐条核对）
       html += '<div class="plan-item ' + cls + '">' +
+        '<span class="pi-num">' + (i + 1) + '.</span>' +
         '<span class="pi-state st-' + st + '">' + (PLAN_ICON[st] || PLAN_ICON.pending) + '</span>' +
         '<span class="pi-text">' + esc(todos[i].content || '') + '</span></div>';
     }
+    if (!todos.length) {
+      html = '<div class="plan-empty">' +
+        (planState && planState.phase === 'draft' ? '正在生成计划条目…' : '（暂无计划条目）') +
+        '</div>';
+    }
     planBodyEl.innerHTML = html;
-    planCountEl.textContent = done + '/' + todos.length;
-    planBarFillEl.style.width = Math.round(done / todos.length * 100) + '%';
+    planCountEl.textContent = todos.length ? (done + '/' + todos.length) : '0/0';
+    planBarFillEl.style.width = todos.length ? (Math.round(done / todos.length * 100) + '%') : '0%';
     // 首次出现自动展开；之后保留用户的手动开合状态
     if (expand !== false && (!wasShown || planPanel.classList.contains('open'))) planPanel.classList.add('open');
+    renderPlanBar();
   }
+
+  /** 计划条状态渲染：按 phase 三态闸门显示（草拟 / 待确认 / 执行中 / 已完成） */
+  function renderPlanBar() {
+    if (!planPanel) return;
+    var stEl = document.getElementById('plan-state');
+    var actEl = document.querySelector('.plan-head .p-actions');
+    var rEl = document.getElementById('plan-round');
+    var tg = document.getElementById('plan-toggle');
+    var cf = document.getElementById('plan-confirm');
+    var ex = document.getElementById('plan-exit');
+    if (!planState) {
+      planPanel.classList.remove('running', 'done', 'paused');
+      if (stEl) stEl.style.display = 'none';
+      if (rEl) rEl.textContent = '';
+      if (actEl) actEl.style.display = 'none';
+      stopPlanTick();
+      return;
+    }
+    if (stEl) stEl.style.display = '';
+    if (actEl) actEl.style.display = '';
+    var phase = planState.phase;
+    var allDone = phase === 'done' || (planTodos().length > 0 && !planHasPending() && phase !== 'confirm' && phase !== 'draft');
+    planPanel.classList.toggle('running', phase === 'exec');
+    planPanel.classList.toggle('done', allDone);
+    planPanel.classList.toggle('paused', phase === 'confirm' || phase === 'draft' || phase === 'blocked');
+    var label = { draft: '生成计划中', confirm: '待确认', exec: '执行中', blocked: '等待你的输入', done: '已完成' }[phase] || '计划';
+    var stText = document.getElementById('plan-state-text');
+    if (stText) stText.textContent = allDone ? '已完成' : label;
+    if (rEl) {
+      rEl.textContent = planState.round
+        ? ('迭代 ' + planState.round + (planState.startedAt || planState.elapsed ? ' · ' + fmtElapsed(planElapsedMs()) : ''))
+        : '';
+    }
+    // 按钮随阶段切换：确认/阻塞给主按钮；执行中给"暂停"
+    if (cf) {
+      cf.style.display = (phase === 'confirm' || phase === 'blocked') ? '' : 'none';
+      cf.textContent = (phase === 'blocked') ? '继续' : '执行';
+    }
+    if (tg) tg.style.display = (phase === 'exec') ? '' : 'none';
+    if (ex) ex.textContent = (phase === 'done') ? '清除' : '退出';
+    if (phase === 'exec') startPlanTick(); else stopPlanTick();
+  }
+
+  var planTickTimer = null;
+  function startPlanTick() {
+    if (planTickTimer) return;
+    planTickTimer = setInterval(function () { if (planIsExecuting()) renderPlanBar(); }, 1000);
+  }
+  function stopPlanTick() {
+    if (planTickTimer) { clearInterval(planTickTimer); planTickTimer = null; }
+  }
+
+  /**
+   * 开启计划模式 → 进入【草拟】阶段：只要模型产出计划条目，不执行任何任务。
+   * 计划就绪后进入【待确认】，等用户点"执行"才推进（闸门）。
+   */
+  function startPlanMode(task) {
+    cancelGoalNudge();
+    planBySession[currentSessionId] = [];   // 新计划：清掉上一轮条目
+    planState = {
+      phase: 'draft', task: task || '', round: 0,
+      lastText: '', noProgress: 0, startedAt: 0, elapsed: 0
+    };
+    savePlanState();
+    renderPlan([], true);
+    renderPlanBar();
+    appendSystem('计划模式：先列出完整计划条目，确认后再执行');
+    pushHist({ t: 'system', text: '计划模式：先列出计划条目，等待确认' });
+  }
+
+  /** 计划条目已就绪 → 进入【待确认】闸门（不自动执行） */
+  function planAwaitConfirm() {
+    if (!planState || planState.phase !== 'draft') return;
+    planState.phase = 'confirm';
+    savePlanState();
+    renderPlanBar();
+    appendSystem('计划已就绪，共 ' + planTodos().length + ' 步 —— 确认后开始执行');
+    pushHist({ t: 'system', text: '计划已就绪，等待确认' });
+  }
+
+  /** 从 start 处的 open 字符扫描到配对的 close（跳过字符串字面量） */
+  function scanBalanced(s, start, open, close) {
+    var depth = 0, inStr = false, esc = false;
+    for (var i = start; i < s.length; i++) {
+      var c = s.charAt(i);
+      if (inStr) {
+        if (esc) esc = false;
+        else if (c === '\\') esc = true;
+        else if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') { inStr = true; continue; }
+      if (c === open) depth++;
+      else if (c === close) { depth--; if (depth === 0) return i; }
+    }
+    return -1;
+  }
+
+  /**
+   * 模型偶尔会把计划写成裸 JSON 正文（而不是走 cuckoo 代码块协议）。
+   * 这里仅做「结构化识别」：把这类 JSON 认成计划条目，让面板仍然可用。
+   * 不修改、不屏蔽正文 —— 正文显示交给 bridge 的 stripToolBlocks（只剥 cuckoo/js 块）。
+   */
+  function tryParseTodoJson(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s || s.indexOf('todos') < 0) return null;
+    var parsed = null;
+    // 允许 ```json 围栏包裹
+    var fenceIdx = s.indexOf(FENCE);
+    if (fenceIdx >= 0) {
+      var endFence = s.indexOf(FENCE, fenceIdx + FENCE.length);
+      var body = endFence > 0 ? s.slice(fenceIdx + FENCE.length, endFence) : s.slice(fenceIdx + FENCE.length);
+      body = body.replace(/^[ \t]*(?:json|JSON)?[ \t]*\r?\n/, '').trim();
+      try { parsed = JSON.parse(body); } catch (e) { parsed = null; }
+    }
+    if (!parsed) {
+      // 裸 JSON：从 "todos" 回退到外围 { 或 [
+      var idx = s.indexOf('"todos"');
+      if (idx < 0) idx = s.indexOf('todos');
+      if (idx < 0) return null;
+      var brace = s.lastIndexOf('{', idx);
+      if (brace >= 0) {
+        var endB = scanBalanced(s, brace, '{', '}');
+        if (endB > 0) { try { parsed = JSON.parse(s.slice(brace, endB + 1)); } catch (e) { parsed = null; } }
+      }
+      if (!parsed) {
+        var bracket = s.indexOf('[', idx);
+        if (bracket >= 0) {
+          var endA = scanBalanced(s, bracket, '[', ']');
+          if (endA > 0) { try { parsed = JSON.parse(s.slice(bracket, endA + 1)); } catch (e) { parsed = null; } }
+        }
+      }
+    }
+    if (!parsed) return null;
+    var arr = Array.isArray(parsed) ? parsed
+      : (Array.isArray(parsed.todos) ? parsed.todos
+        : (Array.isArray(parsed.todo) ? parsed.todo
+          : (Array.isArray(parsed.plan) ? parsed.plan : null)));
+    if (!arr || !arr.length) return null;
+    var out = [];
+    for (var i = 0; i < arr.length; i++) {
+      var it = arr[i];
+      if (it == null) continue;
+      var content = (typeof it === 'string')
+        ? String(it).trim()
+        : String(it.content || it.text || it.title || it.task || it.step || '').trim();
+      if (!content) continue;
+      var st = (typeof it === 'object' && it.status) ? String(it.status).toLowerCase() : 'pending';
+      out.push({ content: content, status: st });
+    }
+    return out.length ? out : null;
+  }
+
+  /** 用户确认 → 进入【执行】阶段；从 blocked 恢复则继续原计划 */
+  function confirmPlan() {
+    if (!planState) return;
+    var fromBlocked = planState.phase === 'blocked';
+    if (planState.phase !== 'confirm' && !fromBlocked) return;
+    planState.phase = 'exec';
+    planState.lastText = '';
+    planState.noProgress = 0;
+    if (!fromBlocked) planState.round = 0;
+    planState.startedAt = Date.now();
+    if (!fromBlocked) planState.elapsed = 0;
+    savePlanState();
+    renderPlanBar();
+    appendSystem(fromBlocked ? '已继续执行计划' : '已确认，开始按计划执行');
+    pushHist({ t: 'system', text: fromBlocked ? '已继续执行计划' : '已确认计划，开始执行' });
+    // 立即发一条推进指令，进入执行循环
+    clearAbortSuppression();
+    setStatus('生成中…', 'busy');
+    if (!cur) cur = createAssistant();
+    if (api.sendMessage) api.sendMessage(nudgeSendText(false));
+  }
+
+  /** 退出计划模式：立即中止当前任务并清除计划状态与条目 */
+  function exitPlanMode(reason) {
+    cancelGoalNudge();
+    markAborted();
+    clearPendingBubble();
+    setStatus('就绪', 'ready');
+    planState = null;
+    planBySession[currentSessionId] = [];   // 条目一并清掉，否则面板会因残留 todos 继续显示
+    savePlanState();
+    planPanel.classList.remove('show', 'open');
+    planPanel.classList.remove('running', 'done', 'paused');
+    renderPlanBar();
+    if (reason) { appendSystem(reason); pushHist({ t: 'system', text: reason }); }
+    if (api.stop) { try { api.stop().catch(function () { /* ignore */ }); } catch (e) { /* ignore */ } }
+  }
+
+  // 确认执行（待确认阶段的主按钮）
+  var planConfirmBtn = document.getElementById('plan-confirm');
+  if (planConfirmBtn) planConfirmBtn.addEventListener('click', function (e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    confirmPlan();
+  });
+  // 执行中暂停（暂停 = 立即中止任务，回到待确认）
+  var planToggleBtn = document.getElementById('plan-toggle');
+  if (planToggleBtn) planToggleBtn.addEventListener('click', function (e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (!planState || planState.phase !== 'exec') return;
+    planState.elapsed = planElapsedMs();
+    planState.startedAt = 0;
+    planState.phase = 'confirm';   // 回到闸门：要重新确认才继续
+    cancelGoalNudge();
+    markAborted();
+    setStatus('就绪', 'ready');
+    savePlanState(); renderPlanBar();
+    appendSystem('执行已暂停，已回到待确认状态');
+    pushHist({ t: 'system', text: '执行已暂停，已回到待确认状态' });
+    if (api.stop) { try { api.stop().catch(function () { /* ignore */ }); } catch (e2) { /* ignore */ } }
+  });
+  var planExitBtn = document.getElementById('plan-exit');
+  if (planExitBtn) planExitBtn.addEventListener('click', function (e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    exitPlanMode('已退出计划模式，当前任务已中止');
+  });
 
   if (planPanel) {
     document.getElementById('plan-head').addEventListener('click', function () { planPanel.classList.toggle('open'); });
@@ -1260,6 +1614,7 @@
       else if (cur.thinkEl.classList.contains('open') && !cur.userToggled) cur.thinkEl.classList.remove('open');
     }
     if (text) {
+      // 工具调用（```cuckoo 块）已由 bridge 的 stripToolBlocks 剥离，这里直接渲染
       cur.body.innerHTML = renderMarkdown(text) + (finished ? '' : '<span class="streaming-cursor"></span>');
     }
     scrollBottom(false); // 跟随但不打扰往上翻看
@@ -1401,16 +1756,41 @@
         case 'user': addUser(payload.text); break;
         case 'stream': cancelGoalNudge(); onStream(payload.think, payload.text, payload.finished); break;
         case 'assistant-done': {
-          var adText = (payload.text || '').trim();
+          var adRaw = payload.text || '';
+          // 正文不做任何删改：工具调用块由 bridge 的 stripToolBlocks 负责剥离。
+          // 这里仅在「计划模式草拟阶段」识别模型偶尔写出的裸 JSON 计划，让面板仍可用。
+          if (planState && planState.phase === 'draft') {
+            var adTodos = tryParseTodoJson(adRaw);
+            if (adTodos && adTodos.length) {
+              planBySession[currentSessionId] = adTodos;
+              renderPlan(adTodos);
+              pushHist({ t: 'plan', todos: adTodos });
+            }
+          }
+          var adText = adRaw.trim();
           var adThink = (cur && cur.thinkBody) ? cur.thinkBody.textContent : '';
-          onAssistantDone(payload.text);
-          if (adText && adText !== lastPushedAssistant) { lastPushedAssistant = adText; pushHist({ t: 'assistant', text: payload.text, think: adThink }); }
+          onAssistantDone(adRaw);
+          if (adText && adText !== lastPushedAssistant) { lastPushedAssistant = adText; pushHist({ t: 'assistant', text: adRaw, think: adThink }); }
+          // 草拟阶段拿到计划条目 → 立刻进闸门（条目来自 todoWrite 工具或裸 JSON 识别）
+          if (planState && planState.phase === 'draft' && planBySession[currentSessionId] && planBySession[currentSessionId].length) planAwaitConfirm();
+          // 执行阶段：模型在索要用户输入 → 停下等，绝不硬催（否则会刷成重复索要）
+          if (planIsExecuting() && asksForUserInput(adText)) planBlockedOnUser();
           if (goal && !goal.done && !goal.paused) checkProgress(adText);
-          else if (planAutoEnabled() && planHasPending()) checkPlanProgress(adText);
+          else if (planIsExecuting()) checkPlanProgress(adText);
           scheduleGoalNudge();
           break;
         }
-        case 'plan': planBySession[currentSessionId] = payload.todos || []; renderPlan(payload.todos); pushHist({ t: 'plan', todos: payload.todos || [] }); break;
+        case 'plan': {
+          planBySession[currentSessionId] = payload.todos || [];
+          renderPlan(payload.todos);
+          renderPlanBar();
+          pushHist({ t: 'plan', todos: payload.todos || [] });
+          // 草拟阶段收到计划条目 → 进入待确认闸门（绝不自动开跑）
+          if (planState && planState.phase === 'draft' && planBySession[currentSessionId].length) planAwaitConfirm();
+          // 执行阶段：全部步骤完成 → 收尾
+          else if (planState && planState.phase === 'exec' && planBySession[currentSessionId].length && !planHasPending()) finishPlan();
+          break;
+        }
         case 'goal-done': onGoalDone(); break;
         case 'assistant': {
           var aText = (payload.text || '').trim();
@@ -1431,6 +1811,9 @@
               history[ti].success = payload.success; history[ti].output = payload.output; history[ti].error = payload.error; saveHist(); break;
             }
           }
+          // 工具全部结束且无生成中：补一次续跑判定。
+          // （assistant-done 时若工具仍在跑会被 isBusy 挡掉，工具循环里没有这个钩子就永远不推进）
+          if (!isBusy()) scheduleGoalNudge();
           break;
         }
         case 'session-changed': onSessionChanged(payload.sessionId); break;
@@ -1453,10 +1836,36 @@
     // 目标："/goal xxx" 或带"目标"chip（与"计划"同款）
     var displayText = text, sendText = text;
     var goalText = null;
-    var hasGoalChip = false;
-    for (var gi = 0; gi < hints.length; gi++) { if (hints[gi].isGoal) { hasGoalChip = true; break; } }
+    var hasGoalChip = false, hasPlanChip = false;
+    for (var gi = 0; gi < hints.length; gi++) {
+      if (hints[gi].isGoal) hasGoalChip = true;
+      if (hints[gi].isPlan) hasPlanChip = true;
+    }
     if (hasGoalChip) { goalText = text; }
     else if (/^\/goal(\s|$)/.test(text)) { goalText = text.replace(/^\/goal\s*/, '').trim(); }
+    // 计划："/plan [任务描述]" 或带"计划"chip —— harness 层显式解析，进入计划（闸门）模式
+    if (!hasGoalChip && !goalText && (hasPlanChip || /^\/plan(\s|$)/.test(text))) {
+      var planArg = hasPlanChip ? text : text.replace(/^\/plan\s*/, '').trim();
+      if (!planArg && planState && !planIsWaiting()) {
+        // 无参数且计划已就绪/执行中 = 查看状态
+        var doneCount = 0, all = planTodos();
+        for (var pi = 0; pi < all.length; pi++) { if (String(all[pi].status || '').toLowerCase() === 'completed') doneCount++; }
+        var phaseLabel = { draft: '生成计划中', confirm: '待确认', exec: '执行中', done: '已完成' }[planState.phase] || '计划';
+        appendSystem('当前计划：' + phaseLabel + ' · 步骤 ' + doneCount + '/' + all.length +
+          (planState.phase === 'exec' ? ' · 迭代 ' + planState.round + ' · ' + fmtElapsed(planElapsedMs()) : ''));
+        input.focus();
+        return;
+      }
+      if (planArg) {
+        startPlanMode(planArg);
+        displayText = '[计划] ' + planArg;
+        sendText = buildPlanSendText(planArg);
+      } else {
+        appendSystem('用法：/plan <任务描述> —— 先列出计划条目，确认后再执行');
+        input.focus();
+        return;
+      }
+    }
     if (goalText !== null) {
       if (!goalText) {
         // 无参数 = 查看当前目标（对齐 DSH 的"设置或查看"语义）
@@ -1474,7 +1883,7 @@
       sendText = buildGoalSendText(goalText);
     }
     // 隐藏指令（技能/工具/计划）：附加到发给 AI 的文本，但不进对话气泡
-    var hintText = hints.length ? hints.filter(function (h) { return !h.isGoal; }).map(function (h) { return h.text; }).join('\n') : '';
+    var hintText = hints.length ? hints.filter(function (h) { return !h.isGoal && !h.isPlan; }).map(function (h) { return h.text; }).join('\n') : '';
     if (hintText) sendText = (hintText + '\n' + sendText).trim();
     var attachNote = files.length ? ('[附件 ' + files.length + ' 个] ') : '';
     // 气泡：/goal 显示"[目标] xxx"；正常显示用户文字；仅选 chip 时显示"[指令] 标签"
@@ -1781,7 +2190,7 @@
     var actions = [
       { action: 'attach', icon: SLASH_ICONS.file, name: '文件', alias: 'file', keys: '添加附件 attach 附件 文件 上传 图片 file', desc: '添加文件 / 图片' },
       { action: 'goal', icon: SLASH_ICONS.goal, name: '目标', alias: 'goal', keys: '设定目标 制定目标 目标 goal goalmode 自动推进 多轮', desc: '设置或查看长期任务目标' },
-      { action: 'plan', icon: SLASH_ICONS.plan, name: '计划', alias: 'plan', keys: '制定计划 plan 计划 分步 步骤', desc: '让模型先给出分步计划' }
+      { action: 'plan', icon: SLASH_ICONS.plan, name: '计划', alias: 'plan', keys: '制定计划 plan 计划 分步 步骤', desc: '进入或退出计划模式' }
     ];
     var acts = [];
     for (var a = 0; a < actions.length; a++) {
@@ -1854,7 +2263,8 @@
             }
             if (action === 'plan') {
               input.value = prefix;
-              pendingHints.push({ label: '计划', text: '请先给出完成该任务的分步计划，然后再开始执行：' });
+              // 与 goal 同款：标记为 isPlan，由 send() 走计划模式的显式分支
+              pendingHints.push({ label: '计划', text: '', isPlan: true });
               renderHints();
             } else if (action === 'goal') {
               // 和"计划"一样：加一个待发 chip（标记本条消息为目标）
@@ -1898,6 +2308,28 @@
     if (api.newConversation) api.newConversation().catch(function () { /* ignore */ });
   });
 
+  // ===== 设置弹窗（目标/计划的最大迭代次数）=====
+  var settingsMask = document.getElementById('settings-mask');
+  var smGoalMax = document.getElementById('sm-goal-max');
+  function openSettings() {
+    if (!settingsMask) return;
+    try { if (smGoalMax) smGoalMax.value = String(goalMaxIterations()); } catch (e) { /* ignore */ }
+    settingsMask.classList.add('show');
+  }
+  function closeSettings() { if (settingsMask) settingsMask.classList.remove('show'); }
+  var btnSettings = document.getElementById('btn-settings');
+  if (btnSettings) btnSettings.addEventListener('click', openSettings);
+  var smCancel = document.getElementById('sm-cancel');
+  if (smCancel) smCancel.addEventListener('click', closeSettings);
+  var smSave = document.getElementById('sm-save');
+  if (smSave) smSave.addEventListener('click', function () {
+    var v = parseInt((smGoalMax && smGoalMax.value) || '', 10);
+    if (!Number.isFinite(v) || v <= 0) { appendSystem('迭代次数需为正整数'); return; }
+    try { localStorage.setItem('cuckoo-goal-max-iterations', String(v)); } catch (e) { /* ignore */ }
+    if (goal) { goal.maxIterations = v; renderGoalBar(); }
+    closeSettings();
+    appendSystem('设置已保存：最大迭代次数 = ' + v);
+  });
   if (settingsMask) settingsMask.addEventListener('click', function (e) { if (e.target === settingsMask) closeSettings(); });
 
   // Ctrl+R 重载页面（加载最新 HTML）
@@ -1923,7 +2355,15 @@
   restoreHist();
   loadGoalState();
   renderGoalBar();
+  loadPlanState();
+  renderPlanBar();
   input.focus();
+  // 测试钩子（仅探针使用，不影响运行时行为）
+  window.__ckHarnessTest = {
+    tryParseTodoJson: tryParseTodoJson,
+    asksForUserInput: asksForUserInput,
+    planState: function () { return planState; }
+  };
   if (api.ready) api.ready();
 })();
 </script>
