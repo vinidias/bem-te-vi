@@ -1001,6 +1001,14 @@
               </div>
 
               <div class="ck-card">
+                <div class="ck-set-group-title">目标（Goal）</div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">最大迭代次数</span>
+                  <input type="number" class="ck-set-input" id="st-goal-max-iterations" min="1" step="1" />
+                </div>
+              </div>
+
+              <div class="ck-card">
                 <div class="ck-set-group-title">发送延迟</div>
                 <div class="ck-set-field">
                   <span class="ck-set-key">延迟区间（秒）</span>
@@ -1895,6 +1903,7 @@
     ['send-delay-max', 'sendDelayMax'],
     ['attach-delay-min', 'attachDelayMin'],
     ['attach-delay-max', 'attachDelayMax'],
+    ['goal-max-iterations', 'goalMaxIterations'],
   ];
   function setVal(id, v) {
     var el = document.getElementById('st-' + id);
@@ -1937,6 +1946,7 @@
       sendDelayMax: num('send-delay-max'),
       attachDelayMin: num('attach-delay-min'),
       attachDelayMax: num('attach-delay-max'),
+      goalMaxIterations: parseInt(getVal('goal-max-iterations'), 10) || 50,
     };
   }
   var stSaveBtn = document.getElementById('st-save');

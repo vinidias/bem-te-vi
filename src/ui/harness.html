@@ -61,21 +61,6 @@
     font-family: inherit; transition: all .14s;
   }
   .tb-btn:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
-  .settings-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; align-items: center; justify-content: center; }
-  .settings-mask.show { display: flex; }
-  .settings-modal { background: var(--bg-elev); border: 1px solid var(--border-strong); border-radius: 12px; padding: 20px; width: 340px; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
-  .sm-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 16px; }
-  .sm-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-  .sm-label { font-size: 13px; color: var(--text-2); }
-  .sm-row input[type="number"] { width: 90px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; color: var(--text); font-size: 13px; font-family: inherit; text-align: center; }
-  .sm-row input[type="number"]:focus { outline: none; border-color: var(--accent); }
-  .sm-hint { font-size: 11.5px; color: var(--text-dim); margin-bottom: 18px; line-height: 1.5; }
-  .sm-actions { display: flex; justify-content: flex-end; gap: 8px; }
-  .sm-btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-2); font-size: 12.5px; cursor: pointer; font-family: inherit; }
-  .sm-btn:hover { background: var(--surface); color: var(--text); }
-  .sm-btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
-  .sm-btn.primary:hover { opacity: .9; }
-
   /* ===== 消息流 ===== */
   .stream { flex: 1; overflow-y: auto; padding: 20px 0 8px; position: relative; }
   .stream::-webkit-scrollbar { width: 9px; }
@@ -339,13 +324,23 @@
   }
   .slash-menu.show { display: block; }
   .slash-sec { font-size: 9.5px; font-weight: 600; color: var(--text-dim); letter-spacing: .6px; text-transform: uppercase; padding: 7px 9px 4px; }
+  /* 条目版式对齐 DSH：图标 · 中文名 · 英文标识 · 右侧说明 */
   .slash-item {
-    display: flex; align-items: baseline; gap: 9px; padding: 7px 9px; border-radius: 7px;
+    display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 7px;
     cursor: pointer; font-size: 12.5px;
   }
   .slash-item:hover, .slash-item.active { background: var(--surface); }
-  .slash-item .si-name { font-family: var(--mono); color: var(--text); font-weight: 600; flex-shrink: 0; }
-  .slash-item .si-desc { color: var(--text-dim); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slash-item .si-icon { width: 15px; height: 15px; flex-shrink: 0; color: var(--text-dim); display: flex; }
+  .slash-item .si-icon svg { width: 15px; height: 15px; }
+  .slash-item.active .si-icon, .slash-item:hover .si-icon { color: var(--text-2); }
+  .slash-item .si-name { color: var(--text); font-weight: 600; flex-shrink: 0; }
+  .slash-item .si-name.si-code { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .slash-item .si-alias { font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); flex-shrink: 0; }
+  .slash-item .si-desc {
+    margin-left: auto; padding-left: 12px; min-width: 0;
+    color: var(--text-dim); font-size: 11.5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .composer-inner { position: relative; }
 
   /* ===== Goal 目标条 ===== */
@@ -358,10 +353,20 @@
   .goalbar .g-icon { width: 15px; height: 15px; color: var(--accent); flex-shrink: 0; display: flex; }
   .goalbar .g-icon svg { width: 15px; height: 15px; }
   .goalbar .g-main { flex: 1; min-width: 0; }
+  /* 目标文本：本身就是可编辑输入框（就地改目标，不弹窗） */
   .goalbar .g-text {
-    font-size: 12.5px; font-weight: 600; color: var(--text);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: block; width: 100%; min-width: 0;
+    margin: -1px 0 -1px -5px; padding: 1px 4px;
+    background: transparent; border: 1px solid transparent; border-radius: 5px;
+    font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text);
+    outline: none; text-overflow: ellipsis; cursor: text;
   }
+  .goalbar .g-text:hover { border-color: var(--border); }
+  .goalbar .g-text:focus { border-color: var(--accent); background: var(--bg); }
+  .goalbar .g-text[readonly] { cursor: default; }
+  .goalbar .g-text[readonly]:hover { border-color: transparent; }
+  .goalbar .g-text::placeholder { color: var(--text-dim); font-weight: 400; }
+  .goalbar.done .g-text, .goalbar.paused .g-text { color: var(--text-2); }
   .goalbar .g-meta { font-size: 11px; color: var(--text-dim); margin-top: 1px; display: flex; align-items: center; gap: 7px; }
   .goalbar .g-state { display: inline-flex; align-items: center; gap: 5px; }
   .goalbar .g-state i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
@@ -429,34 +434,17 @@
     </div>
     <div class="spacer"></div>
     <div class="status ready" id="status"><span class="dot"></span><span id="status-text">就绪</span></div>
-    <button class="tb-btn" id="btn-clear" title="清空当前对话">新对话</button>
-    <button class="tb-btn" id="btn-settings" title="设置">设置</button>
     <button class="tb-btn" id="btn-web" title="返回网页模式 (Ctrl+Shift+H)">网页模式</button>
-  </div>
-  <div class="settings-mask" id="settings-mask">
-    <div class="settings-modal">
-      <div class="sm-title">设置</div>
-      <div class="sm-row">
-        <span class="sm-label">目标最大迭代次数</span>
-        <input type="number" id="sm-goal-max" min="1" max="999" value="50" />
-      </div>
-      <div class="sm-hint">目标自动推进到达此次数后停止（防止无限烧 token）。</div>
-      <div class="sm-actions">
-        <button class="sm-btn" id="sm-cancel">取消</button>
-        <button class="sm-btn primary" id="sm-save">保存</button>
-      </div>
-    </div>
   </div>
   <div class="goalbar" id="goalbar">
     <span class="g-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg></span>
     <div class="g-main">
-      <div class="g-text" id="goal-text"></div>
+      <input class="g-text" id="goal-text" type="text" spellcheck="false" placeholder="目标（点击可直接编辑）" />
       <div class="g-meta"><span class="g-state" id="goal-state"><i></i><span id="goal-state-text">进行中</span></span><span>·</span><span id="goal-round"></span></div>
     </div>
     <div class="g-actions">
       <button class="g-btn" id="goal-toggle">暂停</button>
-      <button class="g-btn" id="goal-edit">修改</button>
-      <button class="g-btn danger" id="goal-cancel">取消</button>
+      <button class="g-btn danger" id="goal-cancel">退出</button>
     </div>
   </div>
   <div class="plan-panel" id="plan-panel">
@@ -477,6 +465,7 @@
       <div class="t2">只显示你与模型的对话、思考过程与工具调用</div>
       <div class="t2" style="margin-top:10px">AI 网页在后台运行 · 按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> 切回</div>
       <div class="t2" style="margin-top:4px">输入 <kbd>/goal</kbd> + 目标描述，开启自动多轮推进</div>
+      <div class="t2" style="margin-top:4px">斜杠菜单里显示的是中文名与英文标识（如 目标 goal），也可直接手输 <kbd>/goal</kbd> / <kbd>/plan</kbd></div>
     </div>
   </div>
   <div class="composer">
@@ -673,7 +662,6 @@
   var goalTextEl = document.getElementById('goal-text');
   var goalStateTextEl = document.getElementById('goal-state-text');
   var goalRoundEl = document.getElementById('goal-round');
-  var goalBtn = document.getElementById('goal-btn');
 
   function goalKeyOf(sid) { return GOAL_KEY + (sid ? ':' + sid : ''); }
   function goalKey() { return goalKeyOf(currentSessionId); }
@@ -683,21 +671,60 @@
   function loadGoalState() {
     try { goal = JSON.parse(localStorage.getItem(goalKey()) || 'null'); } catch (e) { goal = null; }
     if (goal && (!goal.text)) goal = null;
+    // 兼容旧存档（无计时字段）：运行中的目标续上进度表
+    if (goal) {
+      if (typeof goal.elapsed !== 'number') goal.elapsed = 0;
+      if (!goal.done && !goal.paused && !goal.startedAt) goal.startedAt = Date.now();
+    }
+  }
+
+  // 目标条内的"目标描述"就是编辑框：去掉可能残留的 [目标]/[计划] 展示标签
+  function stripGoalLabel(s) {
+    return String(s == null ? '' : s).replace(/^\[(?:目标|计划)\]\s*/, '');
+  }
+
+  /** 计时：paused/done 时冻结在 goal.elapsed，running 时叠加 startedAt 至今 */
+  function goalElapsedMs() {
+    if (!goal) return 0;
+    return (goal.elapsed || 0) + (goal.startedAt ? (Date.now() - goal.startedAt) : 0);
+  }
+  function fmtElapsed(ms) {
+    var s = Math.max(0, Math.floor((ms || 0) / 1000));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return h > 0 ? (h + ':' + p(m) + ':' + p(ss)) : (m + ':' + p(ss));
+  }
+  var goalTickTimer = null;
+  function startGoalTick() {
+    if (goalTickTimer) return;
+    goalTickTimer = setInterval(renderGoalMeta, 1000);
+  }
+  function stopGoalTick() {
+    if (goalTickTimer) { clearInterval(goalTickTimer); goalTickTimer = null; }
+  }
+  /** 只刷新状态灯 / 轮数 / 计时（不动编辑框，避免抢用户光标） */
+  function renderGoalMeta() {
+    if (!goal) return;
+    goalStateTextEl.textContent = goal.done ? '已完成' : (goal.paused ? '已暂停' : '进行中');
+    goalRoundEl.textContent = '迭代 ' + goal.round + (goal.maxIterations ? ' / ' + goal.maxIterations : '') + ' · ' + fmtElapsed(goalElapsedMs());
   }
 
   function renderGoalBar() {
     if (!goalbar) return;
-    if (!goal) { goalbar.classList.remove('show'); return; }
+    if (!goal) { goalbar.classList.remove('show'); stopGoalTick(); return; }
     goalbar.className = 'goalbar show ' + (goal.done ? 'done' : (goal.paused ? 'paused' : 'running'));
-    goalTextEl.textContent = goal.text;
-    goalStateTextEl.textContent = goal.done ? '已完成' : (goal.paused ? '已暂停' : '进行中');
-    goalRoundEl.textContent = '迭代 ' + goal.round + (goal.maxIterations ? ' / ' + goal.maxIterations : '');
+    if (goalTextEl) {
+      // 用户正在编辑时不覆盖输入内容
+      if (document.activeElement !== goalTextEl) goalTextEl.value = stripGoalLabel(goal.text) || goal.text;
+      goalTextEl.readOnly = !!goal.done;
+      goalTextEl.title = goal.text;
+    }
+    renderGoalMeta();
     var tg = document.getElementById('goal-toggle');
     if (tg) { tg.textContent = goal.done ? '完成' : (goal.paused ? '继续' : '暂停'); tg.style.display = goal.done ? 'none' : ''; }
-    var ed = document.getElementById('goal-edit');
-    if (ed) ed.style.display = goal.done ? 'none' : '';
     var cc = document.getElementById('goal-cancel');
-    if (cc) cc.textContent = goal.done ? '清除' : '取消';
+    if (cc) cc.textContent = goal.done ? '清除' : '退出';
+    if (goal.done || goal.paused) stopGoalTick(); else startGoalTick();
   }
 
   /** 读最大迭代次数（设置项，默认 50） */
@@ -714,21 +741,23 @@
     return '【目标】' + gt + '\n\n请持续推进并完成上述目标，要求：\n' +
       '1. 优先使用可用工具实际推进（读写文件、执行命令、检索等），而非只输出计划；\n' +
       '2. 一轮无法完成时直接继续下一轮，无需等待用户确认；\n' +
-      '3. 目标完成时，在回复末尾单独一行输出 [[GOAL_DONE]]；\n' +
+      '3. 目标完成时，在回复末尾单独一行输出 [[GOAL_DONE]]（界面上不会显示这行标记）；\n' +
       '4. 遇到无法解决的阻碍时，说明原因并暂停等待。';
   }
 
   function startGoal(text) {
     cancelGoalNudge();
-    goal = { text: text, round: 0, done: false, paused: false, maxIterations: goalMaxIterations(), lastText: '' };
+    goal = { text: text, round: 0, done: false, paused: false, maxIterations: goalMaxIterations(), lastText: '', startedAt: Date.now(), elapsed: 0 };
+    goalNoProgress = 0;
     saveGoalState();
     renderGoalBar();
-    appendSystem('目标已设定（自动迭代，最多 ' + goal.maxIterations + ' 轮；完成时 AI 输出 [[GOAL_DONE]]）');
+    appendSystem('目标已设定（自动迭代，最多 ' + goal.maxIterations + ' 轮；完成后 AI 会自行收尾）');
     pushHist({ t: 'system', text: '目标已设定：' + text });
   }
 
   function stopGoal(reason) {
     cancelGoalNudge();
+    stopGoalTick();
     if (reason) {
       appendSystem(reason);
       pushHist({ t: 'system', text: reason });
@@ -736,6 +765,33 @@
     goal = null;
     saveGoalState();
     renderGoalBar();
+  }
+
+  /**
+   * 退出目标 = 立刻停手：中止当前生成/工具循环 + 清掉待发的自动续跑。
+   * 与"暂停"同样的语义（用户要的是立即中止），只是额外清除目标本身。
+   */
+  function exitGoal() {
+    var reason = '已退出目标，当前任务已中止';
+    cancelGoalNudge();
+    markAborted();
+    clearPendingBubble();
+    setStatus('就绪', 'ready');
+    stopGoal(reason);
+    if (api.stop) { try { api.stop().catch(function () { /* ignore */ }); } catch (e) { /* ignore */ } }
+  }
+
+  /** 收尾当前助手气泡：只剩加载动画 → 整块移除；否则只摘掉流式光标 */
+  function clearPendingBubble() {
+    if (!cur) return;
+    var isEmptyPending = cur.pending && cur.body && cur.body.querySelector('.pending-dots');
+    if (isEmptyPending) {
+      if (cur.el && cur.el.parentNode) cur.el.parentNode.removeChild(cur.el);
+    } else if (cur.body) {
+      var cursor = cur.body.querySelector('.streaming-cursor');
+      if (cursor && cursor.parentNode) cursor.parentNode.removeChild(cursor);
+    }
+    cur = null;
   }
 
   function cancelGoalNudge() {
@@ -759,7 +815,8 @@
     goalNudgeTimer = setTimeout(function () {
       goalNudgeTimer = null;
       if (!goal || goal.done || goal.paused) return;
-      if (generating || toolRunningCount > 0) return;
+      if (isBusy()) return;
+      clearAbortSuppression(); // 主动续跑：解除中止后的抑制窗口
       if (goal.maxIterations && goal.round >= goal.maxIterations) {
         goal.done = true; saveGoalState(); renderGoalBar();
         appendSystem('目标已达最大迭代次数（' + goal.maxIterations + ' 轮），停止');
@@ -776,54 +833,82 @@
       saveGoalState();
       renderGoalBar();
       setStatus('生成中…', 'busy');
-      if (!cur) {
-        cur = createAssistant();
-        cur.pending = true;
-        cur.body.innerHTML = '<span class="pending-dots"><i></i><i></i><i></i></span>';
-        scrollBottom(true);
-      }
-      var nudge = '继续。若目标已完成，请只回复 [[GOAL_DONE]]。';
-      if (api.sendMessage) api.sendMessage(nudge);
+      if (!cur) cur = createAssistant();
+      if (api.sendMessage) api.sendMessage(nudgeSendText());
     }, GOAL_NUDGE_DELAY);
+  }
+
+  /** 自动续跑时发给 AI 的文本：不向用户暴露内部结束标记 */
+  function nudgeSendText() {
+    return '继续推进当前目标。若目标已全部完成，请直接回复：目标已完成。';
   }
 
   function onGoalDone() {
     cancelGoalNudge();
     if (goal && !goal.done) {
       goal.done = true;
+      goal.elapsed = goalElapsedMs();
+      goal.startedAt = 0;
       saveGoalState();
       renderGoalBar();
       appendSystem('目标已完成');
-      pushHist({ t: 'system', text: '目标已完成（[[GOAL_DONE]]）' });
+      pushHist({ t: 'system', text: '目标已完成' });
     }
   }
 
-  // 暂停/继续
+  /** 就地改目标：沿用已跑轮数/已用时间，不重置进度，也不额外催一轮 */
+  function setGoalText(text) {
+    var t = String(text == null ? '' : text).trim();
+    if (!goal || goal.done) return;
+    if (!t || t === goal.text) { renderGoalBar(); return; }
+    goal.text = t;
+    goal.lastText = '';
+    goalNoProgress = 0;
+    saveGoalState();
+    renderGoalBar();
+    appendSystem('目标已修改：' + t);
+    pushHist({ t: 'system', text: '目标已修改：' + t });
+  }
+
+  // 目标文本就地编辑（Enter 提交 / Esc 撤销 / 失焦提交）
+  var goalInput = document.getElementById('goal-text');
+  if (goalInput) {
+    goalInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); setGoalText(goalInput.value); goalInput.blur(); }
+      else if (e.key === 'Escape') { e.preventDefault(); if (goal) goalInput.value = stripGoalLabel(goal.text) || goal.text; goalInput.blur(); }
+      e.stopPropagation();
+    });
+    goalInput.addEventListener('blur', function () { setGoalText(goalInput.value); });
+  }
+
+  // 暂停/继续：暂停 = 立即中止当前任务（与 DSH 一致），继续 = 立刻接着推进
   var goalToggleBtn = document.getElementById('goal-toggle');
   if (goalToggleBtn) goalToggleBtn.addEventListener('click', function () {
     if (!goal || goal.done) return;
     goal.paused = !goal.paused;
-    if (goal.paused) { cancelGoalNudge(); appendSystem('目标已暂停'); }
-    else { appendSystem('目标继续'); scheduleGoalNudge(); }
+    if (goal.paused) {
+      // 记录已用时间并停表
+      goal.elapsed = goalElapsedMs();
+      goal.startedAt = 0;
+      cancelGoalNudge();
+      markAborted();
+      setStatus('就绪', 'ready');
+      appendSystem('目标已暂停，当前任务已中止');
+      pushHist({ t: 'system', text: '目标已暂停，当前任务已中止' });
+      if (api.stop) { try { api.stop().catch(function () { /* ignore */ }); } catch (e) { /* ignore */ } }
+    } else {
+      goal.startedAt = Date.now();
+      appendSystem('目标已继续');
+      pushHist({ t: 'system', text: '目标已继续' });
+      scheduleGoalNudge();
+    }
     saveGoalState(); renderGoalBar();
   });
-  // 修改（弹出输入，替换目标文本）
-  var goalEditBtn = document.getElementById('goal-edit');
-  if (goalEditBtn) goalEditBtn.addEventListener('click', function () {
-    if (!goal || goal.done) return;
-    var nt = window.prompt('修改目标描述：', goal.text);
-    if (nt != null && nt.trim()) {
-      goal.text = nt.trim(); goal.round = 0; goal.lastText = ''; goalNoProgress = 0;
-      saveGoalState(); renderGoalBar();
-      appendSystem('目标已修改：' + goal.text);
-      if (!goal.paused) scheduleGoalNudge();
-    }
-  });
-  // 取消/清除
+  // 退出/清除
   var goalCancelBtn = document.getElementById('goal-cancel');
   if (goalCancelBtn) goalCancelBtn.addEventListener('click', function () {
     if (goal && goal.done) stopGoal('');
-    else stopGoal('已取消目标');
+    else exitGoal();
   });
 
   // ----- Plan（计划，数据来自官方 todoWrite 工具） -----
@@ -978,33 +1063,57 @@
   var generating = false;
   var lastActivityAt = Date.now();
 
+  /** 对话是否在运行：模型生成中，或工具正在执行（工具执行期间任务同样没结束） */
+  function isBusy() { return generating || toolRunningCount > 0; }
+
+  // 中止抑制：锁在"任务代次"上而非墙上时间 —— 中止后迟到的旧任务事件被忽略，
+  // 但用户发起新任务（或被显式认领的新一轮）会自增代次，立即恢复正常忙碌判定。
+  var abortEpoch = 0;      // 每次中止自增；事件/状态先记下它属于哪一代
+  var abortStamp = 0;      // 最近一次中止时的代次，事件若仍等于它则视为"上一代的尾巴"
+  function markAborted() {
+    toolRunningCount = 0;
+    abortEpoch++;
+    abortStamp = abortEpoch;
+  }
+  /** 主动发起新动作（发送 / 继续 / 自动续跑）：把当前代次认领为"活的"，旧尾巴不再干扰 */
+  function clearAbortSuppression() { abortStamp = 0; }
+  function aborted() { return abortStamp !== 0 && abortStamp === abortEpoch; }
+
   var lastBusyNotify = false;
+  /** 按"对话在运行"统一刷新进度条 / 发送按钮 / 忙状态通知 */
+  function syncBusyIndicators() {
+    var busy = isBusy();
+    progressEl.className = 'progress' + (busy ? ' on' : '');
+    updateSendButton();
+    if (busy !== lastBusyNotify) {
+      lastBusyNotify = busy;
+      try { if (api.setBusy) api.setBusy(busy); } catch (e) { /* ignore */ }
+    }
+  }
+
   function setStatus(text, state) {
+    // 中止后、且尚未开始新任务时，忽略迟到的 busy（否则按钮会在停止后跳回停止态）
+    if (state === 'busy' && aborted()) return;
     statusText.textContent = text;
     statusEl.className = 'status' + (state ? ' ' + state : '');
     generating = (state === 'busy');
     if (generating) lastActivityAt = Date.now();
-    progressEl.className = 'progress' + (generating ? ' on' : '');
-    updateSendButton();
-    // 忙状态变化 → 通知主进程（用于禁用侧栏对话切换）
-    if (generating !== lastBusyNotify) {
-      lastBusyNotify = generating;
-      try { if (api.setBusy) api.setBusy(generating); } catch (e) { /* ignore */ }
-    }
+    syncBusyIndicators();
   }
 
-  // 兜底：生成中超过 12 秒无任何事件 → 重置为就绪，避免按钮卡在"停止"
+  // 兜底：生成中超过 12 秒无任何事件 → 重置为就绪，避免按钮卡在"停止"。
+  // 工具执行中不算静默：bash / 长任务可能几十秒无事件，期间必须保持中止按钮。
   setInterval(function () {
-    if (generating && Date.now() - lastActivityAt > 12000) {
+    if (generating && toolRunningCount === 0 && Date.now() - lastActivityAt > 12000) {
       setStatus('就绪', 'ready');
       cur = null;
     }
   }, 1500);
 
   function updateSendButton() {
-    if (generating) {
+    if (isBusy()) {
       sendBtn.classList.add('stop');
-      sendBtn.title = '停止生成';
+      sendBtn.title = '中止（停止生成 / 工具执行）';
       sendBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="4" width="8" height="8" rx="1.5"/></svg>';
     } else {
       sendBtn.classList.remove('stop');
@@ -1095,8 +1204,9 @@
   }
 
   function onAssistantDone(text) {
-    // 回复完成：立即恢复就绪（若有后续工具调用，tool-start 会再次置忙）
-    setStatus('就绪', 'ready');
+    // 回复完成：若有工具仍在执行，任务并未结束 —— 状态与按钮都保持"运行中"
+    if (toolRunningCount > 0) setStatus('工具运行中…', 'busy');
+    else setStatus('就绪', 'ready');
     var t = (text || '').trim();
     // 去重：与上一条已完成一致则忽略（防 finished 流 + assistant-done 双触发）
     if (t && t === lastDoneText) { if (cur) cur = null; return; }
@@ -1244,11 +1354,13 @@
           if (aText && aText !== lastPushedAssistant) { lastPushedAssistant = aText; pushHist({ t: 'assistant', text: payload.text }); }
           break;
         }
-        case 'tool-start': cancelGoalNudge(); toolRunningCount++;
+        case 'tool-start': cancelGoalNudge();
+          // 中止后、尚未开始新任务时到达的工具开始事件：只渲染卡片，不重新置忙
+          if (!aborted()) { toolRunningCount++; syncBusyIndicators(); }
           // 工具调用开始 = 当前助手回合结束：收尾思考块并关闭当前气泡，避免"思考中…"悬留
           if (cur) { try { var tl0 = cur.thinkBody ? cur.thinkBody.textContent : ''; if (tl0 && cur.thinkLabel) cur.thinkLabel.textContent = '已思考 (' + tl0.length + ' 字)'; } catch (e) { /* ignore */ } cur = null; }
           addToolStart(payload.code); setStatus('工具运行中…', 'busy'); pushHist({ t: 'tool', code: payload.code, success: null, output: '', error: '' }); break;
-        case 'tool-end': if (toolRunningCount > 0) toolRunningCount--; addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中…', 'busy'); {
+        case 'tool-end': if (toolRunningCount > 0) toolRunningCount--; addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中…', 'busy'); syncBusyIndicators(); {
           // 更新最近一个"未完成"的工具历史（从后往前找 success===null）
           for (var ti = history.length - 1; ti >= 0; ti--) {
             if (history[ti].t === 'tool' && history[ti].success === null) {
@@ -1269,6 +1381,7 @@
     var hints = pendingHints.slice();
     console.log('[harness] send() 调用, text 长度=' + text.length + ', files=' + files.length + ', hints=' + hints.length);
     if (!text && files.length === 0 && hints.length === 0) return;
+    clearAbortSuppression(); // 新任务：解除中止后的抑制窗口
     hideSlashMenu();
     input.value = '';
     input.style.height = 'auto';
@@ -1281,7 +1394,13 @@
     else if (/^\/goal(\s|$)/.test(text)) { goalText = text.replace(/^\/goal\s*/, '').trim(); }
     if (goalText !== null) {
       if (!goalText) {
-        appendSystem('用法：/goal <目标描述> —— 设定后自动多轮推进，AI 完成时输出 [[GOAL_DONE]] 结束');
+        // 无参数 = 查看当前目标（对齐 DSH 的"设置或查看"语义）
+        if (goal) {
+          appendSystem('当前目标：' + goal.text + '（' + (goal.done ? '已完成' : (goal.paused ? '已暂停' : '进行中')) +
+            ' · 迭代 ' + goal.round + (goal.maxIterations ? '/' + goal.maxIterations : '') + ' · ' + fmtElapsed(goalElapsedMs()) + '）');
+        } else {
+          appendSystem('用法：/goal <目标描述> —— 设定后自动多轮推进，目标完成后自动结束；也可点「暂停」中止当前任务、点「退出」彻底停止');
+        }
         input.focus();
         return;
       }
@@ -1357,21 +1476,14 @@
 
   function stop() {
     // 立即重置本地状态（不等主进程），给用户即时反馈
+    markAborted(); // 先清工具计数：否则 setStatus 后按钮仍会因"工具在跑"保持停止态
     setStatus('就绪', 'ready');
     cancelGoalNudge();
-    if (goal && !goal.done) stopGoal('已停止生成，目标自动推进已一并停止（可 /goal 重新设定）');
+    var hadGoal = !!(goal && !goal.done);
+    // 运行中按停止 = 退出目标（清掉目标条，不留半死状态）；已完成的目标条保留
+    if (hadGoal) stopGoal('已停止生成，目标自动推进已一并退出（可 /goal 重新设定）');
     // 清理未完成的助手气泡（含 pending 加载动画 / 流式光标）
-    if (cur) {
-      var isEmptyPending = cur.pending && cur.body && cur.body.querySelector('.pending-dots');
-      if (isEmptyPending) {
-        // 只剩加载动画的空气泡 → 整个移除
-        if (cur.el && cur.el.parentNode) cur.el.parentNode.removeChild(cur.el);
-      } else if (cur.body) {
-        var cursor = cur.body.querySelector('.streaming-cursor');
-        if (cursor && cursor.parentNode) cursor.parentNode.removeChild(cursor);
-      }
-      cur = null;
-    }
+    clearPendingBubble();
     appendSystem('已停止生成');
     pushHist({ t: 'system', text: '已停止生成' });
     // 后台请求停止 AI 页面（失败也无妨）
@@ -1379,8 +1491,8 @@
   }
 
   sendBtn.addEventListener('click', function () {
-    console.log('[harness] send 按钮点击, generating=' + generating + ', api.sendMessage=' + (typeof api.sendMessage));
-    if (generating) stop(); else send();
+    console.log('[harness] send 按钮点击, busy=' + isBusy() + ', api.sendMessage=' + (typeof api.sendMessage));
+    if (isBusy()) stop(); else send();
   });
   input.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') { hideSlashMenu(); return; }
@@ -1405,7 +1517,7 @@
     }
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
-      if (generating) return; // 生成中：忽略 Enter，避免重复发送（可用停止按钮）
+      if (isBusy()) return; // 生成中/工具执行中：忽略 Enter，避免重复发送（可用中止按钮）
       send();
     }
   });
@@ -1587,15 +1699,24 @@
     try { items[slashIndex].scrollIntoView({ block: 'nearest' }); } catch (e) { /* ignore */ }
   }
 
+  // 菜单条目图标（内联 SVG，风格与 DSH 一致：细线、跟随当前色）
+  var SLASH_ICONS = {
+    file: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5l-5 5a2 2 0 0 0 2.8 2.8l5-5a3.5 3.5 0 0 0-5-5l-4.5 4.5a5 5 0 0 0 7 7l4-4"/></svg>',
+    goal: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.2"/><circle cx="8" cy="8" r="3"/><circle cx="8" cy="8" r="0.9" fill="currentColor" stroke="none"/></svg>',
+    plan: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 4h10M3 8h10M3 12h6"/></svg>',
+    skill: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l1.7 4.3 4.4 1.7-4.4 1.7L8 13.5 6.3 9.2 1.9 7.5l4.4-1.7z"/></svg>',
+    tool: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.5L2.5 8l3 3.5M10.5 4.5L13.5 8l-3 3.5"/></svg>'
+  };
+
   function renderSlashMenu(data) {
     var q = slashQuery;
     var html = '';
     var shown = 0;
-    // 动作项（按输入的过滤词匹配）
+    // 动作项（版式对齐 DSH：图标 + 中文名 + 英文标识 + 右侧说明）
     var actions = [
-      { action: 'attach', name: '添加附件', keys: '添加附件 attach 附件 文件 上传 图片', desc: '选择图片 / 文件上传' },
-      { action: 'plan', name: '制定计划', keys: '制定计划 plan 计划 分步 步骤', desc: '让模型先给出分步计划' },
-      { action: 'goal', name: '设定目标', keys: '设定目标 制定目标 目标 goal goalmode 自动推进 多轮', desc: '自动多轮推进直至完成' }
+      { action: 'attach', icon: SLASH_ICONS.file, name: '文件', alias: 'file', keys: '添加附件 attach 附件 文件 上传 图片 file', desc: '添加文件 / 图片' },
+      { action: 'goal', icon: SLASH_ICONS.goal, name: '目标', alias: 'goal', keys: '设定目标 制定目标 目标 goal goalmode 自动推进 多轮', desc: '设置或查看长期任务目标' },
+      { action: 'plan', icon: SLASH_ICONS.plan, name: '计划', alias: 'plan', keys: '制定计划 plan 计划 分步 步骤', desc: '让模型先给出分步计划' }
     ];
     var acts = [];
     for (var a = 0; a < actions.length; a++) {
@@ -1604,7 +1725,12 @@
     if (acts.length) {
       html += '<div class="slash-sec">操作</div>';
       for (var a2 = 0; a2 < acts.length; a2++) {
-        html += '<div class="slash-item" data-kind="action" data-action="' + acts[a2].action + '"><span class="si-name">' + esc(acts[a2].name) + '</span><span class="si-desc">' + esc(acts[a2].desc) + '</span></div>';
+        var A = acts[a2];
+        html += '<div class="slash-item" data-kind="action" data-action="' + A.action + '">' +
+          '<span class="si-icon">' + A.icon + '</span>' +
+          '<span class="si-name">' + esc(A.name) + '</span>' +
+          '<span class="si-alias">' + esc(A.alias) + '</span>' +
+          '<span class="si-desc">' + esc(A.desc) + '</span></div>';
         shown++;
       }
     }
@@ -1620,14 +1746,20 @@
     if (sk.length) {
       html += '<div class="slash-sec">技能</div>';
       for (var k = 0; k < sk.length; k++) {
-        html += '<div class="slash-item" data-kind="skill" data-name="' + esc(sk[k].name) + '"><span class="si-name">' + esc(sk[k].name) + '</span><span class="si-desc">' + esc(sk[k].description || '') + '</span></div>';
+        html += '<div class="slash-item" data-kind="skill" data-name="' + esc(sk[k].name) + '">' +
+          '<span class="si-icon">' + SLASH_ICONS.skill + '</span>' +
+          '<span class="si-name si-code">' + esc(sk[k].name) + '</span>' +
+          '<span class="si-desc">' + esc(sk[k].description || '') + '</span></div>';
         shown++;
       }
     }
     if (tl.length) {
       html += '<div class="slash-sec">工具</div>';
       for (var t = 0; t < tl.length; t++) {
-        html += '<div class="slash-item" data-kind="tool" data-name="' + esc(tl[t].name) + '"><span class="si-name">' + esc(tl[t].name) + '</span><span class="si-desc">' + esc(tl[t].description || '') + '</span></div>';
+        html += '<div class="slash-item" data-kind="tool" data-name="' + esc(tl[t].name) + '">' +
+          '<span class="si-icon">' + SLASH_ICONS.tool + '</span>' +
+          '<span class="si-name si-code">' + esc(tl[t].name) + '</span>' +
+          '<span class="si-desc">' + esc(tl[t].description || '') + '</span></div>';
         shown++;
       }
     }
@@ -1700,28 +1832,7 @@
     // 真正在 AI 网页中开新对话
     if (api.newConversation) api.newConversation().catch(function () { /* ignore */ });
   });
-  // 设置弹窗
-  var settingsMask = document.getElementById('settings-mask');
-  var smGoalMax = document.getElementById('sm-goal-max');
-  function openSettings() {
-    if (!settingsMask) return;
-    try { smGoalMax.value = String(goalMaxIterations()); } catch (e) { /* ignore */ }
-    settingsMask.classList.add('show');
-  }
-  function closeSettings() { if (settingsMask) settingsMask.classList.remove('show'); }
-  var btnSettings = document.getElementById('btn-settings');
-  if (btnSettings) btnSettings.addEventListener('click', openSettings);
-  var smCancel = document.getElementById('sm-cancel');
-  if (smCancel) smCancel.addEventListener('click', closeSettings);
-  var smSave = document.getElementById('sm-save');
-  if (smSave) smSave.addEventListener('click', function () {
-    var v = parseInt((smGoalMax && smGoalMax.value) || '', 10);
-    if (!Number.isFinite(v) || v <= 0) { appendSystem('迭代次数需为正整数'); return; }
-    try { localStorage.setItem('cuckoo-goal-max-iterations', String(v)); } catch (e) { /* ignore */ }
-    if (goal) { goal.maxIterations = v; renderGoalBar(); }
-    closeSettings();
-    appendSystem('设置已保存：目标最大迭代次数 = ' + v);
-  });
+
   if (settingsMask) settingsMask.addEventListener('click', function (e) { if (e.target === settingsMask) closeSettings(); });
 
   // Ctrl+R 重载页面（加载最新 HTML）
