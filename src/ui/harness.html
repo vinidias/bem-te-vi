@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cuckoo Harness</title>
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<script src="vendor/katex/katex.min.js"></script>
 <style>
   :root {
     --bg: #1a1a1a;
@@ -149,6 +151,8 @@
   }
   .msg.assistant .body hr { border: none; border-top: 1px solid var(--border-soft); margin: 12px 0; }
   .msg.assistant .body del { color: var(--text-dim); }
+  .msg.assistant .body .katex { color: var(--text); font-size: 1.05em; }
+  .msg.assistant .body .katex-display { margin: 10px 0; overflow-x: auto; overflow-y: hidden; }
   .msg.assistant .body li { margin: 3px 0; }
 
   /* 流式光标 */
@@ -787,6 +791,24 @@
       blocks.push('<pre><code>' + esc(code) + '</code></pre>');
       return '@@BLOCK' + (blocks.length - 1) + '@@';
     });
+    // 提取数学（$$...$$ 块级、$...$ 行内），用 KaTeX 渲染，避免被后续 markdown 处理破坏
+    var maths = [];
+    function renderMath(tex, display) {
+      try {
+        if (typeof window.katex !== 'undefined' && window.katex.renderToString) {
+          return window.katex.renderToString(tex, { displayMode: display, throwOnError: false });
+        }
+      } catch (e) { /* ignore */ }
+      return '<code>' + esc((display ? '$$' : '$') + tex + (display ? '$$' : '$')) + '</code>';
+    }
+    src = src.replace(/\$\$([\s\S]+?)\$\$/g, function (m, tex) {
+      maths.push(renderMath(tex.trim(), true));
+      return '@@MATH' + (maths.length - 1) + '@@';
+    });
+    src = src.replace(/\$([^\$\n]+?)\$/g, function (m, tex) {
+      maths.push(renderMath(tex.trim(), false));
+      return '@@MATH' + (maths.length - 1) + '@@';
+    });
     src = esc(src);
     var reInline = new RegExp(BT + '([^' + BT + '\n]+)' + BT, 'g');
     src = src.replace(reInline, '<code>$1</code>');
@@ -833,7 +855,7 @@
       paraBuf.push(line); bi++;
     }
     flushPara();
-    return out.join('').replace(/@@BLOCK(\d+)@@/g, function (m, idx) { return blocks[+idx] || ''; });
+    return out.join('').replace(/@@MATH(\d+)@@/g, function (m, idx) { return maths[+idx] || ''; }).replace(/@@BLOCK(\d+)@@/g, function (m, idx) { return blocks[+idx] || ''; });
   }
 
   // force=true 时总是滚到底；否则仅在用户仍"跟随底部"时才跟随（不打扰往上翻看）
