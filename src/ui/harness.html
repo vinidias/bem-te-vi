@@ -1446,6 +1446,7 @@
     console.log('[harness] send() 调用, text 长度=' + text.length + ', files=' + files.length + ', hints=' + hints.length);
     if (!text && files.length === 0 && hints.length === 0) return;
     clearAbortSuppression(); // 新任务：解除中止后的抑制窗口
+    resetPlanDrive(); // 新任务：重置计划驱动轮数
     hideSlashMenu();
     input.value = '';
     input.style.height = 'auto';
