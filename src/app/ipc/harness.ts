@@ -115,6 +115,13 @@ function registerHarnessIpc(): void {
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) {
       return { success: false, error: 'no-ai-view' };
     }
+    // 新用户消息 = 新任务：清空旧计划（否则旧 todoWrite 结果一直挂着）
+    try {
+      (globalThis as any).__cuckooTodos = [];
+      lastTodosJson = '';
+      const hv = (ctx as any).harnessView;
+      if (hv && !hv.webContents.isDestroyed()) hv.webContents.send('harness-event', { type: 'plan', todos: [] });
+    } catch (_) { /* ignore */ }
     ctx.view.webContents.send('harness-user-message', { text: text });
     return { success: true };
   });
@@ -238,6 +245,13 @@ function registerHarnessIpc(): void {
       const url = provider && provider.homeUrl ? provider.homeUrl : null;
       if (!url) return { success: false, error: 'no-home-url' };
       console.log('[Cuckoo Harness] 新对话 → 导航到 ' + url);
+      // 新对话：清空旧计划
+      try {
+        (globalThis as any).__cuckooTodos = [];
+        lastTodosJson = '';
+        const hv = (ctx as any).harnessView;
+        if (hv && !hv.webContents.isDestroyed()) hv.webContents.send('harness-event', { type: 'plan', todos: [] });
+      } catch (_) { /* ignore */ }
       ctx.view.webContents.loadURL(url);
       return { success: true, url: url };
     } catch (err: any) {
