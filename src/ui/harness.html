@@ -454,7 +454,15 @@
   function histKeyOf(sid) { return HIST_BASE + (sid ? ':' + sid : ''); }
   function histKey() { return histKeyOf(currentSessionId); }
   function loadHist() {
-    try { history = JSON.parse(localStorage.getItem(histKey()) || '[]') || []; } catch (e) { history = []; }
+    try {
+      var raw = localStorage.getItem(histKey());
+      if (raw == null && currentSessionId) {
+        // 回退：把旧的"全局历史"（无后缀 key）迁移到当前会话
+        var legacy = localStorage.getItem(HIST_BASE);
+        if (legacy != null) { raw = legacy; try { localStorage.setItem(histKey(), legacy); } catch (e) { /* ignore */ } }
+      }
+      history = JSON.parse(raw || '[]') || [];
+    } catch (e) { history = []; }
   }
   // 单条字段截断上限（防止超大工具输出撑爆 localStorage）
   var HIST_FIELD_MAX = 6000;
