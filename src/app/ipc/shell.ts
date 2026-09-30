@@ -112,7 +112,7 @@ function registerShellIpc(): void {
           for (var i = 0; i < anchors.length; i++) {
             var a = anchors[i];
             var href = a.href || '';
-            if (!href || href === win.location.href) continue;
+            if (!href) continue;
             if (basePath && href.indexOf(basePath) === -1) continue;
             var title = String(a.innerText || a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80);
             if (!title) continue;
@@ -134,6 +134,17 @@ function registerShellIpc(): void {
     const ctx = windowState.getContextByWebContents(event.sender);
     const view = ctx ? ctx.view : null;
     if (!view || !url) return { success: false };
+    try { await view.webContents.loadURL(url); return { success: true }; }
+    catch (err: any) { return { success: false, error: err.message }; }
+  });
+  // 新对话：导航到平台首页（开新会话）
+  ipcMain.handle('web-new-conversation', async (event: any) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    const view = ctx ? ctx.view : null;
+    if (!view) return { success: false };
+    const provider = (ctx && ctx.providerId) ? getProvider(ctx.providerId) : null;
+    const url = provider && provider.homeUrl ? provider.homeUrl : '';
+    if (!url) return { success: false, error: 'no-home-url' };
     try { await view.webContents.loadURL(url); return { success: true }; }
     catch (err: any) { return { success: false, error: err.message }; }
   });

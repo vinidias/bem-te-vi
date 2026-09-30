@@ -396,6 +396,8 @@ function createWindow(profile: any) {
     // 通知 AI 页面（overlay/看门狗）URL 已变，替代原先的渲染进程轮询
     try { view.webContents.send('cuckoo-url-changed', { url }); } catch (_) {}
     notifyHarnessSession(url);
+    // 通知壳页面：网页 URL 变了 → 刷新对话列表高亮
+    try { mainWindow.webContents.send('shell-web-url-changed', { url }); } catch (_) {}
     autoConnectMcp();
   });
 
@@ -405,6 +407,7 @@ function createWindow(profile: any) {
     // SPA 路由（pushState）变化也在此触发，替代轮询
     try { view.webContents.send('cuckoo-url-changed', { url }); } catch (_) {}
     notifyHarnessSession(url);
+    try { mainWindow.webContents.send('shell-web-url-changed', { url }); } catch (_) {}
     autoConnectMcp();
   });
 

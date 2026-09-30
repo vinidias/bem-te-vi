@@ -33,6 +33,8 @@ const shellAPI = {
   // ========== 侧栏「对话」分页：读网页会话列表 + 导航 ==========
   listWebSessions: () => ipcRenderer.invoke('web-list-sessions'),
   navigateWebSession: (url: string) => ipcRenderer.invoke('web-navigate-session', { url }),
+  newWebConversation: () => ipcRenderer.invoke('web-new-conversation'),
+  onWebUrlChanged: (cb: () => void) => { ipcRenderer.on('shell-web-url-changed', () => cb()); },
   // ========== 窗口管理 ==========
   listProfiles: () => ipcRenderer.invoke('list-profiles'),
   listProviders: () => ipcRenderer.invoke('list-providers'),
