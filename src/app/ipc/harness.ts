@@ -13,6 +13,7 @@ import * as windowState from '../window.js';
 import { scanSkills } from '../../skills/index.js';
 import { registry } from '../../tools/index.js';
 import { getProvider } from '../../providers/registry.js';
+import { resetTodosCache } from './tool.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
@@ -117,8 +118,7 @@ function registerHarnessIpc(): void {
     }
     // 新用户消息 = 新任务：清空旧计划（否则旧 todoWrite 结果一直挂着）
     try {
-      (globalThis as any).__cuckooTodos = [];
-      lastTodosJson = '';
+      resetTodosCache();
       const hv = (ctx as any).harnessView;
       if (hv && !hv.webContents.isDestroyed()) hv.webContents.send('harness-event', { type: 'plan', todos: [] });
     } catch (_) { /* ignore */ }
@@ -247,8 +247,7 @@ function registerHarnessIpc(): void {
       console.log('[Cuckoo Harness] 新对话 → 导航到 ' + url);
       // 新对话：清空旧计划
       try {
-        (globalThis as any).__cuckooTodos = [];
-        lastTodosJson = '';
+        resetTodosCache();
         const hv = (ctx as any).harnessView;
         if (hv && !hv.webContents.isDestroyed()) hv.webContents.send('harness-event', { type: 'plan', todos: [] });
       } catch (_) { /* ignore */ }

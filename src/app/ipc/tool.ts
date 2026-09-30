@@ -11,6 +11,14 @@ const { ipcMain } = require('electron');
 // 上次推送的 todoWrite 列表（去重）
 let lastTodosJson = '';
 
+/** 重置计划（新任务/新对话时调用，避免旧 todo 残留） */
+function resetTodosCache(): void {
+  lastTodosJson = '';
+  (globalThis as any).__cuckooTodos = [];
+}
+
+export { resetTodosCache };
+
 function registerToolIpc(): void {
   // 执行工具
   ipcMain.handle('execute-tool', async (event: any, { toolName, params, callId }: any) => {
