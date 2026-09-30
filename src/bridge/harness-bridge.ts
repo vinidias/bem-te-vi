@@ -10,8 +10,8 @@
  * 与官方解耦：仅在 bridge/entry.ts 中 import 激活；其余为独立文件。
  */
 import { createRequire } from 'node:module';
-import { onInterceptedResponse, onToolCall, onStream } from './intercept/observer.js';
-import { sendToChat } from '../overlay/chat-input.js';
+import { onInterceptedResponse, onToolCall, onStream, requestAbort, clearAbort } from './intercept/observer.js';
+import { sendToChat, cancelPendingSend } from '../overlay/chat-input.js';
 
 const require = createRequire(import.meta.url);
 const { ipcRenderer } = require('electron');
@@ -87,6 +87,14 @@ export function initHarnessBridge(): void {
   ipcRenderer.on('harness-user-message', (_e: any, payload: any) => {
     const text = payload && payload.text;
     if (!text) return;
+    clearAbort(); // 新消息：清除中止标志
     sendToChat(text, 'harness', 300).catch(() => {});
+  });
+
+  // 停止：取消延时发送 + 中止工具回传
+  ipcRenderer.on('harness-stop-signal', () => {
+    try { cancelPendingSend(); } catch (_) { /* ignore */ }
+    try { requestAbort(); } catch (_) { /* ignore */ }
+    console.log('[Cuckoo Harness] 收到停止信号：已取消待发送 + 中止工具回传');
   });
 }

@@ -136,6 +136,8 @@ function registerHarnessIpc(): void {
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false };
     const wc = ctx.view.webContents;
     try {
+      // 先给 bridge 发停止信号：取消延时发送 + 中止工具回传（关键：否则停止后仍会自动发送）
+      try { wc.send('harness-stop-signal'); } catch (_) { /* ignore */ }
       try { wc.focus(); } catch (e) { /* ignore */ }
       const code = '(' + attachStopFn.toString() + ')(document, window)';
       const r = await wc.executeJavaScript(code);
