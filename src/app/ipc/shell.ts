@@ -19,6 +19,33 @@ function viewOf(event: any): any {
   return windowState.getViewByWebContents(event.sender);
 }
 
+/**
+ * 默认的网页会话列表抓取：扫 a[href]，按 sessionUrlBase 的 pathname 前缀过滤。
+ * 必须自包含（会被 toString 序列化后注入 AI 页面主世界执行），
+ * 只使用 doc / win / base 三个入参与浏览器全局。
+ */
+function defaultSessionListFn(doc: any, win: any, base: any) {
+  try {
+    var basePath = '';
+    try { basePath = new win.URL(base).pathname; } catch (e) { basePath = ''; }
+    var anchors = doc.querySelectorAll('a[href]');
+    var seen: any = {}, out: any[] = [];
+    for (var i = 0; i < anchors.length; i++) {
+      var a = anchors[i];
+      var href = a.href || '';
+      if (!href) continue;
+      if (basePath && href.indexOf(basePath) === -1) continue;
+      var title = String(a.innerText || a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      if (!title) continue;
+      if (seen[href]) continue;
+      seen[href] = 1;
+      var cls = (typeof a.className === 'string') ? a.className : '';
+      out.push({ title: title, href: href, active: cls.indexOf('active') !== -1 || a.getAttribute('aria-current') === 'page' });
+    }
+    return out.slice(0, 100);
+  } catch (e) { return []; }
+}
+
 /** 把当前 URL 与前进/后退可用状态推送给壳页面 */
 function pushUrlState(view: any): void {
   if (!view || !view.webContents || view.webContents.isDestroyed()) return;
@@ -103,27 +130,11 @@ function registerShellIpc(): void {
     const provider = (ctx && ctx.providerId) ? getProvider(ctx.providerId) : null;
     const base = (provider && provider.sessionUrlBase) || '';
     try {
-      const fn = function (doc: any, win: any, base: any) {
-        try {
-          var basePath = '';
-          try { basePath = new win.URL(base).pathname; } catch (e) { basePath = ''; }
-          var anchors = doc.querySelectorAll('a[href]');
-          var seen: any = {}, out: any[] = [];
-          for (var i = 0; i < anchors.length; i++) {
-            var a = anchors[i];
-            var href = a.href || '';
-            if (!href) continue;
-            if (basePath && href.indexOf(basePath) === -1) continue;
-            var title = String(a.innerText || a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80);
-            if (!title) continue;
-            if (seen[href]) continue;
-            seen[href] = 1;
-            var cls = (typeof a.className === 'string') ? a.className : '';
-            out.push({ title: title, href: href, active: cls.indexOf('active') !== -1 || a.getAttribute('aria-current') === 'page' });
-          }
-          return out.slice(0, 100);
-        } catch (e) { return []; }
-      };
+      // 平台可提供自定义抓取实现（侧栏非 a[href] 结构时必需），否则用默认实现
+      const fn = (provider && typeof provider.getSessionListFn === 'function')
+        ? provider.getSessionListFn()
+        : defaultSessionListFn;
+      if (typeof fn !== 'function') return { success: false, error: 'getSessionListFn 未返回函数', sessions: [] };
       const list = await view.webContents.executeJavaScript('(' + fn.toString() + ')(document, window, ' + JSON.stringify(base) + ')');
       return { success: true, sessions: list || [], currentUrl: view.webContents.getURL() };
     } catch (err: any) {

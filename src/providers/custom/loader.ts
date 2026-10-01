@@ -4,6 +4,7 @@
  * 删除时同时清理配置文件中的记录和复制到 userData 下的副本。
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { validateProvider } from '../validate.js';
@@ -76,11 +77,26 @@ function writeConfig(config: CustomProviderConfig): void {
   }
 }
 
+/**
+ * 加载 provider 文件。始终先复制为 .cjs 临时副本再 require：
+ * provider 是 CommonJS（module.exports），若源文件落在 "type": "module" 的
+ * 项目目录树下（现代 npm 项目常态），Node 会把 .js 按 ES 模块解析而直接报
+ * "module is not defined"。.cjs 扩展名强制 CommonJS 语义，与源位置无关。
+ * require 缓存也因路径唯一（含 pid + 时间戳）而天然失效，无需手动清理。
+ */
 function loadProviderFromFile(filePath: string): any {
-  const provider = require(filePath);
-  const error = validateProvider(provider);
-  if (error) throw new Error(error);
-  return provider;
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cuckoo-provider-'));
+  const tmpPath = path.join(tmpDir, path.basename(filePath).replace(/\.js$/i, '') + '.cjs');
+  try {
+    fs.copyFileSync(filePath, tmpPath);
+    const provider = require(tmpPath);
+    const error = validateProvider(provider);
+    if (error) throw new Error(error);
+    return provider;
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
+    try { fs.rmdirSync(tmpDir); } catch { /* ignore */ }
+  }
 }
 
 // 自定义 Provider 缓存：getProviderByUrl 会被高频调用（轮询、DOM 检测等），

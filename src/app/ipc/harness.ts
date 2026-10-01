@@ -9,11 +9,15 @@
  * 依赖：仅 window.js（窗口上下文）。与官方 IPC 解耦，独立注册。
  */
 import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import * as windowState from '../window.js';
 import { scanSkills } from '../../skills/index.js';
 import { registry } from '../../tools/index.js';
 import { getProvider } from '../../providers/registry.js';
 import { resetTodosCache } from './tool.js';
+import { cdpAttach } from './cdp-attach.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
@@ -127,6 +131,7 @@ function registerHarnessIpc(): void {
   });
 
   // AI 页面的 bridge 上报事件 → 转给 harness 页面
+  //（bridge 侧不设门控，一律上报；此处没有 harness 视图时自然丢弃）
   ipcMain.handle('harness-event-report', (event: any, payload: any) => {
     const ctx = findContext(event.sender);
     if (!ctx) return { success: false };
@@ -146,7 +151,16 @@ function registerHarnessIpc(): void {
       // 先给 bridge 发停止信号：取消延时发送 + 中止工具回传（关键：否则停止后仍会自动发送）
       try { wc.send('harness-stop-signal'); } catch (_) { /* ignore */ }
       try { wc.focus(); } catch (e) { /* ignore */ }
-      const code = '(' + attachStopFn.toString() + ')(document, window)';
+      // 平台可提供自定义停止按钮定位；内置启发式只覆盖部分站点（如 DeepSeek 设计系统类名）
+      let locateFn = attachStopFn;
+      try {
+        const provider = ctx.providerId ? getProvider(ctx.providerId) : null;
+        if (provider && typeof provider.getStopFn === 'function') {
+          const f = provider.getStopFn();
+          if (typeof f === 'function') locateFn = f;
+        }
+      } catch (_) { /* 回退内置定位 */ }
+      const code = '(' + locateFn.toString() + ')(document, window)';
       const r = await wc.executeJavaScript(code);
       console.log('[Cuckoo Harness] harness-stop 定位结果: ' + JSON.stringify(r));
       if (r && r.found && typeof r.x === 'number') {
@@ -203,6 +217,14 @@ function registerHarnessIpc(): void {
     const results: any[] = [];
     for (const f of files) {
       console.log('[Cuckoo Harness] 上传文件: ' + f.name + ' b64len=' + ((f.data || '').length));
+      // CDP 真实点击优先：合成事件免疫站点（如智谱）走原生文件选择通道
+      try {
+        const cr = await cdpAttach(ctx as any, { name: f.name, data: f.data, mime: f.mime });
+        console.log('[Cuckoo Harness] CDP 上传结果: ' + JSON.stringify(cr));
+        if (cr && cr.success) { results.push({ success: true, name: f.name }); continue; }
+      } catch (cdpErr: any) {
+        console.log('[Cuckoo Harness] CDP 通道异常，转合成事件兜底: ' + (cdpErr && cdpErr.message));
+      }
       try {
         const code = '(' + attachFn.toString() + ')(document, window, ' +
           JSON.stringify(f.data || '') + ', ' +
