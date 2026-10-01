@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Cuckoo Code 主进程入口（多窗口多 profile 版）
  * 由项目根目录 main.js 薄壳加载。
  */
@@ -241,6 +241,7 @@ function createWindow(profile: any) {
       hv.webContents.send('harness-event', { type: 'session-changed', sessionId: sid });
     } catch (_) { /* ignore */ }
   };
+
   // 切换纯净模式（同窗口）：true=显示 harness，false=显示网页
   (mainWindow as any).__ckToggleHarness = (show?: boolean) => {
     if (mainWindow.isDestroyed()) return;
@@ -254,12 +255,9 @@ function createWindow(profile: any) {
     } else {
       layoutView();
     }
-    // 通知 AI 页面：纯净模式开/关（bridge 据此决定是否处理上报，关闭时零开销）
-    try {
-      if (view && view.webContents && !view.webContents.isDestroyed()) {
-        view.webContents.send('harness-mode', { enabled: next });
-      }
-    } catch (_) {}
+    // 注：不再向 AI 页面下发"纯净模式开关"。bridge 侧上报已不设门控
+    //（门控一旦判断错就整片静默丢弃，曾导致界面空白 + 状态卡死）；
+    // 主进程在没有 harness 视图时自会丢弃事件，无需 bridge 配合。
   };
 
   // 更新主窗口引用
