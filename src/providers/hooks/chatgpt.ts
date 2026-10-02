@@ -26,6 +26,13 @@ function install(): void {
 
   function dispatch(text, finished) {
     try {
+      // 空回复（正文为空）→ 按失败处理，触发自动重试（普通失败间隔）
+      if (finished && !(text && text.trim())) {
+        window.dispatchEvent(new CustomEvent('cuckoo-ai-error', {
+          detail: { text: '', status: 'error', reason: 'empty' }
+        }));
+        return;
+      }
       window.dispatchEvent(new CustomEvent('cuckoo-ai-response', {
         detail: { text: text || '', finished: !!finished }
       }));

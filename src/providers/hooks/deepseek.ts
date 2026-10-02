@@ -66,7 +66,8 @@ function install(): void {
     if (extractor.incomplete) return 'error';
     // 3/4) 收到 FINISHED 帧
     if (extractor.finished) {
-      if (extractor.thinkLen > 0 && extractor.textLen === 0) return 'error';
+      // 正文为空（哪怕有思考）→ 视为空回复，触发普通失败重试
+      if (extractor.textLen === 0) return 'error';
       return 'finished';
     }
     // 5) 未收到 FINISHED，但有正文（流已正常结束）→ 视为完成
