@@ -15,7 +15,7 @@ import * as mcpClient from '../mcp/client.js';
 import { resolveAsset, resolveSrc } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
-const { app, BrowserWindow, WebContentsView, Menu, dialog, screen, ipcMain: ipcMainForProfile } = require('electron');
+const { app, BrowserWindow, WebContentsView, Menu, dialog, screen, nativeTheme, ipcMain: ipcMainForProfile } = require('electron');
 
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
@@ -174,7 +174,8 @@ function createWindow(profile: any) {
       },
     });
     mainWindow.contentView.addChildView(hv);
-    hv.setBackgroundColor('#0d0e12');
+    // harness 页面加载前的底色：跟随系统深浅色（加载后由页面 CSS 接管）
+    hv.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#1a1a1a' : '#ffffff');
     hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
     harnessView = hv;
     (mainWindow as any).__ckHarnessView = hv;
@@ -278,6 +279,8 @@ function createWindow(profile: any) {
         view.webContents.send('harness-mode', { enabled: next });
       }
     } catch (_) {}
+    // 通知壳页面：更新「纯净模式/原版模式」按钮
+    try { mainWindow.webContents.send('shell-harness-mode', { harness: next }); } catch (_) {}
   };
 
   // 更新主窗口引用

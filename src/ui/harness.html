@@ -3,26 +3,68 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
 <title>Cuckoo Harness</title>
 <style>
+  /* ===== 浅色（默认）===== */
   :root {
-    --bg: #1a1a1a;
-    --bg-elev: #212121;
-    --surface: #262626;
-    --surface-hover: #2e2e2e;
-    --border: #333333;
-    --border-soft: #2a2a2a;
-    --text: #ececec;
-    --text-2: #b4b4b4;
-    --text-dim: #7a7a7a;
+    --bg: #ffffff;
+    --bg-elev: #f7f8fa;
+    --surface: #f1f2f5;
+    --surface-hover: #e8eaee;
+    --border: #e3e5ea;
+    --border-strong: #cfd2d9;
+    --border-soft: #eceef1;
+    --text: #16181d;
+    --text-2: #545a67;
+    --text-dim: #8a8f9b;
+    --text-strong: #000000;
     --accent: #d97757;
-    --accent-soft: rgba(217,119,87,0.14);
-    --green: #7fb069;
-    --red: #e06c75;
-    --amber: #d9a05b;
-    --user-bg: #2b2b2b;
+    --accent-soft: rgba(217,119,87,0.10);
+    --green: #2f9e5f;
+    --red: #d93f47;
+    --amber: #b07d2b;
+    --user-bg: #f0f1f4;
+    --code-bg: #f6f7f9;
+    --code-text: #b5451f;
+    --think-bg: rgba(0,0,0,0.02);
+    --hover-soft: rgba(0,0,0,0.05);
+    --scroll-thumb: rgba(0,0,0,0.18);
+    --scroll-hover: rgba(0,0,0,0.30);
+    --amber-soft: rgba(176,125,43,0.10);
+    --shadow-color: rgba(16,24,40,0.12);
     --mono: "SFMono-Regular", "SF Mono", "Cascadia Code", "Consolas", "Liberation Mono", monospace;
     --sans: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  /* ===== 深色（跟随系统）===== */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a;
+      --bg-elev: #212121;
+      --surface: #262626;
+      --surface-hover: #2e2e2e;
+      --border: #333333;
+      --border-strong: #444444;
+      --border-soft: #2a2a2a;
+      --text: #ececec;
+      --text-2: #b4b4b4;
+      --text-dim: #7a7a7a;
+      --text-strong: #ffffff;
+      --accent: #d97757;
+      --accent-soft: rgba(217,119,87,0.14);
+      --green: #7fb069;
+      --red: #e06c75;
+      --amber: #d9a05b;
+      --user-bg: #2b2b2b;
+      --code-bg: #141414;
+      --code-text: #e0a58a;
+      --think-bg: rgba(255,255,255,0.018);
+      --hover-soft: rgba(255,255,255,0.08);
+      --scroll-thumb: #3a3a3a;
+      --scroll-hover: #4a4a4a;
+      --amber-soft: rgba(217,160,91,0.08);
+      --shadow-color: rgba(0,0,0,0.45);
+    }
   }
   * { box-sizing: border-box; }
   html, body {
@@ -62,8 +104,8 @@
   /* ===== 消息流 ===== */
   .stream { flex: 1; overflow-y: auto; padding: 20px 0 8px; position: relative; }
   .stream::-webkit-scrollbar { width: 9px; }
-  .stream::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 5px; border: 2px solid var(--bg); background-clip: padding-box; }
-  .stream::-webkit-scrollbar-thumb:hover { background: #4a4a4a; background-clip: padding-box; border: 2px solid var(--bg); }
+  .stream::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 5px; border: 2px solid var(--bg); background-clip: padding-box; }
+  .stream::-webkit-scrollbar-thumb:hover { background: var(--scroll-hover); background-clip: padding-box; border: 2px solid var(--bg); }
   .wrap { max-width: 780px; margin: 0 auto; padding: 0 24px; }
 
   .empty { text-align: center; color: var(--text-dim); padding: 22vh 20px 0; font-size: 13px; line-height: 1.9; }
@@ -86,7 +128,7 @@
     height: 24px; padding: 0 8px; border-radius: 6px;
     background: var(--bg-elev); border: 1px solid var(--border-strong);
     color: var(--text-dim); font-size: 11px; cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    box-shadow: 0 2px 8px var(--shadow-color);
   }
   .msg:hover .msg-copy { display: flex; }
   .msg .msg-copy:hover { color: var(--text); background: var(--surface); }
@@ -115,20 +157,20 @@
   .msg.assistant .body p:last-child { margin-bottom: 0; }
   .msg.assistant .body code {
     background: var(--surface); padding: 1.5px 5px; border-radius: 4px;
-    font-family: var(--mono); font-size: 12.5px; color: #e0a58a;
+    font-family: var(--mono); font-size: 12.5px; color: var(--code-text);
   }
   .msg.assistant .body pre {
-    background: #141414; border: 1px solid var(--border-soft);
+    background: var(--code-bg); border: 1px solid var(--border-soft);
     border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 10px 0;
   }
   .msg.assistant .body pre code { background: none; padding: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.62; }
-  .msg.assistant .body strong { color: #fff; font-weight: 600; }
+  .msg.assistant .body strong { color: var(--text-strong); font-weight: 600; }
   .msg.assistant .body ul { margin: 8px 0; padding-left: 20px; }
   .msg.assistant .body li { margin: 3px 0; }
 
   /* 流式光标 */
   .msg.system { display: flex; justify-content: center; }
-  .msg.system .sys-text { font-size: 12px; color: var(--amber); padding: 4px 12px; background: rgba(217,160,91,.08); border-radius: 6px; }
+  .msg.system .sys-text { font-size: 12px; color: var(--amber); padding: 4px 12px; background: var(--amber-soft); border-radius: 6px; }
   .streaming-cursor {
     display: inline-block; width: 7px; height: 15px; margin-left: 2px;
     background: var(--accent); vertical-align: text-bottom;
@@ -144,7 +186,7 @@
   /* 思考过程块 */
   .think {
     margin-bottom: 10px; border-left: 2px solid var(--border);
-    background: rgba(255,255,255,0.018); border-radius: 0 6px 6px 0;
+    background: var(--think-bg); border-radius: 0 6px 6px 0;
   }
   .think-head {
     display: flex; align-items: center; gap: 7px;
@@ -174,9 +216,9 @@
   .tool-name { font-size: 12px; font-weight: 600; color: var(--text-2); font-family: var(--mono); flex-shrink: 0; }
   .tool-arg { flex: 1; font-size: 12px; color: var(--text-dim); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tool-badge { font-size: 10px; padding: 1.5px 6px; border-radius: 4px; font-weight: 600; flex-shrink: 0; }
-  .tool-badge.run { background: rgba(217,160,91,.16); color: var(--amber); }
-  .tool-badge.ok { background: rgba(127,176,105,.16); color: var(--green); }
-  .tool-badge.err { background: rgba(224,108,117,.16); color: var(--red); }
+  .tool-badge.run { background: var(--amber-soft); color: var(--amber); }
+  .tool-badge.ok { background: var(--accent-soft); color: var(--green); }
+  .tool-badge.err { background: var(--accent-soft); color: var(--red); }
   .tool-caret { color: var(--text-dim); flex-shrink: 0; display: flex; }
   .tool-caret svg { width: 9px; height: 9px; transition: transform .15s; }
   .tool-card.open .tool-caret svg { transform: rotate(90deg); }
@@ -186,12 +228,12 @@
   .tool-sec + .tool-sec { border-top: 1px solid var(--border-soft); }
   .tool-sec-label { font-size: 9.5px; font-weight: 600; color: var(--text-dim); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 6px; }
   .tool-pre {
-    background: #141414; border-radius: 6px; padding: 10px 12px; margin: 0;
+    background: var(--code-bg); border-radius: 6px; padding: 10px 12px; margin: 0;
     overflow: auto; max-height: 340px;
     font-family: var(--mono); font-size: 12px; line-height: 1.6;
     color: var(--text-2); white-space: pre-wrap; word-break: break-word;
   }
-  .tool-pre.err { color: #e8a0a6; }
+  .tool-pre.err { color: var(--red); }
 
   /* ===== 输入区 ===== */
   .composer { flex-shrink: 0; padding: 10px 24px 20px; }
@@ -202,7 +244,7 @@
     border-radius: 12px; padding: 10px 10px 10px 14px;
     transition: border-color .15s, box-shadow .15s;
   }
-  .composer-inner:focus-within { border-color: #444; box-shadow: 0 0 0 3px rgba(255,255,255,0.03); }
+  .composer-inner:focus-within { border-color: var(--border-strong); box-shadow: 0 0 0 3px var(--hover-soft); }
   #input {
     flex: 1; border: none; outline: none; background: transparent; resize: none;
     color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.65;
@@ -212,8 +254,8 @@
   #input::placeholder { color: var(--text-dim); }
   #input::-webkit-scrollbar { width: 8px; }
   #input::-webkit-scrollbar-track { background: transparent; }
-  #input::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 4px; border: 2px solid var(--bg-elev); background-clip: padding-box; }
-  #input::-webkit-scrollbar-thumb:hover { background: #4a4a4a; background-clip: padding-box; border: 2px solid var(--bg-elev); }
+  #input::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; border: 2px solid var(--bg-elev); background-clip: padding-box; }
+  #input::-webkit-scrollbar-thumb:hover { background: var(--scroll-hover); background-clip: padding-box; border: 2px solid var(--bg-elev); }
   #send {
     flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; border: none;
     background: var(--accent); color: #fff; cursor: pointer;
@@ -232,12 +274,12 @@
   .hint-row { max-width: 780px; margin: 0 auto 6px; display: flex; flex-wrap: wrap; gap: 7px; }
   .hint-chip {
     display: flex; align-items: center; gap: 6px;
-    background: var(--accent-soft, rgba(217,119,87,.14)); border: 1px solid var(--border);
+    background: var(--accent-soft); border: 1px solid var(--border);
     border-radius: 7px; padding: 4px 7px 4px 9px; font-size: 11.5px; color: var(--accent);
   }
   .hint-chip .hc-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
   .hint-chip .hc-del { width: 15px; height: 15px; border: none; background: transparent; color: var(--accent); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 4px; opacity: .7; }
-  .hint-chip .hc-del:hover { opacity: 1; background: rgba(255,255,255,.08); }
+  .hint-chip .hc-del:hover { opacity: 1; background: var(--hover-soft); }
   .hint-chip .hc-del svg { width: 9px; height: 9px; }
 
   /* 附件区 */
@@ -263,7 +305,7 @@
   .attach-btn svg { width: 17px; height: 17px; }
   .drop-overlay {
     position: absolute; inset: 0; z-index: 50; border: 2px dashed var(--accent);
-    border-radius: 12px; background: rgba(217,119,87,.08);
+    border-radius: 12px; background: var(--accent-soft);
     display: none; align-items: center; justify-content: center;
     color: var(--accent); font-size: 13px; font-weight: 600; pointer-events: none;
   }
@@ -277,7 +319,7 @@
     background: var(--bg-elev); border: 1px solid var(--border-strong);
     color: var(--text); cursor: pointer;
     display: none; align-items: center; justify-content: center;
-    box-shadow: 0 4px 16px rgba(0,0,0,.5);
+    box-shadow: 0 4px 16px var(--shadow-color);
     transition: opacity .15s, transform .15s, background .15s;
   }
   .scroll-bottom.show { display: flex; }
@@ -291,7 +333,7 @@
     position: absolute; left: 0; right: 0; bottom: calc(100% + 8px);
     max-height: 300px; overflow-y: auto;
     background: var(--bg-elev); border: 1px solid var(--border);
-    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.45);
+    border-radius: 10px; box-shadow: 0 8px 28px var(--shadow-color);
     display: none; z-index: 30; padding: 5px;
   }
   .slash-menu.show { display: block; }
@@ -333,7 +375,7 @@
     font-family: inherit; transition: all .14s;
   }
   .goalbar .g-btn:hover { background: var(--surface); color: var(--text); }
-  .goalbar .g-btn.danger:hover { color: var(--red); border-color: rgba(224,108,117,.5); }
+  .goalbar .g-btn.danger:hover { color: var(--red); border-color: var(--red); }
 
   /* ===== Plan 计划面板 ===== */
   .plan-panel { display: none; flex-shrink: 0; background: var(--bg-elev); border-bottom: 1px solid var(--border-soft); }
@@ -351,7 +393,7 @@
   .plan-body { display: none; max-height: 220px; overflow-y: auto; padding: 2px 16px 10px; }
   .plan-panel.open .plan-body { display: block; }
   .plan-body::-webkit-scrollbar { width: 8px; }
-  .plan-body::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 4px; }
+  .plan-body::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; }
   .plan-item { display: flex; align-items: flex-start; gap: 9px; padding: 3.5px 0; font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
   .plan-item .pi-state { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); }
   .plan-item .pi-state svg { width: 14px; height: 14px; }

@@ -65,6 +65,21 @@ if (api.getProjectDir) {
   api.getProjectDir().then((r: any) => { if (r && r.success) renderProjectDir(r.dir); }).catch(() => {});
 }
 
+// 纯净模式 / 原版模式 切换
+const btnHarness = document.getElementById('btn-harness');
+if (btnHarness) {
+  btnHarness.addEventListener('click', async () => {
+    if (api.toggleHarness) {
+      try { await api.toggleHarness(); } catch (_) { /* ignore */ }
+    }
+  });
+}
+if (api.onHarnessMode) {
+  api.onHarnessMode((d: any) => {
+    if (btnHarness) btnHarness.textContent = (d && d.harness) ? '原版模式' : '纯净模式';
+  });
+}
+
 btnBack.addEventListener('click', () => { if (api.back) api.back(); });
 btnForward.addEventListener('click', () => { if (api.forward) api.forward(); });
 document.getElementById('btn-reload')!.addEventListener('click', () => { if (api.reload) api.reload(); });

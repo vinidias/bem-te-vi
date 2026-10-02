@@ -72,6 +72,18 @@
     border-bottom: 1px solid var(--ck-border);
     flex-shrink: 0;
   }
+  /* 纯净模式/原版模式 切换按钮（项目选择器右侧） */
+  .harness-toggle {
+    height: 30px; padding: 0 12px; flex-shrink: 0;
+    border: none; border-radius: 999px;
+    background: transparent; color: var(--ck-text-2);
+    font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: background .14s, color .14s;
+    white-space: nowrap;
+  }
+  .harness-toggle:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .harness-toggle:active { transform: scale(0.97); }
+
   /* 项目目录选择器（地址栏最左） */
   .project-picker {
     display: flex; align-items: center; gap: 7px;
@@ -663,6 +675,7 @@
         <span class="pp-name" id="pp-name">未选择</span>
         <svg class="pp-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
+      <button class="harness-toggle" id="btn-harness" title="切换纯净对话模式（Ctrl+Shift+H）">纯净模式</button>
       <div class="divider"></div>
       <button class="nav-btn disabled" id="btn-back" title="后退">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -1317,6 +1330,22 @@
     api.getProjectDir().then((r) => {
       if (r && r.success) renderProjectDir(r.dir);
     }).catch(() => {
+    });
+  }
+  var btnHarness = document.getElementById("btn-harness");
+  if (btnHarness) {
+    btnHarness.addEventListener("click", async () => {
+      if (api.toggleHarness) {
+        try {
+          await api.toggleHarness();
+        } catch (_) {
+        }
+      }
+    });
+  }
+  if (api.onHarnessMode) {
+    api.onHarnessMode((d) => {
+      if (btnHarness) btnHarness.textContent = d && d.harness ? "\u539F\u7248\u6A21\u5F0F" : "\u7EAF\u51C0\u6A21\u5F0F";
     });
   }
   btnBack.addEventListener("click", () => {

@@ -64,6 +64,18 @@
     border-bottom: 1px solid var(--ck-border);
     flex-shrink: 0;
   }
+  /* 纯净模式/原版模式 切换按钮（项目选择器右侧） */
+  .harness-toggle {
+    height: 30px; padding: 0 12px; flex-shrink: 0;
+    border: none; border-radius: 999px;
+    background: transparent; color: var(--ck-text-2);
+    font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: background .14s, color .14s;
+    white-space: nowrap;
+  }
+  .harness-toggle:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .harness-toggle:active { transform: scale(0.97); }
+
   /* 项目目录选择器（地址栏最左） */
   .project-picker {
     display: flex; align-items: center; gap: 7px;

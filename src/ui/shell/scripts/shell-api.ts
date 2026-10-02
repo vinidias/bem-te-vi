@@ -10,6 +10,10 @@ export interface ShellAPI {
   home?: () => void;
   onUrlUpdated?: (cb: (data: any) => void) => void;
   toggleSidebar?: (width: number) => void;
+  /** 切换纯净对话模式（Harness） */
+  toggleHarness?: () => Promise<any>;
+  /** 纯净模式状态变化（harness=true 表示已进入纯净模式） */
+  onHarnessMode?: (cb: (data: { harness: boolean }) => void) => void;
   reportShellSize?: (w: number, h: number) => void;
   initProject?: (dir?: string | null, isCompaction?: boolean, extraPrompt?: string, noDialog?: boolean) => Promise<any>;
   updateProjectDir?: () => Promise<any>;
