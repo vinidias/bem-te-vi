@@ -59,6 +59,9 @@ const shellAPI = {
   onPlatformMode: (cb: (data: any) => void) => {
     ipcRenderer.on('shell-platform-mode', (_e: any, data: any) => cb(data));
   },
+  onSessionsChanged: (cb: () => void) => {
+    ipcRenderer.on('shell-sessions-changed', () => cb());
+  },
   // ========== 技能 ==========
   listSkills: () => ipcRenderer.invoke('list-skills'),
   // ========== 子代理 ==========

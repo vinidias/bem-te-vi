@@ -51,6 +51,7 @@ import { buildChromeUserAgent } from '../infra/user-agent.js';
 import { initFeishu } from './ipc/feishu.js';
 import { injectSubagentDeps, runAgent as runAgentImpl } from './subagent.js';
 import { injectAgentRunner } from '../tools/impl/run-agent.js';
+import { injectSessionTitleSetter } from '../tools/impl/name-conversation.js';
 import { pushUrlState } from './ipc/shell.js';
 import { pushHarnessState } from './ipc/harness.js';
 
@@ -590,6 +591,17 @@ injectAgentRunner(async ({ agent, task, currentWindowId }: any) => {
     tools: agent.tools,
     maxTurns: agent.maxTurns,
   });
+});
+// 给 nameConversation 工具注入"设置当前会话标题"实现
+injectSessionTitleSetter(async ({ windowId, title }: any) => {
+  const ctx = windowState.getWindowContext(windowId);
+  if (!ctx || !ctx.sessionStore) return { success: false, error: '无会话上下文' };
+  const sid = ctx.sessionStore.state && ctx.sessionStore.state.currentSessionId;
+  if (!sid) return { success: false, error: '当前无会话（尚未建立会话 ID）' };
+  ctx.sessionStore.updateSessionTitle(sid, String(title).trim());
+  // 通知壳页面刷新工作区列表
+  try { if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send('shell-sessions-changed'); } catch (_) { /* ignore */ }
+  return { success: true };
 });
 
 // ========== IPC 处理器 ==========

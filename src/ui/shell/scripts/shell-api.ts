@@ -20,6 +20,8 @@ export interface ShellAPI {
   onProjectDir?: (cb: (dir: string | null) => void) => void;
   getProjectDir?: () => Promise<any>;
   onPlatformMode?: (cb: (data: any) => void) => void;
+  /** 会话标题/归档变化（如 AI 命名对话）→ 刷新工作区列表 */
+  onSessionsChanged?: (cb: () => void) => void;
   // 会话（侧边栏「工作区」页）
   listAllSessions?: () => Promise<any>;
   navigateSession?: (sessionId: string) => Promise<any>;

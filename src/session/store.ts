@@ -99,7 +99,7 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     writeSessionStore(store);
   }
 
-  /** 更新会话标题（预留：供后续抓取网页标题/首条消息时写入） */
+  /** 更新会话标题（AI 命名对话 / 网页标题抓取） */
   function updateSessionTitle(sessionId: string, title: string): void {
     if (!sessionId || !title) return;
     const store = readSessionStore();
@@ -107,10 +107,12 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     if (old == null) return;
     const now = new Date().toISOString();
     if (typeof old === 'string') {
-      store[sessionId] = { projectDir: old, title, createdAt: null, updatedAt: now };
+      // 老数据升级：不补记时间（与 saveSessionDirMapping 一致）
+      store[sessionId] = { projectDir: old, title, createdAt: null, updatedAt: null };
     } else {
       old.title = title;
-      old.updatedAt = now;
+      // 仅"新数据"更新时间；老数据升级来的保持无时间
+      if (old.createdAt != null) old.updatedAt = now;
       store[sessionId] = old;
     }
     writeSessionStore(store);

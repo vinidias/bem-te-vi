@@ -1498,11 +1498,12 @@
     const tb = b.updatedAt ? Date.parse(b.updatedAt) : 0;
     return tb - ta;
   }
-  function renderItem(s, currentSessionId) {
+  function renderItem(s, currentSessionId, archived = false) {
     const label = s.title || s.sessionId;
     const time = relTime(s.updatedAt);
     const isCur = s.sessionId === currentSessionId;
-    return '<div class="ck-ws-item' + (isCur ? " current" : "") + '" data-session-id="' + escapeAttr(s.sessionId) + '" title="' + escapeAttr(s.sessionId) + '"><span class="ck-ws-name">' + escapeHtml(label) + "</span>" + (time ? '<span class="ck-ws-time">' + escapeHtml(time) + "</span>" : "") + '<span class="ck-ws-act" data-act="archive" title="\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg></span></div>';
+    const act = archived ? '<span class="ck-ws-act" data-act="unarchive" title="\u53D6\u6D88\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M12 10v6"/><path d="M9 13l3-3 3 3"/></svg></span>' : '<span class="ck-ws-act" data-act="archive" title="\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg></span>';
+    return '<div class="ck-ws-item' + (isCur ? " current" : "") + '" data-session-id="' + escapeAttr(s.sessionId) + '" title="' + escapeAttr(s.sessionId) + '"><span class="ck-ws-name">' + escapeHtml(label) + "</span>" + (time ? '<span class="ck-ws-time">' + escapeHtml(time) + "</span>" : "") + act + "</div>";
   }
   function fmtCreatedAt(iso) {
     if (!iso) return "";
@@ -1583,6 +1584,17 @@
           loadWorkspaces();
           return;
         }
+        if (e.target.closest('[data-act="unarchive"]')) {
+          e.stopPropagation();
+          const id2 = el.dataset.sessionId;
+          if (!id2 || !api.setSessionArchived) return;
+          try {
+            await api.setSessionArchived(id2, false);
+          } catch (_) {
+          }
+          loadWorkspaces();
+          return;
+        }
         const id = el.dataset.sessionId;
         if (!id || !api.navigateSession) return;
         try {
@@ -1630,7 +1642,7 @@
         const isOpen = dir === currentDir || expandedDirs.has(dir);
         const isArchOpen = archivedOpen.has(dir);
         html += '<div class="ck-ws-group' + (isOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-group-title" title="' + escapeAttr(dir) + '"><svg class="ck-ws-caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><svg class="ck-ws-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' + escapeHtml(baseName(dir)) + '</div><div class="ck-ws-items">' + g.active.map((s) => renderItem(s, currentSessionId)).join("") + // 归档入口（仅当该组有归档时显示）
-        (g.archived.length ? '<div class="ck-ws-archived' + (isArchOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-archived-title">\u5DF2\u5F52\u6863 ' + g.archived.length + ' \u5BF9\u8BDD</div><div class="ck-ws-archived-items">' + g.archived.map((s) => renderItem(s, currentSessionId)).join("") + "</div></div>" : "") + "</div></div>";
+        (g.archived.length ? '<div class="ck-ws-archived' + (isArchOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-archived-title">\u5DF2\u5F52\u6863 ' + g.archived.length + ' \u5BF9\u8BDD</div><div class="ck-ws-archived-items">' + g.archived.map((s) => renderItem(s, currentSessionId, true)).join("") + "</div></div>" : "") + "</div></div>";
       }
       listEl.innerHTML = html;
       bindWorkspaceEvents(listEl);
@@ -1652,6 +1664,11 @@
       wsRefreshTimer = setTimeout(() => {
         loadWorkspaces();
       }, 600);
+    });
+  }
+  if (api.onSessionsChanged) {
+    api.onSessionsChanged(() => {
+      loadWorkspaces();
     });
   }
 

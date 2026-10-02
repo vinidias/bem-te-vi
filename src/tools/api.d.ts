@@ -325,6 +325,20 @@ declare function attachFile(filePath: string): Promise<{ fileName: string; size:
  */
 declare function mcpCall(server: string, tool: string, args?: Record<string, unknown>): Promise<string>;
 
+
+// ================= 会话 =================
+
+/**
+ * 给当前对话起一个简短标题（用于工作区列表识别）。对话主题明确后调用一次即可。
+ * @param title 对话标题（简短，建议不超过 20 字）
+ * @returns { message: string }
+ * @throws 缺少窗口上下文、当前无会话或标题为空时抛出异常
+ */
+declare function nameConversation(title: string): Promise<{ message: string }>;
+
+
+// ================= MCP =================
+
 /**
  * 列出所有已配置的 MCP server（含启用状态、连接状态和工具数量）。
  * 使用 MCP 前先调用此函数查看当前可用 server。

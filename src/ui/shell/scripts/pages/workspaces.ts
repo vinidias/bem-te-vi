@@ -51,17 +51,22 @@ function byTimeDesc(a: any, b: any): number {
   return tb - ta;
 }
 
-/** 渲染单个会话项 */
-function renderItem(s: any, currentSessionId: string | null): string {
+/** 渲染单个会话项（archived=true 时按钮为"取消归档"） */
+function renderItem(s: any, currentSessionId: string | null, archived: boolean = false): string {
   const label = s.title || s.sessionId;
   const time = relTime(s.updatedAt);
   const isCur = s.sessionId === currentSessionId;
+  const act = archived
+    ? '<span class="ck-ws-act" data-act="unarchive" title="取消归档">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M12 10v6"/><path d="M9 13l3-3 3 3"/></svg>' +
+      '</span>'
+    : '<span class="ck-ws-act" data-act="archive" title="归档">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>' +
+      '</span>';
   return '<div class="ck-ws-item' + (isCur ? ' current' : '') + '" data-session-id="' + escapeAttr(s.sessionId) + '" title="' + escapeAttr(s.sessionId) + '">' +
     '<span class="ck-ws-name">' + escapeHtml(label) + '</span>' +
     (time ? '<span class="ck-ws-time">' + escapeHtml(time) + '</span>' : '') +
-    '<span class="ck-ws-act" data-act="archive" title="归档">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>' +
-    '</span>' +
+    act +
   '</div>';
 }
 
@@ -145,12 +150,20 @@ function bindWorkspaceEvents(listEl: HTMLElement): void {
   // 会话项：点击导航
   listEl.querySelectorAll('.ck-ws-item').forEach((el: any) => {
     el.addEventListener('click', async (e: any) => {
-      // 归档按钮
+      // 归档 / 取消归档按钮
       if (e.target.closest('[data-act="archive"]')) {
         e.stopPropagation();
         const id = el.dataset.sessionId;
         if (!id || !api.setSessionArchived) return;
         try { await api.setSessionArchived(id, true); } catch (_) { /* ignore */ }
+        loadWorkspaces();
+        return;
+      }
+      if (e.target.closest('[data-act="unarchive"]')) {
+        e.stopPropagation();
+        const id = el.dataset.sessionId;
+        if (!id || !api.setSessionArchived) return;
+        try { await api.setSessionArchived(id, false); } catch (_) { /* ignore */ }
         loadWorkspaces();
         return;
       }
@@ -209,7 +222,7 @@ export async function loadWorkspaces(): Promise<void> {
             '<div class="ck-ws-archived' + (isArchOpen ? ' open' : '') + '" data-dir="' + escapeAttr(dir) + '">' +
               '<div class="ck-ws-archived-title">已归档 ' + g.archived.length + ' 对话</div>' +
               '<div class="ck-ws-archived-items">' +
-                g.archived.map((s: any) => renderItem(s, currentSessionId)).join('') +
+                g.archived.map((s: any) => renderItem(s, currentSessionId, true)).join('') +
               '</div>' +
             '</div>'
           ) : '') +
@@ -240,4 +253,9 @@ if (api.onUrlUpdated) {
     if (wsRefreshTimer) clearTimeout(wsRefreshTimer);
     wsRefreshTimer = setTimeout(() => { loadWorkspaces(); }, 600);
   });
+}
+
+// 会话标题/归档变化（如 AI 命名对话）→ 立即刷新
+if (api.onSessionsChanged) {
+  api.onSessionsChanged(() => { loadWorkspaces(); });
 }
