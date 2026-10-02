@@ -49,6 +49,12 @@ const shellAPI = {
   },
   // ========== 技能 ==========
   listSkills: () => ipcRenderer.invoke('list-skills'),
+  // ========== 子代理 ==========
+  listAgents: () => ipcRenderer.invoke('list-agents'),
+  createAgentFile: (name: string, scope: string) => ipcRenderer.invoke('create-agent-file', { name, scope }),
+  openAgentFile: (agentPath: string) => ipcRenderer.invoke('open-agent-file', { agentPath }),
+  renameAgent: (agentPath: string, newName: string) => ipcRenderer.invoke('rename-agent', { agentPath, newName }),
+  deleteAgentFile: (agentPath: string) => ipcRenderer.invoke('delete-agent-file', { agentPath }),
   // ========== MCP ==========
   listMcpServers: () => ipcRenderer.invoke('list-mcp-servers', {}),
   enableMcpServer: (name: string) => ipcRenderer.invoke('enable-mcp-server', { name }),
