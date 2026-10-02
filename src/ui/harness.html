@@ -237,6 +237,18 @@
 
   /* ===== 输入区 ===== */
   .composer { flex-shrink: 0; padding: 10px 24px 20px; }
+  /* 首次对话需选择项目目录（大虚线按钮，替代输入框） */
+  .init-project-btn {
+    display: block; width: 100%; max-width: 780px; margin: 0 auto;
+    padding: 22px 24px; border-radius: 12px;
+    border: 2px dashed var(--border-strong);
+    background: transparent; color: var(--text-2);
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all .16s;
+  }
+  .init-project-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .init-project-btn:active { transform: scale(.99); }
+  .init-project-btn:disabled { opacity: .6; cursor: default; }
   .composer-inner {
     max-width: 780px; margin: 0 auto;
     display: flex; align-items: flex-end; gap: 8px;
@@ -460,6 +472,7 @@
   <div class="composer">
     <div class="hint-row" id="hint-row"></div>
     <div class="attach-row" id="attach-row"></div>
+    <button class="init-project-btn" id="init-project-btn" style="display:none">首次对话需选择项目目录</button>
     <div class="composer-inner">
       <button class="scroll-bottom" id="scroll-bottom" title="回到底部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M8 13l-4-4M8 13l4-4"/></svg></button>
       <div class="slash-menu" id="slash-menu"></div>
@@ -1497,6 +1510,8 @@
     setStatus('就绪', 'ready');
     // 真正在 AI 网页中开新对话
     if (api.newConversation) api.newConversation().catch(function () { /* ignore */ });
+    // 新对话回到首页 → 刷新"需初始化项目"状态
+    setTimeout(function () { if (typeof refreshHarnessState === 'function') refreshHarnessState(); }, 800);
   });
   // Ctrl+R 重载页面（加载最新 HTML）
   document.addEventListener('keydown', function (e) {
@@ -1521,6 +1536,38 @@
   loadGoalState();
   renderGoalBar();
   input.focus();
+
+  // ===== 首次对话需选择项目目录 =====
+  var initBtn = document.getElementById('init-project-btn');
+  var composerInner = document.querySelector('.composer-inner');
+  var composerHint = document.querySelector('.composer-hint');
+  function applyHarnessState(st) {
+    var needInit = !!(st && st.needInit);
+    if (initBtn) initBtn.style.display = needInit ? 'block' : 'none';
+    if (composerInner) composerInner.style.display = needInit ? 'none' : '';
+    if (composerHint) composerHint.style.display = needInit ? 'none' : '';
+  }
+  function refreshHarnessState() {
+    if (!api.getState) return;
+    api.getState().then(applyHarnessState).catch(function () { /* ignore */ });
+  }
+  if (api.onState) api.onState(applyHarnessState);
+  refreshHarnessState();
+  if (initBtn) initBtn.addEventListener('click', function () {
+    if (!api.initProject) return;
+    initBtn.disabled = true;
+    var old = initBtn.textContent;
+    initBtn.textContent = '初始化中…';
+    api.initProject().then(function () {
+      initBtn.textContent = old;
+      initBtn.disabled = false;
+      refreshHarnessState();
+    }).catch(function () {
+      initBtn.textContent = old;
+      initBtn.disabled = false;
+    });
+  });
+
   if (api.ready) api.ready();
 })();
 </script>

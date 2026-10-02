@@ -52,6 +52,7 @@ import { initFeishu } from './ipc/feishu.js';
 import { injectSubagentDeps, runAgent as runAgentImpl } from './subagent.js';
 import { injectAgentRunner } from '../tools/impl/run-agent.js';
 import { pushUrlState } from './ipc/shell.js';
+import { pushHarnessState } from './ipc/harness.js';
 
 // 退出前需要 flush 的 sessions
 const sessionsToFlush = new Set<any>();
@@ -363,6 +364,8 @@ function createWindow(profile: any) {
     pushUrlState(view);
     // 通知 AI 页面（overlay/看门狗）URL 已变，替代原先的渲染进程轮询
     try { view.webContents.send('cuckoo-url-changed', { url }); } catch (_) {}
+    // 通知 harness 页面刷新"需初始化项目"状态（首页 ↔ 会话页）
+    try { pushHarnessState(windowState.getContextByWebContents(view.webContents)); } catch (_) {}
     autoConnectMcp();
   });
 
@@ -371,6 +374,8 @@ function createWindow(profile: any) {
     pushUrlState(view);
     // SPA 路由（pushState）变化也在此触发，替代轮询
     try { view.webContents.send('cuckoo-url-changed', { url }); } catch (_) {}
+    // 通知 harness 页面刷新"需初始化项目"状态（首页 ↔ 会话页）
+    try { pushHarnessState(windowState.getContextByWebContents(view.webContents)); } catch (_) {}
     autoConnectMcp();
   });
 
