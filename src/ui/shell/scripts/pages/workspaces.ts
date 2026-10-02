@@ -71,8 +71,7 @@ function renderItem(s: any, currentSessionId: string | null, archived: boolean =
   return '<div class="ck-ws-item' + (isCur ? ' current' : '') + '" data-session-id="' + escapeAttr(s.sessionId) + '" data-name="' + escapeAttr(label) + '" title="' + escapeAttr(s.sessionId) + '">' +
     '<span class="ck-ws-name">' + escapeHtml(label) + '</span>' +
     (time ? '<span class="ck-ws-time">' + escapeHtml(time) + '</span>' : '') +
-    renameBtn +
-    act +
+    '<span class="ck-ws-acts">' + renameBtn + act + '</span>' +
   '</div>';
 }
 

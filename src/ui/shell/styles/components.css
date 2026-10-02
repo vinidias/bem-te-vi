@@ -361,6 +361,7 @@
   .ck-ws-items { display: none; }
   .ck-ws-group.open .ck-ws-items { display: block; }
   .ck-ws-item {
+    position: relative;
     display: flex; align-items: center; gap: 8px;
     padding: 7px 10px 7px 20px; border-radius: 8px;
     cursor: pointer; transition: background .15s;
@@ -375,14 +376,19 @@
   .ck-ws-time { font-size: 10.5px; color: var(--ck-text-dim); flex-shrink: 0; }
   .ck-ws-item.current { background: var(--ck-primary-soft); }
   .ck-ws-item.current .ck-ws-name { color: var(--ck-primary); font-weight: 600; }
-  /* 归档按钮：始终占位（用 visibility 控制显隐），避免悬停时行高跳动 */
+  /* 操作按钮组：绝对定位覆盖在"时间"位置，不占额外空间。
+     默认隐藏（显示时间）；悬停时时间隐藏、按钮出现。 */
+  .ck-ws-acts {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    display: none; align-items: center; gap: 2px;
+  }
+  .ck-ws-item:hover .ck-ws-acts { display: flex; }
+  .ck-ws-item:hover .ck-ws-time { visibility: hidden; }
   .ck-ws-act {
     display: flex; align-items: center; justify-content: center;
     width: 20px; height: 20px; flex-shrink: 0; border-radius: 5px;
     color: var(--ck-text-dim); cursor: pointer;
-    visibility: hidden; opacity: 0; transition: opacity .12s;
   }
-  .ck-ws-item:hover .ck-ws-act { visibility: visible; opacity: 1; }
   .ck-ws-act:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
   .ck-ws-act svg { width: 13px; height: 13px; }
   /* 已归档区 */
