@@ -50,7 +50,12 @@ class NameConversationTool extends Tool {
     return {
       name: 'tool:nameConversation',
       order: 114,
-      text: '使用 nameConversation(title) 给当前对话起一个简短标题（中文，≤20 字）。当对话主题明确时调用一次，便于用户在工作区列表识别。',
+      text: [
+        '**对话命名（重要）**：每次对话的**首条用户消息**处理时，**立即**调用一次 nameConversation(title) 给本次对话起个简短标题（中文，≤20 字，概括用户意图）。',
+        '这是本次对话的**第一个动作**，先命名再干别的。',
+        '示例：用户说"帮我修复登录 bug" → 先 await nameConversation("修复登录 bug")，再开始干活。',
+        '（若首条消息就很笼统如"你好"，可先用"打招呼"之类的标题，后续主题明确时可再调一次更新。）',
+      ].join('\n'),
     };
   }
 

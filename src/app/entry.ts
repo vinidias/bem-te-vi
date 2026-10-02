@@ -596,12 +596,12 @@ injectAgentRunner(async ({ agent, task, currentWindowId }: any) => {
 injectSessionTitleSetter(async ({ windowId, title }: any) => {
   const ctx = windowState.getWindowContext(windowId);
   if (!ctx || !ctx.sessionStore) return { success: false, error: '无会话上下文' };
-  const sid = ctx.sessionStore.state && ctx.sessionStore.state.currentSessionId;
-  if (!sid) return { success: false, error: '当前无会话（尚未建立会话 ID）' };
-  ctx.sessionStore.updateSessionTitle(sid, String(title).trim());
-  // 通知壳页面刷新工作区列表
-  try { if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send('shell-sessions-changed'); } catch (_) { /* ignore */ }
-  return { success: true };
+  const r = ctx.sessionStore.setSessionTitle(String(title).trim());
+  // 通知壳页面刷新工作区列表（暂存时不刷，等绑定后再刷）
+  if (r && r.success && !r.pending) {
+    try { if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send('shell-sessions-changed'); } catch (_) { /* ignore */ }
+  }
+  return r;
 });
 
 // ========== IPC 处理器 ==========

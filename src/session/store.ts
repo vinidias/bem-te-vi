@@ -123,14 +123,15 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     writeSessionStore(store);
   }
 
-  /** 更新会话标题（AI 命名对话 / 网页标题抓取） */
+  /** 更新会话标题（AI 命名对话 / 网页标题抓取）。条目不存在时新建。 */
   function updateSessionTitle(sessionId: string, title: string): void {
     if (!sessionId || !title) return;
     const store = readSessionStore();
     const old = store[sessionId];
-    if (old == null) return;
     const now = new Date().toISOString();
-    if (typeof old === 'string') {
+    if (old == null) {
+      store[sessionId] = { projectDir: state.selectedProjectDir || null, title, createdAt: now, updatedAt: now };
+    } else if (typeof old === 'string') {
       // 老数据升级：不补记时间（与 saveSessionDirMapping 一致）
       store[sessionId] = { projectDir: old, title, createdAt: null, updatedAt: null };
     } else {
@@ -140,6 +141,22 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
       store[sessionId] = old;
     }
     writeSessionStore(store);
+  }
+
+  /**
+   * 设置当前会话标题。
+   * 若尚无会话 ID（新对话首条消息还没生成 URL），先暂存，等会话 ID 出现后自动绑定。
+   */
+  function setSessionTitle(title: string): any {
+    const t = String(title || '').trim();
+    if (!t) return { success: false, error: '标题为空' };
+    if (state.currentSessionId) {
+      updateSessionTitle(state.currentSessionId, t);
+      return { success: true };
+    }
+    state.pendingTitle = t;
+    console.log('[Cuckoo Code][' + profileId + '] 暂存对话标题，等待会话ID出现后绑定: ' + t);
+    return { success: true, pending: true };
   }
 
   function extractSessionIdFromUrl(url: string): string | null {
@@ -158,6 +175,7 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     currentSessionId: null,
     selectedProjectDir: null,
     pendingProjectDir: null,
+    pendingTitle: null,
   };
 
   /** 取目标 view：显式传入优先，否则取当前主窗口的 AI 页面 view */
@@ -188,6 +206,16 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     if (sessionId) {
       state.currentSessionId = sessionId;
       console.log('[Cuckoo Code][' + profileId + '] 当前会话ID: ' + sessionId);
+
+      // 会话 ID 出现 → 绑定暂存的对话标题（AI 命名可能在首条消息时就调用）
+      if (state.pendingTitle) {
+        updateSessionTitle(sessionId, state.pendingTitle);
+        state.pendingTitle = null;
+        try {
+          const ctx = windowState && windowState.getContextByWebContents ? windowState.getContextByWebContents(wc) : null;
+          if (ctx && ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send('shell-sessions-changed');
+        } catch (_) { /* ignore */ }
+      }
 
       if (state.pendingProjectDir) {
         saveSessionDirMapping(sessionId, state.pendingProjectDir);
@@ -237,6 +265,7 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     getProjectDirBySessionId,
     saveSessionDirMapping,
     updateSessionTitle,
+    setSessionTitle,
     setSessionArchived,
     getArchivedProjects,
     setProjectArchived,
