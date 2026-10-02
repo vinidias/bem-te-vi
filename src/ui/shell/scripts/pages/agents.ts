@@ -2,6 +2,7 @@
  * 子代理页：列表、新建、编辑改名、删除。
  */
 import { api, ckAlert, ckConfirm, escapeHtml, escapeAttr } from '../shared.js';
+import { addRecent } from '../recent.js';
 
 export async function loadAgents(): Promise<void> {
   const listEl = document.getElementById('agent-list');
@@ -40,6 +41,7 @@ export async function loadAgents(): Promise<void> {
         if (api.appendSnippet) {
           try { await api.appendSnippet('请使用 ' + el.dataset.name + ' 子代理'); } catch (_) { /* ignore */ }
         }
+        addRecent('agent', el.dataset.name);
       });
     });
     listEl.querySelectorAll('[data-edit-agent]').forEach((btn: any) => {

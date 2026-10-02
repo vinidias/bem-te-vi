@@ -10,6 +10,7 @@ export interface ShellAPI {
   home?: () => void;
   onUrlUpdated?: (cb: (data: any) => void) => void;
   toggleSidebar?: (width: number) => void;
+  reportShellSize?: (w: number, h: number) => void;
   initProject?: (dir?: string | null, isCompaction?: boolean, extraPrompt?: string, noDialog?: boolean) => Promise<any>;
   updateProjectDir?: () => Promise<any>;
   onProjectDir?: (cb: (dir: string | null) => void) => void;

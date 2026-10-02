@@ -2,6 +2,7 @@
  * 技能页：列出技能，点击追加"请使用 xxx 技能"。
  */
 import { api, escapeHtml } from '../shared.js';
+import { addRecent } from '../recent.js';
 
 export async function loadSkills(): Promise<void> {
   const listEl = document.getElementById('skill-list');
@@ -29,6 +30,7 @@ export async function loadSkills(): Promise<void> {
         if (api.appendSnippet) {
           try { await api.appendSnippet('请使用 ' + el.dataset.name + ' 技能'); } catch (_) { /* ignore */ }
         }
+        addRecent('skill', el.dataset.name);
       });
     });
   } catch (_) {

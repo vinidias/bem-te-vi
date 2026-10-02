@@ -2,6 +2,7 @@
  * 提示词（Snippets）页：列表、增删改、触发。
  */
 import { api, ckAlert, ckConfirm, escapeHtml, escapeAttr } from '../shared.js';
+import { addRecent } from '../recent.js';
 
 let snippets: any[] = [];
 let editingSnipId: string | null = null;
@@ -46,6 +47,7 @@ function renderSnippets(): void {
       const s = snippets.filter((x: any) => x.id === el.dataset.id)[0];
       if (!s || !api.triggerSnippet) return;
       try { await api.triggerSnippet(s.content, s.autoSend); } catch (_) { /* ignore */ }
+      addRecent('snippet', s.name, { payload: s.content, autoSend: s.autoSend });
     });
   });
   listEl.querySelectorAll('[data-edit]').forEach((btn: any) => {

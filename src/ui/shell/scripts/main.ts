@@ -16,6 +16,7 @@ import { loadAbout } from './pages/about.js';
 import { loadFeishu } from './pages/feishu.js';
 import { renderWindowList } from './pages/windows.js';
 import { loadSettings } from './pages/settings.js';
+import { renderRecent } from './recent.js';
 
 // 注册 tab → 加载函数（sidebar 点击时调用）
 registerTab('snippets', loadSnippets);
@@ -31,6 +32,16 @@ registerTab('settings', loadSettings);
 // 预加载：提示词 + 自动压缩配置
 try { loadSnippets(); } catch (_) { /* ignore */ }
 try { loadAutoCompact(); } catch (_) { /* ignore */ }
+
+// 渲染底部状态栏「最近使用」
+try { renderRecent(); } catch (_) { /* ignore */ }
+
+// 上报壳页面真实可视尺寸（主进程据此精确布局，避免菜单栏高度误差盖住状态栏）
+function reportShellSize(): void {
+  if (api.reportShellSize) api.reportShellSize(window.innerWidth, window.innerHeight);
+}
+reportShellSize();
+window.addEventListener('resize', reportShellSize);
 
 // 其他窗口改了提示词 → 本窗口同步刷新
 if ((api as any).onSnippetsChanged) {

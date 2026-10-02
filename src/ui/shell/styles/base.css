@@ -125,23 +125,40 @@
   .toolbar.ck-toolbar-plain .divider,
   .toolbar.ck-toolbar-plain #project-picker { display: none; }
 
-  /* ===== 状态条 ===== */
-  /* 状态条（暂隐藏：Token 已移到侧边栏 Token 页） */
+  /* ===== 状态条（窗口底部，显示当前上下文 token）===== */
   .statusbar {
-    display: none;
+    display: flex;
     align-items: center; justify-content: flex-end; gap: 12px;
     height: 28px; padding: 0 16px;
     background: var(--ck-bg-sub);
-    border-bottom: 1px solid var(--ck-border);
+    border-top: 1px solid var(--ck-border);
     flex-shrink: 0;
     font-size: 11.5px; color: var(--ck-text-2);
     user-select: none;
   }
   .statusbar .sb-item { display: flex; align-items: center; gap: 4px; }
   .statusbar .sb-icon { font-size: 11px; opacity: .6; }
+  .statusbar .sb-label { font-size: 11px; color: var(--ck-text-dim); }
   .statusbar .sb-value { color: var(--ck-text); font-variant-numeric: tabular-nums; font-weight: 600; }
   .statusbar .sb-item[title] { cursor: help; }
   .statusbar .sb-sep { width: 1px; height: 11px; background: var(--ck-border-strong); margin: 0 2px; }
+  .statusbar .sb-spacer { flex: 1; }
+  /* 最近使用（技能/MCP/子代理） */
+  .sb-recent { display: flex; align-items: center; gap: 6px; overflow: hidden; min-width: 0; }
+  .sb-recent-label { font-size: 10.5px; color: var(--ck-text-dim); flex-shrink: 0; }
+  .sb-chip {
+    font-size: 10.5px; padding: 1px 8px; border-radius: 999px;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+    transition: filter .15s, transform .1s;
+    border: 1px solid transparent;
+  }
+  .sb-chip:hover { filter: brightness(1.15); }
+  .sb-chip:active { transform: scale(.96); }
+  .sb-chip-skill { color: var(--ck-primary); background: var(--ck-primary-soft); border-color: color-mix(in srgb, var(--ck-primary) 30%, transparent); }
+  .sb-chip-mcp { color: var(--ck-green); background: color-mix(in srgb, var(--ck-green) 14%, transparent); border-color: color-mix(in srgb, var(--ck-green) 34%, transparent); }
+  .sb-chip-agent { color: #d97757; background: color-mix(in srgb, #d97757 14%, transparent); border-color: color-mix(in srgb, #d97757 34%, transparent); }
+  .sb-chip-snippet { color: #9b7bfa; background: color-mix(in srgb, #9b7bfa 14%, transparent); border-color: color-mix(in srgb, #9b7bfa 34%, transparent); }
 
   /* ===== 主区域 ===== */
   .main-area { flex: 1; display: flex; min-height: 0; }

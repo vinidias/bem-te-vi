@@ -2,6 +2,7 @@
  * MCP（连接器）页：列出 server，点击追加"请使用 xxx 这个 MCP"。
  */
 import { api, escapeHtml } from '../shared.js';
+import { addRecent } from '../recent.js';
 
 export async function loadMcpServers(): Promise<void> {
   const listEl = document.getElementById('mcp-list');
@@ -37,6 +38,7 @@ export async function loadMcpServers(): Promise<void> {
         if (api.appendSnippet) {
           try { await api.appendSnippet('请使用 ' + el.dataset.name + ' 这个 MCP'); } catch (_) { /* ignore */ }
         }
+        addRecent('mcp', el.dataset.name);
       });
     });
   } catch (_) {

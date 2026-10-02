@@ -15,7 +15,7 @@ import * as mcpClient from '../mcp/client.js';
 import { resolveAsset, resolveSrc } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
-const { app, BrowserWindow, WebContentsView, Menu, dialog, ipcMain: ipcMainForProfile } = require('electron');
+const { app, BrowserWindow, WebContentsView, Menu, dialog, screen, ipcMain: ipcMainForProfile } = require('electron');
 
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
@@ -68,6 +68,26 @@ async function flushAllSessions() {
 }
 
 /**
+ * 把窗口尺寸/位置夹取到"当前显示器工作区"内。
+ * 防止恢复的旧尺寸超出屏幕（换小屏/改分辨率）→ 底部被裁切（状态栏看不见）。
+ * @param {{x:number,y:number,width:number,height:number}} b 期望的 bounds
+ * @returns 夹取后的 bounds（失败时原样返回）
+ */
+function clampBounds(b: any) {
+  try {
+    const display = screen.getDisplayMatching({ x: b.x, y: b.y, width: b.width, height: b.height });
+    const wa = display.workArea; // { x, y, width, height }
+    const width = Math.min(b.width, wa.width);
+    const height = Math.min(b.height, wa.height);
+    const x = Math.max(wa.x, Math.min(b.x, wa.x + wa.width - width));
+    const y = Math.max(wa.y, Math.min(b.y, wa.y + wa.height - height));
+    return { x, y, width, height };
+  } catch (_) {
+    return b;
+  }
+}
+
+/**
  * 创建窗口（绑定指定 profile）
  * @param {object|null} profile profile 对象，null 则使用默认 profile
  */
@@ -81,10 +101,12 @@ function createWindow(profile: any) {
   const providerChosen = !!profileData.providerId;
 
   // 窗口大小/位置：优先用该 profile 上次记录；无记录则用默认 + 级联偏移（避免多窗口完全重叠）
+  // 记录值可能超出"当前屏幕工作区"（换屏幕/分辨率变小时），导致底部（状态栏）被裁切。
+  // 故恢复前夹取到当前显示器工作区内，保证整个窗口（含底部状态栏）可见。
   const savedBounds = profileData.bounds;
   const winCount = windowState.getAllWindows().length;
   const defaultBounds = savedBounds
-    ? { x: savedBounds.x, y: savedBounds.y, width: savedBounds.width, height: savedBounds.height }
+    ? clampBounds({ x: savedBounds.x, y: savedBounds.y, width: savedBounds.width, height: savedBounds.height })
     : { x: undefined, y: undefined, width: 1280, height: 900 };
   const cascadeOffset = savedBounds ? 0 : winCount * 30;
 
@@ -92,6 +114,9 @@ function createWindow(profile: any) {
   const mainWindow = new BrowserWindow({
     width: defaultBounds.width,
     height: defaultBounds.height,
+    // 最小尺寸：保证工具栏(46)+状态栏(28)+内容区都放得下（防止恢复成过小窗口导致状态栏被挤出）
+    minWidth: 480,
+    minHeight: 240,
     ...(defaultBounds.x !== undefined ? { x: defaultBounds.x + cascadeOffset, y: (defaultBounds.y || 0) + cascadeOffset } : {}),
     icon: resolveAsset('assets/icon.png'),
     title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
@@ -180,7 +205,8 @@ function createWindow(profile: any) {
 
   // 布局：AI 页面占地址栏下方、Cuckoo 侧边栏右侧区域。
   // 侧边栏可收起（收起时 x=0，AI 页面铺满）。
-  const TOOLBAR_HEIGHT = 44; // 地址栏 44（状态条已隐藏，不再计入）
+  const TOOLBAR_HEIGHT = 46; // 地址栏 46（与 shell.css .toolbar height 保持一致）
+  const STATUS_HEIGHT = 28;  // 底部状态条（当前上下文 token，与 shell.css .statusbar 一致）
   const SIDEBAR_WIDTH = 320;      // 左侧 Cuckoo 侧边栏展开宽度
   const SIDEBAR_COLLAPSED = 46;   // 收起时仅保留图标栏
   // 平台未选择时：整个侧边栏隐藏 + 地址栏也隐藏（AI 页面从顶部铺满）
@@ -190,11 +216,15 @@ function createWindow(profile: any) {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const sbw = (mainWindow as any).__ckSidebarWidth ?? SIDEBAR_WIDTH;
     const tbh = (mainWindow as any).__ckToolbarHeight ?? TOOLBAR_HEIGHT;
-    const [w, h] = mainWindow.getContentSize();
+    // 用壳页面上报的真实可视尺寸（getContentSize 在 Windows 上会多算菜单栏高度，
+    // 导致 AI view 盖住底部状态栏）。上报值优先，未上报时回退 getContentSize。
+    const [cw, ch] = mainWindow.getContentSize();
+    const w = (mainWindow as any).__ckShellWidth || cw;
+    const h = (mainWindow as any).__ckShellHeight || ch;
     view.setBounds({
       x: sbw, y: tbh,
       width: Math.max(0, w - sbw),
-      height: Math.max(0, h - tbh),
+      height: Math.max(0, h - tbh - STATUS_HEIGHT),
     });
     // harness 只覆盖"网页区域"（与 AI view 同位置），保留地址栏/状态条/侧边栏；隐藏时尺寸归零
     const hv = (mainWindow as any).__ckHarnessView;
@@ -203,7 +233,7 @@ function createWindow(profile: any) {
         hv.setBounds({
           x: sbw, y: tbh,
           width: Math.max(0, w - sbw),
-          height: Math.max(0, h - tbh),
+          height: Math.max(0, h - tbh - STATUS_HEIGHT),
         });
       } else {
         hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
