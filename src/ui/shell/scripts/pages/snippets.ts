@@ -7,9 +7,9 @@ let snippets: any[] = [];
 let editingSnipId: string | null = null;
 
 export async function loadSnippets(): Promise<void> {
-  if (!api.getSnippets) return;
+  if (!api.listSnippets) return;
   try {
-    const res = await api.getSnippets();
+    const res = await api.listSnippets();
     snippets = (res && res.success && Array.isArray(res.snippets)) ? res.snippets : [];
   } catch (_) { snippets = []; }
   renderSnippets();
