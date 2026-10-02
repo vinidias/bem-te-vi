@@ -42,6 +42,16 @@ function registerSessionIpc(): void {
     return { success: true, sessions, currentSessionId: store.state.currentSessionId || null, archivedProjects: store.getArchivedProjects() };
   });
 
+  // 设置会话标题（用户手动重命名）
+  ipcMain.handle('set-session-title', async (event: any, { sessionId, title }: any) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    const store = ctx ? ctx.sessionStore : null;
+    const t = String(title || '').trim();
+    if (!store || !sessionId || !t) return { success: false, error: 'no-store-or-args' };
+    store.updateSessionTitle(sessionId, t);
+    return { success: true };
+  });
+
   // 归档/取消归档项目
   ipcMain.handle('set-project-archived', async (event: any, { dir, archived }: any) => {
     const ctx = windowState.getContextByWebContents(event.sender);

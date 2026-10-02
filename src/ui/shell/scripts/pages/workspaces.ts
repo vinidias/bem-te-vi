@@ -2,7 +2,7 @@
  * 工作区（会话）页：按项目目录分组，列出会话，点击导航。
  * 数据：listAllSessions() → [{ sessionId, projectDir, title, createdAt, updatedAt }]
  */
-import { api, escapeHtml, escapeAttr } from '../shared.js';
+import { api, escapeHtml, escapeAttr, ckPrompt } from '../shared.js';
 
 /** 项目目录 → 显示名（取最后一段） */
 function baseName(dir: string): string {
@@ -58,6 +58,9 @@ function renderItem(s: any, currentSessionId: string | null, archived: boolean =
   const label = s.title || s.sessionId;
   const time = relTime(s.updatedAt);
   const isCur = s.sessionId === currentSessionId;
+  const renameBtn = '<span class="ck-ws-act" data-act="rename" title="重命名">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>' +
+  '</span>';
   const act = archived
     ? '<span class="ck-ws-act" data-act="unarchive" title="取消归档">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M12 10v6"/><path d="M9 13l3-3 3 3"/></svg>' +
@@ -65,9 +68,10 @@ function renderItem(s: any, currentSessionId: string | null, archived: boolean =
     : '<span class="ck-ws-act" data-act="archive" title="归档">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>' +
       '</span>';
-  return '<div class="ck-ws-item' + (isCur ? ' current' : '') + '" data-session-id="' + escapeAttr(s.sessionId) + '" title="' + escapeAttr(s.sessionId) + '">' +
+  return '<div class="ck-ws-item' + (isCur ? ' current' : '') + '" data-session-id="' + escapeAttr(s.sessionId) + '" data-name="' + escapeAttr(label) + '" title="' + escapeAttr(s.sessionId) + '">' +
     '<span class="ck-ws-name">' + escapeHtml(label) + '</span>' +
     (time ? '<span class="ck-ws-time">' + escapeHtml(time) + '</span>' : '') +
+    renameBtn +
     act +
   '</div>';
 }
@@ -182,6 +186,18 @@ function bindWorkspaceEvents(listEl: HTMLElement): void {
   // 会话项：点击导航
   listEl.querySelectorAll('.ck-ws-item').forEach((el: any) => {
     el.addEventListener('click', async (e: any) => {
+      // 重命名按钮
+      if (e.target.closest('[data-act="rename"]')) {
+        e.stopPropagation();
+        const id = el.dataset.sessionId;
+        if (!id || !api.setSessionTitle) return;
+        const cur = el.dataset.name || '';
+        const name = await ckPrompt({ title: '重命名对话', placeholder: '输入对话名称', value: cur === id ? '' : cur });
+        if (!name) return;
+        try { await api.setSessionTitle(id, name); } catch (_) { /* ignore */ }
+        loadWorkspaces();
+        return;
+      }
       // 归档 / 取消归档按钮
       if (e.target.closest('[data-act="archive"]')) {
         e.stopPropagation();

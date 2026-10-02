@@ -42,6 +42,38 @@ export function ckAlert(message: string, title?: string): Promise<boolean> {
   return ckDialog({ title: title || '提示', message, confirm: false });
 }
 
+/** 通用输入弹窗。返回输入值（取消/关闭返回 null）。 */
+export function ckPrompt(opts: { title?: string; placeholder?: string; value?: string }): Promise<string | null> {
+  return new Promise((resolve) => {
+    const mask = document.getElementById('input-modal');
+    const titleEl = document.getElementById('input-modal-title');
+    const inputEl = document.getElementById('input-modal-value') as any;
+    const okBtn = document.getElementById('input-modal-ok') as any;
+    const cancelBtn = document.getElementById('input-modal-cancel') as any;
+    if (!mask || !okBtn || !cancelBtn || !inputEl) { resolve(null); return; }
+    if (titleEl) titleEl.textContent = opts.title || '输入';
+    inputEl.placeholder = opts.placeholder || '';
+    inputEl.value = opts.value || '';
+    function cleanup() {
+      mask!.classList.add('cuckoo-hidden');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      mask!.removeEventListener('click', onMask);
+      inputEl.removeEventListener('keydown', onKey);
+    }
+    function onOk() { const v = String(inputEl.value || '').trim(); cleanup(); resolve(v || null); }
+    function onCancel() { cleanup(); resolve(null); }
+    function onMask(e: any) { if (e.target === mask) { cleanup(); resolve(null); } }
+    function onKey(e: any) { if (e.key === 'Enter') { e.preventDefault(); onOk(); } else if (e.key === 'Escape') { onCancel(); } }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    mask.addEventListener('click', onMask);
+    inputEl.addEventListener('keydown', onKey);
+    mask.classList.remove('cuckoo-hidden');
+    setTimeout(() => { inputEl.focus(); inputEl.select(); }, 50);
+  });
+}
+
 // ===== HTML 转义 =====
 export function escapeHtml(s: any): string {
   return String(s === null || s === undefined ? '' : s)

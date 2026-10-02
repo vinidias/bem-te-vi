@@ -50,6 +50,7 @@ const shellAPI = {
   setSessionArchived: (sessionId: string, archived: boolean) => ipcRenderer.invoke('set-session-archived', { sessionId, archived }),
   getDirInfo: (dir: string) => ipcRenderer.invoke('get-dir-info', { dir }),
   setProjectArchived: (dir: string, archived: boolean) => ipcRenderer.invoke('set-project-archived', { dir, archived }),
+  setSessionTitle: (sessionId: string, title: string) => ipcRenderer.invoke('set-session-title', { sessionId, title }),
   newConversationForProject: (projectDir: string) => ipcRenderer.invoke('new-conversation-for-project', { projectDir }),
   // ========== 快捷提示词 ==========
   listSnippets: () => ipcRenderer.invoke('list-snippets'),
