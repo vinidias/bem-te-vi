@@ -11,11 +11,16 @@ import { getProviderByUrl } from '../providers/registry.js';
  * @param profileId profile id
  * @param storeDir 存储目录（通常是 userData）
  * @param windowState window 管理模块引用
+ * @param opts.noPersist 为 true 时纯内存态（子代理窗口用，不落盘）
  */
-function createSessionStore(profileId: string, storeDir: string, windowState: any): any {
+function createSessionStore(profileId: string, storeDir: string, windowState: any, opts: any = {}): any {
   const STORE_FILE = path.join(storeDir, 'session-dir-map-' + profileId + '.json');
+  // 子代理窗口：内存态，不读写盘（临时窗口，关了就弃）
+  const noPersist = opts && opts.noPersist === true;
+  let memStore: any = {};
 
   function readSessionStore(): any {
+    if (noPersist) return memStore;
     try {
       if (fs.existsSync(STORE_FILE)) {
         return JSON.parse(fs.readFileSync(STORE_FILE, 'utf-8'));
@@ -27,6 +32,7 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
   }
 
   function writeSessionStore(store: any): void {
+    if (noPersist) { memStore = store; return; }
     try {
       fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), 'utf-8');
       console.log('[Cuckoo Code] 会话存储已保存:', STORE_FILE);
@@ -35,17 +41,128 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     }
   }
 
-  function getProjectDirBySessionId(sessionId: string): any {
+  /**
+   * 取会话元数据（统一为对象结构）。
+   * 兼容旧格式（值直接是 projectDir 字符串）→ 归一化为 { projectDir }。
+   */
+  function getSessionMeta(sessionId: string): any {
     if (!sessionId) return null;
     const store = readSessionStore();
-    return store[sessionId] || null;
+    const v = store[sessionId];
+    if (v == null) return null;
+    if (typeof v === 'string') return { projectDir: v, title: null, createdAt: null, updatedAt: null, archived: false };
+    return {
+      projectDir: v.projectDir || null,
+      title: v.title || null,
+      createdAt: v.createdAt || null,
+      updatedAt: v.updatedAt || null,
+      archived: v.archived === true,
+    };
   }
 
+  function getProjectDirBySessionId(sessionId: string): any {
+    const meta = getSessionMeta(sessionId);
+    return meta ? meta.projectDir : null;
+  }
+
+  /**
+   * 保存/更新"会话 → 项目目录"映射。
+   * 新结构：{ projectDir, title, createdAt, updatedAt }。
+   * 兼容旧数据：若旧值是字符串，就地升级为对象（createdAt 保持 null，不补记时间）。
+   */
   function saveSessionDirMapping(sessionId: string, projectDir: any): void {
     if (!sessionId) return;
     const store = readSessionStore();
-    store[sessionId] = projectDir;
+    const old = store[sessionId];
+    const now = new Date().toISOString();
+    if (old == null) {
+      // 新会话：记录创建/更新时间
+      store[sessionId] = { projectDir, title: null, createdAt: now, updatedAt: now };
+    } else if (typeof old === 'string') {
+      // 旧数据升级：不补记时间（老数据不记录时间）
+      store[sessionId] = { projectDir, title: null, createdAt: null, updatedAt: null };
+    } else {
+      old.projectDir = projectDir;
+      // 仅"新数据"（已有 createdAt）更新时间；老数据升级来的保持无时间
+      if (old.createdAt != null) old.updatedAt = now;
+      store[sessionId] = old;
+    }
     writeSessionStore(store);
+  }
+
+  /** 项目归档：特殊 key 存在同一文件（值是目录字符串数组） */
+  const PROJECT_ARCHIVES_KEY = '_archivedProjects';
+
+  /** 取已归档的项目目录列表 */
+  function getArchivedProjects(): string[] {
+    const store = readSessionStore();
+    const arr = store[PROJECT_ARCHIVES_KEY];
+    return Array.isArray(arr) ? arr.filter((x: any) => typeof x === 'string') : [];
+  }
+
+  /** 归档/取消归档项目 */
+  function setProjectArchived(dir: string, archived: boolean): void {
+    if (!dir) return;
+    const store = readSessionStore();
+    let arr: string[] = Array.isArray(store[PROJECT_ARCHIVES_KEY]) ? store[PROJECT_ARCHIVES_KEY] : [];
+    if (archived) {
+      if (!arr.includes(dir)) arr.push(dir);
+    } else {
+      arr = arr.filter((d) => d !== dir);
+    }
+    store[PROJECT_ARCHIVES_KEY] = arr;
+    writeSessionStore(store);
+  }
+
+  /** 归档/取消归档会话 */
+  function setSessionArchived(sessionId: string, archived: boolean): void {
+    if (!sessionId) return;
+    const store = readSessionStore();
+    const old = store[sessionId];
+    if (old == null) return;
+    if (typeof old === 'string') {
+      store[sessionId] = { projectDir: old, title: null, createdAt: null, updatedAt: null, archived: archived === true };
+    } else {
+      old.archived = archived === true;
+      store[sessionId] = old;
+    }
+    writeSessionStore(store);
+  }
+
+  /** 更新会话标题（AI 命名对话 / 网页标题抓取）。条目不存在时新建。 */
+  function updateSessionTitle(sessionId: string, title: string): void {
+    if (!sessionId || !title) return;
+    const store = readSessionStore();
+    const old = store[sessionId];
+    const now = new Date().toISOString();
+    if (old == null) {
+      store[sessionId] = { projectDir: state.selectedProjectDir || null, title, createdAt: now, updatedAt: now };
+    } else if (typeof old === 'string') {
+      // 老数据升级：不补记时间（与 saveSessionDirMapping 一致）
+      store[sessionId] = { projectDir: old, title, createdAt: null, updatedAt: null };
+    } else {
+      old.title = title;
+      // 仅"新数据"更新时间；老数据升级来的保持无时间
+      if (old.createdAt != null) old.updatedAt = now;
+      store[sessionId] = old;
+    }
+    writeSessionStore(store);
+  }
+
+  /**
+   * 设置当前会话标题。
+   * 若尚无会话 ID（新对话首条消息还没生成 URL），先暂存，等会话 ID 出现后自动绑定。
+   */
+  function setSessionTitle(title: string): any {
+    const t = String(title || '').trim();
+    if (!t) return { success: false, error: '标题为空' };
+    if (state.currentSessionId) {
+      updateSessionTitle(state.currentSessionId, t);
+      return { success: true };
+    }
+    state.pendingTitle = t;
+    console.log('[Cuckoo Code][' + profileId + '] 暂存对话标题，等待会话ID出现后绑定: ' + t);
+    return { success: true, pending: true };
   }
 
   function extractSessionIdFromUrl(url: string): string | null {
@@ -64,6 +181,7 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     currentSessionId: null,
     selectedProjectDir: null,
     pendingProjectDir: null,
+    pendingTitle: null,
   };
 
   /** 取目标 view：显式传入优先，否则取当前主窗口的 AI 页面 view */
@@ -94,6 +212,16 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     if (sessionId) {
       state.currentSessionId = sessionId;
       console.log('[Cuckoo Code][' + profileId + '] 当前会话ID: ' + sessionId);
+
+      // 会话 ID 出现 → 绑定暂存的对话标题（AI 命名可能在首条消息时就调用）
+      if (state.pendingTitle) {
+        updateSessionTitle(sessionId, state.pendingTitle);
+        state.pendingTitle = null;
+        try {
+          const ctx = windowState && windowState.getContextByWebContents ? windowState.getContextByWebContents(wc) : null;
+          if (ctx && ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send('shell-sessions-changed');
+        } catch (_) { /* ignore */ }
+      }
 
       if (state.pendingProjectDir) {
         saveSessionDirMapping(sessionId, state.pendingProjectDir);
@@ -139,8 +267,14 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
   return {
     readSessionStore,
     writeSessionStore,
+    getSessionMeta,
     getProjectDirBySessionId,
     saveSessionDirMapping,
+    updateSessionTitle,
+    setSessionTitle,
+    setSessionArchived,
+    getArchivedProjects,
+    setProjectArchived,
     extractSessionIdFromUrl,
     handleUrlChange,
     tryRestoreSessionFromUrl,

@@ -36,6 +36,13 @@ const shellAPI = {
   newWebConversation: () => ipcRenderer.invoke('web-new-conversation'),
   onWebUrlChanged: (cb: () => void) => { ipcRenderer.on('shell-web-url-changed', () => cb()); },
   onHarnessBusy: (cb: (busy: boolean) => void) => { ipcRenderer.on('shell-harness-busy', (_e: any, d: any) => cb(!!(d && d.busy))); },
+  // 纯净对话模式（Harness）切换 + 状态订阅
+  toggleHarness: () => ipcRenderer.invoke('shell-toggle-harness'),
+  onHarnessMode: (cb: (data: any) => void) => {
+    ipcRenderer.on('shell-harness-mode', (_e: any, data: any) => cb(data));
+  },
+  // 壳页面上报真实可视尺寸（供主进程精确布局 WebContentsView，避免菜单栏高度误差）
+  reportShellSize: (w: number, h: number) => ipcRenderer.send('shell-report-size', { w, h }),
   // ========== 窗口管理 ==========
   listProfiles: () => ipcRenderer.invoke('list-profiles'),
   listProviders: () => ipcRenderer.invoke('list-providers'),
@@ -43,6 +50,14 @@ const shellAPI = {
   openProfileWindow: (profileId: string) => ipcRenderer.invoke('open-profile-window', { profileId }),
   deleteProfileWindow: (profileId: string) => ipcRenderer.invoke('delete-profile', { profileId }),
   setProfileAutoOpen: (profileId: string, autoOpen: boolean) => ipcRenderer.invoke('set-profile-auto-open', { profileId, autoOpen }),
+  // ========== 会话（侧边栏「工作区」页）==========
+  listAllSessions: () => ipcRenderer.invoke('list-all-sessions'),
+  navigateSession: (sessionId: string) => ipcRenderer.invoke('navigate-session', { sessionId }),
+  setSessionArchived: (sessionId: string, archived: boolean) => ipcRenderer.invoke('set-session-archived', { sessionId, archived }),
+  getDirInfo: (dir: string) => ipcRenderer.invoke('get-dir-info', { dir }),
+  setProjectArchived: (dir: string, archived: boolean) => ipcRenderer.invoke('set-project-archived', { dir, archived }),
+  setSessionTitle: (sessionId: string, title: string) => ipcRenderer.invoke('set-session-title', { sessionId, title }),
+  newConversationForProject: (projectDir: string) => ipcRenderer.invoke('new-conversation-for-project', { projectDir }),
   // ========== 快捷提示词 ==========
   listSnippets: () => ipcRenderer.invoke('list-snippets'),
   saveSnippets: (snippets: any) => ipcRenderer.invoke('save-snippets', { snippets }),
@@ -53,8 +68,17 @@ const shellAPI = {
   onPlatformMode: (cb: (data: any) => void) => {
     ipcRenderer.on('shell-platform-mode', (_e: any, data: any) => cb(data));
   },
+  onSessionsChanged: (cb: () => void) => {
+    ipcRenderer.on('shell-sessions-changed', () => cb());
+  },
   // ========== 技能 ==========
   listSkills: () => ipcRenderer.invoke('list-skills'),
+  // ========== 子代理 ==========
+  listAgents: () => ipcRenderer.invoke('list-agents'),
+  createAgentFile: (name: string, scope: string) => ipcRenderer.invoke('create-agent-file', { name, scope }),
+  openAgentFile: (agentPath: string) => ipcRenderer.invoke('open-agent-file', { agentPath }),
+  renameAgent: (agentPath: string, newName: string) => ipcRenderer.invoke('rename-agent', { agentPath, newName }),
+  deleteAgentFile: (agentPath: string) => ipcRenderer.invoke('delete-agent-file', { agentPath }),
   // ========== MCP ==========
   listMcpServers: () => ipcRenderer.invoke('list-mcp-servers', {}),
   enableMcpServer: (name: string) => ipcRenderer.invoke('enable-mcp-server', { name }),

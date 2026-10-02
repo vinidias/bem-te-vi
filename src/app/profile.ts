@@ -167,6 +167,26 @@ function createSubagentProfile(parent: any, agentName: string): any {
   };
 }
 
+/**
+ * 清理子代理窗口遗留的 session 存储文件（历史 bug：子代理不需要持久化，
+ * 但旧版本每个子代理都写了一个 session-dir-map-subagent-*.json）。
+ */
+function cleanupSubagentStores(): void {
+  try {
+    const dir = app.getPath('userData');
+    const files = fs.readdirSync(dir);
+    let n = 0;
+    for (const f of files) {
+      if (f.startsWith('session-dir-map-subagent-') && f.endsWith('.json')) {
+        try { fs.unlinkSync(path.join(dir, f)); n++; } catch (_) { /* ignore */ }
+      }
+    }
+    if (n > 0) console.log('[Profile] 已清理子代理遗留存储文件:', n, '个');
+  } catch (err: any) {
+    console.error('[Profile] 清理子代理存储失败:', err.message);
+  }
+}
+
 /** 设置某 profile 绑定的飞书群（chatId/chatName）；空串表示解绑 */
 function setProfileFeishuChat(id: string, chatId: string, chatName: string): any {
   const profiles = readProfiles();
@@ -269,4 +289,5 @@ export {
   getAutoOpenProfiles,
   setLastUrl,
   clearLastUrl,
+  cleanupSubagentStores,
 };

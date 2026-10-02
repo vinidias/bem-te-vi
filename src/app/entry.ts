@@ -15,7 +15,7 @@ import * as mcpClient from '../mcp/client.js';
 import { resolveAsset, resolveSrc } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
-const { app, BrowserWindow, WebContentsView, Menu, dialog, ipcMain: ipcMainForProfile } = require('electron');
+const { app, BrowserWindow, WebContentsView, Menu, dialog, screen, nativeTheme, ipcMain: ipcMainForProfile } = require('electron');
 
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
@@ -47,10 +47,13 @@ if (RENDERER_LOG_DIR) {
 }
 
 import { registerIpcHandlers } from './ipc/index.js';
+import { buildChromeUserAgent } from '../infra/user-agent.js';
 import { initFeishu } from './ipc/feishu.js';
 import { injectSubagentDeps, runAgent as runAgentImpl } from './subagent.js';
 import { injectAgentRunner } from '../tools/impl/run-agent.js';
+import { injectSessionTitleSetter } from '../tools/impl/name-conversation.js';
 import { pushUrlState } from './ipc/shell.js';
+import { pushHarnessState } from './ipc/harness.js';
 
 // 退出前需要 flush 的 sessions
 const sessionsToFlush = new Set<any>();
@@ -67,6 +70,26 @@ async function flushAllSessions() {
 }
 
 /**
+ * 把窗口尺寸/位置夹取到"当前显示器工作区"内。
+ * 防止恢复的旧尺寸超出屏幕（换小屏/改分辨率）→ 底部被裁切（状态栏看不见）。
+ * @param {{x:number,y:number,width:number,height:number}} b 期望的 bounds
+ * @returns 夹取后的 bounds（失败时原样返回）
+ */
+function clampBounds(b: any) {
+  try {
+    const display = screen.getDisplayMatching({ x: b.x, y: b.y, width: b.width, height: b.height });
+    const wa = display.workArea; // { x, y, width, height }
+    const width = Math.min(b.width, wa.width);
+    const height = Math.min(b.height, wa.height);
+    const x = Math.max(wa.x, Math.min(b.x, wa.x + wa.width - width));
+    const y = Math.max(wa.y, Math.min(b.y, wa.y + wa.height - height));
+    return { x, y, width, height };
+  } catch (_) {
+    return b;
+  }
+}
+
+/**
  * 创建窗口（绑定指定 profile）
  * @param {object|null} profile profile 对象，null 则使用默认 profile
  */
@@ -74,16 +97,18 @@ function createWindow(profile: any) {
   const profileData = profile || profileManager.getDefaultProfile();
   const provider = getProvider(profileData.providerId) || null;
   const storeDir = app.getPath('userData');
-  const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
+  const sessionStore = createSessionStore(profileData.id, storeDir, windowState, { noPersist: !!profileData.isSubagent });
   const hasExplicitProfile = !!profile;
   // providerId 已确定 → 直接打开；未确定 → 显示平台选择页
   const providerChosen = !!profileData.providerId;
 
   // 窗口大小/位置：优先用该 profile 上次记录；无记录则用默认 + 级联偏移（避免多窗口完全重叠）
+  // 记录值可能超出"当前屏幕工作区"（换屏幕/分辨率变小时），导致底部（状态栏）被裁切。
+  // 故恢复前夹取到当前显示器工作区内，保证整个窗口（含底部状态栏）可见。
   const savedBounds = profileData.bounds;
   const winCount = windowState.getAllWindows().length;
   const defaultBounds = savedBounds
-    ? { x: savedBounds.x, y: savedBounds.y, width: savedBounds.width, height: savedBounds.height }
+    ? clampBounds({ x: savedBounds.x, y: savedBounds.y, width: savedBounds.width, height: savedBounds.height })
     : { x: undefined, y: undefined, width: 1280, height: 900 };
   const cascadeOffset = savedBounds ? 0 : winCount * 30;
 
@@ -91,6 +116,9 @@ function createWindow(profile: any) {
   const mainWindow = new BrowserWindow({
     width: defaultBounds.width,
     height: defaultBounds.height,
+    // 最小尺寸：保证工具栏(46)+状态栏(28)+内容区都放得下（防止恢复成过小窗口导致状态栏被挤出）
+    minWidth: 480,
+    minHeight: 240,
     ...(defaultBounds.x !== undefined ? { x: defaultBounds.x + cascadeOffset, y: (defaultBounds.y || 0) + cascadeOffset } : {}),
     icon: resolveAsset('assets/icon.png'),
     title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
@@ -148,7 +176,8 @@ function createWindow(profile: any) {
       },
     });
     mainWindow.contentView.addChildView(hv);
-    hv.setBackgroundColor('#0d0e12');
+    // harness 页面加载前的底色：跟随系统深浅色（对齐设计规范，加载后由页面 CSS 接管）
+    hv.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#16181d' : '#ffffff');
     hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
     harnessView = hv;
     (mainWindow as any).__ckHarnessView = hv;
@@ -180,7 +209,8 @@ function createWindow(profile: any) {
 
   // 布局：AI 页面占地址栏下方、Cuckoo 侧边栏右侧区域。
   // 侧边栏可收起（收起时 x=0，AI 页面铺满）。
-  const TOOLBAR_HEIGHT = 44; // 地址栏 44（状态条已隐藏，不再计入）
+  const TOOLBAR_HEIGHT = 46; // 地址栏 46（与 shell.css .toolbar height 保持一致）
+  const STATUS_HEIGHT = 28;  // 底部状态条（当前上下文 token，与 shell.css .statusbar 一致）
   const SIDEBAR_WIDTH = 320;      // 左侧 Cuckoo 侧边栏展开宽度
   const SIDEBAR_COLLAPSED = 46;   // 收起时仅保留图标栏
   // 平台未选择时：整个侧边栏隐藏 + 地址栏也隐藏（AI 页面从顶部铺满）
@@ -190,11 +220,15 @@ function createWindow(profile: any) {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const sbw = (mainWindow as any).__ckSidebarWidth ?? SIDEBAR_WIDTH;
     const tbh = (mainWindow as any).__ckToolbarHeight ?? TOOLBAR_HEIGHT;
-    const [w, h] = mainWindow.getContentSize();
+    // 用壳页面上报的真实可视尺寸（getContentSize 在 Windows 上会多算菜单栏高度，
+    // 导致 AI view 盖住底部状态栏）。上报值优先，未上报时回退 getContentSize。
+    const [cw, ch] = mainWindow.getContentSize();
+    const w = (mainWindow as any).__ckShellWidth || cw;
+    const h = (mainWindow as any).__ckShellHeight || ch;
     view.setBounds({
       x: sbw, y: tbh,
       width: Math.max(0, w - sbw),
-      height: Math.max(0, h - tbh),
+      height: Math.max(0, h - tbh - STATUS_HEIGHT),
     });
     // harness 覆盖整个"网页区域"（与 AI view 同位置）
     const hv = (mainWindow as any).__ckHarnessView;
@@ -203,7 +237,7 @@ function createWindow(profile: any) {
         hv.setBounds({
           x: sbw, y: tbh,
           width: Math.max(0, w - sbw),
-          height: Math.max(0, h - tbh),
+          height: Math.max(0, h - tbh - STATUS_HEIGHT),
         });
       } else {
         hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
@@ -258,6 +292,8 @@ function createWindow(profile: any) {
     // 注：不再向 AI 页面下发"纯净模式开关"。bridge 侧上报已不设门控
     //（门控一旦判断错就整片静默丢弃，曾导致界面空白 + 状态卡死）；
     // 主进程在没有 harness 视图时自会丢弃事件，无需 bridge 配合。
+    // 通知壳页面：更新「纯净模式/原版模式」按钮
+    try { mainWindow.webContents.send('shell-harness-mode', { harness: next }); } catch (_) {}
   };
 
   // 更新主窗口引用
@@ -299,12 +335,10 @@ function createWindow(profile: any) {
     mainWindow.maximize();
   }
 
-  // 设置与 Electron 33（Chromium 130）匹配的普通 Chrome UA：
+  // 设置普通 Chrome UA（动态取真实内核版本）：
   // 1. 不带 Electron 标识，避免 DeepSeek 识别为第三方客户端
-  // 2. 与内核版本一致，避免 Google OAuth 因 UA/sec-ch-ua 不一致报“浏览器不安全”
-  const userAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-  view.webContents.setUserAgent(userAgent);
+  // 2. 与内核版本一致，避免 Google OAuth 因 UA/sec-ch-ua 不一致报"浏览器不安全"
+  view.webContents.setUserAgent(buildChromeUserAgent());
 
   // 优先恢复上次关闭时的 URL（仅 http/https，且平台已确定）
   const lastUrl = profileData.lastUrl;
@@ -345,6 +379,8 @@ function createWindow(profile: any) {
     notifyHarnessSession(url);
     // 通知壳页面：网页 URL 变了 → 刷新对话列表高亮
     try { mainWindow.webContents.send('shell-web-url-changed', { url }); } catch (_) {}
+    // 通知 harness 页面刷新"需初始化项目"状态（首页 ↔ 会话页）
+    try { pushHarnessState(windowState.getContextByWebContents(view.webContents)); } catch (_) {}
     autoConnectMcp();
   });
 
@@ -355,6 +391,8 @@ function createWindow(profile: any) {
     try { view.webContents.send('cuckoo-url-changed', { url }); } catch (_) {}
     notifyHarnessSession(url);
     try { mainWindow.webContents.send('shell-web-url-changed', { url }); } catch (_) {}
+    // 通知 harness 页面刷新"需初始化项目"状态（首页 ↔ 会话页）
+    try { pushHarnessState(windowState.getContextByWebContents(view.webContents)); } catch (_) {}
     autoConnectMcp();
   });
 
@@ -569,6 +607,17 @@ injectAgentRunner(async ({ agent, task, currentWindowId }: any) => {
     tools: agent.tools,
     maxTurns: agent.maxTurns,
   });
+});
+// 给 nameConversation 工具注入"设置当前会话标题"实现
+injectSessionTitleSetter(async ({ windowId, title }: any) => {
+  const ctx = windowState.getWindowContext(windowId);
+  if (!ctx || !ctx.sessionStore) return { success: false, error: '无会话上下文' };
+  const r = ctx.sessionStore.setSessionTitle(String(title).trim());
+  // 通知壳页面刷新工作区列表（暂存时不刷，等绑定后再刷）
+  if (r && r.success && !r.pending) {
+    try { if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send('shell-sessions-changed'); } catch (_) { /* ignore */ }
+  }
+  return r;
 });
 
 // ========== IPC 处理器 ==========
@@ -862,6 +911,8 @@ if (!gotSingleInstanceLock) {
     setupAppMenu();
     // MCP 配置首次迁移（旧 userData/mcp.json → ~/.cuckoo/mcp.json，旧文件保留）
     try { mcpConfig.migrateLegacy(); } catch (_) { /* ignore */ }
+    // 清理子代理窗口遗留的 session 存储文件（历史 bug：子代理不需要持久化）
+    try { profileManager.cleanupSubagentStores(); } catch (_) { /* ignore */ }
     // 启动时打开所有"默认打开"的窗口；若一个都没勾，回退默认（上次活跃的或第一个）
     const autoOpen = profileManager.getAutoOpenProfiles();
     if (autoOpen.length > 0) {

@@ -20,6 +20,7 @@
     "test",
     ".cuckooCode",
     ".playwright-mcp",
-    "src/providers/hooks"
+    "src/providers/hooks",
+    "src/ui/shell"
   ]
 }

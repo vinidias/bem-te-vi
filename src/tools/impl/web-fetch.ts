@@ -57,18 +57,23 @@ function parseFetchArgs(url: any): { url: string } {
  * 对齐 dsh renderBody：根据 body kind 处理。
  */
 function renderBody(kind: string, content: string): { text: string; sourceTruncated: boolean } {
-  const sliced = content.slice(0, FETCH_MAX_OUTPUT_CHARS);
-  const sourceTruncated = sliced.length !== content.length;
+  // 注意：必须先"全文转 Markdown"，再截断。
+  // 若先截断原始 HTML：很多网站（如 Bing）头部有大段 <script>/<head>，
+  // 截断后全是脚本，turndown 移除 script/style 后正文为空（表现为"只返回标题"）。
   if (kind === 'html') {
+    let md: string;
     try {
-      return { text: turndown.turndown(sliced), sourceTruncated };
+      md = turndown.turndown(content);
     } catch (e) {
       // 转换失败降级为原始 HTML
-      return { text: sliced, sourceTruncated };
+      md = content;
     }
+    const sliced = md.slice(0, FETCH_MAX_OUTPUT_CHARS);
+    return { text: sliced, sourceTruncated: sliced.length !== md.length };
   }
   // text
-  return { text: sliced, sourceTruncated };
+  const sliced = content.slice(0, FETCH_MAX_OUTPUT_CHARS);
+  return { text: sliced, sourceTruncated: sliced.length !== content.length };
 }
 
 /**

@@ -14,6 +14,7 @@ const TOOL_BOOTSTRAP = [
   "  globalThis.mcpCall = async function (server, tool, args) {\n      return await __call('mcpCall', { server: server, tool: tool, args: args || {} });\n  };",
   "  globalThis.mcpListServers = async function () {\n      return await __call('mcpListServers', {});\n  };\n  globalThis.mcpGetTools = async function (serverName) {\n      return await __call('mcpGetTools', { server: serverName });\n  };",
   "  globalThis.mysql = async function (options) {\n      options = options || {};\n      return await __call('mysql', options);\n  };",
+  "  globalThis.nameConversation = async function (title) {\n      return await __call('nameConversation', { title: title });\n  };",
   "  globalThis.openBrowserWindow = async function (url, options) {\n      options = options || {};\n      return await __call('openBrowserWindow', {\n          url: url,\n          id: options.id,\n          width: options.width,\n          height: options.height,\n      });\n  };",
   "  globalThis.pwsh = async function (command, options) {\n      options = options || {};\n      return await __call('pwsh', {\n          command: command,\n          description: options.description,\n          workdir: options.workdir || options.cwd,\n          timeoutMs: options.timeoutMs || options.timeout,\n      });\n  };",
   "  globalThis.readLines = async function (filePath, options) {\n      options = options || {};\n      return await __call('readLines', {\n          filePath: filePath,\n          offset: options.offset,\n          limit: options.limit,\n      });\n  };",

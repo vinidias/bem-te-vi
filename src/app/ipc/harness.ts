@@ -19,6 +19,7 @@ import { registry } from '../../tools/index.js';
 import { getProvider } from '../../providers/registry.js';
 import { resetTodosCache } from './tool.js';
 import { cdpAttach } from './cdp-attach.js';
+import { initProject } from '../../session/project-context.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
@@ -325,10 +326,57 @@ function registerHarnessIpc(): void {
     try { ctx.win.webContents.send('shell-harness-busy', { busy: busy }); } catch (_) { /* ignore */ }
   });
 
+  // 查询当前状态（首页且未选项目目录 → 需初始化）
+  ipcMain.handle('harness-get-state', async (event: any) => {
+    const ctx = findContext(event.sender);
+    return computeHarnessState(ctx);
+  });
+
+  // 初始化项目（复用官方 init-project 逻辑：弹目录选择框）
+  ipcMain.handle('harness-init-project', async (event: any) => {
+    const ctx = findContext(event.sender);
+    if (!ctx) return { success: false, error: 'no-context' };
+    try {
+      const result = await initProject(false, ctx, null, false, '', false);
+      // 初始化后推最新状态（按钮消失 / 输入框恢复）
+      pushHarnessState(ctx);
+      return result;
+    } catch (err: any) {
+      console.log('[Cuckoo Harness] 初始化项目失败: ' + err.message);
+      return { success: false, error: err.message };
+    }
+  });
+
   // harness 页面就绪
   ipcMain.on('harness-ready', () => {
     console.log('[Cuckoo Harness] 页面已就绪');
   });
+}
+
+/**
+ * 计算 harness 页面所需状态：
+ *   needInit = 当前是平台首页（新对话）且未选择项目目录
+ */
+function computeHarnessState(ctx: any): any {
+  if (!ctx) return { success: false, needInit: false, isHome: false, hasProjectDir: false };
+  let isHome = false;
+  try {
+    const url = ctx.view && ctx.view.webContents && !ctx.view.webContents.isDestroyed()
+      ? ctx.view.webContents.getURL() : '';
+    const provider = ctx.providerId ? getProvider(ctx.providerId) : null;
+    isHome = !!(provider && provider.homeUrlPattern && url && provider.homeUrlPattern.test(url));
+  } catch (_) { /* ignore */ }
+  const dir = (ctx.sessionStore && ctx.sessionStore.state && ctx.sessionStore.state.selectedProjectDir) || null;
+  return { success: true, isHome, hasProjectDir: !!dir, needInit: isHome && !dir };
+}
+
+/** 推送状态给 harness 页面（若已创建） */
+function pushHarnessState(ctx: any): void {
+  try {
+    const hv = ctx && ctx.harnessView;
+    if (!hv || hv.webContents.isDestroyed()) return;
+    hv.webContents.send('harness-state', computeHarnessState(ctx));
+  } catch (_) { /* ignore */ }
 }
 
 /**
@@ -428,6 +476,6 @@ function attachStopFn(doc: any, win: any) {
   }
 }
 
-export { registerHarnessIpc, prepareNewConversation };
+export { registerHarnessIpc, prepareNewConversation, pushHarnessState };
 
 

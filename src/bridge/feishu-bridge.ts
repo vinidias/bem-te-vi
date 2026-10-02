@@ -48,23 +48,30 @@ export function initFeishuBridge(): void {
     }).catch(() => {});
   } catch (_) {}
 
-  // 1. 用户消息（经 Cuckoo 发送）→ 上报
+  // 本轮任务是否调用过工具（用户发新消息时重置）
+  let usedToolThisTurn = false;
+
+  // 1. 用户消息（经 Cuckoo 发送）→ 上报（并重置本轮工具标记）
   onUserMessageSent((text: string, tag?: string) => {
     if (!enabled || !text) return;
+    usedToolThisTurn = false;
     report({ type: 'user-message', text: text, tag: tag || '' });
   });
 
   // 2. AI 回复完成 → 上报（剥离工具代码块，飞书只看对话）
   onInterceptedResponse((text: string) => {
     if (!enabled || !text) return;
-    const clean = stripToolBlocks(text);
+    let clean = stripToolBlocks(text);
     if (!clean) return;
+    // 本轮未调用任何工具 → 末尾附注（便于用户知道可以直接发下一步）
+    if (!usedToolThisTurn) clean += '\n\n（本次AI没有调用任何工具）';
     report({ type: 'ai-reply', text: clean });
   });
 
   // 3. 工具调用状态 → 上报（仅状态；工具名是否带上由主进程按配置决定）
   onToolCall((ev: any) => {
     if (!enabled || !ev) return;
+    usedToolThisTurn = true;
     if (ev.phase === 'start') report({ type: 'tool-start' });
     else if (ev.phase === 'end') report({ type: 'tool-end' });
   });
