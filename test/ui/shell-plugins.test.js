@@ -23,12 +23,12 @@ function readShell() {
   return fs.readFileSync(SHELL, 'utf-8');
 }
 
-/** 截取插件页的 JS 区段 */
+/** 截取插件页的 JS 区段（模块化后 plugins.ts 编译进 bundle，用函数锚点定位） */
 function pluginSection(html) {
-  const start = html.indexOf('// ===== 插件 =====');
-  const end = html.indexOf('// ===== MCP =====');
-  assert.ok(start > 0, '未找到「// ===== 插件 =====」标记，测试需要同步更新');
-  assert.ok(end > start, '未找到「// ===== MCP =====」标记，测试需要同步更新');
+  const start = html.indexOf('function pluginContribSummary');
+  const end = html.indexOf('document.getElementById("plugin-open-dir")');
+  assert.ok(start > 0, '未找到「pluginContribSummary」锚点，测试需要同步更新');
+  assert.ok(end > start, '未找到「plugin-open-dir」锚点，测试需要同步更新');
   return html.slice(start, end);
 }
 
