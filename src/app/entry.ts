@@ -47,6 +47,7 @@ if (RENDERER_LOG_DIR) {
 }
 
 import { registerIpcHandlers } from './ipc/index.js';
+import { buildChromeUserAgent } from '../infra/user-agent.js';
 import { initFeishu } from './ipc/feishu.js';
 import { injectSubagentDeps, runAgent as runAgentImpl } from './subagent.js';
 import { injectAgentRunner } from '../tools/impl/run-agent.js';
@@ -288,12 +289,10 @@ function createWindow(profile: any) {
     mainWindow.maximize();
   }
 
-  // 设置与 Electron 33（Chromium 130）匹配的普通 Chrome UA：
+  // 设置普通 Chrome UA（动态取真实内核版本）：
   // 1. 不带 Electron 标识，避免 DeepSeek 识别为第三方客户端
-  // 2. 与内核版本一致，避免 Google OAuth 因 UA/sec-ch-ua 不一致报“浏览器不安全”
-  const userAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-  view.webContents.setUserAgent(userAgent);
+  // 2. 与内核版本一致，避免 Google OAuth 因 UA/sec-ch-ua 不一致报"浏览器不安全"
+  view.webContents.setUserAgent(buildChromeUserAgent());
 
   // 优先恢复上次关闭时的 URL（仅 http/https，且平台已确定）
   const lastUrl = profileData.lastUrl;
