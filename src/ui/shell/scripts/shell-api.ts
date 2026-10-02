@@ -1,0 +1,64 @@
+/**
+ * 壳页面 API 类型（preload 经 contextBridge 注入的 window.shellAPI）。
+ * 全部方法可选——用防御式调用（if (api.xxx) api.xxx()）。
+ */
+export interface ShellAPI {
+  navigate?: (url: string) => void;
+  back?: () => void;
+  forward?: () => void;
+  reload?: () => void;
+  home?: () => void;
+  onUrlUpdated?: (cb: (data: any) => void) => void;
+  toggleSidebar?: (width: number) => void;
+  initProject?: (dir?: string | null, isCompaction?: boolean, extraPrompt?: string, noDialog?: boolean) => Promise<any>;
+  updateProjectDir?: () => Promise<any>;
+  onProjectDir?: (cb: (dir: string | null) => void) => void;
+  getProjectDir?: () => Promise<any>;
+  onPlatformMode?: (cb: (data: any) => void) => void;
+  // 提示词
+  listSnippets?: () => Promise<any>;
+  getSnippets?: () => Promise<any>;
+  saveSnippets?: (list: any[]) => Promise<any>;
+  triggerSnippet?: (content: string, autoSend?: boolean) => Promise<any>;
+  appendSnippet?: (text: string) => Promise<any>;
+  onSnippetsChanged?: (cb: () => void) => void;
+  // 技能 / 子代理
+  listSkills?: () => Promise<any>;
+  listAgents?: () => Promise<any>;
+  createAgentFile?: (name: string, scope: string) => Promise<any>;
+  openAgentFile?: (agentPath: string) => Promise<any>;
+  renameAgent?: (agentPath: string, newName: string) => Promise<any>;
+  deleteAgentFile?: (agentPath: string) => Promise<any>;
+  // MCP
+  listMcpServers?: () => Promise<any>;
+  enableMcpServer?: (name: string) => Promise<any>;
+  disableMcpServer?: (name: string) => Promise<any>;
+  // 窗口
+  listProfiles?: () => Promise<any>;
+  createProfileWindow?: () => Promise<any>;
+  openProfileWindow?: (id: string) => Promise<any>;
+  deleteProfileWindow?: (id: string) => Promise<any>;
+  setProfileAutoOpen?: (id: string, on: boolean) => Promise<any>;
+  // Token / 自动压缩
+  getAutoCompact?: () => Promise<any>;
+  saveAutoCompact?: (data: any) => Promise<any>;
+  triggerCompact?: () => Promise<any>;
+  // 设置
+  getSettings?: () => Promise<any>;
+  saveSettings?: (data: any) => Promise<any>;
+  resetSettings?: () => Promise<any>;
+  // 关于
+  getAppInfo?: () => Promise<any>;
+  checkUpdate?: () => Promise<any>;
+  getAssetUrl?: (rel: string) => Promise<any>;
+  openExternal?: (url: string) => Promise<any>;
+  openFeishuSetup?: () => Promise<any>;
+  // 飞书
+  getFeishuConfig?: () => Promise<any>;
+  saveFeishuConfig?: (data: any) => Promise<any>;
+  reconnectFeishu?: () => Promise<any>;
+  disconnectFeishu?: () => Promise<any>;
+  listFeishuChats?: () => Promise<any>;
+  getFeishuBinding?: () => Promise<any>;
+  bindFeishuChat?: (chatId: string, chatName: string) => Promise<any>;
+}
