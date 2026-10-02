@@ -84,6 +84,30 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     writeSessionStore(store);
   }
 
+  /** 项目归档：特殊 key 存在同一文件（值是目录字符串数组） */
+  const PROJECT_ARCHIVES_KEY = '_archivedProjects';
+
+  /** 取已归档的项目目录列表 */
+  function getArchivedProjects(): string[] {
+    const store = readSessionStore();
+    const arr = store[PROJECT_ARCHIVES_KEY];
+    return Array.isArray(arr) ? arr.filter((x: any) => typeof x === 'string') : [];
+  }
+
+  /** 归档/取消归档项目 */
+  function setProjectArchived(dir: string, archived: boolean): void {
+    if (!dir) return;
+    const store = readSessionStore();
+    let arr: string[] = Array.isArray(store[PROJECT_ARCHIVES_KEY]) ? store[PROJECT_ARCHIVES_KEY] : [];
+    if (archived) {
+      if (!arr.includes(dir)) arr.push(dir);
+    } else {
+      arr = arr.filter((d) => d !== dir);
+    }
+    store[PROJECT_ARCHIVES_KEY] = arr;
+    writeSessionStore(store);
+  }
+
   /** 归档/取消归档会话 */
   function setSessionArchived(sessionId: string, archived: boolean): void {
     if (!sessionId) return;
@@ -214,6 +238,8 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     saveSessionDirMapping,
     updateSessionTitle,
     setSessionArchived,
+    getArchivedProjects,
+    setProjectArchived,
     extractSessionIdFromUrl,
     handleUrlChange,
     tryRestoreSessionFromUrl,

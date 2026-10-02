@@ -345,6 +345,17 @@
   }
   .ck-ws-group-title:hover { background: var(--ck-surface-hover); }
   .ck-ws-group-title svg { width: 13px; height: 13px; flex-shrink: 0; opacity: .7; }
+  .ck-ws-gname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* 组按钮：悬停才显示（始终占位，避免抖动）*/
+  .ck-ws-gacts { display: flex; align-items: center; gap: 2px; flex-shrink: 0; visibility: hidden; opacity: 0; transition: opacity .12s; }
+  .ck-ws-group-title:hover .ck-ws-gacts { visibility: visible; opacity: 1; }
+  .ck-ws-gact {
+    display: flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 5px;
+    color: var(--ck-text-dim); cursor: pointer;
+  }
+  .ck-ws-gact:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-ws-gact svg { width: 13px !important; height: 13px !important; opacity: 1 !important; }
   .ck-ws-caret { width: 11px !important; height: 11px !important; transition: transform .15s; }
   .ck-ws-group.open .ck-ws-caret { transform: rotate(90deg); }
   .ck-ws-items { display: none; }
@@ -387,6 +398,17 @@
   .ck-ws-archived.open .ck-ws-archived-title::before { content: '▾ '; }
   .ck-ws-archived-items { display: none; }
   .ck-ws-archived.open .ck-ws-archived-items { display: block; }
+  /* 已归档项目（列表底部，折叠）*/
+  .ck-ws-archived-projects { margin-top: 10px; border-top: 1px solid var(--ck-border); padding-top: 6px; }
+  .ck-ws-archived-projects-title {
+    display: flex; align-items: center; padding: 6px 6px; border-radius: 7px;
+    font-size: 11px; color: var(--ck-text-dim); cursor: pointer; transition: background .15s;
+  }
+  .ck-ws-archived-projects-title:hover { background: var(--ck-surface-hover); }
+  .ck-ws-archived-projects-title::before { content: '▸ '; margin-right: 2px; font-size: 9px; }
+  .ck-ws-archived-projects.open .ck-ws-archived-projects-title::before { content: '▾ '; }
+  .ck-ws-archived-projects-items { display: none; }
+  .ck-ws-archived-projects.open .ck-ws-archived-projects-items { display: block; }
   /* 项目悬停卡片（全路径 + 创建时间） */
   .ck-ws-tip {
     position: fixed; z-index: 999;

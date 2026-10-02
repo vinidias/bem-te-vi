@@ -560,6 +560,17 @@
   }
   .ck-ws-group-title:hover { background: var(--ck-surface-hover); }
   .ck-ws-group-title svg { width: 13px; height: 13px; flex-shrink: 0; opacity: .7; }
+  .ck-ws-gname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* 组按钮：悬停才显示（始终占位，避免抖动）*/
+  .ck-ws-gacts { display: flex; align-items: center; gap: 2px; flex-shrink: 0; visibility: hidden; opacity: 0; transition: opacity .12s; }
+  .ck-ws-group-title:hover .ck-ws-gacts { visibility: visible; opacity: 1; }
+  .ck-ws-gact {
+    display: flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 5px;
+    color: var(--ck-text-dim); cursor: pointer;
+  }
+  .ck-ws-gact:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-ws-gact svg { width: 13px !important; height: 13px !important; opacity: 1 !important; }
   .ck-ws-caret { width: 11px !important; height: 11px !important; transition: transform .15s; }
   .ck-ws-group.open .ck-ws-caret { transform: rotate(90deg); }
   .ck-ws-items { display: none; }
@@ -602,6 +613,17 @@
   .ck-ws-archived.open .ck-ws-archived-title::before { content: '▾ '; }
   .ck-ws-archived-items { display: none; }
   .ck-ws-archived.open .ck-ws-archived-items { display: block; }
+  /* 已归档项目（列表底部，折叠）*/
+  .ck-ws-archived-projects { margin-top: 10px; border-top: 1px solid var(--ck-border); padding-top: 6px; }
+  .ck-ws-archived-projects-title {
+    display: flex; align-items: center; padding: 6px 6px; border-radius: 7px;
+    font-size: 11px; color: var(--ck-text-dim); cursor: pointer; transition: background .15s;
+  }
+  .ck-ws-archived-projects-title:hover { background: var(--ck-surface-hover); }
+  .ck-ws-archived-projects-title::before { content: '▸ '; margin-right: 2px; font-size: 9px; }
+  .ck-ws-archived-projects.open .ck-ws-archived-projects-title::before { content: '▾ '; }
+  .ck-ws-archived-projects-items { display: none; }
+  .ck-ws-archived-projects.open .ck-ws-archived-projects-items { display: block; }
   /* 项目悬停卡片（全路径 + 创建时间） */
   .ck-ws-tip {
     position: fixed; z-index: 999;
@@ -1483,8 +1505,10 @@
     return Math.floor(mon / 12) + "\u5E74\u524D";
   }
   var currentDir = null;
+  var archivedProjects = [];
   var expandedDirs = /* @__PURE__ */ new Set();
   var archivedOpen = /* @__PURE__ */ new Set();
+  var archivedProjectsOpen = { v: false };
   function latestTs(list) {
     let max = 0;
     for (const s of list) {
@@ -1564,12 +1588,49 @@
         else archivedOpen.delete(dir);
       });
     });
+    listEl.querySelectorAll(".ck-ws-archived-projects-title").forEach((el) => {
+      el.addEventListener("click", () => {
+        const boxEl = el.closest(".ck-ws-archived-projects");
+        if (!boxEl) return;
+        archivedProjectsOpen.v = boxEl.classList.toggle("open");
+      });
+    });
     listEl.querySelectorAll(".ck-ws-group-title").forEach((el) => {
       el.addEventListener("mouseenter", () => {
         const groupEl = el.closest(".ck-ws-group");
         if (groupEl) showDirTip(groupEl.dataset.dir, el);
       });
       el.addEventListener("mouseleave", hideDirTip);
+    });
+    listEl.querySelectorAll(".ck-ws-gact").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const groupEl = btn.closest(".ck-ws-group");
+        if (!groupEl) return;
+        const dir = groupEl.dataset.dir;
+        const act = btn.dataset.gact;
+        if (act === "new") {
+          if (!api.newConversationForProject) return;
+          try {
+            await api.newConversationForProject(dir);
+          } catch (_) {
+          }
+        } else if (act === "archive") {
+          if (!api.setProjectArchived) return;
+          try {
+            await api.setProjectArchived(dir, true);
+          } catch (_) {
+          }
+          loadWorkspaces();
+        } else if (act === "unarchive") {
+          if (!api.setProjectArchived) return;
+          try {
+            await api.setProjectArchived(dir, false);
+          } catch (_) {
+          }
+          loadWorkspaces();
+        }
+      });
     });
     listEl.querySelectorAll(".ck-ws-item").forEach((el) => {
       el.addEventListener("click", async (e) => {
@@ -1618,6 +1679,7 @@
       const r = await api.listAllSessions();
       const sessions = r && r.success && Array.isArray(r.sessions) ? r.sessions : [];
       const currentSessionId = r && r.currentSessionId || null;
+      archivedProjects = r && Array.isArray(r.archivedProjects) ? r.archivedProjects : [];
       if (sessions.length === 0) {
         listEl.innerHTML = '<div class="ck-list-empty">\u6682\u65E0\u4F1A\u8BDD</div>';
         return;
@@ -1634,15 +1696,20 @@
         const tb = latestTs(groups[b].active.concat(groups[b].archived));
         return tb - ta;
       });
-      let html = "";
-      for (const dir of dirs) {
+      const renderGroup = (dir) => {
         const g = groups[dir];
         g.active.sort(byTimeDesc);
         g.archived.sort(byTimeDesc);
         const isOpen = dir === currentDir || expandedDirs.has(dir);
         const isArchOpen = archivedOpen.has(dir);
-        html += '<div class="ck-ws-group' + (isOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-group-title" title="' + escapeAttr(dir) + '"><svg class="ck-ws-caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><svg class="ck-ws-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' + escapeHtml(baseName(dir)) + '</div><div class="ck-ws-items">' + g.active.map((s) => renderItem(s, currentSessionId)).join("") + // 归档入口（仅当该组有归档时显示）
-        (g.archived.length ? '<div class="ck-ws-archived' + (isArchOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-archived-title">\u5DF2\u5F52\u6863 ' + g.archived.length + ' \u5BF9\u8BDD</div><div class="ck-ws-archived-items">' + g.archived.map((s) => renderItem(s, currentSessionId, true)).join("") + "</div></div>" : "") + "</div></div>";
+        return '<div class="ck-ws-group' + (isOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-group-title" title="' + escapeAttr(dir) + '"><svg class="ck-ws-caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><svg class="ck-ws-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="ck-ws-gname">' + escapeHtml(baseName(dir)) + '</span><span class="ck-ws-gacts"><span class="ck-ws-gact" data-gact="new" title="\u7528\u8BE5\u9879\u76EE\u65B0\u5EFA\u5BF9\u8BDD"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>' + (archivedProjects.includes(dir) ? '<span class="ck-ws-gact" data-gact="unarchive" title="\u53D6\u6D88\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v5h5"/><path d="M3.5 12a8.5 8.5 0 1 0 2-5.4L3 9"/></svg></span>' : '<span class="ck-ws-gact" data-gact="archive" title="\u5F52\u6863\u9879\u76EE"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg></span>') + '</span></div><div class="ck-ws-items">' + g.active.map((s) => renderItem(s, currentSessionId)).join("") + (g.archived.length ? '<div class="ck-ws-archived' + (isArchOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-archived-title">\u5DF2\u5F52\u6863 ' + g.archived.length + ' \u5BF9\u8BDD</div><div class="ck-ws-archived-items">' + g.archived.map((s) => renderItem(s, currentSessionId, true)).join("") + "</div></div>" : "") + "</div></div>";
+      };
+      const activeDirs = dirs.filter((d) => !archivedProjects.includes(d));
+      const archivedDirs = dirs.filter((d) => archivedProjects.includes(d));
+      let html = "";
+      for (const dir of activeDirs) html += renderGroup(dir);
+      if (archivedDirs.length) {
+        html += '<div class="ck-ws-archived-projects' + (archivedProjectsOpen.v ? " open" : "") + '"><div class="ck-ws-archived-projects-title">\u5DF2\u5F52\u6863 ' + archivedDirs.length + ' \u9879\u76EE</div><div class="ck-ws-archived-projects-items">' + archivedDirs.map((d) => renderGroup(d)).join("") + "</div></div>";
       }
       listEl.innerHTML = html;
       bindWorkspaceEvents(listEl);

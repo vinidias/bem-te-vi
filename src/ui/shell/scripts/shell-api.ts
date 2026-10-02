@@ -27,6 +27,8 @@ export interface ShellAPI {
   navigateSession?: (sessionId: string) => Promise<any>;
   setSessionArchived?: (sessionId: string, archived: boolean) => Promise<any>;
   getDirInfo?: (dir: string) => Promise<{ success: boolean; dir?: string; createdAt?: string | null; error?: string }>;
+  setProjectArchived?: (dir: string, archived: boolean) => Promise<any>;
+  newConversationForProject?: (projectDir: string) => Promise<any>;
   // 提示词
   listSnippets?: () => Promise<any>;
   getSnippets?: () => Promise<any>;

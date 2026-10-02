@@ -31,8 +31,10 @@ function relTime(iso: string | null): string {
 
 /** 当前项目目录（默认展开，但不置顶）；用户手动展开的组记在 expandedDirs；已归档组记在 archivedOpen */
 let currentDir: string | null = null;
+let archivedProjects: string[] = [];
 const expandedDirs = new Set<string>();
 const archivedOpen = new Set<string>();
+const archivedProjectsOpen = { v: false };
 
 /** 取一组会话里最新的时间戳（毫秒）；全无时间返回 0 */
 function latestTs(list: any[]): number {
@@ -139,6 +141,14 @@ function bindWorkspaceEvents(listEl: HTMLElement): void {
       if (open) archivedOpen.add(dir); else archivedOpen.delete(dir);
     });
   });
+  // 已归档项目：展开/收起
+  listEl.querySelectorAll('.ck-ws-archived-projects-title').forEach((el: any) => {
+    el.addEventListener('click', () => {
+      const boxEl = el.closest('.ck-ws-archived-projects');
+      if (!boxEl) return;
+      archivedProjectsOpen.v = boxEl.classList.toggle('open');
+    });
+  });
   // 组标题：悬停显示项目信息卡片
   listEl.querySelectorAll('.ck-ws-group-title').forEach((el: any) => {
     el.addEventListener('mouseenter', () => {
@@ -146,6 +156,28 @@ function bindWorkspaceEvents(listEl: HTMLElement): void {
       if (groupEl) showDirTip(groupEl.dataset.dir, el);
     });
     el.addEventListener('mouseleave', hideDirTip);
+  });
+  // 组按钮：新建 / 归档项目
+  listEl.querySelectorAll('.ck-ws-gact').forEach((btn: any) => {
+    btn.addEventListener('click', async (e: any) => {
+      e.stopPropagation();
+      const groupEl = btn.closest('.ck-ws-group');
+      if (!groupEl) return;
+      const dir = groupEl.dataset.dir;
+      const act = btn.dataset.gact;
+      if (act === 'new') {
+        if (!api.newConversationForProject) return;
+        try { await api.newConversationForProject(dir); } catch (_) { /* ignore */ }
+      } else if (act === 'archive') {
+        if (!api.setProjectArchived) return;
+        try { await api.setProjectArchived(dir, true); } catch (_) { /* ignore */ }
+        loadWorkspaces();
+      } else if (act === 'unarchive') {
+        if (!api.setProjectArchived) return;
+        try { await api.setProjectArchived(dir, false); } catch (_) { /* ignore */ }
+        loadWorkspaces();
+      }
+    });
   });
   // 会话项：点击导航
   listEl.querySelectorAll('.ck-ws-item').forEach((el: any) => {
@@ -184,6 +216,7 @@ export async function loadWorkspaces(): Promise<void> {
     const r = await api.listAllSessions();
     const sessions = (r && r.success && Array.isArray(r.sessions)) ? r.sessions : [];
     const currentSessionId = (r && r.currentSessionId) || null;
+    archivedProjects = (r && Array.isArray(r.archivedProjects)) ? r.archivedProjects : [];
     if (sessions.length === 0) {
       listEl.innerHTML = '<div class="ck-list-empty">暂无会话</div>';
       return;
@@ -201,23 +234,32 @@ export async function loadWorkspaces(): Promise<void> {
       const tb = latestTs(groups[b].active.concat(groups[b].archived));
       return tb - ta;
     });
-    let html = '';
-    for (const dir of dirs) {
+    const renderGroup = (dir: string): string => {
       const g = groups[dir];
-      // 非归档：按时间倒序
       g.active.sort(byTimeDesc);
       g.archived.sort(byTimeDesc);
       const isOpen = (dir === currentDir) || expandedDirs.has(dir);
       const isArchOpen = archivedOpen.has(dir);
-      html += '<div class="ck-ws-group' + (isOpen ? ' open' : '') + '" data-dir="' + escapeAttr(dir) + '">' +
+      return '<div class="ck-ws-group' + (isOpen ? ' open' : '') + '" data-dir="' + escapeAttr(dir) + '">' +
         '<div class="ck-ws-group-title" title="' + escapeAttr(dir) + '">' +
           '<svg class="ck-ws-caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>' +
           '<svg class="ck-ws-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' +
-          escapeHtml(baseName(dir)) +
+          '<span class="ck-ws-gname">' + escapeHtml(baseName(dir)) + '</span>' +
+          '<span class="ck-ws-gacts">' +
+            '<span class="ck-ws-gact" data-gact="new" title="用该项目新建对话">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>' +
+            '</span>' +
+            (archivedProjects.includes(dir)
+              ? '<span class="ck-ws-gact" data-gact="unarchive" title="取消归档">' +
+                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v5h5"/><path d="M3.5 12a8.5 8.5 0 1 0 2-5.4L3 9"/></svg>' +
+                '</span>'
+              : '<span class="ck-ws-gact" data-gact="archive" title="归档项目">' +
+                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>' +
+                '</span>') +
+          '</span>' +
         '</div>' +
         '<div class="ck-ws-items">' +
           g.active.map((s: any) => renderItem(s, currentSessionId)).join('') +
-          // 归档入口（仅当该组有归档时显示）
           (g.archived.length ? (
             '<div class="ck-ws-archived' + (isArchOpen ? ' open' : '') + '" data-dir="' + escapeAttr(dir) + '">' +
               '<div class="ck-ws-archived-title">已归档 ' + g.archived.length + ' 对话</div>' +
@@ -226,6 +268,20 @@ export async function loadWorkspaces(): Promise<void> {
               '</div>' +
             '</div>'
           ) : '') +
+        '</div>' +
+      '</div>';
+    };
+    // 分开：活跃项目 / 已归档项目
+    const activeDirs = dirs.filter((d) => !archivedProjects.includes(d));
+    const archivedDirs = dirs.filter((d) => archivedProjects.includes(d));
+    let html = '';
+    for (const dir of activeDirs) html += renderGroup(dir);
+    // 底部「已归档 N 项目」（折叠）
+    if (archivedDirs.length) {
+      html += '<div class="ck-ws-archived-projects' + (archivedProjectsOpen.v ? ' open' : '') + '">' +
+        '<div class="ck-ws-archived-projects-title">已归档 ' + archivedDirs.length + ' 项目</div>' +
+        '<div class="ck-ws-archived-projects-items">' +
+          archivedDirs.map((d) => renderGroup(d)).join('') +
         '</div>' +
       '</div>';
     }
