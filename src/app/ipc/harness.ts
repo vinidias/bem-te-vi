@@ -14,6 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import * as windowState from '../window.js';
 import { scanSkills } from '../../skills/index.js';
+import { getPluginScanRoots } from '../../plugins/roots.js';
 import { registry } from '../../tools/index.js';
 import { getProvider } from '../../providers/registry.js';
 import { resetTodosCache } from './tool.js';
@@ -111,6 +112,35 @@ function findContext(sender: any): any {
   return null;
 }
 
+/**
+ * 通知 harness 视图：当前对话已作废，请完整重置。
+ *
+ * 为什么必须是一个**独立事件**，而不是靠 URL 变化触发的 `session-changed`：
+ * "新对话"落在平台首页，URL 里没有会话 id，`session-changed` 拿到的是空串；
+ * 而空串既可能是"新会话"的 key、也可能是当前会话的 key ——
+ * 复用按 session 存取那套逻辑会命中 harness 侧首行的 `sid === currentSessionId` 早退，
+ * 结果**什么都清不掉**（表现就是"新对话"后满屏残留）。
+ *
+ * 新对话是"丢弃"，切换会话是"存取"，语义不同就必须有不同的事件。
+ *
+ * 两条入口都要调它：
+ *  - harness 页面自己的清空按钮（harness-new-conversation）
+ *  - 壳页面侧栏的「新对话」按钮（web-new-conversation）
+ */
+function notifyHarnessReset(ctx: any): void {
+  try {
+    const hv = ctx && ctx.harnessView;
+    if (!hv || !hv.webContents || hv.webContents.isDestroyed()) return;
+    hv.webContents.send('harness-event', { type: 'reset' });
+  } catch (_) { /* ignore */ }
+}
+
+/** 新对话的公共前置：清主进程侧 todo 缓存 + 让 harness 视图完整重置 */
+function prepareNewConversation(ctx: any): void {
+  try { resetTodosCache(); } catch (_) { /* ignore */ }
+  notifyHarnessReset(ctx);
+}
+
 function registerHarnessIpc(): void {
   // 用户在 harness 输入 → 转给 AI 页面（bridge 会调 sendToChat）
   ipcMain.handle('harness-send', (event: any, payload: any) => {
@@ -196,7 +226,8 @@ function registerHarnessIpc(): void {
     try {
       const ctx = findContext(event.sender);
       const projectDir = ctx && ctx.sessionStore ? ctx.sessionStore.state.selectedProjectDir : null;
-      const skills = scanSkills(projectDir || null).map((s: any) => ({ name: s.name, description: s.description }));
+      const skills = scanSkills(projectDir || null, getPluginScanRoots().skillDirs)
+        .map((s: any) => ({ name: s.name, description: s.description }));
       const tools = registry.getDescriptions().map((t: any) => ({ name: t.name, description: t.description }));
       return { success: true, skills, tools };
     } catch (err: any) {
@@ -267,12 +298,8 @@ function registerHarnessIpc(): void {
       const url = provider && provider.homeUrl ? provider.homeUrl : null;
       if (!url) return { success: false, error: 'no-home-url' };
       console.log('[Cuckoo Harness] 新对话 → 导航到 ' + url);
-      // 新对话：清空旧计划
-      try {
-        resetTodosCache();
-        const hv = (ctx as any).harnessView;
-        if (hv && !hv.webContents.isDestroyed()) hv.webContents.send('harness-event', { type: 'plan', todos: [] });
-      } catch (_) { /* ignore */ }
+      // 清主进程 todo 缓存 + 让 harness 视图完整重置（后者是"残留"的根治点）
+      prepareNewConversation(ctx);
       ctx.view.webContents.loadURL(url);
       return { success: true, url: url };
     } catch (err: any) {
@@ -401,6 +428,6 @@ function attachStopFn(doc: any, win: any) {
   }
 }
 
-export { registerHarnessIpc };
+export { registerHarnessIpc, prepareNewConversation };
 
 

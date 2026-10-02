@@ -642,17 +642,84 @@
     stream.scrollTop = stream.scrollHeight;
     updateScrollBtn();
   }
-  function clearHist() {
+  /**
+   * 清掉"跨对话不该保留"的临时状态。
+   *
+   * 会话切换与"新对话"都要调 —— 任一处漏掉就会残留到下一个对话。
+   * （曾漏掉附件/提示/工具计数：上一条没发出去的附件会跟着下一条消息发出去。）
+   */
+  function clearTransientState() {
+    cancelGoalNudge();
+    stopPlanTick();
+    stopGoalTick();
+    toolRunningCount = 0;
+    generating = false;
+    clearAbortSuppression();
+    frameworkDriveUntil = 0;
+    lastDoneText = '';
+    lastPushedAssistant = '';
+    lastActivityAt = Date.now();
+    // 待发送的附件与提示属于"上一条没发出去的消息"，绝不能带进新对话
+    pendingFiles = [];
+    renderAttach();
+    pendingHints = [];
+    renderHints();
+    cur = null;
+  }
+
+  /**
+   * 完整重置当前对话（"新对话"）。
+   *
+   * 与"切换会话"的本质区别：切换是**按 session 存取**，新对话是**丢弃当前视图**。
+   *
+   * 关键在把 currentSessionId 归零：
+   *  - 平台首页 URL 没有会话 id，紧接着到达的 session-changed 会带空 sid；
+   *    若 currentSessionId 已是空，onSessionChanged 会在第一行早退 —— 这正是我们要的。
+   *    否则它会把 localStorage 里的旧记录 loadHist() 回来，刚清干净的界面又被填满。
+   *  - 旧会话的历史已随 pushHist 持久化在它自己的 key 下，切走不会丢。
+   */
+  function resetConversation() {
+    clearTransientState();
+
+    // 切到"新会话"（空 sid），并把空历史写进该 key，
+    // 挡住随后 loadHist() 把残留读回来
+    currentSessionId = '';
     history = [];
     saveHist();
     stream.innerHTML = '';
-    cur = null;
+    toolSeq = 0;
+
+    // 计划：连存档一起清（空 sid 的存档就是上一次"新对话"留下的）
+    planState = null;
+    savePlanState();
+    planBySession[currentSessionId] = [];
+    renderPlan([]);
+    renderPlanBar();
+    if (planPanel) planPanel.classList.remove('show');
+    resetPlanDrive();
+
+    // 目标
+    goal = null;
+    saveGoalState();
+    goalNoProgress = 0;
+    renderGoalBar();
+
+    // 运行态与视图
+    setStatus('就绪', 'ready');
+    syncBusyIndicators();
+    showEmptyState();
+    pinBottom = true;
+    updateScrollBtn();
+    try { input.focus(); } catch (e) { /* ignore */ }
   }
 
   // 会话切换：保存旧会话历史，加载新会话历史 + 切换该会话的 goal/plan
   function onSessionChanged(sid) {
     sid = sid || '';
     if (sid === currentSessionId) return;
+    // 跨对话不该保留的临时状态（附件/提示/工具计数/中止窗口）一律先清，
+    // 它们不属于任何会话，留着就是残留
+    clearTransientState();
     // 存旧会话的 history + goal
     try { localStorage.setItem(histKeyOf(currentSessionId), JSON.stringify(history)); } catch (e) { /* ignore */ }
     try { localStorage.setItem(goalKeyOf(currentSessionId), goal ? JSON.stringify(goal) : 'null'); } catch (e) { /* ignore */ }
@@ -1921,6 +1988,10 @@
           break;
         }
         case 'session-changed': onSessionChanged(payload.sessionId); break;
+        // 新对话：**完整丢弃**当前视图。
+        // 不能靠 session-changed 代劳 —— 首页 URL 无会话 id，sid 是空串，
+        // 会命中 onSessionChanged 首行的 `sid === currentSessionId` 早退，什么都清不掉。
+        case 'reset': resetConversation(); break;
         case 'status': setStatus(payload.text, payload.busy ? 'busy' : 'ready'); break;
       }
     });
@@ -2404,10 +2475,9 @@
   btnWeb.addEventListener('click', function () { if (api.exitToWeb) api.exitToWeb(); });
   var btnClear = document.getElementById('btn-clear');
   if (btnClear) btnClear.addEventListener('click', function () {
-    clearHist();
-    stopGoal('');
-    if (planPanel) planPanel.classList.remove('show');
-    setStatus('就绪', 'ready');
+    // 本地立刻清干净（不等主进程的 reset 事件，避免"点了没反应"的观感）；
+    // 主进程随后也会发 reset —— 那条路是为**壳页面侧栏**的新对话按钮准备的。
+    resetConversation();
     // 真正在 AI 网页中开新对话
     if (api.newConversation) api.newConversation().catch(function () { /* ignore */ });
   });

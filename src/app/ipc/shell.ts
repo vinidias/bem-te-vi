@@ -10,6 +10,8 @@ import { getProvider } from '../../providers/registry.js';
 import { setWindowCumulative, getTotal, cleanupSubagentKeys } from '../token-stats.js';
 import { resolveAsset, resolveSrc } from '../../infra/paths.js';
 import * as updater from '../../updater/index.js';
+// 新对话要让 harness 视图一起重置 —— 两个入口共用同一段逻辑，避免行为分叉
+import { prepareNewConversation } from './harness.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain, app, shell, BrowserWindow } = require('electron');
@@ -156,7 +158,13 @@ function registerShellIpc(): void {
     const provider = (ctx && ctx.providerId) ? getProvider(ctx.providerId) : null;
     const url = provider && provider.homeUrl ? provider.homeUrl : '';
     if (!url) return { success: false, error: 'no-home-url' };
-    try { await view.webContents.loadURL(url); return { success: true }; }
+    try {
+      // 这里曾只做 loadURL —— AI 网页换了新会话，但 harness 视图完全不知道，
+      // 于是消息流/计划/目标/附件全留在屏幕上（"新对话"后满屏残留）。
+      prepareNewConversation(ctx);
+      await view.webContents.loadURL(url);
+      return { success: true };
+    }
     catch (err: any) { return { success: false, error: err.message }; }
   });
 

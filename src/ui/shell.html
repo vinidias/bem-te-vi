@@ -602,6 +602,48 @@
   .ck-panel-body::-webkit-scrollbar-track { background: transparent; }
   .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
   .ck-panel-body::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
+
+  /* ===== 插件卡片（市场 + 已安装）=====
+     不复用 .ck-snip-preview：那是单行截断的，简介会显示不全。 */
+  .ck-plugin-item { padding: 10px 12px; border-bottom: 1px solid var(--ck-border); }
+  .ck-plugin-item:last-child { border-bottom: none; }
+  .ck-plugin-item:hover { background: var(--ck-surface); }
+  .ck-plugin-head { display: flex; align-items: center; gap: 8px; }
+  .ck-plugin-name {
+    font-size: 13px; font-weight: 600; color: var(--ck-text);
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* 已安装 / 有更新 徽标 */
+  .ck-plugin-badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 4px;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .ck-plugin-badge.on { background: rgba(74, 222, 128, .15); color: var(--ck-green); }
+  .ck-plugin-badge.update { background: rgba(255, 193, 7, .16); color: #ffc107; }
+  .ck-plugin-badge.archived { background: rgba(255, 107, 122, .15); color: var(--ck-red); }
+  /* 简介：多行，允许折行 */
+  .ck-plugin-desc {
+    font-size: 12px; color: var(--ck-text-dim); margin-top: 5px;
+    line-height: 1.55; white-space: normal; word-break: break-word;
+  }
+  /* 元信息行 */
+  .ck-plugin-meta {
+    font-size: 11px; color: var(--ck-text-dim); margin-top: 7px;
+    display: flex; flex-wrap: wrap; gap: 3px 10px; align-items: center;
+  }
+  .ck-plugin-meta .sep { opacity: .4; }
+  /* 版本要求行 */
+  .ck-plugin-req { font-size: 11px; color: var(--ck-text-dim); margin-top: 5px; }
+  .ck-plugin-req.warn { color: #ffc107; }
+  .ck-plugin-req.err { color: var(--ck-text-dim); opacity: .75; }
+  /* 已安装行的开关与操作按钮 */
+  .ck-plugin-switch-row { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .ck-plugin-switch-label { font-size: 11px; color: var(--ck-text-dim); }
+  /* 插件卡片的操作按钮：**常驻可见**。
+     不要复用 .ck-snip-actions —— 它带 opacity:0 + pointer-events:none，
+     且显示规则绑定在 .ck-snip-item:hover 上；放进 .ck-plugin-item 会永远不可见也点不到。
+     插件卡片的安装/更新/卸载是主要操作，不该藏到悬停里。 */
+  .ck-plugin-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -662,6 +704,9 @@
           </button>
           <button class="ck-ab-item" data-tab="skills" title="技能">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </button>
+          <button class="ck-ab-item" data-tab="plugins" title="插件">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.2 2.2 0 0 1 0 4.4H2V19a2 2 0 0 0 2 2h3.8v-1.5a2.2 2.2 0 0 1 4.4 0V21H18a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/></svg>
           </button>
           <button class="ck-ab-item" data-tab="conversations" title="对话">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -845,6 +890,29 @@
                 </button>
               </div>
               <div class="ck-list" id="skill-list">
+                <div class="ck-list-empty">加载中…</div>
+              </div>
+            </div>
+
+            <!-- ===== 插件 ===== -->
+            <div class="ck-tab" data-panel="plugins">
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;">已安装插件</span>
+                <button class="ck-icon-btn" id="plugin-open-dir" title="打开插件目录">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                </button>
+                <button class="ck-icon-btn" id="plugin-refresh" title="刷新（重新搜索市场）">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+              <div class="ck-list" id="plugin-installed-list">
+                <div class="ck-list-empty">加载中…</div>
+              </div>
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;">市场</span>
+                <span class="ck-snip-badge" title="唯一搜索源">topic:cuckoo-plugin</span>
+              </div>
+              <div class="ck-list" id="plugin-market-list">
                 <div class="ck-list-empty">加载中…</div>
               </div>
             </div>
@@ -1443,6 +1511,7 @@
         if (t === 'about') { try { loadAbout(); } catch (e) {} }
         if (t === 'feishu') { try { loadFeishu(); } catch (e) {} }
         if (t === 'skills') { try { loadSkills(); } catch (e) {} }
+        if (t === 'plugins') { try { loadPlugins(); } catch (e) {} }
         if (t === 'conversations') { try { loadWebConversations(); } catch (e) {} }
       };
       // 收起状态下点图标 → 展开并切到该标签
@@ -1709,11 +1778,13 @@
           '<div class="ck-skill-desc">' + escapeHtml(s.description || '（无描述）') + '</div>' +
         '</div>';
       };
-      var userSkills = skills.filter(function (s) { return s.source !== 'project'; });
+      var pluginSkills = skills.filter(function (s) { return s.source === 'plugin'; });
+      var userSkills = skills.filter(function (s) { return s.source !== 'project' && s.source !== 'plugin'; });
       var projSkills = skills.filter(function (s) { return s.source === 'project'; });
       var html = '';
-      if (userSkills.length) html += '<div class="ck-mcp-group-title">用户级</div>' + userSkills.map(skillCard).join('');
       if (projSkills.length) html += '<div class="ck-mcp-group-title">项目级</div>' + projSkills.map(skillCard).join('');
+      if (userSkills.length) html += '<div class="ck-mcp-group-title">用户级</div>' + userSkills.map(skillCard).join('');
+      if (pluginSkills.length) html += '<div class="ck-mcp-group-title">插件</div>' + pluginSkills.map(skillCard).join('');
       listEl.innerHTML = html;
       // 点击 → 追加"请使用 xxx 技能"到输入框
       listEl.querySelectorAll('.ck-skill-item').forEach(function (el) {
@@ -1730,6 +1801,323 @@
   }
   var skillRefreshBtn = document.getElementById('skill-refresh');
   if (skillRefreshBtn) skillRefreshBtn.addEventListener('click', loadSkills);
+
+  // ===== 插件 =====
+  // 市场唯一搜索源是 GitHub topic:cuckoo-plugin。
+  // 搜索为空就如实显示空状态 —— 不做关键词兜底、不做官方精选清单。
+  var pluginMarketItems = [];
+  var pluginMarketNotice = '';
+  // repo → 已安装摘要（来自市场接口）；repo → 远端 plugin.json（来自 remote 接口）
+  var pluginInstalled = {};
+  var pluginRemote = {};
+
+  var ICON_INSTALL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
+  var ICON_UPDATE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>';
+  var ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+
+  async function loadPlugins() {
+    await loadInstalledPlugins();
+    await loadPluginMarket(false);
+  }
+
+  function pluginContribSummary(c) {
+    if (!c) return '';
+    var parts = [];
+    if (c.skills && c.skills.length) parts.push('技能 ' + c.skills.length);
+    if (c.agents && c.agents.length) parts.push('代理 ' + c.agents.length);
+    if (c.rules && c.rules.length) parts.push('规则 ' + c.rules.length);
+    if (c.mcp) parts.push('MCP');
+    if (c.providers && c.providers.length) parts.push('可执行 ' + c.providers.length);
+    return parts.join(' · ');
+  }
+
+  /** 是否含可执行内容（providers 文件 或 MCP server）—— 决定启用时是否需要警告 */
+  function pluginHasExec(c) {
+    if (!c) return false;
+    return !!((c.providers && c.providers.length > 0) || c.mcp);
+  }
+
+  /** 版本比较：a 比 b 新则返回 true。非数字段一律当 0，非法输入返回 false。 */
+  function isNewerVersion(a, b) {
+    if (!a || !b) return false;
+    var pa = String(a).split('.').map(function (x) { return parseInt(x, 10) || 0; });
+    var pb = String(b).split('.').map(function (x) { return parseInt(x, 10) || 0; });
+    var n = Math.max(pa.length, pb.length);
+    for (var i = 0; i < n; i++) {
+      var x = pa[i] || 0, y = pb[i] || 0;
+      if (x > y) return true;
+      if (x < y) return false;
+    }
+    return false;
+  }
+
+  /**
+   * 市场条目相对已安装版本的状态：'none'（未装）/ 'installed' / 'update'。
+   * 优先用远端 plugin.json 的精确版本；拿不到时回退到"仓库在安装之后推送过"的启发式。
+   */
+  function pluginUpdateState(it) {
+    var inst = pluginInstalled[it.id];
+    if (!inst) return 'none';
+    var remote = pluginRemote[it.id];
+    if (remote && remote.ok && remote.version) {
+      return isNewerVersion(remote.version, inst.version) ? 'update' : 'installed';
+    }
+    if (it.pushedAt && inst.installedAt) {
+      var pushed = Date.parse(it.pushedAt);
+      var installed = Date.parse(inst.installedAt);
+      if (Number.isFinite(pushed) && Number.isFinite(installed) && pushed > installed) return 'update';
+    }
+    return 'installed';
+  }
+
+  /** 元信息行（语言 · star · 许可证 · 日期） */
+  function pluginMetaHtml(pairs) {
+    var cells = [];
+    pairs.forEach(function (p) {
+      if (p) cells.push('<span>' + p + '</span>');
+    });
+    if (!cells.length) return '';
+    return '<div class="ck-plugin-meta">' + cells.join('<span class="sep">·</span>') + '</div>';
+  }
+
+  async function loadInstalledPlugins() {
+    var listEl = document.getElementById('plugin-installed-list');
+    if (!listEl || !api.listInstalledPlugins) return;
+    try {
+      var r = await api.listInstalledPlugins();
+      var plugins = (r && r.success) ? r.plugins : [];
+      if (!plugins.length) {
+        listEl.innerHTML = '<div class="ck-list-empty">还没有安装插件<br>从下方市场安装</div>';
+        return;
+      }
+      listEl.innerHTML = plugins.map(function (p) {
+        var hasExec = pluginHasExec(p.contributes);
+        // 开关：插件的总开关。开启后技能/代理/规则/MCP/可执行内容全部生效。
+        var swTitle = hasExec
+          ? '启用后：技能/代理/规则 + MCP + 可执行内容全部生效'
+          : '启用后：技能/代理/规则全部生效';
+        var sw = '<label class="ck-switch" title="' + escapeAttr(swTitle) + '">' +
+          '<input type="checkbox" data-toggle="' + escapeAttr(p.id) + '"' + (p.enabled ? ' checked' : '') + ' />' +
+          '<span class="ck-switch-track"></span></label>';
+
+        var meta = [];
+        if (p.version) meta.push('v' + escapeHtml(p.version));
+        if (p.repo) meta.push(escapeHtml(p.repo));
+        var contrib = pluginContribSummary(p.contributes);
+        if (contrib) meta.push(escapeHtml(contrib));
+
+        return '<div class="ck-plugin-item" data-plugin="' + escapeAttr(p.id) + '">' +
+          '<div class="ck-plugin-head">' +
+            '<span class="ck-plugin-name">' + escapeHtml(p.name || p.id) + '</span>' +
+            (hasExec ? '<span class="ck-plugin-badge update" title="含可执行内容">含可执行</span>' : '') +
+            '<div class="ck-plugin-switch-row">' +
+              '<span class="ck-plugin-switch-label">' + (p.enabled ? '已启用' : '已禁用') + '</span>' +
+              sw +
+            '</div>' +
+            '<div class="ck-plugin-actions">' +
+              '<button class="ck-snip-icon-btn danger" data-uninstall="' + escapeAttr(p.id) + '" title="卸载">' +
+                ICON_TRASH +
+              '</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="ck-plugin-desc">' + escapeHtml(p.description || '（无描述）') + '</div>' +
+          pluginMetaHtml(meta) +
+        '</div>';
+      }).join('');
+
+      listEl.querySelectorAll('[data-uninstall]').forEach(function (btn) {
+        btn.addEventListener('click', async function (e) {
+          e.stopPropagation();
+          var id = btn.dataset.uninstall;
+          if (!(await ckConfirm('确定卸载插件「' + id + '」？\n\n插件目录与其启用状态都会被删除。', '卸载插件'))) return;
+          var r = await api.pluginUninstall(id);
+          if (!r || !r.success) { await ckAlert((r && r.error) || '卸载失败'); return; }
+          await loadPlugins();
+        });
+      });
+
+      // 开关：启用含可执行内容的插件时先警告（那会在本机运行第三方代码）
+      listEl.querySelectorAll('[data-toggle]').forEach(function (input) {
+        input.addEventListener('change', async function () {
+          var id = input.dataset.toggle;
+          var p = plugins.filter(function (x) { return x.id === id; })[0];
+          var turnOn = input.checked;
+
+          if (turnOn && p && pluginHasExec(p.contributes)) {
+            var lines = (p.contributes.providers || []).map(function (f) {
+              return '· providers/' + f + '（会被 require 执行）';
+            });
+            if (p.contributes.mcp) lines.push('· mcp.json 里的 MCP server（会启动子进程）');
+            var ok = await ckConfirm(
+              '启用「' + (p.name || id) + '」？\n\n' +
+              '该插件含可执行内容，启用后会在本机运行第三方代码：\n\n' +
+              lines.join('\n'),
+              '启用插件'
+            );
+            if (!ok) { input.checked = false; return; }
+          }
+
+          var r = await api.pluginSetEnabled(id, turnOn);
+          if (!r || !r.success) {
+            input.checked = !turnOn; // 失败回滚，避免 UI 与真实状态不一致
+            await ckAlert((r && r.error) || '操作失败');
+            return;
+          }
+          await loadInstalledPlugins();
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = '<div class="ck-list-empty">加载失败</div>';
+    }
+  }
+
+  /** 渲染市场列表（数据来自 pluginMarketItems / pluginInstalled / pluginRemote） */
+  function renderPluginMarket() {
+    var listEl = document.getElementById('plugin-market-list');
+    if (!listEl) return;
+    var notice = pluginMarketNotice
+      ? '<div class="ck-list-empty">' + escapeHtml(pluginMarketNotice) + '</div>'
+      : '';
+    if (!pluginMarketItems.length) {
+      // 空就是空：如实告知，并给出可执行的下一步
+      listEl.innerHTML = notice +
+        '<div class="ck-list-empty">暂无插件<br><br>给你的仓库打上 <b>cuckoo-plugin</b> topic，<br>它就会出现在这里</div>';
+      return;
+    }
+    listEl.innerHTML = notice + pluginMarketItems.map(marketCardHtml).join('');
+    listEl.querySelectorAll('[data-install]').forEach(function (btn) {
+      btn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        var id = btn.dataset.install;
+        var it = pluginMarketItems.filter(function (x) { return x.id === id; })[0];
+        if (it) await installPluginFromMarket(it, btn.dataset.upgrade === '1');
+      });
+    });
+  }
+
+  function marketCardHtml(it) {
+    var state = pluginUpdateState(it);
+    var remote = pluginRemote[it.id];
+
+    var badges = '';
+    if (it.archived) badges += '<span class="ck-plugin-badge archived" title="仓库已归档，可能不再维护">已归档</span>';
+    if (state === 'installed') badges += '<span class="ck-plugin-badge on">已安装</span>';
+    if (state === 'update') badges += '<span class="ck-plugin-badge update">可更新</span>';
+
+    // 已安装且无更新 → 不给操作按钮（避免重复安装把用户已改过的内容覆盖掉）
+    var action = '';
+    if (state === 'none') {
+      action = '<button class="ck-snip-icon-btn" data-install="' + escapeAttr(it.id) + '" title="安装">' +
+        ICON_INSTALL + '</button>';
+    } else if (state === 'update') {
+      action = '<button class="ck-snip-icon-btn" data-install="' + escapeAttr(it.id) + '" data-upgrade="1" title="更新到最新">' +
+        ICON_UPDATE + '</button>';
+    }
+
+    // 版本要求：搜索接口不返回这些，靠远端 plugin.json 补（没拿到就不显示）
+    var req = '';
+    if (remote && remote.ok) {
+      var bits = [];
+      if (remote.version) bits.push('插件 v' + escapeHtml(remote.version));
+      if (remote.minAppVersion) bits.push('需要 Cuckoo Code ≥ ' + escapeHtml(remote.minAppVersion));
+      if (bits.length) req = '<div class="ck-plugin-req">' + bits.join(' · ') + '</div>';
+    } else if (remote && remote.error) {
+      req = '<div class="ck-plugin-req err">读不到 plugin.json：' + escapeHtml(remote.error) + '</div>';
+    }
+
+    return '<div class="ck-plugin-item" data-repo="' + escapeAttr(it.id) + '">' +
+      '<div class="ck-plugin-head">' +
+        '<span class="ck-plugin-name" title="' + escapeAttr(it.id) + '">' + escapeHtml(it.id) + '</span>' +
+        badges +
+        '<div class="ck-plugin-actions">' + action + '</div>' +
+      '</div>' +
+      '<div class="ck-plugin-desc">' + escapeHtml(it.description || '（无简介）') + '</div>' +
+      pluginMetaHtml([
+        it.language ? escapeHtml(it.language) : '',
+        it.stars ? '★ ' + it.stars : '',
+        it.license ? escapeHtml(it.license) : '',
+        (it.pushedAt || it.updatedAt || '').slice(0, 10),
+      ]) +
+      req +
+    '</div>';
+  }
+
+  async function loadPluginMarket(force) {
+    var listEl = document.getElementById('plugin-market-list');
+    if (!listEl || !api.pluginMarketList) return;
+    listEl.innerHTML = '<div class="ck-list-empty">加载中…</div>';
+    try {
+      var r = await api.pluginMarketList({ force: !!force });
+      if (!r || !r.success) {
+        pluginMarketItems = [];
+        pluginMarketNotice = (r && r.error) || '加载失败';
+        renderPluginMarket();
+        return;
+      }
+      pluginMarketItems = r.items || [];
+      pluginInstalled = (r && r.installed) || {};
+      pluginMarketNotice = (r && r.error) || '';
+      renderPluginMarket();
+      // 搜索接口不返回插件版本/兼容要求，异步补齐后再渲染一次
+      loadRemoteManifests();
+    } catch (e) {
+      listEl.innerHTML = '<div class="ck-list-empty">加载失败</div>';
+    }
+  }
+
+  /** 批量拉远端 plugin.json（版本 / 最低应用版本），并据此判定「可更新」 */
+  async function loadRemoteManifests() {
+    if (!api.pluginMarketRemote) return;
+    var targets = pluginMarketItems
+      .filter(function (it) { return it.defaultBranch; })
+      .map(function (it) { return { repo: it.id, branch: it.defaultBranch }; });
+    if (!targets.length) return;
+    try {
+      var r = await api.pluginMarketRemote(targets);
+      if (!r || !r.success) return;
+      pluginRemote = r.remote || {};
+      renderPluginMarket();
+    } catch (e) { /* 补信息失败不影响主列表 */ }
+  }
+
+  async function installPluginFromMarket(item, isUpgrade) {
+    var remote = pluginRemote[item.id];
+    var what = isUpgrade ? '更新' : '安装';
+
+    var lines = [item.id];
+    if (item.description) lines.push(item.description);
+    if (remote && remote.ok) {
+      if (remote.version) lines.push('版本：v' + remote.version);
+      if (remote.minAppVersion) lines.push('需要 Cuckoo Code ≥ ' + remote.minAppVersion);
+    }
+
+    var ok = await ckConfirm(
+      '确定' + what + '该插件？\n\n' + lines.join('\n') +
+      '\n\n装好后默认处于禁用状态，需在「已安装」处打开开关才生效。',
+      what + '插件'
+    );
+    if (!ok) return;
+
+    var r = await api.pluginInstall(item.id, item.defaultBranch, !!isUpgrade);
+    if (!r || !r.success) {
+      await ckAlert((r && r.error) || (what + '失败'), what + '失败');
+      return;
+    }
+    var msg = (r.upgraded ? '已更新：' : '已安装：') + ((r.plugin && r.plugin.name) || item.id);
+    msg += '\n\n默认禁用。在「已安装」处打开开关后，它的技能 / 代理 / 规则 / MCP / 可执行内容才会生效。';
+    await ckAlert(msg, r.upgraded ? '更新完成' : '安装完成');
+    await loadPlugins();
+  }
+
+  var pluginRefreshBtn = document.getElementById('plugin-refresh');
+  if (pluginRefreshBtn) pluginRefreshBtn.addEventListener('click', function () { loadPluginMarket(true); });
+
+  var pluginOpenDirBtn = document.getElementById('plugin-open-dir');
+  if (pluginOpenDirBtn) pluginOpenDirBtn.addEventListener('click', async function () {
+    if (!api.pluginOpenDir) return;
+    var r = await api.pluginOpenDir();
+    if (r && !r.success) await ckAlert((r.error) || '打开目录失败');
+  });
 
   // ===== MCP =====
   async function loadMcpServers() {

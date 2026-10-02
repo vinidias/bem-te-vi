@@ -5,7 +5,7 @@ title: 纯净对话模式（Harness 模式，类 Codex 体验）
 status: doing
 branch: feat/017-harness-mode
 created: 2026-09-29
-updated: 2026-09-30
+updated: 2026-10-02
 ---
 
 ## 背景
@@ -195,9 +195,37 @@ AI 回复 → hook → observer → onInterceptedResponse
   **结束判定交给权威信号 `task-idle`**（见上一节），兜底只负责"事件丢失"这一种异常，且有界
   （框架窗口 120 秒 / 窗口外静默 60 秒即复位）。工具执行中不计静默。
 
+### 新对话残留修复（2026-10-02）
+
+- **症状**：点「新对话」后界面满是残留 —— 消息流、计划、目标、附件都还在。
+- **根因（两处，缺一不可）**：
+
+  1. **壳页面侧栏的「新对话」按钮完全没通知 harness。**
+     `web-new-conversation` 只做了 `loadURL(平台首页)`；而 harness 是**独立的 WebContentsView**，
+     AI 网页换了会话它毫不知情。（harness 页面自己的清空按钮走 `harness-new-conversation`，
+     那条路有清理 —— 两个入口行为分叉，正是"有时清有时不清"的来源。）
+
+  2. **即便走到 harness 自己的清理，也是半吊子。**
+     原先只有 `clearHist()`，仅清 `history` / `stream` / `cur` 三样；
+     另一条清理路径 `onSessionChanged` 也没清附件、提示、工具计数。
+     而它的首行是 `if (sid === currentSessionId) return;` ——
+     新对话落到平台首页时 URL 没有会话 id，sid 是**空串**，极易命中早退，于是**什么都不做**。
+
+- **修复**：
+  - 主进程新增独立事件 `reset`（`notifyHarnessReset`）与公共前置 `prepareNewConversation`，
+    **两条入口共用**。不复用 `session-changed`：新对话是"丢弃"，切换会话是"按 session 存取"，
+    语义不同就必须有不同的事件。
+  - harness 侧把两个半吊子函数合并为**唯一**的重置路径：
+    `clearTransientState()`（跨会话临时状态，两条路径共用）+ `resetConversation()`（完整重置换新对话）。
+  - **`resetConversation()` 把 `currentSessionId` 归零**并 `saveHist()` 写入空历史。
+    这是关键：否则随后到达的 `session-changed('')` 会把旧记录 `loadHist()` 回来，等于白清。
+    （旧会话的历史本就随 `pushHist` 存在它自己的 key 下，切走不会丢。）
+
+- **守卫**：`test/app/new-conversation.test.js` 钉住"两条入口都必须调用公共重置"这条不变式。
+  已验证有效 —— 去掉 `web-new-conversation` 里的重置，该测试会失败。
+
 ## 遗留 / 后续
 
 - 对话往返的真机端到端验证需在**已登录 AI 平台**的会话中进行（dev 隔离 profile 未登录，仅验证到页面加载与渲染）。
-- 当前 harness 对话流不落盘（刷新即清空）；后续可考虑持久化历史。
 - 工具卡片目前按"最近一张未完成卡片"匹配 start/end，若并发多工具可能需更精确的 callId 关联（当前 observer 逐块执行，实际为串行，无影响）。
 - AI 回复为空时：`assistant-done` 仍会到达并把状态收尾为就绪（空回复不渲染气泡），已不再是悬留点。

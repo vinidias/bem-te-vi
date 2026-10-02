@@ -49,6 +49,8 @@ export async function cdpAttach(ctx: AttachCtx, file: AttachPayload): Promise<At
     // Page 域必须显式启用：CDP 只对已启用的域派发事件，
     // 否则 Page.fileChooserOpened 永不触发，拦截形同虚设（只会等到超时）。
     await wc.debugger.sendCommand('Page.enable');
+    // DOM 域：命中隐藏 file input 时需要 DOM.getDocument/querySelector 定位它再直接注入
+    try { await wc.debugger.sendCommand('DOM.enable'); } catch (_) { /* ignore */ }
 
     // 页内探测上传入口坐标（provider 自定义源码优先，通用关键词兜底）。
     // 第三参传入文件信息，便于平台按类型选择不同入口（如智谱：图片走图片键、
@@ -74,9 +76,17 @@ export async function cdpAttach(ctx: AttachCtx, file: AttachPayload): Promise<At
     const waitComposerReady = async (timeoutMs: number): Promise<boolean> => {
       const fn = function () {
         try {
-          var up = (window as any).__cuckooZhipuUpload__;
-          if (up && up.state === 'ok') return { ready: true, via: 'upload-ok' };
-          if (up && (up.state === 'fail' || up.state === 'error')) return { ready: false, via: 'upload-' + up.state };
+          // 各 provider 自报的上传状态标记（provider 的 hook 在页内维护）。
+          // 原实现只认 zhipu 的标记，mimo 等 provider 会整条落空，
+          // 只能退回 DOM 启发式 —— 而 mimo 的附件卡片是 Tailwind 固定尺寸，
+          // 不匹配 file-item/attach-item 类名，会误判为"未就绪"。
+          var marks = [(window as any).__cuckooZhipuUpload__, (window as any).__cuckooMimoUpload__];
+          for (var mi = 0; mi < marks.length; mi++) {
+            var mk = marks[mi];
+            if (!mk) continue;
+            if (mk.state === 'ok') return { ready: true, via: 'upload-ok' };
+            if (mk.state === 'fail' || mk.state === 'error') return { ready: false, via: 'upload-' + mk.state };
+          }
           var vh = window.innerHeight || 800;
           var imgs = document.querySelectorAll('img');
           var preview = 0;
@@ -84,7 +94,10 @@ export async function cdpAttach(ctx: AttachCtx, file: AttachPayload): Promise<At
             var r = imgs[i].getBoundingClientRect();
             if (r.top > vh * 0.6 && r.width > 8 && r.height > 8) preview++;
           }
-          var chips = document.querySelectorAll('[class*="file-item"],[class*="attach-item"],[class*="upload-item"],[class*="file-list"],[class*="preview-item"]');
+          // 附件卡片：zhipu 用 file-item/attach-item 语义类；
+          // mimo 的附件卡片是固定尺寸 Tailwind 卡片，bundle 实证类名含 h-14 w-60
+          // （240×56 的文件卡），故追加该签名。
+          var chips = document.querySelectorAll('[class*="file-item"],[class*="attach-item"],[class*="upload-item"],[class*="file-list"],[class*="preview-item"],[class*="w-60"][class*="h-14"]');
           var chipVis = 0;
           for (var k = 0; k < chips.length; k++) {
             var cr = chips[k].getBoundingClientRect();
@@ -190,6 +203,33 @@ export async function cdpAttach(ctx: AttachCtx, file: AttachPayload): Promise<At
       if (!probe || !probe.found || typeof probe.x !== 'number') {
         if (round === 1) return { success: false, error: 'upload-entry-not-found', probe };
         break;
+      }
+      // provider 命中隐藏 <input type=file>（实机 mimo：bundle 渲染 display:none 的 file input）：
+      // 它的坐标毫无意义——display:none 时 getBoundingClientRect() 是 0,0，
+      // 照坐标点击只会打到视口左上角，永远等不到文件选择框（file-chooser-timeout）。
+      // 正确做法：跳过点击，直接对该 input 注入（DOM.setFileInputFiles 不要求元素可见）。
+      // provider 侧会给命中的 input 打上 data-cuckoo-attach-input 标记，避免选错元素。
+      if (probe.isFileInput) {
+        pageLog('命中隐藏 file input（坐标无意义），跳过点击，改为直接注入');
+        try {
+          const docNode: any = await wc.debugger.sendCommand('DOM.getDocument', { depth: 1 });
+          const found: any = await wc.debugger.sendCommand('DOM.querySelector', {
+            nodeId: docNode && docNode.root && docNode.root.nodeId,
+            selector: 'input[data-cuckoo-attach-input]',
+          });
+          if (found && found.nodeId) {
+            await wc.debugger.sendCommand('DOM.setFileInputFiles', { files: [tmpPath], nodeId: found.nodeId });
+            console.log('[Cuckoo Attach] 已直接注入隐藏 file input: ' + tmpPath);
+            pageLog('文件已注入（直接注入隐藏 file input）');
+            await dumpComposer('直接注入后立即');
+            const ready = await waitComposerReady(12000);
+            setTimeout(() => { dumpComposer('就绪等待后'); }, 500);
+            return { success: ready, mode: 'cdp-direct', error: ready ? undefined : 'attachment-not-ready', probe };
+          }
+          pageLog('未按标记定位到 file input，回退到点击流程');
+        } catch (e: any) {
+          pageLog('直接注入异常: ' + ((e && e.message) || e) + '，回退到点击流程');
+        }
       }
       const cx = Math.round(probe.x), cy = Math.round(probe.y);
       await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mouseMoved', x: cx, y: cy, button: 'none', clickCount: 0 });
