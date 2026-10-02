@@ -97,7 +97,7 @@ function createWindow(profile: any) {
   const profileData = profile || profileManager.getDefaultProfile();
   const provider = getProvider(profileData.providerId) || null;
   const storeDir = app.getPath('userData');
-  const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
+  const sessionStore = createSessionStore(profileData.id, storeDir, windowState, { noPersist: !!profileData.isSubagent });
   const hasExplicitProfile = !!profile;
   // providerId 已确定 → 直接打开；未确定 → 显示平台选择页
   const providerChosen = !!profileData.providerId;
@@ -895,6 +895,8 @@ if (!gotSingleInstanceLock) {
     setupAppMenu();
     // MCP 配置首次迁移（旧 userData/mcp.json → ~/.cuckoo/mcp.json，旧文件保留）
     try { mcpConfig.migrateLegacy(); } catch (_) { /* ignore */ }
+    // 清理子代理窗口遗留的 session 存储文件（历史 bug：子代理不需要持久化）
+    try { profileManager.cleanupSubagentStores(); } catch (_) { /* ignore */ }
     // 启动时打开所有"默认打开"的窗口；若一个都没勾，回退默认（上次活跃的或第一个）
     const autoOpen = profileManager.getAutoOpenProfiles();
     if (autoOpen.length > 0) {

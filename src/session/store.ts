@@ -11,11 +11,16 @@ import { getProviderByUrl } from '../providers/registry.js';
  * @param profileId profile id
  * @param storeDir 存储目录（通常是 userData）
  * @param windowState window 管理模块引用
+ * @param opts.noPersist 为 true 时纯内存态（子代理窗口用，不落盘）
  */
-function createSessionStore(profileId: string, storeDir: string, windowState: any): any {
+function createSessionStore(profileId: string, storeDir: string, windowState: any, opts: any = {}): any {
   const STORE_FILE = path.join(storeDir, 'session-dir-map-' + profileId + '.json');
+  // 子代理窗口：内存态，不读写盘（临时窗口，关了就弃）
+  const noPersist = opts && opts.noPersist === true;
+  let memStore: any = {};
 
   function readSessionStore(): any {
+    if (noPersist) return memStore;
     try {
       if (fs.existsSync(STORE_FILE)) {
         return JSON.parse(fs.readFileSync(STORE_FILE, 'utf-8'));
@@ -27,6 +32,7 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
   }
 
   function writeSessionStore(store: any): void {
+    if (noPersist) { memStore = store; return; }
     try {
       fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), 'utf-8');
       console.log('[Cuckoo Code] 会话存储已保存:', STORE_FILE);
