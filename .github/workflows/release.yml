@@ -57,7 +57,7 @@ jobs:
           name: dist-${{ matrix.os }}
           path: |
             dist/*.exe
-            dist/*.exe.blockmap
+            dist/*.blockmap
             dist/*.zip
             dist/*.dmg
             dist/latest*.yml
@@ -89,7 +89,7 @@ jobs:
           generate_release_notes: true
           files: |
             dist/*.exe
-            dist/*.exe.blockmap
+            dist/*.blockmap
             dist/*.zip
             dist/*.dmg
             dist/latest*.yml
