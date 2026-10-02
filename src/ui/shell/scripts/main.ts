@@ -7,6 +7,7 @@ import { registerTab } from './sidebar.js';
 import './toolbar.js';
 import './platform.js';
 
+import { loadWorkspaces } from './pages/workspaces.js';
 import { loadSnippets } from './pages/snippets.js';
 import { loadSkills } from './pages/skills.js';
 import { loadAgents } from './pages/agents.js';
@@ -19,6 +20,7 @@ import { loadSettings } from './pages/settings.js';
 import { renderRecent } from './recent.js';
 
 // 注册 tab → 加载函数（sidebar 点击时调用）
+registerTab('workspaces', loadWorkspaces);
 registerTab('snippets', loadSnippets);
 registerTab('skills', loadSkills);
 registerTab('agents', loadAgents);
@@ -29,7 +31,8 @@ registerTab('feishu', loadFeishu);
 registerTab('windows', renderWindowList);
 registerTab('settings', loadSettings);
 
-// 预加载：提示词 + 自动压缩配置
+// 预加载：工作区（默认页）+ 提示词 + 自动压缩配置
+try { loadWorkspaces(); } catch (_) { /* ignore */ }
 try { loadSnippets(); } catch (_) { /* ignore */ }
 try { loadAutoCompact(); } catch (_) { /* ignore */ }
 

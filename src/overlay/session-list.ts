@@ -25,15 +25,17 @@ async function renderSessions(): Promise<void> {
       return;
     }
 
-    const sessions = result.sessions || [];
+    // 兼容两种返回：字符串数组（旧）或 { sessionId, title, ... } 对象数组（新）
+    const raw = result.sessions || [];
+    const sessions = raw.map((s: any) => (typeof s === 'string' ? { sessionId: s, title: null } : s));
     if (sessions.length === 0) {
       listContainer.innerHTML = '<div class="cuckoo-session-empty">暂无会话</div>';
       return;
     }
 
-    listContainer.innerHTML = sessions.map((sessionId: string) => `
-      <div class="cuckoo-session-item" data-session-id="${escapeHtml(sessionId)}">
-        <span class="session-id">${escapeHtml(sessionId)}</span>
+    listContainer.innerHTML = sessions.map((s: any) => `
+      <div class="cuckoo-session-item" data-session-id="${escapeHtml(s.sessionId)}">
+        <span class="session-id">${escapeHtml(s.title || s.sessionId)}</span>
         <span class="session-action">▶ 跳转</span>
       </div>
     `).join('');

@@ -20,6 +20,11 @@ export interface ShellAPI {
   onProjectDir?: (cb: (dir: string | null) => void) => void;
   getProjectDir?: () => Promise<any>;
   onPlatformMode?: (cb: (data: any) => void) => void;
+  // 会话（侧边栏「工作区」页）
+  listAllSessions?: () => Promise<any>;
+  navigateSession?: (sessionId: string) => Promise<any>;
+  setSessionArchived?: (sessionId: string, archived: boolean) => Promise<any>;
+  getDirInfo?: (dir: string) => Promise<{ success: boolean; dir?: string; createdAt?: string | null; error?: string }>;
   // 提示词
   listSnippets?: () => Promise<any>;
   getSnippets?: () => Promise<any>;

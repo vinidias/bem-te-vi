@@ -141,6 +141,7 @@
       "src/overlay/template/*.html",
       "src/overlay/template/*.css",
       "src/ui/*.html",
+      "src/ui/vendor/**",
       "src/ui/feishu-images/**"
     ]
   },
@@ -151,6 +152,7 @@
     "@vscode/ripgrep": "^1.18.0",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
+    "marked": "^18.0.14",
     "mysql2": "^3.24.2",
     "picomatch": "^4.0.7",
     "turndown": "^7.2.4"

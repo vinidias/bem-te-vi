@@ -35,16 +35,84 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     }
   }
 
-  function getProjectDirBySessionId(sessionId: string): any {
+  /**
+   * 取会话元数据（统一为对象结构）。
+   * 兼容旧格式（值直接是 projectDir 字符串）→ 归一化为 { projectDir }。
+   */
+  function getSessionMeta(sessionId: string): any {
     if (!sessionId) return null;
     const store = readSessionStore();
-    return store[sessionId] || null;
+    const v = store[sessionId];
+    if (v == null) return null;
+    if (typeof v === 'string') return { projectDir: v, title: null, createdAt: null, updatedAt: null, archived: false };
+    return {
+      projectDir: v.projectDir || null,
+      title: v.title || null,
+      createdAt: v.createdAt || null,
+      updatedAt: v.updatedAt || null,
+      archived: v.archived === true,
+    };
   }
 
+  function getProjectDirBySessionId(sessionId: string): any {
+    const meta = getSessionMeta(sessionId);
+    return meta ? meta.projectDir : null;
+  }
+
+  /**
+   * 保存/更新"会话 → 项目目录"映射。
+   * 新结构：{ projectDir, title, createdAt, updatedAt }。
+   * 兼容旧数据：若旧值是字符串，就地升级为对象（createdAt 保持 null，不补记时间）。
+   */
   function saveSessionDirMapping(sessionId: string, projectDir: any): void {
     if (!sessionId) return;
     const store = readSessionStore();
-    store[sessionId] = projectDir;
+    const old = store[sessionId];
+    const now = new Date().toISOString();
+    if (old == null) {
+      // 新会话：记录创建/更新时间
+      store[sessionId] = { projectDir, title: null, createdAt: now, updatedAt: now };
+    } else if (typeof old === 'string') {
+      // 旧数据升级：不补记时间（老数据不记录时间）
+      store[sessionId] = { projectDir, title: null, createdAt: null, updatedAt: null };
+    } else {
+      old.projectDir = projectDir;
+      // 仅"新数据"（已有 createdAt）更新时间；老数据升级来的保持无时间
+      if (old.createdAt != null) old.updatedAt = now;
+      store[sessionId] = old;
+    }
+    writeSessionStore(store);
+  }
+
+  /** 归档/取消归档会话 */
+  function setSessionArchived(sessionId: string, archived: boolean): void {
+    if (!sessionId) return;
+    const store = readSessionStore();
+    const old = store[sessionId];
+    if (old == null) return;
+    if (typeof old === 'string') {
+      store[sessionId] = { projectDir: old, title: null, createdAt: null, updatedAt: null, archived: archived === true };
+    } else {
+      old.archived = archived === true;
+      store[sessionId] = old;
+    }
+    writeSessionStore(store);
+  }
+
+  /** 更新会话标题（预留：供后续抓取网页标题/首条消息时写入） */
+  function updateSessionTitle(sessionId: string, title: string): void {
+    if (!sessionId || !title) return;
+    const store = readSessionStore();
+    const old = store[sessionId];
+    if (old == null) return;
+    const now = new Date().toISOString();
+    if (typeof old === 'string') {
+      store[sessionId] = { projectDir: old, title, createdAt: null, updatedAt: now };
+    } else {
+      old.title = title;
+      old.updatedAt = now;
+      store[sessionId] = old;
+    }
     writeSessionStore(store);
   }
 
@@ -139,8 +207,11 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
   return {
     readSessionStore,
     writeSessionStore,
+    getSessionMeta,
     getProjectDirBySessionId,
     saveSessionDirMapping,
+    updateSessionTitle,
+    setSessionArchived,
     extractSessionIdFromUrl,
     handleUrlChange,
     tryRestoreSessionFromUrl,

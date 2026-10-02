@@ -44,6 +44,11 @@ const shellAPI = {
   openProfileWindow: (profileId: string) => ipcRenderer.invoke('open-profile-window', { profileId }),
   deleteProfileWindow: (profileId: string) => ipcRenderer.invoke('delete-profile', { profileId }),
   setProfileAutoOpen: (profileId: string, autoOpen: boolean) => ipcRenderer.invoke('set-profile-auto-open', { profileId, autoOpen }),
+  // ========== 会话（侧边栏「工作区」页）==========
+  listAllSessions: () => ipcRenderer.invoke('list-all-sessions'),
+  navigateSession: (sessionId: string) => ipcRenderer.invoke('navigate-session', { sessionId }),
+  setSessionArchived: (sessionId: string, archived: boolean) => ipcRenderer.invoke('set-session-archived', { sessionId, archived }),
+  getDirInfo: (dir: string) => ipcRenderer.invoke('get-dir-info', { dir }),
   // ========== 快捷提示词 ==========
   listSnippets: () => ipcRenderer.invoke('list-snippets'),
   saveSnippets: (snippets: any) => ipcRenderer.invoke('save-snippets', { snippets }),

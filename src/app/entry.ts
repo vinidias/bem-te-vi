@@ -175,8 +175,8 @@ function createWindow(profile: any) {
       },
     });
     mainWindow.contentView.addChildView(hv);
-    // harness 页面加载前的底色：跟随系统深浅色（加载后由页面 CSS 接管）
-    hv.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#1a1a1a' : '#ffffff');
+    // harness 页面加载前的底色：跟随系统深浅色（对齐设计规范，加载后由页面 CSS 接管）
+    hv.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#16181d' : '#ffffff');
     hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
     harnessView = hv;
     (mainWindow as any).__ckHarnessView = hv;

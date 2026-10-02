@@ -8,29 +8,30 @@
 <style>
   /* ===== 浅色（默认）===== */
   :root {
+    /* 对齐设计规范（同壳页面 --ck-*）*/
     --bg: #ffffff;
-    --bg-elev: #f7f8fa;
-    --surface: #f1f2f5;
-    --surface-hover: #e8eaee;
-    --border: #e3e5ea;
-    --border-strong: #cfd2d9;
-    --border-soft: #eceef1;
+    --bg-elev: #fbfbfd;
+    --surface: #f5f6f8;
+    --surface-hover: #eef0f4;
+    --border: rgba(16, 24, 40, 0.07);
+    --border-strong: rgba(16, 24, 40, 0.12);
+    --border-soft: rgba(16, 24, 40, 0.05);
     --text: #16181d;
     --text-2: #545a67;
     --text-dim: #8a8f9b;
     --text-strong: #000000;
-    --accent: #d97757;
-    --accent-soft: rgba(217,119,87,0.10);
-    --green: #2f9e5f;
-    --red: #d93f47;
+    --accent: #4d6bfe;
+    --accent-soft: rgba(77, 107, 254, 0.08);
+    --green: #30a46c;
+    --red: #e5484d;
     --amber: #b07d2b;
-    --user-bg: #f0f1f4;
-    --code-bg: #f6f7f9;
+    --user-bg: #eef0f4;
+    --code-bg: #f5f6f8;
     --code-text: #b5451f;
     --think-bg: rgba(0,0,0,0.02);
     --hover-soft: rgba(0,0,0,0.05);
-    --scroll-thumb: rgba(0,0,0,0.18);
-    --scroll-hover: rgba(0,0,0,0.30);
+    --scroll-thumb: rgba(0, 0, 0, 0.14);
+    --scroll-hover: rgba(0, 0, 0, 0.24);
     --amber-soft: rgba(176,125,43,0.10);
     --shadow-color: rgba(16,24,40,0.12);
     --mono: "SFMono-Regular", "SF Mono", "Cascadia Code", "Consolas", "Liberation Mono", monospace;
@@ -39,29 +40,30 @@
   /* ===== 深色（跟随系统）===== */
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1a1a1a;
-      --bg-elev: #212121;
-      --surface: #262626;
-      --surface-hover: #2e2e2e;
-      --border: #333333;
-      --border-strong: #444444;
-      --border-soft: #2a2a2a;
-      --text: #ececec;
-      --text-2: #b4b4b4;
-      --text-dim: #7a7a7a;
+      /* 对齐设计规范（同壳页面 --ck-*）*/
+      --bg: #16181d;
+      --bg-elev: #191c22;
+      --surface: rgba(255, 255, 255, 0.045);
+      --surface-hover: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.14);
+      --border-soft: rgba(255, 255, 255, 0.05);
+      --text: #e4e6eb;
+      --text-2: #a8adba;
+      --text-dim: #757b8a;
       --text-strong: #ffffff;
-      --accent: #d97757;
-      --accent-soft: rgba(217,119,87,0.14);
-      --green: #7fb069;
-      --red: #e06c75;
+      --accent: #6b83ff;
+      --accent-soft: rgba(107, 131, 255, 0.16);
+      --green: #46b47e;
+      --red: #ff6369;
       --amber: #d9a05b;
-      --user-bg: #2b2b2b;
-      --code-bg: #141414;
+      --user-bg: rgba(255, 255, 255, 0.08);
+      --code-bg: rgba(0, 0, 0, 0.35);
       --code-text: #e0a58a;
       --think-bg: rgba(255,255,255,0.018);
       --hover-soft: rgba(255,255,255,0.08);
-      --scroll-thumb: #3a3a3a;
-      --scroll-hover: #4a4a4a;
+      --scroll-thumb: rgba(255, 255, 255, 0.14);
+      --scroll-hover: rgba(255, 255, 255, 0.24);
       --amber-soft: rgba(217,160,91,0.08);
       --shadow-color: rgba(0,0,0,0.45);
     }
@@ -102,7 +104,7 @@
   .tb-btn:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
 
   /* ===== 消息流 ===== */
-  .stream { flex: 1; overflow-y: auto; padding: 20px 0 8px; position: relative; }
+  .stream { flex: 1; overflow-y: auto; padding: 20px 40px 8px; position: relative; }
   .stream::-webkit-scrollbar { width: 9px; }
   .stream::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 5px; border: 2px solid var(--bg); background-clip: padding-box; }
   .stream::-webkit-scrollbar-thumb:hover { background: var(--scroll-hover); background-clip: padding-box; border: 2px solid var(--bg); }
@@ -152,21 +154,53 @@
     letter-spacing: .4px; margin-bottom: 7px;
   }
   .msg.assistant .prefix svg { width: 12px; height: 12px; }
-  .msg.assistant .body { line-height: 1.72; color: var(--text); word-break: break-word; }
-  .msg.assistant .body p { margin: 0 0 10px; }
+  /* 正文：对齐设计规范（主文字 13px，行高 1.75）*/
+  .msg.assistant .body { font-size: 13px; line-height: 1.75; color: var(--text); word-break: break-word; }
+  .msg.assistant .body p { margin: 0 0 12px; }
   .msg.assistant .body p:last-child { margin-bottom: 0; }
   .msg.assistant .body code {
-    background: var(--surface); padding: 1.5px 5px; border-radius: 4px;
-    font-family: var(--mono); font-size: 12.5px; color: var(--code-text);
+    background: var(--surface); padding: 2px 6px; border-radius: 5px;
+    font-family: var(--mono); font-size: 12px; color: var(--code-text);
   }
   .msg.assistant .body pre {
-    background: var(--code-bg); border: 1px solid var(--border-soft);
-    border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 10px 0;
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 9px; padding: 12px 14px; overflow-x: auto; margin: 12px 0;
   }
   .msg.assistant .body pre code { background: none; padding: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.62; }
   .msg.assistant .body strong { color: var(--text-strong); font-weight: 600; }
-  .msg.assistant .body ul { margin: 8px 0; padding-left: 20px; }
-  .msg.assistant .body li { margin: 3px 0; }
+  .msg.assistant .body em { font-style: italic; }
+  .msg.assistant .body ul, .msg.assistant .body ol { margin: 10px 0; padding-left: 22px; }
+  .msg.assistant .body li { margin: 4px 0; }
+  /* marked（GFM）生成元素 */
+  .msg.assistant .body h1, .msg.assistant .body h2, .msg.assistant .body h3,
+  .msg.assistant .body h4, .msg.assistant .body h5, .msg.assistant .body h6 {
+    margin: 16px 0 8px; font-weight: 600; line-height: 1.45; color: var(--text);
+  }
+  .msg.assistant .body h1 { font-size: 16px; }
+  .msg.assistant .body h2 { font-size: 15px; }
+  .msg.assistant .body h3 { font-size: 14px; }
+  .msg.assistant .body h4, .msg.assistant .body h5, .msg.assistant .body h6 { font-size: 13px; color: var(--text-2); }
+  .msg.assistant .body h1:first-child, .msg.assistant .body h2:first-child, .msg.assistant .body h3:first-child { margin-top: 0; }
+  .msg.assistant .body a { color: var(--accent); text-decoration: none; }
+  .msg.assistant .body a:hover { text-decoration: underline; }
+  /* 引用：底色块（规范：少边框、多留白）*/
+  .msg.assistant .body blockquote {
+    margin: 12px 0; padding: 8px 14px; color: var(--text-2);
+    background: var(--surface); border-radius: 9px;
+  }
+  .msg.assistant .body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  /* 表格：发丝边框 + 圆角（规范：淡边框）*/
+  .msg.assistant .body table {
+    border-collapse: collapse; margin: 12px 0; font-size: 12.5px;
+    border: 1px solid var(--border); border-radius: 9px; overflow: hidden;
+  }
+  .msg.assistant .body th, .msg.assistant .body td {
+    border: 1px solid var(--border); padding: 7px 12px; text-align: left;
+  }
+  .msg.assistant .body th { background: var(--surface); font-weight: 600; color: var(--text); }
+  .msg.assistant .body del { color: var(--text-dim); }
+  .msg.assistant .body img { max-width: 100%; border-radius: 9px; }
+  .msg.assistant .body input[type="checkbox"] { margin-right: 6px; accent-color: var(--accent); }
 
   /* 流式光标 */
   .msg.system { display: flex; justify-content: center; }
@@ -228,7 +262,7 @@
   .tool-sec + .tool-sec { border-top: 1px solid var(--border-soft); }
   .tool-sec-label { font-size: 9.5px; font-weight: 600; color: var(--text-dim); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 6px; }
   .tool-pre {
-    background: var(--code-bg); border-radius: 6px; padding: 10px 12px; margin: 0;
+    background: var(--code-bg); border-radius: 9px; padding: 10px 12px; margin: 0;
     overflow: auto; max-height: 340px;
     font-family: var(--mono); font-size: 12px; line-height: 1.6;
     color: var(--text-2); white-space: pre-wrap; word-break: break-word;
@@ -236,7 +270,7 @@
   .tool-pre.err { color: var(--red); }
 
   /* ===== 输入区 ===== */
-  .composer { flex-shrink: 0; padding: 10px 24px 20px; }
+  .composer { flex-shrink: 0; padding: 12px 40px 28px; }
   /* 首次对话需选择项目目录（大虚线按钮，替代输入框） */
   .init-project-btn {
     display: block; width: 100%; max-width: 780px; margin: 0 auto;
@@ -259,7 +293,7 @@
   .composer-inner:focus-within { border-color: var(--border-strong); box-shadow: 0 0 0 3px var(--hover-soft); }
   #input {
     flex: 1; border: none; outline: none; background: transparent; resize: none;
-    color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.65;
+    color: var(--text); font-family: inherit; font-size: 13px; line-height: 1.65;
     max-height: 260px; min-height: 72px; padding: 3px 0;
     scrollbar-width: thin;
   }
@@ -485,6 +519,7 @@
     <div class="drop-overlay" id="drop-overlay">松开以添加文件</div>
   </div>
 </div>
+<script src="vendor/marked.umd.js"></script>
 <script>
 (function () {
   var api = window.harnessAPI || {};
@@ -763,36 +798,16 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  // Markdown → HTML：用 marked（GFM）
   function renderMarkdown(text) {
     var src = String(text == null ? '' : text);
-    var blocks = [];
-    var reFence = new RegExp(FENCE + '([\w-]*)\n?([\s\S]*?)' + FENCE, 'g');
-    src = src.replace(reFence, function (m, lang, code) {
-      blocks.push('<pre><code>' + esc(code) + '</code></pre>');
-      return '@@BLOCK' + (blocks.length - 1) + '@@';
-    });
-    src = esc(src);
-    var reInline = new RegExp(BT + '([^' + BT + '\n]+)' + BT, 'g');
-    src = src.replace(reInline, '<code>$1</code>');
-    src = src.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    // 无序列表
-    var lines = src.split('\n');
-    var out = [], listBuf = [];
-    function flushList() {
-      if (listBuf.length) { out.push('<ul>' + listBuf.join('') + '</ul>'); listBuf = []; }
-    }
-    for (var i = 0; i < lines.length; i++) {
-      var m = /^\s*[-*]\s+(.*)$/.exec(lines[i]);
-      if (m) { listBuf.push('<li>' + m[1] + '</li>'); }
-      else { flushList(); out.push(lines[i]); }
-    }
-    flushList();
-    src = out.join('\n');
-    var parts = src.split(/\n{2,}/).map(function (p) {
-      if (p.indexOf('<ul>') === 0) return p;
-      return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
-    }).join('');
-    return parts.replace(/@@BLOCK(\d+)@@/g, function (m, i) { return blocks[+i] || ''; });
+    if (!src) return '';
+    try {
+      if (window.marked && typeof window.marked.parse === 'function') {
+        return window.marked.parse(src, { gfm: true, breaks: true });
+      }
+    } catch (e) { /* 解析失败回退纯文本 */ }
+    return '<p>' + esc(src).replace(/\n/g, '<br>') + '</p>';
   }
 
   // force=true 时总是滚到底；否则仅在用户仍"跟随底部"时才跟随（不打扰往上翻看）

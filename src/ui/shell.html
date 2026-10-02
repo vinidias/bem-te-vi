@@ -548,6 +548,74 @@
   .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
   .ck-panel-body::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
 
+  /* ===== 工作区（会话）===== */
+  .ck-ws-group { display: flex; flex-direction: column; }
+  .ck-ws-group + .ck-ws-group { margin-top: 6px; }
+  .ck-ws-group-title {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; color: var(--ck-text-dim);
+    padding: 5px 6px; border-radius: 7px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background .15s;
+  }
+  .ck-ws-group-title:hover { background: var(--ck-surface-hover); }
+  .ck-ws-group-title svg { width: 13px; height: 13px; flex-shrink: 0; opacity: .7; }
+  .ck-ws-caret { width: 11px !important; height: 11px !important; transition: transform .15s; }
+  .ck-ws-group.open .ck-ws-caret { transform: rotate(90deg); }
+  .ck-ws-items { display: none; }
+  .ck-ws-group.open .ck-ws-items { display: block; }
+  .ck-ws-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px 7px 20px; border-radius: 8px;
+    cursor: pointer; transition: background .15s;
+  }
+  .ck-ws-item:hover { background: var(--ck-surface-hover); }
+  .ck-ws-item:active { transform: scale(.99); }
+  .ck-ws-name {
+    flex: 1; min-width: 0; font-size: 12px; color: var(--ck-text-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ck-ws-item:hover .ck-ws-name { color: var(--ck-text); }
+  .ck-ws-time { font-size: 10.5px; color: var(--ck-text-dim); flex-shrink: 0; }
+  .ck-ws-item.current { background: var(--ck-primary-soft); }
+  .ck-ws-item.current .ck-ws-name { color: var(--ck-primary); font-weight: 600; }
+  /* 归档按钮：始终占位（用 visibility 控制显隐），避免悬停时行高跳动 */
+  .ck-ws-act {
+    display: flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; flex-shrink: 0; border-radius: 5px;
+    color: var(--ck-text-dim); cursor: pointer;
+    visibility: hidden; opacity: 0; transition: opacity .12s;
+  }
+  .ck-ws-item:hover .ck-ws-act { visibility: visible; opacity: 1; }
+  .ck-ws-act:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-ws-act svg { width: 13px; height: 13px; }
+  /* 已归档区 */
+  .ck-ws-archived { margin-top: 2px; }
+  .ck-ws-archived-title {
+    display: flex; align-items: center;
+    padding: 5px 10px 5px 20px; border-radius: 7px;
+    font-size: 11px; color: var(--ck-text-dim); cursor: pointer;
+    transition: background .15s;
+  }
+  .ck-ws-archived-title:hover { background: var(--ck-surface-hover); }
+  .ck-ws-archived-title::before { content: '▸ '; margin-right: 2px; font-size: 9px; }
+  .ck-ws-archived.open .ck-ws-archived-title::before { content: '▾ '; }
+  .ck-ws-archived-items { display: none; }
+  .ck-ws-archived.open .ck-ws-archived-items { display: block; }
+  /* 项目悬停卡片（全路径 + 创建时间） */
+  .ck-ws-tip {
+    position: fixed; z-index: 999;
+    max-width: 300px; padding: 12px 14px;
+    background: var(--ck-text); color: var(--ck-bg);
+    border-radius: 12px; box-shadow: var(--ck-shadow-lg);
+    font-size: 12px; line-height: 1.6; pointer-events: none;
+    animation: ck-tip-in .12s ease;
+  }
+  @keyframes ck-tip-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+  .ck-ws-tip .ck-tip-name { font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+  .ck-ws-tip .ck-tip-path { word-break: break-all; opacity: .75; font-size: 11.5px; }
+  .ck-ws-tip .ck-tip-time { margin-top: 5px; opacity: .6; font-size: 11px; }
+
 /* ===== 目录 ===== */
   .ck-dir-path {
     font-family: "SF Mono", "Consolas", monospace; font-size: 11.5px;
@@ -699,7 +767,10 @@
     <div class="main-area">
       <div class="ck-sidebar ck-collapsed" id="ck-sidebar">
         <div class="ck-activitybar">
-          <button class="ck-ab-item ck-ab-active" data-tab="snippets" title="提示词">
+          <button class="ck-ab-item ck-ab-active" data-tab="workspaces" title="工作区（会话）">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          </button>
+          <button class="ck-ab-item" data-tab="snippets" title="提示词">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           </button>
           <button class="ck-ab-item" data-tab="skills" title="技能">
@@ -790,6 +861,19 @@
           </div>
 
           <div class="ck-panel-body">
+            <!-- ===== 工作区（会话） ===== -->
+            <div class="ck-tab ck-tab-active" data-panel="workspaces">
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;">工作区</span>
+                <button class="ck-icon-btn" id="ws-refresh" title="刷新">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+              <div class="ck-list" id="ws-list">
+                <div class="ck-list-empty">加载中…</div>
+              </div>
+            </div>
+
             <!-- ===== Token ===== -->
             <div class="ck-tab" data-panel="token">
               <div class="ck-token-hero">
@@ -864,7 +948,7 @@
             </div>
 
             <!-- ===== 提示词 ===== -->
-            <div class="ck-tab ck-tab-active" data-panel="snippets">
+            <div class="ck-tab" data-panel="snippets">
               <div class="ck-actions">
                 <button class="ck-btn ck-btn-anim" id="snip-init-project">
                   <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/></svg>
@@ -1142,6 +1226,7 @@
     </div>
 
   </div>
+  <div class="ck-ws-tip" id="ws-tip" style="display:none"></div>
 <script>
 "use strict";
 (() => {
@@ -1374,6 +1459,201 @@
     if (toolbar) toolbar.classList.toggle("ck-toolbar-plain", !!selecting);
   }
   if (api.onPlatformMode) api.onPlatformMode((d) => setPlatformSelectingMode(d && d.selecting));
+
+  // src/ui/shell/scripts/pages/workspaces.ts
+  function baseName(dir) {
+    if (!dir) return "\u672A\u547D\u540D";
+    const parts = String(dir).replace(/[\\/]+$/, "").split(/[\\/]/);
+    return parts[parts.length - 1] || dir;
+  }
+  function relTime(iso) {
+    if (!iso) return "";
+    const t = Date.parse(iso);
+    if (!Number.isFinite(t)) return "";
+    const diff = Date.now() - t;
+    const min = Math.floor(diff / 6e4);
+    if (min < 1) return "\u521A\u521A";
+    if (min < 60) return min + "\u5206\u949F\u524D";
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + "\u5C0F\u65F6\u524D";
+    const day = Math.floor(hr / 24);
+    if (day < 30) return day + "\u5929\u524D";
+    const mon = Math.floor(day / 30);
+    if (mon < 12) return mon + "\u4E2A\u6708\u524D";
+    return Math.floor(mon / 12) + "\u5E74\u524D";
+  }
+  var currentDir = null;
+  var expandedDirs = /* @__PURE__ */ new Set();
+  var archivedOpen = /* @__PURE__ */ new Set();
+  function latestTs(list) {
+    let max = 0;
+    for (const s of list) {
+      const t = s.updatedAt ? Date.parse(s.updatedAt) : 0;
+      if (Number.isFinite(t) && t > max) max = t;
+    }
+    return max;
+  }
+  function byTimeDesc(a, b) {
+    const ta = a.updatedAt ? Date.parse(a.updatedAt) : 0;
+    const tb = b.updatedAt ? Date.parse(b.updatedAt) : 0;
+    return tb - ta;
+  }
+  function renderItem(s, currentSessionId) {
+    const label = s.title || s.sessionId;
+    const time = relTime(s.updatedAt);
+    const isCur = s.sessionId === currentSessionId;
+    return '<div class="ck-ws-item' + (isCur ? " current" : "") + '" data-session-id="' + escapeAttr(s.sessionId) + '" title="' + escapeAttr(s.sessionId) + '"><span class="ck-ws-name">' + escapeHtml(label) + "</span>" + (time ? '<span class="ck-ws-time">' + escapeHtml(time) + "</span>" : "") + '<span class="ck-ws-act" data-act="archive" title="\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg></span></div>';
+  }
+  function fmtCreatedAt(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return "";
+    const p2 = (n) => n < 10 ? "0" + n : String(n);
+    return d.getFullYear() + "\u5E74" + (d.getMonth() + 1) + "\u6708" + d.getDate() + "\u65E5 " + p2(d.getHours()) + ":" + p2(d.getMinutes());
+  }
+  function showDirTip(dir, anchor) {
+    const tip = document.getElementById("ws-tip");
+    if (!tip) return;
+    tip.innerHTML = '<div class="ck-tip-name">' + escapeHtml(baseName(dir)) + '</div><div class="ck-tip-path">' + escapeHtml(dir) + '</div><div class="ck-tip-time" id="ws-tip-time">\u8BFB\u53D6\u4E2D\u2026</div>';
+    tip.style.display = "block";
+    const rect = anchor.getBoundingClientRect();
+    const top = rect.bottom + 6;
+    const sidebar2 = document.getElementById("ck-sidebar");
+    const sbw = sidebar2 && sidebar2.offsetWidth ? sidebar2.offsetWidth : 320;
+    const maxLeft = sbw - tip.offsetWidth - 6;
+    let left = Math.min(rect.left, Math.max(6, maxLeft));
+    if (left < 6) left = 6;
+    tip.style.top = top + "px";
+    tip.style.left = left + "px";
+    if (api.getDirInfo) {
+      api.getDirInfo(dir).then((r) => {
+        const t = document.getElementById("ws-tip-time");
+        if (!t) return;
+        if (r && r.success && r.createdAt) t.textContent = "\u521B\u5EFA\u4E8E " + fmtCreatedAt(r.createdAt);
+        else t.textContent = "\uFF08\u65E0\u6CD5\u8BFB\u53D6\u521B\u5EFA\u65F6\u95F4\uFF09";
+      }).catch(() => {
+        const t = document.getElementById("ws-tip-time");
+        if (t) t.textContent = "\uFF08\u65E0\u6CD5\u8BFB\u53D6\u521B\u5EFA\u65F6\u95F4\uFF09";
+      });
+    }
+  }
+  function hideDirTip() {
+    const tip = document.getElementById("ws-tip");
+    if (tip) tip.style.display = "none";
+  }
+  function bindWorkspaceEvents(listEl) {
+    listEl.querySelectorAll(".ck-ws-group-title").forEach((el) => {
+      el.addEventListener("click", () => {
+        const groupEl = el.closest(".ck-ws-group");
+        if (!groupEl) return;
+        const dir = groupEl.dataset.dir;
+        const open = groupEl.classList.toggle("open");
+        if (open) expandedDirs.add(dir);
+        else expandedDirs.delete(dir);
+      });
+    });
+    listEl.querySelectorAll(".ck-ws-archived-title").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const boxEl = el.closest(".ck-ws-archived");
+        if (!boxEl) return;
+        const dir = boxEl.dataset.dir;
+        const open = boxEl.classList.toggle("open");
+        if (open) archivedOpen.add(dir);
+        else archivedOpen.delete(dir);
+      });
+    });
+    listEl.querySelectorAll(".ck-ws-group-title").forEach((el) => {
+      el.addEventListener("mouseenter", () => {
+        const groupEl = el.closest(".ck-ws-group");
+        if (groupEl) showDirTip(groupEl.dataset.dir, el);
+      });
+      el.addEventListener("mouseleave", hideDirTip);
+    });
+    listEl.querySelectorAll(".ck-ws-item").forEach((el) => {
+      el.addEventListener("click", async (e) => {
+        if (e.target.closest('[data-act="archive"]')) {
+          e.stopPropagation();
+          const id2 = el.dataset.sessionId;
+          if (!id2 || !api.setSessionArchived) return;
+          try {
+            await api.setSessionArchived(id2, true);
+          } catch (_) {
+          }
+          loadWorkspaces();
+          return;
+        }
+        const id = el.dataset.sessionId;
+        if (!id || !api.navigateSession) return;
+        try {
+          await api.navigateSession(id);
+        } catch (_) {
+        }
+      });
+    });
+  }
+  async function loadWorkspaces() {
+    const listEl = document.getElementById("ws-list");
+    if (!listEl || !api.listAllSessions) return;
+    try {
+      if (api.getProjectDir) {
+        try {
+          const pr = await api.getProjectDir();
+          if (pr && pr.success) currentDir = pr.dir;
+        } catch (_) {
+        }
+      }
+      const r = await api.listAllSessions();
+      const sessions = r && r.success && Array.isArray(r.sessions) ? r.sessions : [];
+      const currentSessionId = r && r.currentSessionId || null;
+      if (sessions.length === 0) {
+        listEl.innerHTML = '<div class="ck-list-empty">\u6682\u65E0\u4F1A\u8BDD</div>';
+        return;
+      }
+      const groups = {};
+      for (const s of sessions) {
+        const dir = s.projectDir || "";
+        if (!groups[dir]) groups[dir] = { active: [], archived: [] };
+        if (s.archived) groups[dir].archived.push(s);
+        else groups[dir].active.push(s);
+      }
+      const dirs = Object.keys(groups).sort((a, b) => {
+        const ta = latestTs(groups[a].active.concat(groups[a].archived));
+        const tb = latestTs(groups[b].active.concat(groups[b].archived));
+        return tb - ta;
+      });
+      let html = "";
+      for (const dir of dirs) {
+        const g = groups[dir];
+        g.active.sort(byTimeDesc);
+        g.archived.sort(byTimeDesc);
+        const isOpen = dir === currentDir || expandedDirs.has(dir);
+        const isArchOpen = archivedOpen.has(dir);
+        html += '<div class="ck-ws-group' + (isOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-group-title" title="' + escapeAttr(dir) + '"><svg class="ck-ws-caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><svg class="ck-ws-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' + escapeHtml(baseName(dir)) + '</div><div class="ck-ws-items">' + g.active.map((s) => renderItem(s, currentSessionId)).join("") + // 归档入口（仅当该组有归档时显示）
+        (g.archived.length ? '<div class="ck-ws-archived' + (isArchOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-archived-title">\u5DF2\u5F52\u6863 ' + g.archived.length + ' \u5BF9\u8BDD</div><div class="ck-ws-archived-items">' + g.archived.map((s) => renderItem(s, currentSessionId)).join("") + "</div></div>" : "") + "</div></div>";
+      }
+      listEl.innerHTML = html;
+      bindWorkspaceEvents(listEl);
+    } catch (_) {
+      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+    }
+  }
+  document.getElementById("ws-refresh")?.addEventListener("click", loadWorkspaces);
+  if (api.onProjectDir) {
+    api.onProjectDir((dir) => {
+      currentDir = dir;
+      loadWorkspaces();
+    });
+  }
+  var wsRefreshTimer = null;
+  if (api.onUrlUpdated) {
+    api.onUrlUpdated(() => {
+      if (wsRefreshTimer) clearTimeout(wsRefreshTimer);
+      wsRefreshTimer = setTimeout(() => {
+        loadWorkspaces();
+      }, 600);
+    });
+  }
 
   // src/ui/shell/scripts/recent.ts
   var KEY = "cuckoo-shell-recent-tools";
@@ -2263,6 +2543,7 @@
   });
 
   // src/ui/shell/scripts/main.ts
+  registerTab("workspaces", loadWorkspaces);
   registerTab("snippets", loadSnippets);
   registerTab("skills", loadSkills);
   registerTab("agents", loadAgents);
@@ -2272,6 +2553,10 @@
   registerTab("feishu", loadFeishu);
   registerTab("windows", renderWindowList);
   registerTab("settings", loadSettings);
+  try {
+    loadWorkspaces();
+  } catch (_) {
+  }
   try {
     loadSnippets();
   } catch (_) {
