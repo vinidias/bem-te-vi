@@ -199,6 +199,12 @@ function registerFeishuIpc(): void {
       if (!r.success) console.warn('[Feishu] 推送失败（' + label + '）:', r.error);
       return r;
     };
+    // Markdown 推送（AI 回复用，渲染 MD）
+    const pushMd = async (md: string, label: string) => {
+      const r = await feishuClient.sendMarkdown(md, chatId);
+      if (!r.success) console.warn('[Feishu] 推送失败（' + label + '）:', r.error);
+      return r;
+    };
     try {
       if (type === 'user-message') {
         if (!cfg.pushUserMessage) return { success: true };
@@ -207,7 +213,7 @@ function registerFeishuIpc(): void {
       } else if (type === 'ai-reply') {
         if (!cfg.pushAiReply) return { success: true };
         const t = String(payload.text || '').trim();
-        if (t) return await push('🤖 AI：' + t, 'ai-reply');
+        if (t) return await pushMd('**🤖 AI：**\n\n' + t, 'ai-reply');
       } else if (type === 'tool-start') {
         if (!cfg.pushToolStatus) return { success: true };
         return await push(cfg.pushToolName && payload.toolName ? '🔧 正在调用工具：' + payload.toolName : '🔧 AI 正在调用工具…', 'tool-start');

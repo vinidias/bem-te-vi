@@ -204,5 +204,72 @@ async function sendText(text: string, chatId?: string): Promise<{ success: boole
   }
 }
 
-export { connect, disconnect, sendText, getStatus, readConfig, listChats };
+/**
+ * 发送 Markdown 消息（用飞书交互卡片渲染）。
+ *
+ * 飞书纯文本消息（msg_type: 'text'）不渲染 Markdown；
+ * 交互卡片（msg_type: 'interactive'）的 markdown 元素支持常见语法
+ * （粗体、斜体、列表、代码块、链接、分割线等）。
+ *
+ * @param md Markdown 文本
+ * @param chatId 群 chat_id；为空则回退单聊
+ */
+async function sendMarkdown(md: string, chatId?: string): Promise<{ success: boolean; error?: string }> {
+  const cfg = readConfig();
+  if (!apiClient) {
+    if (!cfg.appId || !cfg.appSecret) return { success: false, error: '未配置' };
+    apiClient = new lark.Client({ appId: cfg.appId, appSecret: cfg.appSecret });
+  }
+  const text = String(md || '');
+  // 飞书卡片有内容长度上限，过长时分片（每片 ~4000 字符）
+  const MAX = 4000;
+  const chunks: string[] = [];
+  if (text.length <= MAX) {
+    chunks.push(text);
+  } else {
+    for (let i = 0; i < text.length; i += MAX) chunks.push(text.slice(i, i + MAX));
+  }
+
+  const sendOne = async (chunk: string, receiveIdType: 'chat_id' | 'open_id', receiveId: string): Promise<{ success: boolean; error?: string }> => {
+    // 交互卡片：markdown 元素
+    const card = {
+      config: { wide_screen_mode: true },
+      elements: [{ tag: 'markdown', content: chunk }],
+    };
+    try {
+      const res = await apiClient.im.message.create({
+        params: { receive_id_type: receiveIdType },
+        data: {
+          receive_id: receiveId,
+          msg_type: 'interactive',
+          content: JSON.stringify(card),
+        },
+      });
+      if (res && (res.code === 0 || res.code === undefined)) return { success: true };
+      return { success: false, error: (res && res.msg) || '发送失败' };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  // 群模式
+  if (chatId) {
+    for (const chunk of chunks) {
+      const r = await sendOne(chunk, 'chat_id', chatId);
+      if (!r.success) return r;
+    }
+    return { success: true };
+  }
+  // 单聊回退
+  if (!cfg.targetOpenId) {
+    return { success: false, error: '该窗口尚未绑定飞书群（请先在飞书页绑定群）' };
+  }
+  for (const chunk of chunks) {
+    const r = await sendOne(chunk, 'open_id', cfg.targetOpenId);
+    if (!r.success) return r;
+  }
+  return { success: true };
+}
+
+export { connect, disconnect, sendText, sendMarkdown, getStatus, readConfig, listChats };
 export type { FeishuStatus, FeishuChat };
