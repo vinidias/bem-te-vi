@@ -248,6 +248,9 @@ async function runCompaction(projectDir?: string): Promise<void> {
     if (!sessionId) throw new Error('无法从 URL 获取 chat_session_id');
     logStep('api', 'chat_session_id = ' + sessionId);
 
+    // 记下"压缩前的会话ID"（段3 初始化新会话时写入血缘）
+    try { localStorage.setItem('cuckoo-compact-parent-session', sessionId); } catch (_) {}
+
     logStep('summary', '发送摘要指令');
     const waitReply = waitForResponse(120000);
     sendToChat(SUMMARY_INSTRUCTION, '压缩-摘要', 300);
@@ -346,10 +349,12 @@ function checkPendingInit(): void {
     localStorage.removeItem(PENDING_INIT_KEY);
     localStorage.removeItem(COMPACT_DIR_KEY);
   } catch (_) {}
-  console.log('[Cuckoo Compact] 检测到压缩后待初始化，3 秒后执行；项目目录=' + (projectDir || '(无)'));
+  let parentSessionId = null;
+  try { parentSessionId = localStorage.getItem('cuckoo-compact-parent-session'); } catch (_) {}
+  console.log('[Cuckoo Compact] 检测到压缩后待初始化，3 秒后执行；项目目录=' + (projectDir || '(无)') + '，压缩前会话=' + (parentSessionId || '(无)'));
   setTimeout(() => {
     try {
-      (window as any).electronAPI.initProject(projectDir || null, true);
+      (window as any).electronAPI.initProject(projectDir || null, true, '', false, parentSessionId);
     } catch (err) {
       console.error('[Cuckoo Compact] 压缩后初始化失败:', err);
     }

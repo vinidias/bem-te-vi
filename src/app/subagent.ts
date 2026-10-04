@@ -97,6 +97,8 @@ export async function runAgent(opts: {
   const parentStore = parentCtx ? parentCtx.sessionStore : null;
   const projectDir = parentStore ? parentStore.state.selectedProjectDir : null;
   const providerId = (parentCtx && parentCtx.providerId) || 'deepseek';
+  // 父会话 ID（发起子代理的那个对话；为 null 时血缘记不了）
+  const parentSessionId = (parentStore && parentStore.state && parentStore.state.currentSessionId) || null;
 
   // 创建子代理窗口（复用父 partition）
   const parent = _profileManager.getProfileById(opts.parentProfileId);
@@ -119,8 +121,12 @@ export async function runAgent(opts: {
   // 时 projectDir 为 null，相对路径/初始化状态都会错。
   try {
     const subCtx = windowState.getWindowContext(windowId);
-    if (subCtx && subCtx.sessionStore && projectDir) {
-      subCtx.sessionStore.state.selectedProjectDir = projectDir;
+    if (subCtx && subCtx.sessionStore) {
+      if (projectDir) subCtx.sessionStore.state.selectedProjectDir = projectDir;
+      // 血缘：子代理对话 -> 父对话（会话 ID 出现时自动绑定）
+      if (parentSessionId) {
+        subCtx.sessionStore.state.pendingLineage = { parentId: parentSessionId, kind: 'subagent', agentName: opts.agentName };
+      }
     }
   } catch (_) { /* ignore */ }
 

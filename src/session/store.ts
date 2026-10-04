@@ -50,13 +50,18 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     const store = readSessionStore();
     const v = store[sessionId];
     if (v == null) return null;
-    if (typeof v === 'string') return { projectDir: v, title: null, createdAt: null, updatedAt: null, archived: false };
+    if (typeof v === 'string') return { projectDir: v, title: null, createdAt: null, updatedAt: null, archived: false, parentId: null, kind: null, agentName: null, superseded: false };
     return {
       projectDir: v.projectDir || null,
       title: v.title || null,
       createdAt: v.createdAt || null,
       updatedAt: v.updatedAt || null,
       archived: v.archived === true,
+      // 血缘（子代理/压缩来源）
+      parentId: v.parentId || null,
+      kind: v.kind || null,
+      agentName: v.agentName || null,
+      superseded: v.superseded === true,
     };
   }
 
@@ -165,6 +170,50 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     return { success: true, pending: true };
   }
 
+  /**
+   * 设置会话血缘（子代理/压缩来源）。条目不存在时新建。
+   * @param lineage { parentId, kind, agentName }（只改传入的字段）
+   */
+  function setSessionLineage(sessionId: string, lineage: { parentId?: string | null; kind?: string | null; agentName?: string | null }): void {
+    if (!sessionId) return;
+    const store = readSessionStore();
+    const now = new Date().toISOString();
+    let entry: any = store[sessionId];
+    if (entry == null) {
+      entry = { projectDir: state.selectedProjectDir || null, title: null, createdAt: now, updatedAt: now };
+    } else if (typeof entry === 'string') {
+      entry = { projectDir: entry, title: null, createdAt: null, updatedAt: null };
+    }
+    if (lineage.parentId !== undefined) entry.parentId = lineage.parentId || null;
+    if (lineage.kind !== undefined) entry.kind = lineage.kind || null;
+    if (lineage.agentName !== undefined) entry.agentName = lineage.agentName || null;
+    store[sessionId] = entry;
+    // 压缩：旧版（父）标记"被取代"，不再作为当前版展示
+    if (lineage.kind === 'compaction' && lineage.parentId) {
+      const p = store[lineage.parentId];
+      if (p && typeof p === 'object') { p.superseded = true; store[lineage.parentId] = p; }
+      else if (typeof p === 'string') { store[lineage.parentId] = { projectDir: p, title: null, createdAt: null, updatedAt: null, superseded: true }; }
+    }
+    writeSessionStore(store);
+    console.log('[Cuckoo Code][' + profileId + '] 已记血缘: ' + sessionId + ' <- ' + (lineage.parentId || '?') + ' (' + (lineage.kind || '?') + ')');
+  }
+
+  /** 标记会话"已被取代"（压缩后，旧版不再作为当前版展示） */
+  function supersedeSession(sessionId: string): void {
+    if (!sessionId) return;
+    const store = readSessionStore();
+    const old = store[sessionId];
+    if (old == null) return;
+    if (typeof old === 'string') {
+      store[sessionId] = { projectDir: old, title: null, createdAt: null, updatedAt: null, superseded: true };
+    } else {
+      old.superseded = true;
+      store[sessionId] = old;
+    }
+    writeSessionStore(store);
+    console.log('[Cuckoo Code][' + profileId + '] 已标记旧版(被取代): ' + sessionId);
+  }
+
   function extractSessionIdFromUrl(url: string): string | null {
     if (!url) return null;
     // 平台差异全部下沉到 provider.extractSessionId
@@ -182,6 +231,8 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     selectedProjectDir: null,
     pendingProjectDir: null,
     pendingTitle: null,
+    /** 待绑定的血缘（会话ID 出现时自动写入）：{ parentId, kind, agentName } */
+    pendingLineage: null,
   };
 
   /** 取目标 view：显式传入优先，否则取当前主窗口的 AI 页面 view */
@@ -213,6 +264,11 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
       state.currentSessionId = sessionId;
       console.log('[Cuckoo Code][' + profileId + '] 当前会话ID: ' + sessionId);
 
+      // 会话 ID 出现 → 绑定暂存的血缘（子代理/压缩来源）
+      if (state.pendingLineage) {
+        setSessionLineage(sessionId, state.pendingLineage);
+        state.pendingLineage = null;
+      }
       // 会话 ID 出现 → 绑定暂存的对话标题（AI 命名可能在首条消息时就调用）
       if (state.pendingTitle) {
         updateSessionTitle(sessionId, state.pendingTitle);
@@ -272,6 +328,8 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     saveSessionDirMapping,
     updateSessionTitle,
     setSessionTitle,
+    setSessionLineage,
+    supersedeSession,
     setSessionArchived,
     getArchivedProjects,
     setProjectArchived,

@@ -19,10 +19,10 @@ const { ipcMain, shell } = require('electron');
 
 function registerProjectIpc(): void {
   // 初始化项目
-  ipcMain.handle('init-project', async (event: any, { skipPrompt = false, projectDir = null, isCompaction = false, extraPrompt = '', noDialog = false }: any = {}) => {
+  ipcMain.handle('init-project', async (event: any, { skipPrompt = false, projectDir = null, isCompaction = false, extraPrompt = '', noDialog = false, parentSessionId = null }: any = {}) => {
     const ctx = windowState.getContextByWebContents(event.sender);
     const windowId = ctx && ctx.win ? ctx.win.id : null;
-    const result = await initProject(skipPrompt, ctx, projectDir, isCompaction, extraPrompt || '', !!noDialog);
+    const result = await initProject(skipPrompt, ctx, projectDir, isCompaction, extraPrompt || '', !!noDialog, parentSessionId);
     // 项目目录可能变化：释放该窗口对"旧项目"的 MCP 连接引用
     if (windowId !== null) {
       try {
