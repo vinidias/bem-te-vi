@@ -1,0 +1,34 @@
+
+> cuckoo-code@0.8.8 build:win:local
+> npm run compile && electron-builder --win --publish never
+
+
+> cuckoo-code@0.8.8 compile
+> node scripts/build-hooks.mjs && tsc -p tsconfig.build.json && node scripts/build-tool-api.mjs && node scripts/build-shell.mjs
+
+[build-hooks] 生成 src\providers\generated\hook-sources.ts（4 个 hook）
+[build-hooks] 生成 src\overlay\template.generated.ts
+[build-tool-api] 生成 src\tools\api.d.ts（32 个工具）
+[build-tool-api] 生成 src\tools\runtime\bootstrap.generated.ts（31 个 bootstrap）
+[build-shell] 生成 src/ui/shell.html（155365 字节）
+  • electron-builder  version=26.15.3 os=10.0.28000
+  • loaded configuration  file=package.json ("build" field)
+  • executing @electron/rebuild  electronVersion=44.4.3 arch=x64 buildFromSource=false workspaceRoot=B:\免费网页Agent projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=44.4.3 appOutDir=dist\win-unpacked
+  ⨯ unable to verify the first certificate; if the root CA is installed locally, try running Node.js with --use-system-ca  failedTask=build stackTrace=RequestError: unable to verify the first certificate; if the root CA is installed locally, try running Node.js with --use-system-ca
+    at ClientRequest.<anonymous> (B:\免费网页Agent\node_modules\got\dist\source\core\index.js:970:111)
+    at Object.onceWrapper (node:events:631:26)
+    at ClientRequest.emit (node:events:521:24)
+    at ClientRequest.origin.emit (B:\免费网页Agent\node_modules\@szmarczak\http-timer\dist\source\index.js:43:20)
+    at emitErrorEvent (node:_http_client:112:11)
+    at TLSSocket.socketErrorListener (node:_http_client:745:5)
+    at TLSSocket.emit (node:events:509:28)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at processTicksAndRejections (node:internal/process/task_queues:90:21)
+    at TLSSocket.onConnectSecure (node:internal/tls/wrap:1768:34)
+    at TLSSocket.emit (node:events:509:28)
+    at TLSSocket._finishInit (node:internal/tls/wrap:1203:8)
+    at TLSWrap.ssl.onhandshakedone (node:internal/tls/wrap:984:12)

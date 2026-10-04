@@ -13,7 +13,8 @@
  *   ├── agents/<name>.md
  *   ├── rules/<name>.md
  *   ├── mcp.json
- *   └── providers/<id>.js    # 可执行，需显式授权
+ *   ├── providers/<id>.js    # 可执行，需显式授权
+ *   └── scripts/*.js         # 网页注入脚本：按 URL 匹配注入 AI 页面主世界（需授权）
  *
  * 为什么清单里不做路径映射：插件若能自述路径，就多出一类路径逃逸面，
  * 且与 skills/agents/rules 既有的"纯约定"风格不一致。
@@ -42,6 +43,8 @@ export interface PluginContributes {
   mcp: boolean;
   /** 可执行文件相对路径列表（风险项，需授权） */
   providers: string[];
+  /** 网页注入脚本相对路径列表（风险项，需授权） */
+  scripts: string[];
 }
 
 /** 已安装插件 */

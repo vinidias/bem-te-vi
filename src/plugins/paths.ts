@@ -21,6 +21,8 @@ const AGENTS_DIR = 'agents';
 const RULES_DIR = 'rules';
 const MCP_FILE = 'mcp.json';
 const PROVIDERS_DIR = 'providers';
+/** 网页注入脚本（按 URL 匹配注入 AI 页面主世界，见 bridge/entry.ts） */
+const SCRIPTS_DIR = 'scripts';
 
 /**
  * 插件 id 约束：小写 kebab-case，首字符必须是字母或数字。
@@ -98,6 +100,7 @@ export {
   RULES_DIR,
   MCP_FILE,
   PROVIDERS_DIR,
+  SCRIPTS_DIR,
   PLUGIN_ID_RE,
   isValidPluginId,
   getUserDir,

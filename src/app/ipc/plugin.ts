@@ -19,6 +19,7 @@ import {
   setPluginEnabled,
   createElectronHttpGet,
   getPluginsDir,
+  getEnabledPluginWebScripts,
 } from '../../plugins/index.js';
 import { invalidateCustomProvidersCache } from '../../providers/custom/loader.js';
 import * as windowState from '../window.js';
@@ -26,6 +27,25 @@ import * as mcpClient from '../../mcp/client.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain, shell } = require('electron');
+const _os = require('node:os');
+const _fs = require('node:fs');
+const _path = require('node:path');
+
+/**
+ * 加载插件"网页注入脚本"（CommonJS）。用 .cjs 临时副本，避免项目 type:module 干扰。
+ * 返回模块导出（{ name, match, script }）或抛错。
+ */
+function loadPluginScriptModule(file: string): any {
+  const tmpDir = _fs.mkdtempSync(_path.join(_os.tmpdir(), 'cuckoo-pluginscript-'));
+  const tmp = _path.join(tmpDir, _path.basename(file).replace(/\.js$/i, '') + '.cjs');
+  try {
+    _fs.copyFileSync(file, tmp);
+    return require(tmp);
+  } finally {
+    try { _fs.unlinkSync(tmp); } catch (_) { /* ignore */ }
+    try { _fs.rmdirSync(tmpDir); } catch (_) { /* ignore */ }
+  }
+}
 
 /** 传输层单例（无状态，可复用） */
 const httpGet = createElectronHttpGet();
@@ -53,6 +73,30 @@ function buildInstalledMap(): Record<string, { id: string; name: string; version
 }
 
 function registerPluginIpc(): void {
+  // ===== 网页注入脚本：已启用插件的 scripts/*.js（供 bridge 注入 AI 页面主世界） =====
+  ipcMain.handle('get-plugin-web-scripts', async () => {
+    try {
+      const out: any[] = [];
+      for (const { pluginId, file } of getEnabledPluginWebScripts()) {
+        try {
+          const mod = loadPluginScriptModule(file);
+          if (mod && typeof mod.script === 'string' && mod.script.trim()) {
+            out.push({
+              name: String(mod.name || pluginId),
+              match: typeof mod.match === 'string' ? mod.match : '',
+              script: mod.script,
+            });
+          }
+        } catch (err: any) {
+          console.error('[Plugin] 加载网页脚本失败:', file, err && err.message);
+        }
+      }
+      return { success: true, scripts: out };
+    } catch (err: any) {
+      return { success: false, scripts: [], error: err && err.message ? err.message : String(err) };
+    }
+  });
+
   // ===== 市场：列出 topic:cuckoo-plugin 的仓库 =====
   ipcMain.handle('plugin-market-list', async (_event: any, { force = false }: any = {}) => {
     try {

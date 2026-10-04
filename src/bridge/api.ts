@@ -26,6 +26,9 @@ let electronAPI: any = {
   updateProjectDir: () => {
     return ipcRenderer.invoke('init-project', { skipPrompt: true });
   },
+  getPluginWebScripts: () => {
+    return ipcRenderer.invoke('get-plugin-web-scripts');
+  },
   executeTool: (toolName: any, params: any, callId: any) => {
     return ipcRenderer.invoke('execute-tool', { toolName, params, callId });
   },

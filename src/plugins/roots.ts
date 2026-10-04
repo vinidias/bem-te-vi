@@ -12,7 +12,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { listInstalledPluginDirs, SKILLS_DIR, AGENTS_DIR, RULES_DIR, MCP_FILE, PROVIDERS_DIR } from './paths.js';
+import { listInstalledPluginDirs, SKILLS_DIR, AGENTS_DIR, RULES_DIR, MCP_FILE, PROVIDERS_DIR, SCRIPTS_DIR } from './paths.js';
 import { readManifest } from './manifest.js';
 import { isPluginEnabled } from './state.js';
 
@@ -72,6 +72,31 @@ export function getEnabledPluginProviderFiles(): string[] {
     }
   }
   return out.sort();
+}
+
+/**
+ * 已启用插件的"网页注入脚本"（含所属插件 id，绝对路径）。
+ *
+ * `scripts/*.js` 会被 require 执行并注入 AI 页面主世界，等同运行第三方代码 ——
+ * 与 providers / mcp 同级，故仅**已启用**插件的脚本才返回。
+ */
+export function getEnabledPluginWebScripts(): Array<{ pluginId: string; file: string }> {
+  const out: Array<{ pluginId: string; file: string }> = [];
+  for (const { id, dir } of listEnabledPlugins()) {
+    const scriptsDir = path.join(dir, SCRIPTS_DIR);
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(scriptsDir, { withFileTypes: true });
+    } catch {
+      continue; // 无 scripts 目录 = 该插件没带网页脚本
+    }
+    for (const ent of entries) {
+      if (!ent.isFile()) continue;
+      if (!ent.name.toLowerCase().endsWith('.js')) continue;
+      out.push({ pluginId: id, file: path.join(scriptsDir, ent.name) });
+    }
+  }
+  return out.sort((a, b) => a.file.localeCompare(b.file));
 }
 
 /**

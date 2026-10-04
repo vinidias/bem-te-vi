@@ -19,6 +19,7 @@ import {
   RULES_DIR,
   MCP_FILE,
   PROVIDERS_DIR,
+  SCRIPTS_DIR,
 } from './paths.js';
 import type { PluginManifest, PluginContributes } from './types.js';
 
@@ -155,5 +156,6 @@ export function deriveContributes(dir: string): PluginContributes {
     rules: listMdNames(path.join(dir, RULES_DIR)),
     mcp: fs.existsSync(path.join(dir, MCP_FILE)),
     providers: listJsFiles(path.join(dir, PROVIDERS_DIR)),
+    scripts: listJsFiles(path.join(dir, SCRIPTS_DIR)),
   };
 }

@@ -29,6 +29,7 @@ export {
   RULES_DIR,
   MCP_FILE,
   PROVIDERS_DIR,
+  SCRIPTS_DIR,
   isValidPluginId,
   getUserDir,
   getPluginsDir,
@@ -94,5 +95,6 @@ export {
   getPluginScanRoots,
   getEnabledPluginProviderFiles,
   getEnabledPluginMcpFiles,
+  getEnabledPluginWebScripts,
 } from './roots.js';
 export type { PluginScanRoots } from './roots.js';

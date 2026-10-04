@@ -31,13 +31,14 @@ function pluginContribSummary(c: any): string {
   if (c.rules && c.rules.length) parts.push('规则 ' + c.rules.length);
   if (c.mcp) parts.push('MCP');
   if (c.providers && c.providers.length) parts.push('可执行 ' + c.providers.length);
+  if (c.scripts && c.scripts.length) parts.push('网页脚本 ' + c.scripts.length);
   return parts.join(' · ');
 }
 
-/** 是否含可执行内容（providers 文件 或 MCP server）—— 决定启用时是否需要警告 */
+/** 是否含可执行内容（providers / MCP / 网页脚本）—— 决定启用时是否需要警告 */
 function pluginHasExec(c: any): boolean {
   if (!c) return false;
-  return !!((c.providers && c.providers.length > 0) || c.mcp);
+  return !!((c.providers && c.providers.length > 0) || c.mcp || (c.scripts && c.scripts.length > 0));
 }
 
 /** 版本比较：a 比 b 新则返回 true。非数字段一律当 0，非法输入返回 false。 */

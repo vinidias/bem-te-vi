@@ -13,7 +13,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 
-import { getPluginScanRoots, getEnabledPluginProviderFiles, getEnabledPluginMcpFiles } from '../../src/plugins/roots.js';
+import { getPluginScanRoots, getEnabledPluginProviderFiles, getEnabledPluginMcpFiles, getEnabledPluginWebScripts } from '../../src/plugins/roots.js';
 import { setPluginEnabled, isPluginEnabled } from '../../src/plugins/state.js';
 import { getPluginsDir } from '../../src/plugins/paths.js';
 
@@ -315,4 +315,40 @@ test('provider 与 mcp 共用同一个开关', () => {
   // 一个开关同时管两者：MCP 会 spawn 进程，与 providers 同级风险
   assert.strictEqual(getEnabledPluginProviderFiles().length, 1);
   assert.strictEqual(getEnabledPluginMcpFiles().length, 1);
+});
+
+
+// ===== 网页注入脚本（scripts/）=====
+
+/** 造一个带 scripts/ 的插件 */
+function makePluginWithScript(id, fileName = 'opt.js') {
+  const dir = makePlugin(id);
+  fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'scripts', fileName), 'module.exports = {}', 'utf-8');
+  return dir;
+}
+
+test('getEnabledPluginWebScripts: 未启用插件不返回脚本', () => {
+  makePluginWithScript('not-enabled-script');
+  assert.strictEqual(getEnabledPluginWebScripts().length, 0);
+});
+
+test('getEnabledPluginWebScripts: 启用后返回 scripts/*.js', () => {
+  const dir = makePluginWithScript('enabled-script');
+  setPluginEnabled('enabled-script', true);
+  const list = getEnabledPluginWebScripts();
+  assert.strictEqual(list.length, 1);
+  assert.strictEqual(list[0].pluginId, 'enabled-script');
+  assert.strictEqual(list[0].file, path.join(dir, 'scripts', 'opt.js'));
+});
+
+test('getEnabledPluginWebScripts: 只收 .js，忽略其他文件', () => {
+  const dir = makePlugin('mix-script');
+  setPluginEnabled('mix-script', true);
+  fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'scripts', 'a.js'), 'module.exports={}', 'utf-8');
+  fs.writeFileSync(path.join(dir, 'scripts', 'readme.txt'), 'x', 'utf-8');
+  const list = getEnabledPluginWebScripts();
+  assert.strictEqual(list.length, 1);
+  assert.ok(list[0].file.endsWith('a.js'));
 });
