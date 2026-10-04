@@ -45,6 +45,11 @@ Not just chat. The AI can read/write files, search code, execute commands, query
 - **Multi-window management**: each window has an independent profile context; tick "Default" to auto-open on startup
 - **Address bar**: top bar to view/copy the URL, navigate back/forward/reload, quick-jump; a status bar below shows token usage
 - **Project initialization**: after selecting a project directory, the AI gets the directory tree and system prompt
+- **Harness mode (pure chat)**: a Codex-like pure chat UI — hides low-level instructions, showing only user messages / model replies / tool cards; supports streaming, Markdown, KaTeX math, collapsible thinking, Goal/Plan panel (toggle with Ctrl+Shift+H)
+- **Workspace sidebar**: lists all conversations grouped by project; rename / archive / new; expand a conversation to see its **subagents** and **compaction history** (session lineage)
+- **Project file tree**: VSCode-style tree with type icons / colors, filename search, and one-click `@` path reference
+- **Plugin market**: auto-discovers plugins via GitHub `topic:cuckoo-plugin`; install / uninstall / toggle in one click (a plugin can bundle skills / agents / rules / MCP / custom providers)
+- **Auto-naming conversations**: the AI names each conversation at the start; the workspace list refreshes live
 - **Skill support**: Claude Code-aligned skills (project `.cuckoo/skills/` + user `~/.cuckoo/skills/`), progressive disclosure — teach the AI domain-specific workflows/rules/scripts. **→ [Configuration & usage](docs/skills.md)**
 - **Agent support**: Claude Code-aligned subagents (project `.cuckoo/agents/` + user `~/.cuckoo/agents/`); the main conversation can delegate tasks to an isolated-context subagent that returns only a summary — isolating context and enabling specialization. **→ [Configuration & usage](docs/agents.md)**
 - **Tool call system**: the AI can read/write files, search code, execute commands, query databases, and more
