@@ -162,7 +162,7 @@ MCP 配置采用 **Claude Desktop 兼容格式**（可直接分享/导入）：
 }
 ```
 
-支持 stdio（command + args）和 http（url + headers）两种类型。启用/禁用状态单独存储，不污染主配置。通过覆盖层的「MCP」按钮打开管理面板。
+支持 stdio（command + args）和 http（url + headers）两种类型。启用/禁用状态单独存储，不污染主配置。通过覆盖层的「MCP」按钮打开管理面板。**→ [配置与使用说明](docs/mcp.md)**
 
 ---
 

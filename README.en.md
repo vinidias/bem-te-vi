@@ -54,7 +54,7 @@ Not just chat. The AI can read/write files, search code, execute commands, query
 - **Agent support**: Claude Code-aligned subagents (project `.cuckoo/agents/` + user `~/.cuckoo/agents/`); the main conversation can delegate tasks to an isolated-context subagent that returns only a summary — isolating context and enabling specialization. **→ [Configuration & usage](docs/agents.md)**
 - **Tool call system**: the AI can read/write files, search code, execute commands, query databases, and more
 - **Tool execution mask**: a mask over the AI page during execution, with a "Stop" button to cancel sending results back
-- **MCP support**: Claude Desktop compatible config format, stdio / http server types
+- **MCP support**: Claude Desktop compatible config format, stdio / http server types. **→ [Configuration & usage](docs/mcp.md)**
 - **Overlay panel**: shows command previews, execution results, and history; toggle with Ctrl+Shift+C or Esc
 - **Context compaction**: long sessions auto-compact (clear IDB + refresh + share link) to avoid hitting the context limit
 - **Automatic retry**: two mechanisms — (1) retry with backoff when a reply is truncated/fails; (2) watchdog prompts "continue" when the SSE stream goes silent
@@ -159,7 +159,7 @@ MCP configuration uses the **Claude Desktop compatible format** (can be shared/i
 }
 ```
 
-Both stdio (command + args) and http (url + headers) types are supported. Enable/disable state is stored separately and does not pollute the main configuration. Open the management panel via the "MCP" button in the overlay.
+Both stdio (command + args) and http (url + headers) types are supported. Enable/disable state is stored separately and does not pollute the main configuration. Open the management panel via the "MCP" button in the overlay. **→ [Configuration & usage](docs/mcp.md)**
 
 ---
 
