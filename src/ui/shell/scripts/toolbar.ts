@@ -83,4 +83,8 @@ if (api.onHarnessMode) {
 btnBack.addEventListener('click', () => { if (api.back) api.back(); });
 btnForward.addEventListener('click', () => { if (api.forward) api.forward(); });
 document.getElementById('btn-reload')!.addEventListener('click', () => { if (api.reload) api.reload(); });
-document.getElementById('btn-home')!.addEventListener('click', () => { if (api.home) api.home(); });
+// 加号：新建对话（优先用会清理纯净模式视图的 newWebConversation，否则回退到 home）
+document.getElementById('btn-home')!.addEventListener('click', () => {
+  if ((api as any).newWebConversation) { (api as any).newWebConversation(); return; }
+  if (api.home) api.home();
+});
