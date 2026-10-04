@@ -18,6 +18,16 @@ import path from 'node:path';
 import { getMarketCacheFile, getMarketConfigFile, getManifestCacheFile } from './paths.js';
 import { validateManifest } from './manifest.js';
 import { isValidRepo, isValidBranch, buildRawFileUrl } from './github.js';
+import {
+  isGiteeRepo,
+  stripGiteePrefix,
+  isValidGiteeRepo,
+  isValidGiteeBranch,
+  buildGiteeSearchUrl,
+  buildGiteeUserReposUrl,
+  buildGiteeRawUrl,
+  GITEE_PREFIX,
+} from './gitee.js';
 import type { HttpGet } from './http.js';
 import type { MarketItem, RemotePluginInfo } from './types.js';
 
@@ -53,6 +63,65 @@ function buildSearchUrl(): string {
   return SEARCH_ENDPOINT + '?q=' + q + '&sort=updated&order=desc&per_page=' + PER_PAGE;
 }
 
+/**
+ * 搜索 Gitee 上的插件。
+ * Gitee 无 topic 机制：用关键词（默认 cuckoo-plugin）搜索；搜索 API 需 token，
+ * 无 token 返回空（如实反映）。
+ */
+async function searchGiteePlugins(opts: {
+  httpGet: HttpGet;
+  keyword?: string;
+  token?: string;
+  timeoutMs?: number;
+}): Promise<MarketItem[]> {
+  const token = opts.token !== undefined ? opts.token : readGiteeToken();
+  const keyword = opts.keyword || TOPIC;
+  const out: MarketItem[] = [];
+  const seen = new Set<string>();
+
+  // 1) 关键词搜索（需 token）
+  if (token) {
+    try {
+      const res = await opts.httpGet({ url: buildGiteeSearchUrl(keyword, token), timeoutMs: opts.timeoutMs || 10000 });
+      if (res.status === 200 && res.body) {
+        const arr = JSON.parse(res.body.toString('utf-8'));
+        if (Array.isArray(arr)) {
+          for (const r of arr) { const it = normalizeGiteeRepo(r); if (it && !seen.has(it.id)) { seen.add(it.id); out.push(it); } }
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 2) 用户仓库列表（匿名可读）—— 从配置的 giteeUsers 列表拉
+  try {
+    const users = readGiteeUsers();
+    for (const u of users) {
+      try {
+        const res = await opts.httpGet({ url: buildGiteeUserReposUrl(u), timeoutMs: opts.timeoutMs || 10000 });
+        if (res.status !== 200 || !res.body) continue;
+        const arr = JSON.parse(res.body.toString('utf-8'));
+        if (!Array.isArray(arr)) continue;
+        for (const r of arr) { const it = normalizeGiteeRepo(r); if (it && !seen.has(it.id)) { seen.add(it.id); out.push(it); } }
+      } catch { /* ignore */ }
+    }
+  } catch { /* ignore */ }
+
+  return out;
+}
+
+/** 读配置里的 Gitee 用户列表（giteeUsers: ["user1","user2"]） */
+function readGiteeUsers(): string[] {
+  try {
+    const file = getMarketConfigFile();
+    if (!fs.existsSync(file)) return [];
+    const cfg = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    const arr = cfg && Array.isArray(cfg.giteeUsers) ? cfg.giteeUsers : [];
+    return arr.filter((x: any) => typeof x === 'string' && x.trim()).map((x: string) => x.trim());
+  } catch {
+    return [];
+  }
+}
+
 /** 读取市场配置（可选 GitHub token） */
 function readMarketToken(): string | undefined {
   try {
@@ -64,6 +133,50 @@ function readMarketToken(): string | undefined {
   } catch {
     return undefined; // 配置坏了不该让市场整体不可用
   }
+}
+
+/** Gitee token（读 market 配置的 giteeToken 字段） */
+function readGiteeToken(): string | undefined {
+  try {
+    const file = getMarketConfigFile();
+    if (!fs.existsSync(file)) return undefined;
+    const cfg = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    const token = cfg && typeof cfg.giteeToken === 'string' ? cfg.giteeToken.trim() : '';
+    return token || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * 把 Gitee repo 对象归一化为 MarketItem；结构不符则返回 null。
+ * id 统一加 "gitee:" 前缀，避免与 GitHub 同名仓库冲突。
+ */
+function normalizeGiteeRepo(repo: any): MarketItem | null {
+  if (!repo || typeof repo !== 'object') return null;
+  const fullName = typeof repo.full_name === 'string' ? repo.full_name.trim()
+    : (typeof repo.path === 'string' && repo.namespace && typeof repo.namespace.path === 'string'
+      ? repo.namespace.path + '/' + repo.path : '');
+  if (!fullName) return null;
+  const parts = fullName.split('/');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  const license = typeof repo.license === 'string' ? repo.license : '';
+  return {
+    id: GITEE_PREFIX + fullName,
+    owner: parts[0],
+    name: parts[1],
+    description: typeof repo.description === 'string' ? repo.description : '',
+    stars: typeof repo.stargazers_count === 'number' ? repo.stargazers_count : 0,
+    forks: typeof repo.forks_count === 'number' ? repo.forks_count : 0,
+    updatedAt: typeof repo.updated_at === 'string' ? repo.updated_at : '',
+    pushedAt: typeof repo.pushed_at === 'string' ? repo.pushed_at : '',
+    url: typeof repo.html_url === 'string' ? repo.html_url : ('https://gitee.com/' + fullName),
+    defaultBranch: typeof repo.default_branch === 'string' ? repo.default_branch : '',
+    language: typeof repo.language === 'string' ? repo.language : '',
+    license,
+    archived: false,
+    topics: [],
+  };
 }
 
 /** 把一个 GitHub repo 对象归一化为 MarketItem；结构不符则返回 null */
@@ -144,6 +257,8 @@ function rateLimitMessage(status: number, headers: Record<string, string>, now: 
 async function searchPlugins(opts: {
   httpGet: HttpGet;
   token?: string;
+  giteeToken?: string;
+  giteeKeyword?: string;
   force?: boolean;
   now?: number;
   cacheFile?: string;
@@ -168,55 +283,61 @@ async function searchPlugins(opts: {
   };
   if (token) headers.Authorization = 'Bearer ' + token;
 
-  let res;
+  // ===== 1) GitHub（失败不致命：下面仍会尝试 Gitee）=====
+  const items: MarketItem[] = [];
+  const seen = new Set<string>();
+  let ghError = '';
+  let ghOk = false;
+
+  let res: any = null;
   try {
     res = await opts.httpGet({ url: buildSearchUrl(), headers });
   } catch (err: any) {
-    // 网络不可达时，退回旧缓存（有总比空好），但如实标注来自缓存
-    const stale = readCache(cacheFile);
-    if (stale) {
-      return { success: true, items: stale.items, fromCache: true, cachedAt: stale.cachedAt,
-        error: '网络请求失败，展示上次缓存：' + (err && err.message ? err.message : String(err)) };
+    ghError = 'GitHub 网络失败：' + (err && err.message ? err.message : String(err));
+  }
+
+  if (res) {
+    if (res.status === 403 || res.status === 429) {
+      ghError = rateLimitMessage(res.status, res.headers, now);
+    } else if (res.status !== 200) {
+      ghError = 'GitHub 返回 HTTP ' + res.status;
+    } else {
+      try {
+        const parsed = JSON.parse(res.body ? res.body.toString('utf-8') : '');
+        const rawItems = parsed && Array.isArray(parsed.items) ? parsed.items : [];
+        for (const r of rawItems) {
+          const item = normalizeRepo(r);
+          if (!item || seen.has(item.id)) continue;
+          seen.add(item.id);
+          items.push(item);
+        }
+        ghOk = true;
+      } catch (err: any) {
+        ghError = 'GitHub 响应解析失败：' + (err && err.message ? err.message : String(err));
+      }
     }
-    return { success: false, items: [], fromCache: false,
-      error: '网络请求失败：' + (err && err.message ? err.message : String(err)) };
   }
 
-  if (res.status === 403 || res.status === 429) {
-    const stale = readCache(cacheFile);
-    const msg = rateLimitMessage(res.status, res.headers, now);
-    if (stale) {
-      return { success: true, items: stale.items, fromCache: true, cachedAt: stale.cachedAt, error: msg };
-    }
-    return { success: false, items: [], fromCache: false, error: msg };
-  }
-
-  if (res.status !== 200) {
-    return { success: false, items: [], fromCache: false,
-      error: 'GitHub 返回 HTTP ' + res.status };
-  }
-
-  let parsed: any;
+  // ===== 2) Gitee（独立于 GitHub：即使 GitHub 失败也照常返回）=====
   try {
-    // body 是原始字节，文本接口自行解码
-    parsed = JSON.parse(res.body ? res.body.toString('utf-8') : '');
-  } catch (err: any) {
-    return { success: false, items: [], fromCache: false, error: '响应解析失败：' + (err && err.message ? err.message : String(err)) };
-  }
+    const giteeItems = await searchGiteePlugins({ httpGet: opts.httpGet, keyword: opts.giteeKeyword, token: opts.giteeToken });
+    for (const g of giteeItems) {
+      if (!seen.has(g.id)) { seen.add(g.id); items.push(g); }
+    }
+  } catch { /* Gitee 不可用不影响整体 */ }
 
-  const rawItems = parsed && Array.isArray(parsed.items) ? parsed.items : [];
-  const items: MarketItem[] = [];
-  const seen = new Set<string>();
-  for (const r of rawItems) {
-    const item = normalizeRepo(r);
-    if (!item || seen.has(item.id)) continue;
-    seen.add(item.id);
-    items.push(item);
+  // ===== 3) 两者都失败：退回缓存 =====
+  if (items.length === 0 && !ghOk) {
+    const stale = readCache(cacheFile);
+    if (stale) {
+      return { success: true, items: stale.items, fromCache: true, cachedAt: stale.cachedAt, error: ghError || '网络请求失败，展示上次缓存' };
+    }
+    return { success: false, items: [], fromCache: false, error: ghError || '无可用来源' };
   }
 
   // 空结果**照实缓存与返回** —— 这就是 topic 的真实状态
   const cachedAt = writeCache(cacheFile, items, now);
-  return { success: true, items, fromCache: false, cachedAt };
+  return { success: true, items, fromCache: false, cachedAt, error: ghError || undefined };
 }
 
 // ========== 远端 plugin.json（版本 / 最低应用版本）==========
@@ -282,14 +403,24 @@ async function fetchOneManifest(
     repo, ok: false, version: '', minAppVersion: '', name: '', description: '',
   };
 
-  if (!isValidRepo(repo) || !isValidBranch(branch)) {
-    return { ...base, error: '仓库或分支非法' };
+  let rawUrl: string;
+  if (isGiteeRepo(repo)) {
+    const plain = stripGiteePrefix(repo);
+    if (!isValidGiteeRepo(plain) || !isValidGiteeBranch(branch)) {
+      return { ...base, error: 'Gitee 仓库或分支非法' };
+    }
+    rawUrl = buildGiteeRawUrl(plain, branch, 'plugin.json');
+  } else {
+    if (!isValidRepo(repo) || !isValidBranch(branch)) {
+      return { ...base, error: '仓库或分支非法' };
+    }
+    rawUrl = buildRawFileUrl(repo, branch, 'plugin.json');
   }
 
   let res;
   try {
     res = await httpGet({
-      url: buildRawFileUrl(repo, branch, 'plugin.json'),
+      url: rawUrl,
       timeoutMs: MANIFEST_TIMEOUT_MS,
     });
   } catch (err: any) {
@@ -388,7 +519,11 @@ export {
   MANIFEST_CACHE_TTL_MS,
   buildSearchUrl,
   normalizeRepo,
+  normalizeGiteeRepo,
   readMarketToken,
+  readGiteeToken,
+  readGiteeUsers,
+  searchGiteePlugins,
   searchPlugins,
   fetchRemoteManifests,
 };

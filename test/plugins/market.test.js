@@ -18,6 +18,7 @@ import {
   fetchRemoteManifests,
   CACHE_TTL_MS,
   MANIFEST_CACHE_TTL_MS,
+  normalizeGiteeRepo,
 } from '../../src/plugins/market.js';
 
 const TMP = path.join(os.tmpdir(), 'cuckoo-plugin-market-test');
@@ -494,4 +495,37 @@ test('fetchRemoteManifests: 缓存文件损坏时按未命中处理', async () =
   });
   assert.strictEqual(calls.length, 1);
   assert.strictEqual(r['alice/demo'].version, '9.9.9');
+});
+
+
+// ===== Gitee 归一化 =====
+
+test('normalizeGiteeRepo: 解析 Gitee 仓库对象（加 gitee: 前缀）', () => {
+  const item = normalizeGiteeRepo({
+    full_name: 'jiangcheng-cat-AI/ai-proxy-gateway',
+    description: 'AI 代理网关',
+    stargazers_count: 5,
+    forks_count: 1,
+    html_url: 'https://gitee.com/jiangcheng-cat-AI/ai-proxy-gateway',
+    default_branch: 'master',
+    language: 'Python',
+  });
+  assert.ok(item);
+  assert.strictEqual(item.id, 'gitee:jiangcheng-cat-AI/ai-proxy-gateway');
+  assert.strictEqual(item.owner, 'jiangcheng-cat-AI');
+  assert.strictEqual(item.name, 'ai-proxy-gateway');
+  assert.strictEqual(item.stars, 5);
+  assert.strictEqual(item.defaultBranch, 'master');
+});
+
+test('normalizeGiteeRepo: 非法输入返回 null', () => {
+  assert.strictEqual(normalizeGiteeRepo(null), null);
+  assert.strictEqual(normalizeGiteeRepo({}), null);
+  assert.strictEqual(normalizeGiteeRepo({ full_name: 'noslash' }), null);
+});
+
+test('normalizeGiteeRepo: namespace+path 回退形态', () => {
+  const item = normalizeGiteeRepo({ path: 'repo', namespace: { path: 'owner' } });
+  assert.ok(item);
+  assert.strictEqual(item.id, 'gitee:owner/repo');
 });

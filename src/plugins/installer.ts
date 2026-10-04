@@ -27,8 +27,22 @@ import {
 import { readManifest, deriveContributes } from './manifest.js';
 import { setPluginEnabled, clearPluginState } from './state.js';
 import { isValidRepo, isValidBranch, buildTarballUrl, CODELOAD_BASE } from './github.js';
+import {
+  isGiteeRepo,
+  stripGiteePrefix,
+  isValidGiteeRepo,
+  isValidGiteeBranch,
+  buildGiteeArchiveUrl,
+  buildGiteeRawUrl,
+} from './gitee.js';
 import type { HttpGet } from './http.js';
 import type { InstalledPlugin, PluginOrigin } from './types.js';
+
+/** 解析来源：'gitee:owner/repo' → gitee；否则 github */
+function parseSource(repo: string): { source: 'github' | 'gitee'; plain: string } {
+  if (isGiteeRepo(repo)) return { source: 'gitee', plain: stripGiteePrefix(repo) };
+  return { source: 'github', plain: repo };
+}
 
 /** 来源记录文件名（随插件落盘，但不属于插件内容本身） */
 const INSTALL_META_FILE = '.install-meta.json';
@@ -128,15 +142,27 @@ async function installPlugin(opts: {
   now?: number;
 }): Promise<InstallResult> {
   const { httpGet } = opts;
+  const { source, plain } = parseSource(opts.repo);
 
-  if (!isValidRepo(opts.repo)) {
-    return { success: false, error: '仓库标识非法（应为 owner/repo）：' + String(opts.repo) };
-  }
-  if (!isValidBranch(opts.branch)) {
-    return { success: false, error: '分支名非法或缺失：' + String(opts.branch) };
+  if (source === 'gitee') {
+    if (!isValidGiteeRepo(plain)) {
+      return { success: false, error: 'Gitee 仓库标识非法（应为 owner/repo）：' + String(plain) };
+    }
+    if (!isValidGiteeBranch(opts.branch)) {
+      return { success: false, error: 'Gitee 分支名非法或缺失：' + String(opts.branch) };
+    }
+  } else {
+    if (!isValidRepo(opts.repo)) {
+      return { success: false, error: '仓库标识非法（应为 owner/repo）：' + String(opts.repo) };
+    }
+    if (!isValidBranch(opts.branch)) {
+      return { success: false, error: '分支名非法或缺失：' + String(opts.branch) };
+    }
   }
 
-  const url = buildTarballUrl(opts.repo, opts.branch);
+  const url = source === 'gitee'
+    ? buildGiteeArchiveUrl(plain, opts.branch)
+    : buildTarballUrl(opts.repo, opts.branch);
 
   // ===== 1. 下载 tarball =====
   let res;
@@ -216,7 +242,7 @@ async function installPlugin(opts: {
     // ===== 6. 记录来源（审计 / 卸载溯源 / 更新比对）=====
     const origin: PluginOrigin = {
       repo: opts.repo,
-      url: 'https://github.com/' + opts.repo,
+      url: source === 'gitee' ? ('https://gitee.com/' + plain) : ('https://github.com/' + opts.repo),
       branch: opts.branch,
       installedAt: new Date(typeof opts.now === 'number' ? opts.now : Date.now()).toISOString(),
       version: mr.manifest.version || '',
@@ -280,6 +306,7 @@ export {
   listInstalledPlugins,
   installPlugin,
   uninstallPlugin,
+  parseSource,
 };
 
 // 从 github.js 转出，保持既有调用方（含测试）的导入路径不变
