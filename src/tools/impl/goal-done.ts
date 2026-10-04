@@ -8,7 +8,19 @@
 import { Tool } from '../core/Tool.js';
 import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
-import { getWindowContext } from '../../app/window.js';
+
+/**
+ * 推送"目标完成"事件到该窗口的 harness 视图（由 app 层注入，避免 tools → app 的反向依赖）。
+ * @returns { success, error? }
+ */
+export type GoalDonePusher = (windowId: number) => { success: boolean; error?: string };
+
+let _pushGoalDone: GoalDonePusher | null = null;
+
+/** 由 app 层注入实现 */
+export function injectGoalDonePusher(fn: GoalDonePusher): void {
+  _pushGoalDone = fn;
+}
 
 // ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
 export const apiMetas: ToolApiMeta[] = [
@@ -56,18 +68,10 @@ class GoalDoneTool extends Tool {
     if (targetWindowId === undefined || targetWindowId === null) {
       return ToolResult.error('缺少窗口上下文，无法定位当前对话窗口');
     }
-    const ctx: any = getWindowContext(targetWindowId);
-    if (!ctx || !ctx.win || ctx.win.isDestroyed()) {
-      return ToolResult.error('当前对话窗口不存在或已关闭');
-    }
-    const hv = ctx.harnessView;
-    if (!hv || !hv.webContents || hv.webContents.isDestroyed()) {
-      return ToolResult.error('纯净对话模式未开启，没有目标可结束');
-    }
-    try {
-      hv.webContents.send('harness-event', { type: 'goal-done' });
-    } catch (err: any) {
-      return ToolResult.error('推送目标完成事件失败: ' + (err.message || String(err)));
+    if (!_pushGoalDone) return ToolResult.error('目标完成推送器未初始化');
+    const r = _pushGoalDone(targetWindowId);
+    if (!r || !r.success) {
+      return ToolResult.error(r && r.error ? r.error : '推送目标完成事件失败');
     }
     console.log('[GoalDoneTool] AI 已宣告目标完成（window ' + targetWindowId + '）');
     return ToolResult.success({ message: '目标已完成，自动推进已结束。' });

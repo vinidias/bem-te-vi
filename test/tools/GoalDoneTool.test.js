@@ -1,9 +1,13 @@
 'use strict';
 import { test, describe, afterEach } from 'vitest';
 import assert from 'node:assert';
-import { GoalDoneTool } from '../../src/tools/impl/goal-done.js';
+import { GoalDoneTool, injectGoalDonePusher } from '../../src/tools/impl/goal-done.js';
 import { registry } from '../../src/tools/index.js';
 import { addWindow, getWindowContext, removeWindow } from '../../src/app/window.js';
+import { pushGoalDone } from '../../src/app/goal.js';
+
+// 注入 app 层的真实实现（tools 层不依赖 app，靠注入）
+injectGoalDonePusher(pushGoalDone);
 
 const testWindowIds = [];
 

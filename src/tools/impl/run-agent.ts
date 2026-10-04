@@ -28,11 +28,23 @@ export const apiMetas: ToolApiMeta[] = [
  */
 export type AgentRunner = (args: { agent: any; task: string; currentWindowId: number }) => Promise<string>;
 
+/**
+ * 判断某窗口是否子代理窗口（由 app 层注入，避免 tools → app 的反向依赖）。
+ * 用于防递归：子代理窗口不能再调 runAgent。
+ */
+export type SubagentChecker = (windowId: number) => boolean;
+
 let _runner: AgentRunner | null = null;
+let _isSubagentWindow: SubagentChecker | null = null;
 
 /** 由 app 层注入子代理执行实现 */
 export function injectAgentRunner(fn: AgentRunner): void {
   _runner = fn;
+}
+
+/** 由 app 层注入"是否子代理窗口"判定（防递归用） */
+export function injectSubagentChecker(fn: SubagentChecker): void {
+  _isSubagentWindow = fn;
 }
 
 class RunAgentTool extends Tool {
@@ -65,11 +77,9 @@ class RunAgentTool extends Tool {
     const { name, task, projectDir, currentWindowId } = params;
     if (!name || !task) return ToolResult.error('name 和 task 必填');
     if (typeof currentWindowId !== 'number') return ToolResult.error('缺少窗口上下文');
-    // 防递归：子代理窗口不能再调 runAgent
+    // 防递归：子代理窗口不能再调 runAgent（判定函数由 app 层注入）
     try {
-      const { getWindowContext } = await import('../../app/window.js');
-      const ctx = getWindowContext(currentWindowId);
-      if (ctx && ctx.isSubagent) {
+      if (_isSubagentWindow && _isSubagentWindow(currentWindowId)) {
         return ToolResult.error('子代理不允许再调用 runAgent（防递归）');
       }
     } catch (_) { /* ignore */ }

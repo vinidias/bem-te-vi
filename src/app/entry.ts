@@ -50,7 +50,9 @@ import { registerIpcHandlers } from './ipc/index.js';
 import { buildChromeUserAgent } from '../infra/user-agent.js';
 import { initFeishu } from './ipc/feishu.js';
 import { injectSubagentDeps, runAgent as runAgentImpl } from './subagent.js';
-import { injectAgentRunner } from '../tools/impl/run-agent.js';
+import { injectAgentRunner, injectSubagentChecker } from '../tools/impl/run-agent.js';
+import { injectGoalDonePusher } from '../tools/impl/goal-done.js';
+import { isSubagentWindow, pushGoalDone } from './goal.js';
 import { injectSessionTitleSetter } from '../tools/impl/name-conversation.js';
 import { pushUrlState } from './ipc/shell.js';
 import { pushHarnessState } from './ipc/harness.js';
@@ -608,6 +610,10 @@ injectAgentRunner(async ({ agent, task, currentWindowId }: any) => {
     maxTurns: agent.maxTurns,
   });
 });
+// 给 runAgent 工具注入"是否子代理窗口"判定（防递归；tools 层不依赖 app）
+injectSubagentChecker(isSubagentWindow);
+// 给 goalDone 工具注入"推送目标完成事件"实现（tools 层不依赖 app）
+injectGoalDonePusher(pushGoalDone);
 // 给 nameConversation 工具注入"设置当前会话标题"实现
 injectSessionTitleSetter(async ({ windowId, title }: any) => {
   const ctx = windowState.getWindowContext(windowId);
