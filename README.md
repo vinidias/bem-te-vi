@@ -365,4 +365,5 @@ cuckoo-code/
 - [@27584](https://github.com/27584)：
   - Provider 发送扩展接口、流式稳定性双通道、自定义 Provider 渲染进程加载、MCP 工具识别等框架级改进（PR #9）
   - **纯净对话模式（Harness）**：类 Codex 的纯对话界面——隐藏底层指令，只显示用户消息 / 模型回复 / 工具调用卡片，含流式渲染、思考过程折叠、Goal/Plan 面板、斜杠菜单（PR #22）
+  - **Harness 增强 + 插件市场**：多会话隔离、侧栏「对话」分页、Markdown/LaTeX（KaTeX）渲染、Goal/Plan 自动驱动、插件市场（GitHub topic 自动发现与安装）（PR #23）
 - 所有贡献者和用户
