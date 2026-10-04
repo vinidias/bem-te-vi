@@ -30,6 +30,12 @@ const shellAPI = {
     ipcRenderer.on('shell-project-dir', (_e: any, dir: any) => cb(dir));
   },
   toggleSidebar: (width: number) => ipcRenderer.invoke('shell-toggle-sidebar', { width }),
+  // 侧边栏拖拽调宽（AI 视图会临时移出，鼠标事件全落在壳页面；主进程轮询算宽度后推回）
+  startSidebarDrag: () => ipcRenderer.send('shell-sidebar-drag-start'),
+  endSidebarDrag: () => ipcRenderer.send('shell-sidebar-drag-end'),
+  onSidebarDrag: (cb: (width: number) => void) => {
+    ipcRenderer.on('shell-sidebar-drag', (_e: any, width: any) => cb(width));
+  },
   // 纯净对话模式（Harness）切换 + 状态订阅
   toggleHarness: () => ipcRenderer.invoke('shell-toggle-harness'),
   onHarnessMode: (cb: (data: any) => void) => {

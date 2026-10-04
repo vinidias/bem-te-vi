@@ -10,6 +10,9 @@ export interface ShellAPI {
   home?: () => void;
   onUrlUpdated?: (cb: (data: any) => void) => void;
   toggleSidebar?: (width: number) => void;
+  startSidebarDrag?: () => void;
+  endSidebarDrag?: () => void;
+  onSidebarDrag?: (cb: (width: number) => void) => void;
   /** 切换纯净对话模式（Harness） */
   toggleHarness?: () => Promise<any>;
   /** 纯净模式状态变化（harness=true 表示已进入纯净模式） */

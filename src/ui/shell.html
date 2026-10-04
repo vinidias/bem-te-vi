@@ -185,7 +185,7 @@
   .viewport { flex: 1; min-width: 0; }
 
   /* ===== 侧边栏 ===== */
-  .ck-sidebar { width: 320px; flex-shrink: 0; display: flex; background: var(--ck-bg); border-right: 1px solid var(--ck-border); }
+  .ck-sidebar { width: 320px; flex-shrink: 0; display: flex; position: relative; background: var(--ck-bg); border-right: 1px solid var(--ck-border); }
   .ck-activitybar {
     width: 48px; flex-shrink: 0;
     display: flex; flex-direction: column; align-items: center;
@@ -542,6 +542,13 @@
   /* 收起：只隐藏面板，保留图标栏（宽度从 320 �?46�?*/
   .ck-sidebar.ck-collapsed { width: 46px; }
   .ck-sidebar.ck-collapsed .ck-panel { display: none; }
+  /* 拖拽调宽手柄（贴右边，宽热区） */
+  .ck-sidebar-resizer {
+    position: absolute; top: 0; right: -3px; width: 7px; height: 100%;
+    cursor: col-resize; z-index: 30;
+  }
+  .ck-sidebar-resizer:hover { background: var(--ck-primary-soft); }
+  .ck-sidebar.ck-collapsed .ck-sidebar-resizer { display: none; }
   /* 滚动条（跟随主题�?*/
   .ck-panel-body::-webkit-scrollbar { width: 4px; }
   .ck-panel-body::-webkit-scrollbar-track { background: transparent; }
@@ -1405,15 +1412,47 @@
   var sidebar = document.getElementById("ck-sidebar");
   var SIDEBAR_EXPANDED = 320;
   var SIDEBAR_COLLAPSED = 46;
+  var MIN_WIDTH = 320;
+  var MAX_WIDTH = 4e3;
+  var WIDTH_KEY = "cuckoo-sidebar-width";
   var tabLoaders = {};
   function registerTab(tab, loader) {
     tabLoaders[tab] = loader;
   }
+  var expandedWidth = (() => {
+    try {
+      const v = Number(localStorage.getItem(WIDTH_KEY));
+      if (Number.isFinite(v) && v >= MIN_WIDTH && v <= MAX_WIDTH) return Math.round(v);
+    } catch (_) {
+    }
+    return SIDEBAR_EXPANDED;
+  })();
+  function saveWidth(w) {
+    try {
+      localStorage.setItem(WIDTH_KEY, String(w));
+    } catch (_) {
+    }
+  }
+  function applySidebarWidth(w) {
+    if (!sidebar) return;
+    if (typeof w !== "number" || !Number.isFinite(w)) return;
+    expandedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(w)));
+    saveWidth(expandedWidth);
+    if (!sidebar.classList.contains("ck-collapsed")) {
+      sidebar.style.width = expandedWidth + "px";
+    }
+  }
   function setCollapsed(collapsed) {
     if (!sidebar) return;
-    if (collapsed) sidebar.classList.add("ck-collapsed");
-    else sidebar.classList.remove("ck-collapsed");
-    if (api.toggleSidebar) api.toggleSidebar(collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED);
+    if (collapsed) {
+      sidebar.classList.add("ck-collapsed");
+      sidebar.style.width = "";
+      if (api.toggleSidebar) api.toggleSidebar(SIDEBAR_COLLAPSED);
+    } else {
+      sidebar.classList.remove("ck-collapsed");
+      sidebar.style.width = expandedWidth + "px";
+      if (api.toggleSidebar) api.toggleSidebar(expandedWidth);
+    }
   }
   function activateTab(item, tab) {
     abItems.forEach((i) => i.classList.remove("ck-ab-active"));
@@ -1451,6 +1490,21 @@
       run();
     });
   });
+  if (sidebar) {
+    const resizer = document.createElement("div");
+    resizer.className = "ck-sidebar-resizer";
+    resizer.title = "\u62D6\u52A8\u8C03\u6574\u5BBD\u5EA6";
+    sidebar.appendChild(resizer);
+    resizer.addEventListener("mousedown", (e) => {
+      if (sidebar.classList.contains("ck-collapsed")) return;
+      e.preventDefault();
+      if (api.startSidebarDrag) api.startSidebarDrag();
+    });
+    if (api.onSidebarDrag) api.onSidebarDrag((w) => applySidebarWidth(w));
+    document.addEventListener("mouseup", () => {
+      if (api.endSidebarDrag) api.endSidebarDrag();
+    });
+  }
 
   // src/ui/shell/scripts/toolbar.ts
   var input = document.getElementById("url-input");
@@ -1896,7 +1950,6 @@
             } catch (_) {
             }
           }
-          addRecent("snippet", name, { payload: it && it.payload, autoSend: it && it.autoSend });
         } else {
           if (api.appendSnippet) {
             try {
@@ -1904,7 +1957,6 @@
             } catch (_) {
             }
           }
-          addRecent(type, name);
         }
       });
     });

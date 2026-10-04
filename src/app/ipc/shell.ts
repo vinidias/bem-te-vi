@@ -229,6 +229,52 @@ function registerShellIpc(): void {
     return { success: true, harness: !!win.__ckHarnessVisible };
   });
 
+  // ===== 侧边栏拖拽调宽 =====
+  // 拖拽时把 AI 视图移出（宽0），鼠标事件全落壳页面；主进程轮询鼠标位置算宽度并推回。
+  // 松开后恢复 AI 视图。
+  ipcMain.on('shell-sidebar-drag-start', (event: any) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    if (!ctx || !ctx.win || ctx.win.isDestroyed()) return;
+    const win = ctx.win;
+    const view = ctx.view;
+    if (win.__ckSidebarDragging) return;
+    win.__ckSidebarDragging = true;
+    // 移出 AI 视图 + harness 视图（避免鼠标被它们捕获）
+    try { if (view && !view.webContents.isDestroyed()) view.setBounds({ x: 0, y: 0, width: 0, height: 0 }); } catch (_) {}
+    try {
+      const hv = win.__ckHarnessView;
+      if (hv && !hv.webContents.isDestroyed()) hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+    } catch (_) {}
+    const { screen } = require('electron');
+    const base = ctx.win.getContentBounds(); // 窗口内容区（屏幕坐标）
+    const minW = 320;
+    win.__ckSidebarDragTimer = setInterval(() => {
+      try {
+        if (!win || win.isDestroyed()) return;
+        const pt = screen.getCursorScreenPoint();
+        let w = Math.round(pt.x - base.x);
+        if (w < minW) w = minW;
+        win.__ckSidebarDragWidth = w;
+        if (!win.webContents.isDestroyed()) win.webContents.send('shell-sidebar-drag', w);
+      } catch (_) { /* ignore */ }
+    }, 16);
+  });
+
+  ipcMain.on('shell-sidebar-drag-end', (event: any) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    if (!ctx || !ctx.win || ctx.win.isDestroyed()) return;
+    const win = ctx.win;
+    if (!win.__ckSidebarDragging) return;
+    win.__ckSidebarDragging = false;
+    if (win.__ckSidebarDragTimer) { clearInterval(win.__ckSidebarDragTimer); win.__ckSidebarDragTimer = null; }
+    const w = win.__ckSidebarDragWidth;
+    if (typeof w === 'number') win.__ckSidebarWidth = w;
+    // 恢复 AI 视图（按新宽度重排）
+    try { if (typeof win.__ckLayout === 'function') win.__ckLayout(); } catch (_) {}
+    // 通知壳页面最终宽度（确保一致）
+    try { if (!win.webContents.isDestroyed()) win.webContents.send('shell-sidebar-drag', win.__ckSidebarWidth); } catch (_) {}
+  });
+
   // 设置左侧 Cuckoo 侧边栏宽度（收起=46，展开=320）→ 重新布局 AI 页面
   ipcMain.handle('shell-toggle-sidebar', async (event: any, { width }: any) => {
     const ctx = windowState.getContextByWebContents(event.sender);

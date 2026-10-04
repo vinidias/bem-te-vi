@@ -327,6 +327,13 @@
   /* 收起：只隐藏面板，保留图标栏（宽度从 320 �?46�?*/
   .ck-sidebar.ck-collapsed { width: 46px; }
   .ck-sidebar.ck-collapsed .ck-panel { display: none; }
+  /* 拖拽调宽手柄（贴右边，宽热区） */
+  .ck-sidebar-resizer {
+    position: absolute; top: 0; right: -3px; width: 7px; height: 100%;
+    cursor: col-resize; z-index: 30;
+  }
+  .ck-sidebar-resizer:hover { background: var(--ck-primary-soft); }
+  .ck-sidebar.ck-collapsed .ck-sidebar-resizer { display: none; }
   /* 滚动条（跟随主题�?*/
   .ck-panel-body::-webkit-scrollbar { width: 4px; }
   .ck-panel-body::-webkit-scrollbar-track { background: transparent; }

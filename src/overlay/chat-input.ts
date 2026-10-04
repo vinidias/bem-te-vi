@@ -183,6 +183,15 @@ async function sendCombinedJsResultsToChat(results: any, onSent?: () => void): P
     msg += sep + sep;
   }
 
+  // 追加（不覆盖）：保留用户已输入的内容，工具结果拼在其后一起发送
+  const input = findInputArea();
+  if (input) {
+    const current = (getInputText(input) || '').trim();
+    if (current) {
+      msg = current + sep + sep + msg;
+      console.log('[Cuckoo Code] 工具结果追加在用户已输入内容之后（保留 ' + current.length + ' 字符）');
+    }
+  }
   console.log('[Cuckoo Code] 回传 JS 汇总执行结果, 消息长度=' + msg.length);
   return sendMessageToChat(msg, 'JS汇总', onSent);
 }

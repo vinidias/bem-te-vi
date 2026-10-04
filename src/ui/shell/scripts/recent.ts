@@ -84,18 +84,17 @@ export function renderRecent(): void {
     el.addEventListener('click', async () => {
       const type = el.dataset.type as RecentType;
       const name = el.dataset.name;
+      // 注意：点击底部快捷按钮【只执行动作】，不重新排序（排序只在侧边栏点击卡片时发生）
       if (type === 'snippet') {
         // 快捷提示词：触发（和点卡片一样）
         const it = list.find((x) => x.type === 'snippet' && x.name === name);
         if (it && it.payload && api.triggerSnippet) {
           try { await api.triggerSnippet(it.payload, it.autoSend !== false); } catch (_) { /* ignore */ }
         }
-        addRecent('snippet', name, { payload: it && it.payload, autoSend: it && it.autoSend });
       } else {
         if (api.appendSnippet) {
           try { await api.appendSnippet(snippetText(type, name)); } catch (_) { /* ignore */ }
         }
-        addRecent(type, name); // 点击后置顶
       }
     });
   });
