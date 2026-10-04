@@ -22,6 +22,25 @@ export function injectSubagentDeps(deps: { createWindow: CreateWindowFn; profile
 /** 等待子代理完成的回调注册表：windowId → resolve */
 const pending = new Map<number, (text: string) => void>();
 
+/** 每个 profile 正在跑的子代理数量（用于飞书消息拦截等） */
+const runningByProfile = new Map<string, number>();
+
+/** 该 profile 是否有子代理正在运行 */
+export function hasRunningSubagent(profileId: string): boolean {
+  return !!profileId && (runningByProfile.get(profileId) || 0) > 0;
+}
+
+function incRunning(profileId: string): void {
+  if (!profileId) return;
+  runningByProfile.set(profileId, (runningByProfile.get(profileId) || 0) + 1);
+}
+function decRunning(profileId: string): void {
+  if (!profileId) return;
+  const n = (runningByProfile.get(profileId) || 0) - 1;
+  if (n <= 0) runningByProfile.delete(profileId);
+  else runningByProfile.set(profileId, n);
+}
+
 /** bridge 侧检测到子代理完成时调用（IPC 入口） */
 export function onSubagentResponse(windowId: number, text: string): void {
   const resolve = pending.get(windowId);
@@ -92,6 +111,7 @@ export async function runAgent(opts: {
     projectDir: projectDir || null, // 传给子代理窗口，供 overlay 显示"当前项目目录"
   };
   console.log('[子代理] 启动 ' + opts.agentName + ' (父窗口 ' + opts.parentWindowId + ', 项目目录 ' + (projectDir || '无') + ')');
+  incRunning(opts.parentProfileId);
   const windowId = _createWindow(subProfile);
 
   // 关键：把父窗口的项目目录写入子代理窗口的 sessionStore，
@@ -110,6 +130,7 @@ export async function runAgent(opts: {
     if (text === '__SUBAGENT_TIMEOUT__') throw new Error('子代理执行超时');
     return text;
   } finally {
+    decRunning(opts.parentProfileId);
     // 关闭子代理窗口
     try {
       const ctx = windowState.getWindowContext(windowId);

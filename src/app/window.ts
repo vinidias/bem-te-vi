@@ -9,13 +9,15 @@ interface WindowContext {
   profileId: any;
   providerId: any;
   sessionStore: any;
+  /** 是否子代理窗口（子代理与父窗口共用 profileId，靠此标志区分） */
+  isSubagent?: boolean;
 }
 
 const windows = new Map<number, WindowContext>(); // windowId -> { win, profileId, providerId, sessionStore }
 let lastActiveWindowId: number | null = null;
 
-function addWindow(win: any, profileId: any, providerId: any, sessionStore: any, view: any): void {
-  windows.set(win.id, { win, view, profileId, providerId, sessionStore });
+function addWindow(win: any, profileId: any, providerId: any, sessionStore: any, view: any, isSubagent?: boolean): void {
+  windows.set(win.id, { win, view, profileId, providerId, sessionStore, isSubagent: !!isSubagent });
   lastActiveWindowId = win.id;
   win.on('closed', () => {
     windows.delete(win.id);
@@ -85,11 +87,25 @@ function getAllContexts(): WindowContext[] {
   return Array.from(windows.values());
 }
 
+/**
+ * 按 profileId 取窗口。
+ * 子代理与父窗口共用 profileId，故此方法**只返回主窗口**（跳过子代理），
+ * 避免"已开就聚焦""删除窗口""飞书转发"等场景误命中子代理窗口。
+ */
 function getWindowByProfileId(profileId: any): WindowContext | null {
   for (const ctx of windows.values()) {
-    if (ctx.profileId === profileId) return ctx;
+    if (ctx.profileId === profileId && !ctx.isSubagent) return ctx;
   }
   return null;
+}
+
+/** 按 profileId 取**全部**窗口（含子代理）。用于"删除窗口"时把分身一并关掉。 */
+function getAllWindowsByProfileId(profileId: any): WindowContext[] {
+  const out: WindowContext[] = [];
+  for (const ctx of windows.values()) {
+    if (ctx.profileId === profileId) out.push(ctx);
+  }
+  return out;
 }
 
 export {
@@ -105,4 +121,5 @@ export {
   getAllWindows,
   getAllContexts,
   getWindowByProfileId,
+  getAllWindowsByProfileId,
 };

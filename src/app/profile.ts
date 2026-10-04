@@ -152,13 +152,15 @@ function updateProfileProvider(id: string, providerId: string): any {
 }
 
 /**
- * 创建子代理窗口的临时 profile。
- * 关键：partition 复用父 profile 的（免登录 + token 计入同一"窗口"）。
+ * 创建子代理窗口的 profile（"父窗口的分身"）。
+ * 关键：**复用父 profile 的 id + partition** —— 这样：
+ *  - 会话账本 / token 统计 / 设置 全部与父窗口共用（数据能存、能累计）
+ *  - 靠 isSubagent 标志区分"这是分身"（防递归、窗口管理用）
  * 该 profile 不写入 profile-list.json（窗口关闭即弃）。
  */
 function createSubagentProfile(parent: any, agentName: string): any {
   return {
-    id: 'subagent-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+    id: parent.id,               // 复用父 profileId（共用账本/token/设置）
     providerId: parent.providerId,
     name: '子代理: ' + (agentName || 'agent'),
     partition: parent.partition, // 复用父窗口 partition（同一"用户"）

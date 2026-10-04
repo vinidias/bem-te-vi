@@ -78,10 +78,8 @@ function registerShellIpc(): void {
     // 更新系统总累计并广播给所有窗口
     try {
       const ctx = view ? windowState.getContextByWebContents(view.webContents) : null;
-      // 子代理窗口跳过：它与父窗口共享 partition/localStorage，
-      // windowCumulative 等于父窗口的值，上报会重复计入系统总累计。
-      const isSubagent = ctx && ctx.profileId && String(ctx.profileId).startsWith('subagent-');
-      if (ctx && ctx.profileId && !isSubagent && typeof windowCumulative === 'number') {
+      // 子代理与父窗口共用 profileId，写入的是同一个键（幂等，不会重复累计）。
+      if (ctx && ctx.profileId && typeof windowCumulative === 'number') {
         setWindowCumulative(ctx.profileId, windowCumulative);
         broadcastSystemTotal();
       }

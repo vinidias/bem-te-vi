@@ -97,7 +97,7 @@ function createWindow(profile: any) {
   const profileData = profile || profileManager.getDefaultProfile();
   const provider = getProvider(profileData.providerId) || null;
   const storeDir = app.getPath('userData');
-  const sessionStore = createSessionStore(profileData.id, storeDir, windowState, { noPersist: !!profileData.isSubagent });
+  const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
   const hasExplicitProfile = !!profile;
   // providerId 已确定 → 直接打开；未确定 → 显示平台选择页
   const providerChosen = !!profileData.providerId;
@@ -259,7 +259,7 @@ function createWindow(profile: any) {
   const winSession = view.webContents.session;
 
   // 注册窗口上下文（记录 providerId，未确定时为空字符串）
-  windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore, view);
+  windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore, view, !!profileData.isSubagent);
   sessionsToFlush.add(winSession);
 
   // 切换纯净模式（同窗口）：true=显示 harness，false=显示网页
@@ -627,9 +627,10 @@ ipcMainForProfile.handle('list-profiles', async () => {
 // 删除指定 profile（会关闭其窗口）
 ipcMainForProfile.handle('delete-profile', async (_event: any, { profileId }: any) => {
   if (!profileId) return { success: false, error: '缺少窗口ID' };
-  const ctx = windowState.getWindowByProfileId(profileId);
-  if (ctx && ctx.win && !ctx.win.isDestroyed()) {
-    ctx.win.close();
+  // 关掉该 profile 的**全部**窗口（含子代理分身）
+  const all = windowState.getAllWindowsByProfileId(profileId);
+  for (const c of all) {
+    if (c && c.win && !c.win.isDestroyed()) c.win.close();
   }
   const ok = profileManager.deleteProfile(profileId);
   return { success: ok, error: ok ? null : '窗口不存在' };

@@ -68,7 +68,7 @@ class RunAgentTool extends Tool {
     try {
       const { getWindowContext } = await import('../../app/window.js');
       const ctx = getWindowContext(currentWindowId);
-      if (ctx && ctx.profileId && String(ctx.profileId).startsWith('subagent-')) {
+      if (ctx && ctx.isSubagent) {
         return ToolResult.error('子代理不允许再调用 runAgent（防递归）');
       }
     } catch (_) { /* ignore */ }

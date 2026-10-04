@@ -147,7 +147,6 @@ function readTokenCache(): Record<string, SessionToken> {
  */
 function saveTokenForSession(sessionId: string, acc: number): void {
   if (!sessionId || typeof acc !== 'number') return;
-  if (isSubagentWindow) return; // 子代理不参与 token 统计（共享父窗口 localStorage，会污染）
   try {
     const cache = readTokenCache();
     let entry: any = cache[sessionId];

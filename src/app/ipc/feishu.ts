@@ -9,6 +9,7 @@ import * as windowState from '../window.js';
 import * as feishuClient from '../../feishu/client.js';
 import { readConfig, writeConfig } from '../../feishu/config.js';
 import { getProfileById, getProfileByFeishuChat, setProfileFeishuChat } from '../profile.js';
+import { hasRunningSubagent } from '../subagent.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
@@ -36,6 +37,14 @@ function forwardUserMessage(text: string, chatId: string): void {
   } else {
     ctx = windowState.getMainContext();
   }
+  // 子代理运行期间：拒收（避免插进正在进行的 AI 循环），并回一条提示
+  try {
+    if (ctx && ctx.profileId && hasRunningSubagent(ctx.profileId)) {
+      console.log('[Feishu] 子代理运行中，拒收飞书消息并回提示');
+      feishuClient.sendText('AI 正在使用子代理执行任务，请等子代理结束后再发消息。', chatId || undefined).catch(() => {});
+      return;
+    }
+  } catch (_) { /* ignore */ }
   const view = ctx && ctx.view;
   if (!view || !view.webContents || view.webContents.isDestroyed()) {
     console.warn('[Feishu] 目标窗口不可用，消息丢弃');
