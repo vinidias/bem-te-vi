@@ -36,6 +36,8 @@ temp/
 resources/runtime/
 
 # Project specific
+# 工具结果运行时产物（每次执行生成，不进仓库）
+.cuckoo/tool-results/
 # .cuckooCode/ 是各项目的工具目录，通常不提交；但本项目自身的约束文件 CUCKOO.md 例外
 .cuckooCode/*
 !.cuckooCode/CUCKOO.md
