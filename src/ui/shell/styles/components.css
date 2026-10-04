@@ -493,6 +493,32 @@
   }
   .ck-ws-act:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
   .ck-ws-act svg { width: 13px; height: 13px; }
+  /* 展开三角（子代理/压缩历史）：右三角，展开旋转 90° */
+  .ck-ws-expand {
+    width: 14px; height: 14px; flex-shrink: 0; margin-left: -10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ck-text-dim); transition: transform .12s; border-radius: 4px;
+  }
+  .ck-ws-expand svg { width: 10px; height: 10px; }
+  .ck-ws-expand.open { transform: rotate(90deg); }
+  .ck-ws-expand:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-ws-expand-hidden { visibility: hidden; }
+  /* 子节点（缩进） */
+  .ck-ws-item.sub { padding-left: 34px; }
+  .ck-ws-item.sub .ck-ws-name { color: var(--ck-text-dim); font-size: 11.5px; }
+  .ck-ws-item.sub.current .ck-ws-name { color: var(--ck-primary); }
+  /* 子节点分组标题（可点击展开/收起）*/
+  .ck-ws-subgroup-title {
+    padding: 5px 10px 5px 28px;
+    font-size: 10.5px; color: var(--ck-text-dim); font-weight: 600;
+    cursor: pointer; border-radius: 6px; display: flex; align-items: center;
+    transition: background .12s;
+  }
+  .ck-ws-subgroup-title:hover { background: var(--ck-surface-hover); }
+  .ck-ws-subgroup-title::before {
+    content: '▸ '; margin-right: 4px; font-size: 9px;
+  }
+  .ck-ws-subgroup-title.open::before { content: '▾ '; }
   /* 已归档区 */
   .ck-ws-archived { margin-top: 2px; }
   .ck-ws-archived-title {

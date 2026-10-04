@@ -81,7 +81,13 @@ function registerSessionIpc(): void {
     const all = store.readSessionStore();
     const sessions = Object.keys(all).map((id) => {
       const meta = store.getSessionMeta(id);
-      return { sessionId: id, projectDir: meta.projectDir, title: meta.title, createdAt: meta.createdAt, updatedAt: meta.updatedAt, archived: meta.archived === true };
+      return {
+        sessionId: id, projectDir: meta.projectDir, title: meta.title,
+        createdAt: meta.createdAt, updatedAt: meta.updatedAt, archived: meta.archived === true,
+        // 血缘：子代理/压缩来源
+        parentId: meta.parentId || null, kind: meta.kind || null,
+        agentName: meta.agentName || null, superseded: meta.superseded === true,
+      };
     }).filter((s: any) => !!s.projectDir);
     return { success: true, sessions, currentSessionId: store.state.currentSessionId || null, archivedProjects: store.getArchivedProjects() };
   });

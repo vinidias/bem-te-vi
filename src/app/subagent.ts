@@ -142,5 +142,12 @@ export async function runAgent(opts: {
       const ctx = windowState.getWindowContext(windowId);
       if (ctx && ctx.win && !ctx.win.isDestroyed()) ctx.win.close();
     } catch (_) { /* ignore */ }
+    // 通知父窗口刷新工作区列表（子代理的会话/血缘已写入账本）
+    try {
+      const parentCtx = windowState.getWindowContext(opts.parentWindowId);
+      if (parentCtx && parentCtx.win && !parentCtx.win.isDestroyed()) {
+        parentCtx.win.webContents.send('shell-sessions-changed');
+      }
+    } catch (_) { /* ignore */ }
   }
 }

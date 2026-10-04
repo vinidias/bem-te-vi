@@ -35,6 +35,25 @@ let archivedProjects: string[] = [];
 const expandedDirs = new Set<string>();
 const archivedOpen = new Set<string>();
 const archivedProjectsOpen = { v: false };
+/** 已展开"子节点"的对话（sessionId）——展开后可见 子代理 / 压缩历史 */
+const expandedNodes = new Set<string>();
+/** 已展开的子分组（key = sessionId + ':sub' | ':hist'）——默认收起 */
+const expandedSubgroups = new Set<string>();
+
+/** 找某对话的"压缩历史"（沿 parentId 往上追，返回 [上一版, 上上版, ...]） */
+function collectCompactionHistory(byId: Record<string, any>, session: any): any[] {
+  const out: any[] = [];
+  let cur = session && session.parentId;
+  let guard = 0;
+  while (cur && guard++ < 50) {
+    const p = byId[cur];
+    if (!p) break;
+    if (p.kind === 'subagent') break; // 父链里混入子代理关系 → 停
+    out.push(p);
+    cur = p.parentId;
+  }
+  return out;
+}
 
 /** 取一组会话里最新的时间戳（毫秒）；全无时间返回 0 */
 function latestTs(list: any[]): number {
@@ -53,9 +72,11 @@ function byTimeDesc(a: any, b: any): number {
   return tb - ta;
 }
 
-/** 渲染单个会话项（archived=true 时按钮为"取消归档"） */
-function renderItem(s: any, currentSessionId: string | null, archived: boolean = false): string {
-  const label = s.title || s.sessionId;
+/** 渲染单个会话项（archived=true 时按钮为"取消归档"）
+ *  hasChildren=true 时前面显示"展开三角"（子代理/压缩历史）
+ *  sub=true 表示这是子节点（缩进、无归档按钮、显示"返回当前"）*/
+function renderItem(s: any, currentSessionId: string | null, archived: boolean = false, hasChildren: boolean = false, sub: boolean = false): string {
+  const label = (s.kind === 'subagent' && s.agentName) ? ('子代理: ' + s.agentName) : (s.title || s.sessionId);
   const time = relTime(s.updatedAt);
   const isCur = s.sessionId === currentSessionId;
   const renameBtn = '<span class="ck-ws-act" data-act="rename" title="重命名">' +
@@ -65,10 +86,20 @@ function renderItem(s: any, currentSessionId: string | null, archived: boolean =
     ? '<span class="ck-ws-act" data-act="unarchive" title="取消归档">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M12 10v6"/><path d="M9 13l3-3 3 3"/></svg>' +
       '</span>'
-    : '<span class="ck-ws-act" data-act="archive" title="归档">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>' +
-      '</span>';
-  return '<div class="ck-ws-item' + (isCur ? ' current' : '') + '" data-session-id="' + escapeAttr(s.sessionId) + '" data-name="' + escapeAttr(label) + '" title="' + escapeAttr(s.sessionId) + '">' +
+    : (sub
+        // 子节点：无"归档"按钮（避免把子代理/旧版归档），改为"切到该会话"提示
+        ? ''
+        : '<span class="ck-ws-act" data-act="archive" title="归档">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>' +
+          '</span>');
+  const open = hasChildren && expandedNodes.has(s.sessionId);
+  const caret = hasChildren
+    ? '<span class="ck-ws-expand' + (open ? ' open' : '') + '">' +
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>' +
+      '</span>'
+    : (sub ? '<span class="ck-ws-expand ck-ws-expand-hidden"></span>' : '<span class="ck-ws-expand ck-ws-expand-hidden"></span>');
+  return '<div class="ck-ws-item' + (isCur ? ' current' : '') + (sub ? ' sub' : '') + '" data-session-id="' + escapeAttr(s.sessionId) + '" data-name="' + escapeAttr(label) + '" title="' + escapeAttr(s.sessionId) + '">' +
+    caret +
     '<span class="ck-ws-name">' + escapeHtml(label) + '</span>' +
     (time ? '<span class="ck-ws-time">' + escapeHtml(time) + '</span>' : '') +
     '<span class="ck-ws-acts">' + renameBtn + act + '</span>' +
@@ -182,6 +213,29 @@ function bindWorkspaceEvents(listEl: HTMLElement): void {
       }
     });
   });
+  // 展开三角：展开/收起子节点（子代理 / 压缩历史）
+  listEl.querySelectorAll('.ck-ws-expand').forEach((el: any) => {
+    if (el.classList.contains('ck-ws-expand-hidden')) return;
+    el.addEventListener('click', (e: any) => {
+      e.stopPropagation();
+      const itemEl = el.closest('.ck-ws-item');
+      if (!itemEl) return;
+      const id = itemEl.dataset.sessionId;
+      if (!id) return;
+      if (expandedNodes.has(id)) expandedNodes.delete(id); else expandedNodes.add(id);
+      loadWorkspaces();
+    });
+  });
+  // 子分组标题（子代理/压缩历史）：展开/收起
+  listEl.querySelectorAll('.ck-ws-subgroup-title').forEach((el: any) => {
+    el.addEventListener('click', (e: any) => {
+      e.stopPropagation();
+      const key = el.dataset.subgroup;
+      if (!key) return;
+      if (expandedSubgroups.has(key)) expandedSubgroups.delete(key); else expandedSubgroups.add(key);
+      loadWorkspaces();
+    });
+  });
   // 会话项：点击导航
   listEl.querySelectorAll('.ck-ws-item').forEach((el: any) => {
     el.addEventListener('click', async (e: any) => {
@@ -236,13 +290,56 @@ export async function loadWorkspaces(): Promise<void> {
       listEl.innerHTML = '<div class="ck-list-empty">暂无会话</div>';
       return;
     }
+    // 索引：sessionId -> 会话
+    const byId: Record<string, any> = {};
+    for (const s of sessions) byId[s.sessionId] = s;
+    // 子代理：按父对话索引
+    const subagentsByParent: Record<string, any[]> = {};
+    for (const s of sessions) {
+      if (s.kind === 'subagent' && s.parentId) {
+        if (!subagentsByParent[s.parentId]) subagentsByParent[s.parentId] = [];
+        subagentsByParent[s.parentId].push(s);
+      }
+    }
+    // 主列表 = 排除"子代理"和"被压缩的旧版"
+    const mainSessions = sessions.filter((s: any) => s.kind !== 'subagent' && !s.superseded);
     // 按项目目录分组；每组的非归档 / 归档分开
     const groups: Record<string, { active: any[]; archived: any[] }> = {};
-    for (const s of sessions) {
+    for (const s of mainSessions) {
       const dir = s.projectDir || '';
       if (!groups[dir]) groups[dir] = { active: [], archived: [] };
       if (s.archived) groups[dir].archived.push(s); else groups[dir].active.push(s);
     }
+    // 渲染"一个对话 + 它的子节点（子代理/压缩历史）"
+    const renderConversation = (s: any, archived: boolean): string => {
+      const hist = collectCompactionHistory(byId, s);
+      // 子代理：从"当前 + 压缩历史链"上收集（压缩后子代理仍挂在旧版下）
+      const chainIds = [s.sessionId].concat(hist.map((x: any) => x.sessionId));
+      const subs: any[] = [];
+      for (const cid of chainIds) {
+        const arr = subagentsByParent[cid];
+        if (arr) for (const x of arr) subs.push(x);
+      }
+      const hasChildren = subs.length > 0 || hist.length > 0;
+      let out = renderItem(s, currentSessionId, archived, hasChildren);
+      if (hasChildren && expandedNodes.has(s.sessionId)) {
+        out += '<div class="ck-ws-children">';
+        if (subs.length) {
+          const subKey = s.sessionId + ':sub';
+          const subOpen = expandedSubgroups.has(subKey);
+          out += '<div class="ck-ws-subgroup-title' + (subOpen ? ' open' : '') + '" data-subgroup="' + escapeAttr(subKey) + '">子代理（' + subs.length + '）</div>';
+          if (subOpen) out += subs.map((x: any) => renderItem(x, currentSessionId, false, false, true)).join('');
+        }
+        if (hist.length) {
+          const histKey = s.sessionId + ':hist';
+          const histOpen = expandedSubgroups.has(histKey);
+          out += '<div class="ck-ws-subgroup-title' + (histOpen ? ' open' : '') + '" data-subgroup="' + escapeAttr(histKey) + '">压缩历史（' + hist.length + '）</div>';
+          if (histOpen) out += hist.map((x: any) => renderItem(x, currentSessionId, false, false, true)).join('');
+        }
+        out += '</div>';
+      }
+      return out;
+    };
     // 组顺序：按最近活动时间倒序（无时间的排后面）
     const dirs = Object.keys(groups).sort((a, b) => {
       const ta = latestTs(groups[a].active.concat(groups[a].archived));
@@ -274,12 +371,12 @@ export async function loadWorkspaces(): Promise<void> {
           '</span>' +
         '</div>' +
         '<div class="ck-ws-items">' +
-          g.active.map((s: any) => renderItem(s, currentSessionId)).join('') +
+          g.active.map((s: any) => renderConversation(s, false)).join('') +
           (g.archived.length ? (
             '<div class="ck-ws-archived' + (isArchOpen ? ' open' : '') + '" data-dir="' + escapeAttr(dir) + '">' +
               '<div class="ck-ws-archived-title">已归档 ' + g.archived.length + ' 对话</div>' +
               '<div class="ck-ws-archived-items">' +
-                g.archived.map((s: any) => renderItem(s, currentSessionId, true)).join('') +
+                g.archived.map((s: any) => renderConversation(s, true)).join('') +
               '</div>' +
             '</div>'
           ) : '') +

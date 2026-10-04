@@ -708,6 +708,32 @@
   }
   .ck-ws-act:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
   .ck-ws-act svg { width: 13px; height: 13px; }
+  /* 展开三角（子代理/压缩历史）：右三角，展开旋转 90° */
+  .ck-ws-expand {
+    width: 14px; height: 14px; flex-shrink: 0; margin-left: -10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ck-text-dim); transition: transform .12s; border-radius: 4px;
+  }
+  .ck-ws-expand svg { width: 10px; height: 10px; }
+  .ck-ws-expand.open { transform: rotate(90deg); }
+  .ck-ws-expand:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-ws-expand-hidden { visibility: hidden; }
+  /* 子节点（缩进） */
+  .ck-ws-item.sub { padding-left: 34px; }
+  .ck-ws-item.sub .ck-ws-name { color: var(--ck-text-dim); font-size: 11.5px; }
+  .ck-ws-item.sub.current .ck-ws-name { color: var(--ck-primary); }
+  /* 子节点分组标题（可点击展开/收起）*/
+  .ck-ws-subgroup-title {
+    padding: 5px 10px 5px 28px;
+    font-size: 10.5px; color: var(--ck-text-dim); font-weight: 600;
+    cursor: pointer; border-radius: 6px; display: flex; align-items: center;
+    transition: background .12s;
+  }
+  .ck-ws-subgroup-title:hover { background: var(--ck-surface-hover); }
+  .ck-ws-subgroup-title::before {
+    content: '▸ '; margin-right: 4px; font-size: 9px;
+  }
+  .ck-ws-subgroup-title.open::before { content: '▾ '; }
   /* 已归档区 */
   .ck-ws-archived { margin-top: 2px; }
   .ck-ws-archived-title {
@@ -1752,6 +1778,21 @@
   var expandedDirs = /* @__PURE__ */ new Set();
   var archivedOpen = /* @__PURE__ */ new Set();
   var archivedProjectsOpen = { v: false };
+  var expandedNodes = /* @__PURE__ */ new Set();
+  var expandedSubgroups = /* @__PURE__ */ new Set();
+  function collectCompactionHistory(byId, session) {
+    const out = [];
+    let cur = session && session.parentId;
+    let guard = 0;
+    while (cur && guard++ < 50) {
+      const p = byId[cur];
+      if (!p) break;
+      if (p.kind === "subagent") break;
+      out.push(p);
+      cur = p.parentId;
+    }
+    return out;
+  }
   function latestTs(list) {
     let max = 0;
     for (const s of list) {
@@ -1765,13 +1806,15 @@
     const tb = b.updatedAt ? Date.parse(b.updatedAt) : 0;
     return tb - ta;
   }
-  function renderItem(s, currentSessionId, archived = false) {
-    const label = s.title || s.sessionId;
+  function renderItem(s, currentSessionId, archived = false, hasChildren = false, sub = false) {
+    const label = s.kind === "subagent" && s.agentName ? "\u5B50\u4EE3\u7406: " + s.agentName : s.title || s.sessionId;
     const time = relTime(s.updatedAt);
     const isCur = s.sessionId === currentSessionId;
     const renameBtn = '<span class="ck-ws-act" data-act="rename" title="\u91CD\u547D\u540D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>';
-    const act = archived ? '<span class="ck-ws-act" data-act="unarchive" title="\u53D6\u6D88\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M12 10v6"/><path d="M9 13l3-3 3 3"/></svg></span>' : '<span class="ck-ws-act" data-act="archive" title="\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg></span>';
-    return '<div class="ck-ws-item' + (isCur ? " current" : "") + '" data-session-id="' + escapeAttr(s.sessionId) + '" data-name="' + escapeAttr(label) + '" title="' + escapeAttr(s.sessionId) + '"><span class="ck-ws-name">' + escapeHtml(label) + "</span>" + (time ? '<span class="ck-ws-time">' + escapeHtml(time) + "</span>" : "") + '<span class="ck-ws-acts">' + renameBtn + act + "</span></div>";
+    const act = archived ? '<span class="ck-ws-act" data-act="unarchive" title="\u53D6\u6D88\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M12 10v6"/><path d="M9 13l3-3 3 3"/></svg></span>' : sub ? "" : '<span class="ck-ws-act" data-act="archive" title="\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg></span>';
+    const open = hasChildren && expandedNodes.has(s.sessionId);
+    const caret = hasChildren ? '<span class="ck-ws-expand' + (open ? " open" : "") + '"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></span>' : sub ? '<span class="ck-ws-expand ck-ws-expand-hidden"></span>' : '<span class="ck-ws-expand ck-ws-expand-hidden"></span>';
+    return '<div class="ck-ws-item' + (isCur ? " current" : "") + (sub ? " sub" : "") + '" data-session-id="' + escapeAttr(s.sessionId) + '" data-name="' + escapeAttr(label) + '" title="' + escapeAttr(s.sessionId) + '">' + caret + '<span class="ck-ws-name">' + escapeHtml(label) + "</span>" + (time ? '<span class="ck-ws-time">' + escapeHtml(time) + "</span>" : "") + '<span class="ck-ws-acts">' + renameBtn + act + "</span></div>";
   }
   function fmtCreatedAt(iso) {
     if (!iso) return "";
@@ -1876,6 +1919,29 @@
         }
       });
     });
+    listEl.querySelectorAll(".ck-ws-expand").forEach((el) => {
+      if (el.classList.contains("ck-ws-expand-hidden")) return;
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const itemEl = el.closest(".ck-ws-item");
+        if (!itemEl) return;
+        const id = itemEl.dataset.sessionId;
+        if (!id) return;
+        if (expandedNodes.has(id)) expandedNodes.delete(id);
+        else expandedNodes.add(id);
+        loadWorkspaces();
+      });
+    });
+    listEl.querySelectorAll(".ck-ws-subgroup-title").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const key = el.dataset.subgroup;
+        if (!key) return;
+        if (expandedSubgroups.has(key)) expandedSubgroups.delete(key);
+        else expandedSubgroups.add(key);
+        loadWorkspaces();
+      });
+    });
     listEl.querySelectorAll(".ck-ws-item").forEach((el) => {
       el.addEventListener("click", async (e) => {
         if (e.target.closest('[data-act="rename"]')) {
@@ -1942,13 +2008,51 @@
         listEl.innerHTML = '<div class="ck-list-empty">\u6682\u65E0\u4F1A\u8BDD</div>';
         return;
       }
-      const groups = {};
+      const byId = {};
+      for (const s of sessions) byId[s.sessionId] = s;
+      const subagentsByParent = {};
       for (const s of sessions) {
+        if (s.kind === "subagent" && s.parentId) {
+          if (!subagentsByParent[s.parentId]) subagentsByParent[s.parentId] = [];
+          subagentsByParent[s.parentId].push(s);
+        }
+      }
+      const mainSessions = sessions.filter((s) => s.kind !== "subagent" && !s.superseded);
+      const groups = {};
+      for (const s of mainSessions) {
         const dir = s.projectDir || "";
         if (!groups[dir]) groups[dir] = { active: [], archived: [] };
         if (s.archived) groups[dir].archived.push(s);
         else groups[dir].active.push(s);
       }
+      const renderConversation = (s, archived) => {
+        const hist = collectCompactionHistory(byId, s);
+        const chainIds = [s.sessionId].concat(hist.map((x) => x.sessionId));
+        const subs = [];
+        for (const cid of chainIds) {
+          const arr = subagentsByParent[cid];
+          if (arr) for (const x of arr) subs.push(x);
+        }
+        const hasChildren = subs.length > 0 || hist.length > 0;
+        let out = renderItem(s, currentSessionId, archived, hasChildren);
+        if (hasChildren && expandedNodes.has(s.sessionId)) {
+          out += '<div class="ck-ws-children">';
+          if (subs.length) {
+            const subKey = s.sessionId + ":sub";
+            const subOpen = expandedSubgroups.has(subKey);
+            out += '<div class="ck-ws-subgroup-title' + (subOpen ? " open" : "") + '" data-subgroup="' + escapeAttr(subKey) + '">\u5B50\u4EE3\u7406\uFF08' + subs.length + "\uFF09</div>";
+            if (subOpen) out += subs.map((x) => renderItem(x, currentSessionId, false, false, true)).join("");
+          }
+          if (hist.length) {
+            const histKey = s.sessionId + ":hist";
+            const histOpen = expandedSubgroups.has(histKey);
+            out += '<div class="ck-ws-subgroup-title' + (histOpen ? " open" : "") + '" data-subgroup="' + escapeAttr(histKey) + '">\u538B\u7F29\u5386\u53F2\uFF08' + hist.length + "\uFF09</div>";
+            if (histOpen) out += hist.map((x) => renderItem(x, currentSessionId, false, false, true)).join("");
+          }
+          out += "</div>";
+        }
+        return out;
+      };
       const dirs = Object.keys(groups).sort((a, b) => {
         const ta = latestTs(groups[a].active.concat(groups[a].archived));
         const tb = latestTs(groups[b].active.concat(groups[b].archived));
@@ -1960,7 +2064,7 @@
         g.archived.sort(byTimeDesc);
         const isOpen = dir === currentDir || expandedDirs.has(dir);
         const isArchOpen = archivedOpen.has(dir);
-        return '<div class="ck-ws-group' + (isOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-group-title" title="' + escapeAttr(dir) + '"><svg class="ck-ws-caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><svg class="ck-ws-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="ck-ws-gname">' + escapeHtml(baseName(dir)) + '</span><span class="ck-ws-gacts"><span class="ck-ws-gact" data-gact="new" title="\u7528\u8BE5\u9879\u76EE\u65B0\u5EFA\u5BF9\u8BDD"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>' + (archivedProjects.includes(dir) ? '<span class="ck-ws-gact" data-gact="unarchive" title="\u53D6\u6D88\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v5h5"/><path d="M3.5 12a8.5 8.5 0 1 0 2-5.4L3 9"/></svg></span>' : '<span class="ck-ws-gact" data-gact="archive" title="\u5F52\u6863\u9879\u76EE"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg></span>') + '</span></div><div class="ck-ws-items">' + g.active.map((s) => renderItem(s, currentSessionId)).join("") + (g.archived.length ? '<div class="ck-ws-archived' + (isArchOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-archived-title">\u5DF2\u5F52\u6863 ' + g.archived.length + ' \u5BF9\u8BDD</div><div class="ck-ws-archived-items">' + g.archived.map((s) => renderItem(s, currentSessionId, true)).join("") + "</div></div>" : "") + "</div></div>";
+        return '<div class="ck-ws-group' + (isOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-group-title" title="' + escapeAttr(dir) + '"><svg class="ck-ws-caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><svg class="ck-ws-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="ck-ws-gname">' + escapeHtml(baseName(dir)) + '</span><span class="ck-ws-gacts"><span class="ck-ws-gact" data-gact="new" title="\u7528\u8BE5\u9879\u76EE\u65B0\u5EFA\u5BF9\u8BDD"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>' + (archivedProjects.includes(dir) ? '<span class="ck-ws-gact" data-gact="unarchive" title="\u53D6\u6D88\u5F52\u6863"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v5h5"/><path d="M3.5 12a8.5 8.5 0 1 0 2-5.4L3 9"/></svg></span>' : '<span class="ck-ws-gact" data-gact="archive" title="\u5F52\u6863\u9879\u76EE"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg></span>') + '</span></div><div class="ck-ws-items">' + g.active.map((s) => renderConversation(s, false)).join("") + (g.archived.length ? '<div class="ck-ws-archived' + (isArchOpen ? " open" : "") + '" data-dir="' + escapeAttr(dir) + '"><div class="ck-ws-archived-title">\u5DF2\u5F52\u6863 ' + g.archived.length + ' \u5BF9\u8BDD</div><div class="ck-ws-archived-items">' + g.archived.map((s) => renderConversation(s, true)).join("") + "</div></div>" : "") + "</div></div>";
       };
       const activeDirs = dirs.filter((d) => !archivedProjects.includes(d));
       const archivedDirs = dirs.filter((d) => archivedProjects.includes(d));
