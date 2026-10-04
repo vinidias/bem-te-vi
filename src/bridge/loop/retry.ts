@@ -8,8 +8,8 @@
  *  - cuckoo-retry-delay-min      毫秒，默认 4000
  *  - cuckoo-retry-delay-max      毫秒，默认 10000
  *  - cuckoo-retry-count          普通失败次数，默认 10；负数=无限
- *  - cuckoo-retry-429-delay      毫秒，默认 60000
- *  - cuckoo-retry-429-count      429 次数，默认 20；负数=无限
+ *  - cuckoo-retry-429-delay      毫秒，默认 120000（2 分钟）
+ *  - cuckoo-retry-429-count      429 次数，默认 40；负数=无限
  *  - cuckoo-retry-prompt         提示词文案
  */
 import { sendToChat } from '../../overlay/chat-input.js';
@@ -24,8 +24,8 @@ const DEFAULTS = {
   delayMin: 4000,
   delayMax: 10000,
   count: 10,
-  delay429: 60000,
-  count429: 20,
+  delay429: 120000,
+  count429: 40,
   prompt: DEFAULT_PROMPT,
 };
 

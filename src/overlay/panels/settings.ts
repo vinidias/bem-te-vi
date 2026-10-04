@@ -23,8 +23,8 @@ function openSettings() {
     setVal('cuckoo-retry-delay-min', msToSec(localStorage.getItem('cuckoo-retry-delay-min') || '4000', 4));
     setVal('cuckoo-retry-delay-max', msToSec(localStorage.getItem('cuckoo-retry-delay-max') || '10000', 10));
     setVal('cuckoo-retry-count', localStorage.getItem('cuckoo-retry-count') || '10');
-    setVal('cuckoo-retry-429-delay', msToSec(localStorage.getItem('cuckoo-retry-429-delay') || '60000', 60));
-    setVal('cuckoo-retry-429-count', localStorage.getItem('cuckoo-retry-429-count') || '20');
+    setVal('cuckoo-retry-429-delay', msToSec(localStorage.getItem('cuckoo-retry-429-delay') || '120000', 120));
+    setVal('cuckoo-retry-429-count', localStorage.getItem('cuckoo-retry-429-count') || '40');
     setVal('cuckoo-retry-prompt', localStorage.getItem('cuckoo-retry-prompt') || '刚才的回复似乎中断了，请重新完整回答上一个问题。');
     setVal('cuckoo-xhr-idle-timeout', msToSec(localStorage.getItem('cuckoo-xhr-idle-timeout') || '300000', 300));
     setVal('cuckoo-watchdog-prompt', localStorage.getItem('cuckoo-watchdog-prompt') || '请继续');
@@ -161,8 +161,8 @@ function getSettingsData(): SettingsData {
     retryDelayMin: sec(lsGet('cuckoo-retry-delay-min'), 4),
     retryDelayMax: sec(lsGet('cuckoo-retry-delay-max'), 10),
     retryCount: int(lsGet('cuckoo-retry-count'), 10),
-    retry429Delay: sec(lsGet('cuckoo-retry-429-delay'), 60),
-    retry429Count: int(lsGet('cuckoo-retry-429-count'), 20),
+    retry429Delay: sec(lsGet('cuckoo-retry-429-delay'), 120),
+    retry429Count: int(lsGet('cuckoo-retry-429-count'), 40),
     retryPrompt: lsGet('cuckoo-retry-prompt') || '刚才的回复似乎中断了，请重新完整回答上一个问题。',
     xhrIdleTimeout: sec(lsGet('cuckoo-xhr-idle-timeout'), 300),
     watchdogPrompt: lsGet('cuckoo-watchdog-prompt') || '请继续',

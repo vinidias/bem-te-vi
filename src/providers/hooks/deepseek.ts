@@ -39,6 +39,21 @@ function install(): void {
     }
   }
 
+  // 限流关键词（响应体文案检测）：DeepSeek 除 429 / biz_code 外，
+  // 还会用普通 HTTP 错误 + 中文文案表达"频率过快"，需识别以免误走普通重试（短间隔）。
+  var RL_KEYWORDS = [
+    '过于频繁', '频率过快', '稍后再发', '稍后再试', '请稍后重试',
+    'too frequently', 'rate limit', 'too many requests', 'too fast',
+  ];
+  function isRateLimitText(s) {
+    if (!s || typeof s !== 'string') return false;
+    var low = s.toLowerCase();
+    for (var i = 0; i < RL_KEYWORDS.length; i++) {
+      if (low.indexOf(RL_KEYWORDS[i].toLowerCase()) >= 0) return true;
+    }
+    return false;
+  }
+
   // 从当前 URL 提取会话 ID（用于错误事件的会话校验）
   function getSessionIdFromUrl() {
     try {
@@ -433,7 +448,18 @@ function install(): void {
           if (response && response.ok === false) {
             // HTTP 429 = 操作频繁，标记 reason 供重试引擎走"操作频繁"策略
             var isRL = response.status === 429;
-            dispatch('', 'error', null, null, { reason: isRL ? 'rate_limit' : 'http', httpStatus: response.status, sessionId: fetchSessionId }, { path: 'http-error', httpStatus: response.status });
+            if (isRL) {
+              dispatch('', 'error', null, null, { reason: 'rate_limit', httpStatus: response.status, sessionId: fetchSessionId }, { path: 'http-error', httpStatus: response.status });
+            } else {
+              // 非 429：读响应体，检测"频率过快/请稍后再试"等文案（DeepSeek 有时用普通错误码 + 中文文案）
+              response.clone().text().then(function (bodyText) {
+                var rl = isRateLimitText(bodyText);
+                if (rl) console.log('[Cuckoo Code][hook] HTTP ' + response.status + ' 响应体命中限流文案，按操作频繁处理');
+                dispatch('', 'error', null, null, { reason: rl ? 'rate_limit' : 'http', httpStatus: response.status, sessionId: fetchSessionId }, { path: 'http-error', httpStatus: response.status });
+              }).catch(function () {
+                dispatch('', 'error', null, null, { reason: 'http', httpStatus: response.status, sessionId: fetchSessionId }, { path: 'http-error', httpStatus: response.status });
+              });
+            }
           } else if (response && response.body) {
             // 注：这里必须 clone —— 页面自己要消费原 body，我们只能看一份副本。
             // 这是 fetch API 下"只观察不改写"的必要手段，浏览器对 clone 有优化。
@@ -450,10 +476,16 @@ function install(): void {
                 var gcode = j && j.code;
                 var biz = j && j.data && j.data.biz_code;
                 var code = (biz !== undefined && biz !== null && biz !== 0) ? biz : gcode;
+                // 文案检测：DeepSeek 的 msg / biz_msg 可能含"频率过快"等
+                var msgText = String((j && j.msg) || '') + ' ' + String((j && j.data && j.data.biz_msg) || '');
+                var byMsg = isRateLimitText(msgText);
                 if (code !== undefined && code !== null && code !== 0) {
-                  var rl = code === 40029;
-                  console.log('[Cuckoo Code][hook] 非流式错误 code=' + code + (rl ? '（操作/请求过于频繁）' : ''));
+                  var rl = code === 40029 || byMsg;
+                  console.log('[Cuckoo Code][hook] 非流式错误 code=' + code + (rl ? '（限流）' : '') + (byMsg ? ' [msg命中限流文案]' : ''));
                   dispatch('', 'error', null, null, { reason: rl ? 'rate_limit' : 'biz', bizCode: code, sessionId: sid }, { path: 'biz-error', bizCode: code });
+                } else if (byMsg) {
+                  console.log('[Cuckoo Code][hook] 非流式响应 msg 命中限流文案（无错误码）');
+                  dispatch('', 'error', null, null, { reason: 'rate_limit', bizCode: code, sessionId: sid }, { path: 'biz-error-msg-ratelimit' });
                 }
               }).catch(function () { /* 非 JSON，忽略 */ });
             } else {
@@ -546,7 +578,13 @@ function install(): void {
         dispatched = true;
         var st = resolveStatus(extractor);
         if (st === 'error') {
-          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: 'xhr', httpStatus: xhr.status, sessionId: reqSessionId }, Object.assign({ path: 'xhr-error', httpStatus: xhr.status }, extractor.snapshot()));
+          // 限流检测：HTTP 429 或响应体命中限流文案（DeepSeek 可能用普通状态码 + 中文提示）
+          var xhrRL = xhr.status === 429;
+          if (!xhrRL) {
+            try { xhrRL = isRateLimitText(String(xhr.responseText || '').slice(0, 2000)); } catch (e) { /* ignore */ }
+          }
+          if (xhrRL) console.log('[Cuckoo Code][hook] XHR 命中限流（status=' + xhr.status + '）');
+          dispatch(extractor.text, 'error', extractor.tokenUsage, extractor.msgIds, { reason: xhrRL ? 'rate_limit' : 'xhr', httpStatus: xhr.status, sessionId: reqSessionId }, Object.assign({ path: 'xhr-error', httpStatus: xhr.status }, extractor.snapshot()));
         } else {
           dispatch(extractor.text, st, extractor.tokenUsage, extractor.msgIds, null, Object.assign({ path: 'xhr-end' }, extractor.snapshot()));
         }

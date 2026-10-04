@@ -66,8 +66,8 @@ test('readConfig 返回默认值', async () => {
   assert.strictEqual(cfg.delayMin, 4000);
   assert.strictEqual(cfg.delayMax, 10000);
   assert.strictEqual(cfg.count, 10);
-  assert.strictEqual(cfg.delay429, 60000);
-  assert.strictEqual(cfg.count429, 20);
+  assert.strictEqual(cfg.delay429, 120000);
+  assert.strictEqual(cfg.count429, 40);
   assert.ok(cfg.prompt);
 });
 
