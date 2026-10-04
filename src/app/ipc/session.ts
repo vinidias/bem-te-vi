@@ -2,6 +2,7 @@
  * IPC：会话列表与导航
  */
 import fs from 'node:fs';
+import path from 'node:path';
 import { createRequire } from 'node:module';
 import * as windowState from '../window.js';
 import { getProviderByUrl, getProvider } from '../../providers/registry.js';
@@ -10,7 +11,50 @@ import { initProject } from '../../session/project-context.js';
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
 
+// 文件树：忽略的目录 + 节点上限（防超大项目）
+const TREE_IGNORE_DIRS = new Set(['node_modules', '.git', 'dist', 'out', 'build', 'coverage', '.cuckooCode', '.playwright-mcp', '.idea', '.vscode', 'wyp', 'release', 'dist-verify']);
+const TREE_MAX_NODES = 5000;
+const TREE_MAX_DEPTH = 12;
+
+/** 递归构建文件树（目录在前、各自按名排序） */
+function buildFileTree(root: string, rel: string, depth: number, counter: { n: number }): any[] {
+  if (depth > TREE_MAX_DEPTH || counter.n > TREE_MAX_NODES) return [];
+  let entries: any[];
+  try { entries = fs.readdirSync(path.join(root, rel), { withFileTypes: true }); } catch (_) { return []; }
+  const dirs: any[] = [];
+  const files: any[] = [];
+  for (const e of entries) {
+    if (counter.n > TREE_MAX_NODES) break;
+    if (e.isDirectory() && TREE_IGNORE_DIRS.has(e.name)) continue;
+    const childRel = rel ? rel + '/' + e.name : e.name;
+    counter.n++;
+    if (e.isDirectory()) {
+      dirs.push({ name: e.name, path: childRel, type: 'dir', children: buildFileTree(root, childRel, depth + 1, counter) });
+    } else {
+      files.push({ name: e.name, path: childRel, type: 'file' });
+    }
+  }
+  dirs.sort((a, b) => a.name.localeCompare(b.name));
+  files.sort((a, b) => a.name.localeCompare(b.name));
+  return dirs.concat(files);
+}
+
 function registerSessionIpc(): void {
+  // 列出当前项目的文件树（只读浏览；忽略 node_modules/.git 等）
+  ipcMain.handle('list-project-tree', async (event: any) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    const store = ctx ? ctx.sessionStore : null;
+    const dir = (store && store.state && store.state.selectedProjectDir) || null;
+    if (!dir) return { success: false, error: '未选择项目目录' };
+    try {
+      const counter = { n: 0 };
+      const tree = buildFileTree(dir, '', 0, counter);
+      return { success: true, root: dir, tree, truncated: counter.n > TREE_MAX_NODES };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
   // 列出会话（返回 { sessionId, projectDir, title, createdAt, updatedAt }）
   ipcMain.handle('list-sessions', async (event: any) => {
     const ctx = windowState.getContextByWebContents(event.sender);

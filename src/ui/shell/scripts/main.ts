@@ -8,6 +8,7 @@ import './toolbar.js';
 import './platform.js';
 
 import { loadWorkspaces } from './pages/workspaces.js';
+import { loadFiles } from './pages/files.js';
 import { loadSnippets } from './pages/snippets.js';
 import { loadSkills } from './pages/skills.js';
 import { loadAgents } from './pages/agents.js';
@@ -21,6 +22,7 @@ import { renderRecent } from './recent.js';
 
 // 注册 tab → 加载函数（sidebar 点击时调用）
 registerTab('workspaces', loadWorkspaces);
+registerTab('files', loadFiles);
 registerTab('snippets', loadSnippets);
 registerTab('skills', loadSkills);
 registerTab('agents', loadAgents);

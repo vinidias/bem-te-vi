@@ -340,6 +340,101 @@
   .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
   .ck-panel-body::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
 
+  /* ===== 项目文件树 ===== */
+  .ck-ft-search {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px; margin: 0 4px 6px;
+    background: var(--ck-surface); border-radius: 8px;
+  }
+  .ck-ft-search svg { width: 13px; height: 13px; color: var(--ck-text-dim); flex-shrink: 0; }
+  .ck-ft-search-input {
+    flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+    font-family: inherit; font-size: 12px; color: var(--ck-text);
+  }
+  .ck-ft-search-input::placeholder { color: var(--ck-text-dim); }
+  .ck-ft-path { font-size: 10.5px; color: var(--ck-text-dim); margin-left: 6px; flex-shrink: 0; }
+  .ck-ft-hl { background: var(--ck-primary-soft); color: var(--ck-primary); border-radius: 2px; }
+  /* 文件页：树撑满面板剩余高度、内部滚动（横向滚动条固定可见区底部，不用把垂直滚到底） */
+  .ck-tab[data-panel="files"] { flex: 1; min-height: 0; }
+  .ck-ft { padding: 2px 0; overflow: auto; flex: 1; min-height: 0; }
+  /* 滚动条：与侧边栏一致（4px、圆角 2px、透明轨道） */
+  .ck-ft::-webkit-scrollbar { width: 4px; height: 4px; }
+  .ck-ft::-webkit-scrollbar-track { background: transparent; }
+  .ck-ft::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
+  .ck-ft::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
+  .ck-ft-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 8px; border-radius: 6px; cursor: pointer;
+    font-size: 12.5px; color: var(--ck-text-2);
+    white-space: nowrap;
+    width: max-content; min-width: 100%; box-sizing: border-box;
+    transition: background .12s;
+  }
+  .ck-ft-row:hover { background: var(--ck-surface-hover); }
+  /* caret：右三角，展开时旋转 90°（VSCode 风） */
+  .ck-ft-caret {
+    width: 14px; height: 14px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ck-text-dim); transition: transform .12s;
+  }
+  .ck-ft-caret svg { width: 11px; height: 11px; }
+  .ck-ft-dir.open .ck-ft-caret { transform: rotate(90deg); }
+  /* 图标：文件夹/文件区分 */
+  .ck-ft-icon {
+    min-width: 15px; height: 15px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ck-ft-icon svg { width: 15px; height: 15px; }
+  /* 图标：目录=主色文件夹；媒体=图形；代码=圆角角标（VSCode Seti 风） */
+  .ck-ft-i-dir { color: var(--ck-primary); }
+  .ck-ft-i-file { color: var(--ck-text-dim); opacity: .8; }
+  .ck-ft-i-media { color: #a855f7; }
+  .ck-ft-badge {
+    min-width: 16px; height: 15px; padding: 0 3px; box-sizing: border-box;
+    border-radius: 3px;
+    background: currentColor;        /* 底色 = 类型色（由 ck-ft-c-* 提供）*/
+    -webkit-text-fill-color: #fff;   /* 白字 */
+    color: var(--ck-text-dim);
+    font-size: 8.5px; font-weight: 800; letter-spacing: -.2px;
+    line-height: 1; display: inline-flex; align-items: center; justify-content: center;
+  }
+  /* 文件名配色（原图标配色迁到文件名） */
+  .ck-ft-c-file { color: var(--ck-text-dim); }
+  .ck-ft-c-ts   { color: #2b7cc4; }
+  .ck-ft-c-js   { color: #c9a227; }
+  .ck-ft-c-json { color: #b8a400; }
+  .ck-ft-c-md   { color: #4a9eca; }
+  .ck-ft-c-css  { color: #8a5cf6; }
+  .ck-ft-c-html { color: #d9534f; }
+  .ck-ft-c-py   { color: #3572A5; }
+  .ck-ft-c-java { color: #b07219; }
+  .ck-ft-c-go   { color: #1aa5c4; }
+  .ck-ft-c-rs   { color: #c9784a; }
+  .ck-ft-c-rb   { color: #b03060; }
+  .ck-ft-c-php  { color: #6b7bb8; }
+  .ck-ft-c-c    { color: #6b7280; }
+  .ck-ft-c-cs   { color: #178600; }
+  .ck-ft-c-sh   { color: #5bad6f; }
+  .ck-ft-c-yml  { color: #c0392b; }
+  .ck-ft-c-xml  { color: #d97706; }
+  .ck-ft-c-sql  { color: #d97706; }
+  .ck-ft-c-img  { color: #a855f7; }
+  .ck-ft-c-txt  { color: #8a8f9b; }
+  .ck-ft-c-lock { color: #9ca3af; }
+  .ck-ft-name { white-space: nowrap; flex: 1; }
+  /* @ 按钮：悬停行才显示（始终占位防抖动） */
+  .ck-ft-at {
+    flex-shrink: 0; width: 18px; height: 18px; margin-left: 6px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 5px; font-size: 12px; font-weight: 700;
+    color: var(--ck-text-dim); cursor: pointer;
+    visibility: hidden; opacity: 0; transition: opacity .12s;
+  }
+  .ck-ft-row:hover .ck-ft-at { visibility: visible; opacity: 1; }
+  .ck-ft-at:hover { background: var(--ck-primary-soft); color: var(--ck-primary); }
+  .ck-ft-dir .ck-ft-name { color: var(--ck-text); font-weight: 500; }
+  .ck-ft-truncated { padding: 8px; font-size: 11px; color: var(--ck-text-dim); text-align: center; }
+
   /* ===== 工作区（会话）===== */
   .ck-ws-group { display: flex; flex-direction: column; }
   .ck-ws-group + .ck-ws-group { margin-top: 6px; }

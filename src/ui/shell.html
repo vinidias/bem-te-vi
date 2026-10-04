@@ -555,6 +555,101 @@
   .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
   .ck-panel-body::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
 
+  /* ===== 项目文件树 ===== */
+  .ck-ft-search {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px; margin: 0 4px 6px;
+    background: var(--ck-surface); border-radius: 8px;
+  }
+  .ck-ft-search svg { width: 13px; height: 13px; color: var(--ck-text-dim); flex-shrink: 0; }
+  .ck-ft-search-input {
+    flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+    font-family: inherit; font-size: 12px; color: var(--ck-text);
+  }
+  .ck-ft-search-input::placeholder { color: var(--ck-text-dim); }
+  .ck-ft-path { font-size: 10.5px; color: var(--ck-text-dim); margin-left: 6px; flex-shrink: 0; }
+  .ck-ft-hl { background: var(--ck-primary-soft); color: var(--ck-primary); border-radius: 2px; }
+  /* 文件页：树撑满面板剩余高度、内部滚动（横向滚动条固定可见区底部，不用把垂直滚到底） */
+  .ck-tab[data-panel="files"] { flex: 1; min-height: 0; }
+  .ck-ft { padding: 2px 0; overflow: auto; flex: 1; min-height: 0; }
+  /* 滚动条：与侧边栏一致（4px、圆角 2px、透明轨道） */
+  .ck-ft::-webkit-scrollbar { width: 4px; height: 4px; }
+  .ck-ft::-webkit-scrollbar-track { background: transparent; }
+  .ck-ft::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
+  .ck-ft::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
+  .ck-ft-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 8px; border-radius: 6px; cursor: pointer;
+    font-size: 12.5px; color: var(--ck-text-2);
+    white-space: nowrap;
+    width: max-content; min-width: 100%; box-sizing: border-box;
+    transition: background .12s;
+  }
+  .ck-ft-row:hover { background: var(--ck-surface-hover); }
+  /* caret：右三角，展开时旋转 90°（VSCode 风） */
+  .ck-ft-caret {
+    width: 14px; height: 14px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ck-text-dim); transition: transform .12s;
+  }
+  .ck-ft-caret svg { width: 11px; height: 11px; }
+  .ck-ft-dir.open .ck-ft-caret { transform: rotate(90deg); }
+  /* 图标：文件夹/文件区分 */
+  .ck-ft-icon {
+    min-width: 15px; height: 15px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ck-ft-icon svg { width: 15px; height: 15px; }
+  /* 图标：目录=主色文件夹；媒体=图形；代码=圆角角标（VSCode Seti 风） */
+  .ck-ft-i-dir { color: var(--ck-primary); }
+  .ck-ft-i-file { color: var(--ck-text-dim); opacity: .8; }
+  .ck-ft-i-media { color: #a855f7; }
+  .ck-ft-badge {
+    min-width: 16px; height: 15px; padding: 0 3px; box-sizing: border-box;
+    border-radius: 3px;
+    background: currentColor;        /* 底色 = 类型色（由 ck-ft-c-* 提供）*/
+    -webkit-text-fill-color: #fff;   /* 白字 */
+    color: var(--ck-text-dim);
+    font-size: 8.5px; font-weight: 800; letter-spacing: -.2px;
+    line-height: 1; display: inline-flex; align-items: center; justify-content: center;
+  }
+  /* 文件名配色（原图标配色迁到文件名） */
+  .ck-ft-c-file { color: var(--ck-text-dim); }
+  .ck-ft-c-ts   { color: #2b7cc4; }
+  .ck-ft-c-js   { color: #c9a227; }
+  .ck-ft-c-json { color: #b8a400; }
+  .ck-ft-c-md   { color: #4a9eca; }
+  .ck-ft-c-css  { color: #8a5cf6; }
+  .ck-ft-c-html { color: #d9534f; }
+  .ck-ft-c-py   { color: #3572A5; }
+  .ck-ft-c-java { color: #b07219; }
+  .ck-ft-c-go   { color: #1aa5c4; }
+  .ck-ft-c-rs   { color: #c9784a; }
+  .ck-ft-c-rb   { color: #b03060; }
+  .ck-ft-c-php  { color: #6b7bb8; }
+  .ck-ft-c-c    { color: #6b7280; }
+  .ck-ft-c-cs   { color: #178600; }
+  .ck-ft-c-sh   { color: #5bad6f; }
+  .ck-ft-c-yml  { color: #c0392b; }
+  .ck-ft-c-xml  { color: #d97706; }
+  .ck-ft-c-sql  { color: #d97706; }
+  .ck-ft-c-img  { color: #a855f7; }
+  .ck-ft-c-txt  { color: #8a8f9b; }
+  .ck-ft-c-lock { color: #9ca3af; }
+  .ck-ft-name { white-space: nowrap; flex: 1; }
+  /* @ 按钮：悬停行才显示（始终占位防抖动） */
+  .ck-ft-at {
+    flex-shrink: 0; width: 18px; height: 18px; margin-left: 6px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 5px; font-size: 12px; font-weight: 700;
+    color: var(--ck-text-dim); cursor: pointer;
+    visibility: hidden; opacity: 0; transition: opacity .12s;
+  }
+  .ck-ft-row:hover .ck-ft-at { visibility: visible; opacity: 1; }
+  .ck-ft-at:hover { background: var(--ck-primary-soft); color: var(--ck-primary); }
+  .ck-ft-dir .ck-ft-name { color: var(--ck-text); font-weight: 500; }
+  .ck-ft-truncated { padding: 8px; font-size: 11px; color: var(--ck-text-dim); text-align: center; }
+
   /* ===== 工作区（会话）===== */
   .ck-ws-group { display: flex; flex-direction: column; }
   .ck-ws-group + .ck-ws-group { margin-top: 6px; }
@@ -805,6 +900,9 @@
           <button class="ck-ab-item ck-ab-active" data-tab="workspaces" title="工作区（会话）">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
           </button>
+          <button class="ck-ab-item" data-tab="files" title="项目文件">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+          </button>
           <button class="ck-ab-item" data-tab="snippets" title="提示词">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           </button>
@@ -918,6 +1016,23 @@
                 </button>
               </div>
               <div class="ck-list" id="ws-list">
+                <div class="ck-list-empty">加载中…</div>
+              </div>
+            </div>
+
+            <!-- ===== 项目文件 ===== -->
+            <div class="ck-tab" data-panel="files">
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;" id="ft-root">项目文件</span>
+                <button class="ck-icon-btn" id="ft-refresh" title="刷新">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+              <div class="ck-ft-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+                <input class="ck-ft-search-input" id="ft-search" placeholder="搜索文件名…" spellcheck="false" autocomplete="off" />
+              </div>
+              <div class="ck-list ck-ft" id="ft-list">
                 <div class="ck-list-empty">加载中…</div>
               </div>
             </div>
@@ -1882,6 +1997,300 @@
     });
   }
 
+  // src/ui/shell/scripts/pages/files.ts
+  var expanded = /* @__PURE__ */ new Set();
+  var cachedTree = [];
+  var cachedTruncated = false;
+  var CARET_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>';
+  var FOLDER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  var FILE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+  function highlight(text, kw) {
+    const esc = escapeHtml(text);
+    if (!kw) return esc;
+    const escKw = escapeHtml(kw).replace(/[.*+?^$^{}()|[\]\\]/g, "\\$&");
+    try {
+      return esc.replace(new RegExp("(" + escKw + ")", "gi"), '<mark class="ck-ft-hl">$1</mark>');
+    } catch (_) {
+      return esc;
+    }
+  }
+  var EXT_COLOR = {
+    ts: "ts",
+    tsx: "ts",
+    mts: "ts",
+    cts: "ts",
+    js: "js",
+    jsx: "js",
+    mjs: "js",
+    cjs: "js",
+    json: "json",
+    json5: "json",
+    md: "md",
+    markdown: "md",
+    mdx: "md",
+    css: "css",
+    scss: "css",
+    less: "css",
+    sass: "css",
+    html: "html",
+    htm: "html",
+    vue: "html",
+    svelte: "html",
+    py: "py",
+    pyw: "py",
+    java: "java",
+    kt: "java",
+    kts: "java",
+    go: "go",
+    rs: "rs",
+    rb: "rb",
+    php: "php",
+    c: "c",
+    h: "c",
+    cc: "c",
+    cpp: "c",
+    hpp: "c",
+    cxx: "c",
+    cs: "cs",
+    sh: "sh",
+    bash: "sh",
+    zsh: "sh",
+    bat: "sh",
+    cmd: "sh",
+    ps1: "sh",
+    yml: "yml",
+    yaml: "yml",
+    toml: "yml",
+    ini: "yml",
+    conf: "yml",
+    env: "yml",
+    xml: "xml",
+    svg: "xml",
+    sql: "sql",
+    png: "img",
+    jpg: "img",
+    jpeg: "img",
+    gif: "img",
+    webp: "img",
+    bmp: "img",
+    ico: "img",
+    avif: "img",
+    mp4: "img",
+    mp3: "img",
+    wav: "img",
+    mov: "img",
+    webm: "img",
+    txt: "txt",
+    log: "txt",
+    text: "txt",
+    lock: "lock"
+  };
+  var EXT_BADGE = {
+    ts: "TS",
+    tsx: "TS",
+    mts: "TS",
+    cts: "TS",
+    js: "JS",
+    jsx: "JS",
+    mjs: "JS",
+    cjs: "JS",
+    json: "{}",
+    json5: "{}",
+    md: "MD",
+    markdown: "MD",
+    mdx: "MD",
+    css: "CSS",
+    scss: "CSS",
+    less: "CSS",
+    sass: "CSS",
+    html: "<>",
+    htm: "<>",
+    vue: "VUE",
+    svelte: "SVE",
+    py: "PY",
+    pyw: "PY",
+    java: "JV",
+    kt: "KT",
+    kts: "KT",
+    go: "GO",
+    rs: "RS",
+    rb: "RB",
+    php: "PHP",
+    c: "C",
+    h: "H",
+    cc: "C+",
+    cpp: "C+",
+    hpp: "C+",
+    cxx: "C+",
+    cs: "C#",
+    sh: ">_",
+    bash: ">_",
+    zsh: ">_",
+    bat: ">_",
+    cmd: ">_",
+    ps1: ">_",
+    yml: "YML",
+    yaml: "YML",
+    toml: "TML",
+    ini: "INI",
+    conf: "CFG",
+    env: "ENV",
+    xml: "XML",
+    svg: "SVG",
+    sql: "SQL",
+    txt: "TXT",
+    log: "LOG",
+    text: "TXT",
+    lock: "LCK"
+  };
+  var MEDIA_EXTS = /* @__PURE__ */ new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "avif", "mp4", "mp3", "wav", "mov", "webm"]);
+  var IMG_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+  function extOf(name) {
+    const dot = name.lastIndexOf(".");
+    return dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
+  }
+  function iconHtml(name, type) {
+    if (type === "dir") return '<span class="ck-ft-icon ck-ft-i-dir">' + FOLDER_SVG + "</span>";
+    const ext = extOf(name);
+    if (MEDIA_EXTS.has(ext)) return '<span class="ck-ft-icon ck-ft-i-media">' + IMG_SVG + "</span>";
+    const badge = EXT_BADGE[ext];
+    if (badge) return '<span class="ck-ft-icon ck-ft-badge ' + colorClass(name, "file") + '">' + badge + "</span>";
+    return '<span class="ck-ft-icon ck-ft-i-file">' + FILE_SVG + "</span>";
+  }
+  function colorClass(name, type) {
+    if (type === "dir") return "";
+    const ext = extOf(name);
+    return EXT_COLOR[ext] ? "ck-ft-c-" + EXT_COLOR[ext] : "ck-ft-c-file";
+  }
+  function nameClass(name, type) {
+    return type === "dir" ? "ck-ft-name" : "ck-ft-name " + colorClass(name, type);
+  }
+  function atBtn(path) {
+    return '<span class="ck-ft-at" data-at="' + escapeAttr(path) + '" title="\u8FFD\u52A0 @' + escapeAttr(path) + ' \u5230\u8F93\u5165\u6846">@</span>';
+  }
+  function renderNodes(nodes, depth) {
+    let html = "";
+    for (const n of nodes) {
+      const pad = 6 + depth * 14;
+      if (n.type === "dir") {
+        const open = expanded.has(n.path);
+        html += '<div class="ck-ft-row ck-ft-dir' + (open ? " open" : "") + '" data-path="' + escapeAttr(n.path) + '" style="padding-left:' + pad + 'px"><span class="ck-ft-caret">' + CARET_SVG + "</span>" + iconHtml(n.name, "dir") + '<span class="' + nameClass(n.name, "dir") + '">' + escapeHtml(n.name) + "</span>" + atBtn(n.path) + "</div>";
+        if (open && n.children) html += renderNodes(n.children, depth + 1);
+      } else {
+        html += '<div class="ck-ft-row ck-ft-file" data-path="' + escapeAttr(n.path) + '" title="' + escapeAttr(n.path) + '" style="padding-left:' + pad + 'px"><span class="ck-ft-caret"></span>' + iconHtml(n.name, "file") + '<span class="' + nameClass(n.name, "file") + '">' + escapeHtml(n.name) + "</span>" + atBtn(n.path) + "</div>";
+      }
+    }
+    return html;
+  }
+  function flatten(nodes, out) {
+    for (const n of nodes) {
+      out.push(n);
+      if (n.children) flatten(n.children, out);
+    }
+    return out;
+  }
+  function renderSearch(kw) {
+    const all = flatten(cachedTree, []);
+    const low = kw.toLowerCase();
+    const matched = all.filter((n) => n.path.toLowerCase().includes(low));
+    if (matched.length === 0) return '<div class="ck-list-empty">\u65E0\u5339\u914D\u7ED3\u679C</div>';
+    matched.sort((a, b) => {
+      if (a.type !== b.type) return a.type === "file" ? -1 : 1;
+      return a.path.localeCompare(b.path);
+    });
+    return matched.slice(0, 500).map((n) => {
+      const cls = n.type === "dir" ? "ck-ft-dir" : "ck-ft-file";
+      return '<div class="ck-ft-row ' + cls + '" data-path="' + escapeAttr(n.path) + '" title="' + escapeAttr(n.path) + '">' + iconHtml(n.name, n.type) + '<span class="' + nameClass(n.name, n.type) + '">' + highlight(n.name, kw) + '</span><span class="ck-ft-path">' + highlight(n.path, kw) + "</span>" + atBtn(n.path) + "</div>";
+    }).join("") + (matched.length > 500 ? '<div class="ck-ft-truncated">\uFF08\u7ED3\u679C\u8FC7\u591A\uFF0C\u4EC5\u663E\u793A\u524D 500 \u9879\uFF09</div>' : "");
+  }
+  function bindRowEvents(listEl) {
+    listEl.querySelectorAll(".ck-ft-at").forEach((el) => {
+      el.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const p = el.dataset.at;
+        if (!p || !api.appendSnippet) return;
+        try {
+          await api.appendSnippet("@" + p);
+        } catch (_) {
+        }
+      });
+    });
+    listEl.querySelectorAll(".ck-ft-dir").forEach((el) => {
+      el.addEventListener("click", () => {
+        const p = el.dataset.path;
+        if (expanded.has(p)) expanded.delete(p);
+        else expanded.add(p);
+        loadFiles();
+      });
+    });
+  }
+  function currentKeyword() {
+    const s = document.getElementById("ft-search");
+    return s ? String(s.value || "").trim() : "";
+  }
+  async function loadFiles() {
+    const listEl = document.getElementById("ft-list");
+    if (!listEl || !api.listProjectTree) return;
+    try {
+      const r = await api.listProjectTree();
+      if (!r || !r.success) {
+        listEl.innerHTML = '<div class="ck-list-empty">' + escapeHtml(r && r.error || "\u52A0\u8F7D\u5931\u8D25") + "</div>";
+        return;
+      }
+      const rootEl = document.getElementById("ft-root");
+      if (rootEl && r.root) {
+        const base = String(r.root).replace(/[\\/]+$/, "").split(/[\\/]/).pop() || "\u9879\u76EE\u6587\u4EF6";
+        rootEl.textContent = base;
+        rootEl.title = r.root;
+      }
+      cachedTree = r.tree || [];
+      cachedTruncated = !!r.truncated;
+      renderList(listEl);
+    } catch (_) {
+      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+    }
+  }
+  function renderList(listEl) {
+    const kw = currentKeyword();
+    if (kw) {
+      listEl.innerHTML = renderSearch(kw);
+    } else {
+      if (cachedTree.length === 0) {
+        listEl.innerHTML = '<div class="ck-list-empty">\u7A7A\u76EE\u5F55</div>';
+        return;
+      }
+      listEl.innerHTML = renderNodes(cachedTree, 0) + (cachedTruncated ? '<div class="ck-ft-truncated">\uFF08\u8282\u70B9\u8FC7\u591A\uFF0C\u5DF2\u622A\u65AD\u663E\u793A\uFF09</div>' : "");
+    }
+    bindRowEvents(listEl);
+  }
+  document.getElementById("ft-refresh")?.addEventListener("click", loadFiles);
+  {
+    const searchEl = document.getElementById("ft-search");
+    if (searchEl) {
+      let timer = null;
+      searchEl.addEventListener("input", () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          const listEl = document.getElementById("ft-list");
+          if (listEl) renderList(listEl);
+        }, 150);
+      });
+      searchEl.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          searchEl.value = "";
+          const listEl = document.getElementById("ft-list");
+          if (listEl) renderList(listEl);
+        }
+      });
+    }
+  }
+  if (api.onProjectDir) {
+    api.onProjectDir(() => {
+      expanded.clear();
+      loadFiles();
+    });
+  }
+
   // src/ui/shell/scripts/recent.ts
   var KEY = "cuckoo-shell-recent-tools";
   var MAX = 5;
@@ -2769,6 +3178,7 @@
 
   // src/ui/shell/scripts/main.ts
   registerTab("workspaces", loadWorkspaces);
+  registerTab("files", loadFiles);
   registerTab("snippets", loadSnippets);
   registerTab("skills", loadSkills);
   registerTab("agents", loadAgents);
