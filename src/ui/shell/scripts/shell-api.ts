@@ -48,6 +48,12 @@ export interface ShellAPI {
   onPlatformMode?: (cb: (data: any) => void) => void;
   /** 会话标题/归档变化（如 AI 命名对话）→ 刷新工作区列表 */
   onSessionsChanged?: (cb: () => void) => void;
+  // ===== 主题 =====
+  themeGet?: () => Promise<any>;
+  themeSet?: (id: string) => Promise<any>;
+  themeList?: () => Promise<any>;
+  themeSubscribe?: () => Promise<any>;
+  onThemeChanged?: (cb: (snapshot: any) => void) => void;
   // 会话（侧边栏「工作区」页）
   listAllSessions?: () => Promise<any>;
   navigateSession?: (sessionId: string) => Promise<any>;

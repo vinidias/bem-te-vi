@@ -119,6 +119,7 @@ async function loadInstalledPlugins(): Promise<void> {
             sw +
           '</div>' +
           '<div class="ck-plugin-actions">' +
+            (p.hasConfig ? '<button class="ck-snip-icon-btn" data-config="' + escapeAttr(p.id) + '" title="配置">⚙</button>' : '<span class="ck-snip-icon-btn ck-snip-icon-placeholder" aria-hidden="true"></span>') +
             '<button class="ck-snip-icon-btn danger" data-uninstall="' + escapeAttr(p.id) + '" title="卸载">' +
               ICON_TRASH +
             '</button>' +
@@ -128,6 +129,15 @@ async function loadInstalledPlugins(): Promise<void> {
         pluginMetaHtml(meta) +
       '</div>';
     }).join('');
+
+    // 配置按钮：弹简单配置表单（按 schema 渲染）
+    listEl.querySelectorAll('[data-config]').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = (btn as any).dataset.config;
+        await openPluginConfig(id);
+      });
+    });
 
     listEl.querySelectorAll('[data-uninstall]').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
@@ -322,4 +332,89 @@ document.getElementById('plugin-open-dir')?.addEventListener('click', async () =
   const r = await api.pluginOpenDir();
   if (r && !r.success) await ckAlert(r.error || '打开目录失败');
 });
+
+/** 打开插件配置弹窗（按 schema 渲染简单表单） */
+async function openPluginConfig(pluginId: string): Promise<void> {
+  const apiAny: any = api as any;
+  if (!apiAny || typeof apiAny.pluginConfigGet !== 'function') {
+    await ckAlert('配置接口不可用');
+    return;
+  }
+  const r = await apiAny.pluginConfigGet(pluginId);
+  if (!r || !r.success) { await ckAlert((r && r.error) || '读取配置失败'); return; }
+  const schema = r.schema || {};
+  const values = r.values || {};
+  const keys = Object.keys(schema);
+  if (keys.length === 0) { await ckAlert('该插件没有配置项'); return; }
+
+  // 用 ck-dialog 的 mask 手动构建表单
+  const mask = document.getElementById('ck-dialog');
+  const titleEl = document.getElementById('ck-dialog-title');
+  const msgEl = document.getElementById('ck-dialog-msg');
+  const okBtn = document.getElementById('ck-dialog-ok');
+  const cancelBtn = document.getElementById('ck-dialog-cancel');
+  if (!mask || !titleEl || !msgEl || !okBtn || !cancelBtn) return;
+
+  titleEl.textContent = '插件配置：' + pluginId;
+  // 加宽弹窗（原 ck-dialog 只有 280px，放不下表单）
+  const dlg = mask.querySelector('.ck-dialog') as any;
+  if (dlg) { dlg.__oldMaxWidth = dlg.style.maxWidth; dlg.style.maxWidth = '420px'; dlg.style.width = '380px'; }
+  msgEl.innerHTML = '';
+  const inputs: Record<string, any> = {};
+  for (const k of keys) {
+    const f = schema[k] || {};
+    const row = document.createElement('div');
+    row.style.cssText = 'margin:10px 0;display:flex;flex-direction:column;gap:4px';
+    const lab = document.createElement('label');
+    lab.textContent = (f.label || k) + (f.description ? '（' + f.description + '）' : '');
+    lab.style.cssText = 'font-size:12px;color:var(--ck-text-2)';
+    let inp: any;
+    if (f.type === 'boolean') {
+      inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.checked = values[k] !== undefined ? !!values[k] : !!f.default;
+      inp.style.cssText = 'align-self:flex-start';
+    } else if (f.type === 'number') {
+      inp = document.createElement('input');
+      inp.type = 'number';
+      inp.value = values[k] !== undefined ? values[k] : (f.default !== undefined ? f.default : '');
+      inp.style.cssText = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--ck-border-strong);border-radius:6px;background:var(--ck-surface);color:var(--ck-text);font-size:12px';
+    } else {
+      inp = document.createElement('input');
+      inp.type = 'text';
+      inp.value = values[k] !== undefined ? values[k] : (f.default !== undefined ? f.default : '');
+      inp.style.cssText = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--ck-border-strong);border-radius:6px;background:var(--ck-surface);color:var(--ck-text);font-size:12px';
+    }
+    inputs[k] = { inp, type: f.type };
+    row.appendChild(lab); row.appendChild(inp);
+    msgEl.appendChild(row);
+  }
+  cancelBtn.classList.remove('cuckoo-hidden');
+
+  const cleanup = () => {
+    mask.classList.add('cuckoo-hidden');
+    // 恢复弹窗宽度
+    const d2 = mask.querySelector('.ck-dialog') as any;
+    if (d2) { d2.style.maxWidth = d2.__oldMaxWidth || ''; d2.style.width = ''; }
+    okBtn.removeEventListener('click', onOk);
+    cancelBtn.removeEventListener('click', onCancel);
+  };
+  const onOk = async () => {
+    cleanup();
+    const out: any = {};
+    for (const k of Object.keys(inputs)) {
+      const { inp, type } = inputs[k];
+      if (type === 'boolean') out[k] = !!inp.checked;
+      else if (type === 'number') out[k] = Number(inp.value);
+      else out[k] = String(inp.value);
+    }
+    const sr = await apiAny.pluginConfigSet(pluginId, out);
+    if (!sr || !sr.success) { await ckAlert((sr && sr.error) || '保存失败'); return; }
+    await ckAlert('已保存。重启或重载后生效（部分插件即时生效）。', '配置已保存');
+  };
+  const onCancel = () => { cleanup(); };
+  okBtn.addEventListener('click', onOk);
+  cancelBtn.addEventListener('click', onCancel);
+  mask.classList.remove('cuckoo-hidden');
+}
 // ===== 插件（结束） =====

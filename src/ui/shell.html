@@ -39,31 +39,29 @@
     --ck-danger: #e5484d;
     --ck-green: #30a46c;
   }
-  /* ===== 深色（跟随系统）===== */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ck-bg: #16181d;
-      --ck-bg-sub: #191c22;
-      --ck-toolbar: #191c22;
-      --ck-surface: rgba(255, 255, 255, 0.045);
-      --ck-surface-hover: rgba(255, 255, 255, 0.08);
-      --ck-border: rgba(255, 255, 255, 0.08);
-      --ck-border-strong: rgba(255, 255, 255, 0.14);
-      --ck-primary: #6b83ff;
-      --ck-primary-strong: #8b9dff;
-      --ck-primary-soft: rgba(107, 131, 255, 0.16);
-      --ck-text: #e4e6eb;
-      --ck-text-2: #a8adba;
-      --ck-text-dim: #757b8a;
-      --ck-hover-bg: rgba(255, 255, 255, 0.13);
-      --ck-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-      --ck-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
-      --ck-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.35);
-      --ck-scroll-thumb: rgba(255, 255, 255, 0.14);
-      --ck-scroll-hover: rgba(255, 255, 255, 0.24);
-      --ck-danger: #ff6369;
-      --ck-green: #46b47e;
-    }
+  /* ===== 深色（由主题 presenter 设 body[data-ck-dark]）===== */
+  body[data-ck-dark] {
+    --ck-bg: #16181d;
+    --ck-bg-sub: #191c22;
+    --ck-toolbar: #191c22;
+    --ck-surface: rgba(255, 255, 255, 0.045);
+    --ck-surface-hover: rgba(255, 255, 255, 0.08);
+    --ck-border: rgba(255, 255, 255, 0.08);
+    --ck-border-strong: rgba(255, 255, 255, 0.14);
+    --ck-primary: #6b83ff;
+    --ck-primary-strong: #8b9dff;
+    --ck-primary-soft: rgba(107, 131, 255, 0.16);
+    --ck-text: #e4e6eb;
+    --ck-text-2: #a8adba;
+    --ck-text-dim: #757b8a;
+    --ck-hover-bg: rgba(255, 255, 255, 0.13);
+    --ck-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --ck-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+    --ck-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.35);
+    --ck-scroll-thumb: rgba(255, 255, 255, 0.14);
+    --ck-scroll-hover: rgba(255, 255, 255, 0.24);
+    --ck-danger: #ff6369;
+    --ck-green: #46b47e;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -223,6 +221,53 @@
   .ck-tab { display: none; flex-direction: column; gap: 14px; }
   .ck-tab.ck-tab-active { display: flex; }
   .ck-placeholder { color: var(--ck-text-dim); font-size: 12px; text-align: center; padding: 20px 0; }
+
+  /* ===== 自绘标题栏：拖拽区 + 窗口控制按钮 ===== */
+  .toolbar {
+    -webkit-app-region: drag;
+  }
+  .toolbar button,
+  .toolbar input,
+  .toolbar .url-wrap,
+  .toolbar .ck-win-controls {
+    -webkit-app-region: no-drag;
+  }
+  .ck-win-divider {
+    margin-left: auto;
+  }
+  .ck-win-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 6px;
+    flex-shrink: 0;
+  }
+  .ck-win-btn {
+    width: 34px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ck-text-2);
+    cursor: pointer;
+    transition: background .14s, color .14s;
+  }
+  .ck-win-btn svg {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+  }
+  .ck-win-btn:hover {
+    background: var(--ck-surface-hover);
+    color: var(--ck-text);
+  }
+  .ck-win-close:hover {
+    background: #e5484d;
+    color: #fff;
+  }
 
 /* ===== 卡片 ===== */
   .ck-card {
@@ -403,6 +448,10 @@
     font-size: 12.5px; font-family: inherit;
   }
   .ck-set-input:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
+  /* select：原生选项弹层跟随 color-scheme（否则深色主题下白底白字看不清） */
+  select.ck-set-input { color-scheme: light; }
+  body[data-ck-dark] select.ck-set-input { color-scheme: dark; }
+  select.ck-set-input option { background: var(--ck-bg); color: var(--ck-text); }
   .ck-set-textarea {
     width: 100%; background: var(--ck-surface); border: 1px solid transparent;
     border-radius: 9px; padding: 8px 10px; color: var(--ck-text);
@@ -1051,6 +1100,8 @@
      且显示规则绑定在 .ck-snip-item:hover 上；放进 .ck-plugin-item 会永远不可见也点不到。
      插件卡片的安装/更新/卸载是主要操作，不该藏到悬停里。 */
   .ck-plugin-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  /* 无配置时的占位：占住 ⚙ 的位置，保证各行开关/按钮对齐 */
+  .ck-snip-icon-placeholder { visibility: hidden; }
 
 </style>
 </head>
@@ -1081,6 +1132,18 @@
       <button class="nav-btn" id="btn-home" title="新建对话">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
+      <div class="divider ck-win-divider"></div>
+      <div class="ck-win-controls">
+        <button class="ck-win-btn" id="ck-win-min" title="最小化">
+          <svg viewBox="0 0 12 12"><rect x="2" y="5.5" width="8" height="1"/></svg>
+        </button>
+        <button class="ck-win-btn" id="ck-win-max" title="最大化">
+          <svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor"/></svg>
+        </button>
+        <button class="ck-win-btn ck-win-close" id="ck-win-close" title="关闭">
+          <svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+        </button>
+      </div>
     </div>
 
     <div class="main-area">
@@ -1547,6 +1610,17 @@
             <!-- ===== 设置 ===== -->
             <div class="ck-tab" data-panel="settings">
               <div class="ck-card">
+                <div class="ck-set-group-title">外观</div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">主题</span>
+                  <select class="ck-set-input" id="st-theme-select">
+                    <option value="system">跟随系统</option>
+                    <option value="light">浅色</option>
+                    <option value="dark">深色</option>
+                  </select>
+                </div>
+              </div>
+              <div class="ck-card">
                 <div class="ck-set-group-title">失败自动重试</div>
                 <div class="ck-set-field ck-set-toggle">
                   <span class="ck-set-key">启用自动重试</span>
@@ -1646,13 +1720,7 @@
                 <div class="ck-about-ver">版本 <span id="about-version">—</span></div>
               </div>
 
-              <div class="ck-actions">
-                <button class="ck-btn ck-btn-anim" id="about-check-update">
-                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
-                  <span>检查更新</span>
-                </button>
-              </div>
-              <p class="ck-about-tip">更新需能连接 GitHub；如无法连接，请加下方 QQ 群自行下载。</p>
+              <p class="ck-about-tip">本版本为<strong>插件改造版</strong>（plugin-ui-ext），已禁用原版在线更新，以免被覆盖丢失插件系统。</p>
 
               <div class="ck-about-group">
                 <div class="ck-about-group-title">开源地址</div>
@@ -2372,6 +2440,18 @@
       return;
     }
     if (api.home) api.home();
+  });
+  var btnWinMin = document.getElementById("ck-win-min");
+  var btnWinMax = document.getElementById("ck-win-max");
+  var btnWinClose = document.getElementById("ck-win-close");
+  if (btnWinMin) btnWinMin.addEventListener("click", () => {
+    if (api.windowMinimize) api.windowMinimize();
+  });
+  if (btnWinClose) btnWinClose.addEventListener("click", () => {
+    if (api.windowClose) api.windowClose();
+  });
+  if (btnWinMax) btnWinMax.addEventListener("click", () => {
+    if (api.windowMaximize) api.windowMaximize();
   });
 
   // src/ui/shell/scripts/main.ts
@@ -3605,18 +3685,6 @@
       }
     }
   }
-  var aboutCheckBtn = document.getElementById("about-check-update");
-  if (aboutCheckBtn) aboutCheckBtn.addEventListener("click", async () => {
-    if (!api.checkUpdate) return;
-    aboutCheckBtn.disabled = true;
-    try {
-      const r = await api.checkUpdate();
-      if (r && !r.success) await ckAlert(r && r.error || "\u68C0\u67E5\u66F4\u65B0\u5931\u8D25");
-    } catch (e) {
-      await ckAlert("\u68C0\u67E5\u66F4\u65B0\u5931\u8D25: " + (e.message || e));
-    }
-    aboutCheckBtn.disabled = false;
-  });
   document.getElementById("about-github")?.addEventListener("click", () => {
     if (api.openExternal) api.openExternal("https://github.com/wangyongpeng90/cuckoo-code");
   });
@@ -4128,6 +4196,50 @@
     } catch (_) {
     }
   });
+  var themeSelect = document.getElementById("st-theme-select");
+  var THEME_BUILTINS = [
+    ["system", "\u8DDF\u968F\u7CFB\u7EDF"],
+    ["light", "\u6D45\u8272"],
+    ["dark", "\u6DF1\u8272"]
+  ];
+  function fillThemeOptions(registered) {
+    if (!themeSelect) return;
+    const opts = THEME_BUILTINS.slice();
+    for (const t of registered || []) {
+      if (t && t.id && t.id !== "light" && t.id !== "dark") opts.push([t.id, t.id]);
+    }
+    const cur = themeSelect.value;
+    themeSelect.innerHTML = opts.map(([v, label]) => '<option value="' + v + '">' + label + "</option>").join("");
+    if (cur) themeSelect.value = cur;
+  }
+  function renderThemeSelect() {
+    const anyApi = api;
+    if (!themeSelect || typeof anyApi.themeGet !== "function") return;
+    anyApi.themeGet().then((r) => {
+      if (r && r.success && r.snapshot) {
+        fillThemeOptions(r.snapshot.themes);
+        themeSelect.value = r.snapshot.preference || "system";
+      }
+    }).catch(() => {
+    });
+    if (typeof anyApi.onThemeChanged === "function") {
+      anyApi.onThemeChanged((snap) => {
+        if (!snap) return;
+        fillThemeOptions(snap.themes);
+        if (themeSelect) themeSelect.value = snap.preference || "system";
+      });
+    }
+  }
+  if (themeSelect) {
+    themeSelect.addEventListener("change", () => {
+      const anyApi = api;
+      if (typeof anyApi.themeSet === "function") {
+        anyApi.themeSet(themeSelect.value).catch(() => {
+        });
+      }
+    });
+    renderThemeSelect();
+  }
 
   // src/ui/shell/scripts/pages/conversations.ts
   init_shared();
@@ -4278,8 +4390,15 @@
         if (p.repo) meta.push(escapeHtml(p.repo));
         const contrib = pluginContribSummary(p.contributes);
         if (contrib) meta.push(escapeHtml(contrib));
-        return '<div class="ck-plugin-item" data-plugin="' + escapeAttr(p.id) + '"><div class="ck-plugin-head"><span class="ck-plugin-name">' + escapeHtml(p.name || p.id) + "</span>" + (hasExec ? '<span class="ck-plugin-badge update" title="\u542B\u53EF\u6267\u884C\u5185\u5BB9">\u542B\u53EF\u6267\u884C</span>' : "") + '<div class="ck-plugin-switch-row"><span class="ck-plugin-switch-label">' + (p.enabled ? "\u5DF2\u542F\u7528" : "\u5DF2\u7981\u7528") + "</span>" + sw + '</div><div class="ck-plugin-actions"><button class="ck-snip-icon-btn danger" data-uninstall="' + escapeAttr(p.id) + '" title="\u5378\u8F7D">' + ICON_TRASH + '</button></div></div><div class="ck-plugin-desc">' + escapeHtml(p.description || "\uFF08\u65E0\u63CF\u8FF0\uFF09") + "</div>" + pluginMetaHtml(meta) + "</div>";
+        return '<div class="ck-plugin-item" data-plugin="' + escapeAttr(p.id) + '"><div class="ck-plugin-head"><span class="ck-plugin-name">' + escapeHtml(p.name || p.id) + "</span>" + (hasExec ? '<span class="ck-plugin-badge update" title="\u542B\u53EF\u6267\u884C\u5185\u5BB9">\u542B\u53EF\u6267\u884C</span>' : "") + '<div class="ck-plugin-switch-row"><span class="ck-plugin-switch-label">' + (p.enabled ? "\u5DF2\u542F\u7528" : "\u5DF2\u7981\u7528") + "</span>" + sw + '</div><div class="ck-plugin-actions">' + (p.hasConfig ? '<button class="ck-snip-icon-btn" data-config="' + escapeAttr(p.id) + '" title="\u914D\u7F6E">\u2699</button>' : '<span class="ck-snip-icon-btn ck-snip-icon-placeholder" aria-hidden="true"></span>') + '<button class="ck-snip-icon-btn danger" data-uninstall="' + escapeAttr(p.id) + '" title="\u5378\u8F7D">' + ICON_TRASH + '</button></div></div><div class="ck-plugin-desc">' + escapeHtml(p.description || "\uFF08\u65E0\u63CF\u8FF0\uFF09") + "</div>" + pluginMetaHtml(meta) + "</div>";
       }).join("");
+      listEl2.querySelectorAll("[data-config]").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.config;
+          await openPluginConfig(id);
+        });
+      });
       listEl2.querySelectorAll("[data-uninstall]").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
@@ -4437,6 +4556,380 @@
     const r = await api.pluginOpenDir();
     if (r && !r.success) await ckAlert(r.error || "\u6253\u5F00\u76EE\u5F55\u5931\u8D25");
   });
+  async function openPluginConfig(pluginId) {
+    const apiAny = api;
+    if (!apiAny || typeof apiAny.pluginConfigGet !== "function") {
+      await ckAlert("\u914D\u7F6E\u63A5\u53E3\u4E0D\u53EF\u7528");
+      return;
+    }
+    const r = await apiAny.pluginConfigGet(pluginId);
+    if (!r || !r.success) {
+      await ckAlert(r && r.error || "\u8BFB\u53D6\u914D\u7F6E\u5931\u8D25");
+      return;
+    }
+    const schema = r.schema || {};
+    const values = r.values || {};
+    const keys = Object.keys(schema);
+    if (keys.length === 0) {
+      await ckAlert("\u8BE5\u63D2\u4EF6\u6CA1\u6709\u914D\u7F6E\u9879");
+      return;
+    }
+    const mask = document.getElementById("ck-dialog");
+    const titleEl = document.getElementById("ck-dialog-title");
+    const msgEl = document.getElementById("ck-dialog-msg");
+    const okBtn = document.getElementById("ck-dialog-ok");
+    const cancelBtn = document.getElementById("ck-dialog-cancel");
+    if (!mask || !titleEl || !msgEl || !okBtn || !cancelBtn) return;
+    titleEl.textContent = "\u63D2\u4EF6\u914D\u7F6E\uFF1A" + pluginId;
+    const dlg = mask.querySelector(".ck-dialog");
+    if (dlg) {
+      dlg.__oldMaxWidth = dlg.style.maxWidth;
+      dlg.style.maxWidth = "420px";
+      dlg.style.width = "380px";
+    }
+    msgEl.innerHTML = "";
+    const inputs = {};
+    for (const k of keys) {
+      const f = schema[k] || {};
+      const row = document.createElement("div");
+      row.style.cssText = "margin:10px 0;display:flex;flex-direction:column;gap:4px";
+      const lab = document.createElement("label");
+      lab.textContent = (f.label || k) + (f.description ? "\uFF08" + f.description + "\uFF09" : "");
+      lab.style.cssText = "font-size:12px;color:var(--ck-text-2)";
+      let inp;
+      if (f.type === "boolean") {
+        inp = document.createElement("input");
+        inp.type = "checkbox";
+        inp.checked = values[k] !== void 0 ? !!values[k] : !!f.default;
+        inp.style.cssText = "align-self:flex-start";
+      } else if (f.type === "number") {
+        inp = document.createElement("input");
+        inp.type = "number";
+        inp.value = values[k] !== void 0 ? values[k] : f.default !== void 0 ? f.default : "";
+        inp.style.cssText = "width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--ck-border-strong);border-radius:6px;background:var(--ck-surface);color:var(--ck-text);font-size:12px";
+      } else {
+        inp = document.createElement("input");
+        inp.type = "text";
+        inp.value = values[k] !== void 0 ? values[k] : f.default !== void 0 ? f.default : "";
+        inp.style.cssText = "width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--ck-border-strong);border-radius:6px;background:var(--ck-surface);color:var(--ck-text);font-size:12px";
+      }
+      inputs[k] = { inp, type: f.type };
+      row.appendChild(lab);
+      row.appendChild(inp);
+      msgEl.appendChild(row);
+    }
+    cancelBtn.classList.remove("cuckoo-hidden");
+    const cleanup = () => {
+      mask.classList.add("cuckoo-hidden");
+      const d2 = mask.querySelector(".ck-dialog");
+      if (d2) {
+        d2.style.maxWidth = d2.__oldMaxWidth || "";
+        d2.style.width = "";
+      }
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+    };
+    const onOk = async () => {
+      cleanup();
+      const out = {};
+      for (const k of Object.keys(inputs)) {
+        const { inp, type } = inputs[k];
+        if (type === "boolean") out[k] = !!inp.checked;
+        else if (type === "number") out[k] = Number(inp.value);
+        else out[k] = String(inp.value);
+      }
+      const sr = await apiAny.pluginConfigSet(pluginId, out);
+      if (!sr || !sr.success) {
+        await ckAlert(sr && sr.error || "\u4FDD\u5B58\u5931\u8D25");
+        return;
+      }
+      await ckAlert("\u5DF2\u4FDD\u5B58\u3002\u91CD\u542F\u6216\u91CD\u8F7D\u540E\u751F\u6548\uFF08\u90E8\u5206\u63D2\u4EF6\u5373\u65F6\u751F\u6548\uFF09\u3002", "\u914D\u7F6E\u5DF2\u4FDD\u5B58");
+    };
+    const onCancel = () => {
+      cleanup();
+    };
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+    mask.classList.remove("cuckoo-hidden");
+  }
+
+  // src/ui/shell/scripts/plugin-shell.ts
+  init_shared();
+  var mountedStatus = /* @__PURE__ */ new Set();
+  var mountedToolbar = /* @__PURE__ */ new Set();
+  function mountStatusbar(m) {
+    const key = m.pluginId + ":" + m.id;
+    const bar = document.querySelector(".statusbar");
+    if (!bar) return;
+    const exist = bar.querySelector('[data-plugin="' + m.pluginId + '"][data-plugin-id="' + m.id + '"]');
+    if (exist) {
+      const lbl = exist.querySelector(".sb-label");
+      if (lbl) lbl.textContent = m.spec && m.spec.text || "";
+      return;
+    }
+    mountedStatus.add(key);
+    const el = document.createElement("div");
+    el.className = "sb-item";
+    el.setAttribute("data-plugin", m.pluginId);
+    el.setAttribute("data-plugin-id", m.id);
+    if (m.spec && m.spec.title) el.title = String(m.spec.title);
+    el.innerHTML = '<span class="sb-label">' + escapeHtml2(m.spec && m.spec.text || "") + "</span>";
+    const spacer = bar.querySelector(".sb-spacer");
+    if (spacer && spacer.parentNode === bar) bar.insertBefore(el, spacer);
+    else bar.appendChild(el);
+  }
+  function mountToolbar(m) {
+    const key = m.pluginId + ":" + m.id;
+    if (mountedToolbar.has(key)) return;
+    mountedToolbar.add(key);
+    const bar = document.querySelector(".toolbar");
+    if (!bar) return;
+    const btn = document.createElement("button");
+    btn.className = "nav-btn";
+    btn.setAttribute("data-plugin", m.pluginId);
+    btn.setAttribute("data-plugin-id", m.id);
+    if (m.spec && m.spec.title) btn.title = String(m.spec.title);
+    btn.textContent = m.spec && m.spec.label || m.id;
+    btn.addEventListener("click", () => {
+      try {
+        if (m.spec && m.spec.command) {
+          const apiAny = api;
+          if (apiAny && typeof apiAny.commandInvoke === "function") {
+            apiAny.commandInvoke(m.spec.command).catch(() => {
+            });
+            return;
+          }
+        }
+        const cb = window.__cuckooPluginToolbarCbs && window.__cuckooPluginToolbarCbs[key];
+        if (typeof cb === "function") cb();
+      } catch (_) {
+      }
+    });
+    bar.appendChild(btn);
+  }
+  function mountSidebar(m) {
+    const key = m.pluginId + ":" + m.id;
+    const bar = document.getElementById("ck-sidebar");
+    if (!bar) return;
+    if (bar.querySelector('[data-plugin-panel="' + key + '"]')) return;
+    const panel = document.createElement("div");
+    panel.className = "ck-panel";
+    panel.setAttribute("data-plugin-panel", key);
+    panel.style.display = "none";
+    panel.innerHTML = m.spec && m.spec.html || '<div style="padding:12px;color:var(--ck-text-dim);font-size:12px">' + escapeHtml2(m.spec && m.spec.title || m.id) + "</div>";
+    bar.appendChild(panel);
+  }
+  function mountSlot(m) {
+    if (!m || !m.slot || !m.id) return;
+    const key = m.pluginId + ":" + m.slot + ":" + m.id;
+    const existing = document.querySelector('[data-slot-key="' + key + '"]');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    const order = typeof m.order === "number" ? m.order : 100;
+    const spec = m.spec || {};
+    const el = document.createElement("button");
+    el.className = "ck-ab-item";
+    el.setAttribute("data-slot-key", key);
+    el.setAttribute("data-plugin", m.pluginId);
+    if (spec.title) el.title = String(spec.title);
+    el.innerHTML = spec.icon ? String(spec.icon) : spec.label ? escapeHtml2(String(spec.label)) : escapeHtml2(m.id);
+    el.addEventListener("click", () => {
+      try {
+        const apiAny = api;
+        if (spec.command && apiAny && typeof apiAny.commandInvoke === "function") {
+          apiAny.commandInvoke(spec.command).catch(() => {
+          });
+        }
+      } catch (_) {
+      }
+    });
+    let container = null;
+    if (m.slot === "activitybar") container = document.querySelector(".ck-activitybar");
+    else if (m.slot === "toolbar") container = document.querySelector(".toolbar");
+    else if (m.slot === "statusbar") container = document.querySelector(".statusbar");
+    if (!container) return;
+    const spacer = container.querySelector(".ck-ab-spacer");
+    if (m.slot === "activitybar" && spacer) container.insertBefore(el, spacer);
+    else container.appendChild(el);
+  }
+  function escapeHtml2(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  }
+  function applyShellStyle(pluginId, css) {
+    if (!pluginId || typeof css !== "string") return;
+    let tag = document.querySelector('style[data-plugin-style="' + pluginId + '"]');
+    if (!tag) {
+      tag = document.createElement("style");
+      tag.setAttribute("data-plugin-style", pluginId);
+      document.head.appendChild(tag);
+    }
+    tag.textContent = css;
+  }
+  function removeShellStyle(pluginId) {
+    if (!pluginId) return;
+    const tag = document.querySelector('style[data-plugin-style="' + pluginId + '"]');
+    if (tag && tag.parentNode) tag.parentNode.removeChild(tag);
+  }
+  function initPluginShell() {
+    const wlog = window;
+    wlog.__shellMountLog = wlog.__shellMountLog || { received: [], pulled: null };
+    try {
+      const apiAny = api;
+      if (apiAny && typeof apiAny.onPluginShellStyle === "function") {
+        apiAny.onPluginShellStyle((m) => {
+          try {
+            if (m && m.pluginId) applyShellStyle(m.pluginId, m.css);
+          } catch (_) {
+          }
+        });
+      }
+      if (apiAny && typeof apiAny.onPluginShellStyleRemove === "function") {
+        apiAny.onPluginShellStyleRemove((m) => {
+          try {
+            if (m && m.pluginId) removeShellStyle(m.pluginId);
+          } catch (_) {
+          }
+        });
+      }
+      const applyBg = (data) => {
+        let tag = document.getElementById("ck-plugin-bg");
+        if (!data || !data.url) {
+          if (tag) tag.remove();
+          return;
+        }
+        if (!tag) {
+          tag = document.createElement("style");
+          tag.id = "ck-plugin-bg";
+          document.head.appendChild(tag);
+        }
+        const overlay = data.overlay || "rgba(10,12,20,0.5)";
+        const w = data.winW || window.innerWidth, h = data.winH || window.innerHeight;
+        tag.textContent = "body { background: linear-gradient(" + overlay + "," + overlay + "), url(" + data.url + ") no-repeat fixed !important;background-size: auto, " + w + "px " + h + "px !important;background-position: 0 0, 0 0 !important; }.shell { background: transparent !important; }";
+      };
+      if (apiAny && typeof apiAny.onShellBackground === "function") apiAny.onShellBackground(applyBg);
+      if (apiAny && typeof apiAny.getShellBackground === "function") {
+        apiAny.getShellBackground().then((r) => {
+          if (r && r.success) applyBg(r.background);
+        }).catch(() => {
+        });
+      }
+      if (apiAny && typeof apiAny.listPluginShellStyles === "function") {
+        apiAny.listPluginShellStyles().then((r) => {
+          if (!r || !r.success || !Array.isArray(r.styles)) return;
+          for (const s of r.styles) {
+            try {
+              applyShellStyle(s.pluginId, s.css);
+            } catch (_) {
+            }
+          }
+        }).catch(() => {
+        });
+      }
+      if (apiAny && typeof apiAny.onPluginShellMount === "function") {
+        apiAny.onPluginShellMount((m) => {
+          try {
+            wlog.__shellMountLog.received.push(m && m.target + ":" + (m && m.id));
+            if (!m || !m.target) return;
+            if (m.target === "statusbar") mountStatusbar(m);
+            else if (m.target === "toolbar") mountToolbar(m);
+            else if (m.target === "sidebar") mountSidebar(m);
+          } catch (_) {
+          }
+        });
+      }
+      if (apiAny && typeof apiAny.listPluginShellMounts === "function") {
+        apiAny.listPluginShellMounts().then((r) => {
+          wlog.__shellMountLog.pulled = r;
+          if (!r || !r.success || !Array.isArray(r.mounts)) return;
+          for (const m of r.mounts) {
+            try {
+              if (m.target === "statusbar") mountStatusbar(m);
+              else if (m.target === "toolbar") mountToolbar(m);
+              else if (m.target === "sidebar") mountSidebar(m);
+            } catch (_) {
+            }
+          }
+        }).catch(() => {
+        });
+      }
+      if (apiAny && typeof apiAny.onPluginSlotRegister === "function") {
+        apiAny.onPluginSlotRegister((m) => {
+          try {
+            mountSlot(m);
+          } catch (_) {
+          }
+        });
+      }
+      if (apiAny && typeof apiAny.onPluginSlotUnregister === "function") {
+        apiAny.onPluginSlotUnregister((m) => {
+          try {
+            const k = m.pluginId + ":" + m.slot + ":" + m.id;
+            const el = document.querySelector('[data-slot-key="' + k + '"]');
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+          } catch (_) {
+          }
+        });
+      }
+      if (apiAny && typeof apiAny.listPluginSlots === "function") {
+        apiAny.listPluginSlots().then((r) => {
+          if (r && r.success && Array.isArray(r.slots)) {
+            for (const m of r.slots) {
+              try {
+                mountSlot(m);
+              } catch (_) {
+              }
+            }
+          }
+        }).catch(() => {
+        });
+      }
+    } catch (_) {
+    }
+  }
+
+  // src/ui/shell/scripts/theme-presenter.ts
+  init_shared();
+  var DARK_ATTRIBUTE = "data-ck-dark";
+  var THEME_SOURCE_ATTRIBUTE = "data-ck-theme-source";
+  var appliedTokens = [];
+  function applyTheme(snapshot) {
+    if (!snapshot || !snapshot.active) return;
+    const scheme = snapshot.active.colorScheme;
+    document.documentElement.style.colorScheme = scheme;
+    document.documentElement.setAttribute(
+      THEME_SOURCE_ATTRIBUTE,
+      snapshot.preference === "system" ? "system" : scheme
+    );
+    const body = document.body;
+    if (scheme === "dark") body.setAttribute(DARK_ATTRIBUTE, "");
+    else body.removeAttribute(DARK_ATTRIBUTE);
+    for (const name of appliedTokens) body.style.removeProperty(name);
+    appliedTokens = [];
+    for (const [name, value] of Object.entries(snapshot.active.tokens || {})) {
+      body.style.setProperty(name, value);
+      appliedTokens.push(name);
+    }
+  }
+  function initThemePresenter() {
+    const anyApi = api;
+    if (typeof anyApi.onThemeChanged === "function") {
+      anyApi.onThemeChanged((snap) => {
+        try {
+          applyTheme(snap);
+        } catch (_) {
+        }
+      });
+    }
+    if (typeof anyApi.themeGet === "function") {
+      anyApi.themeGet().then((r) => {
+        if (r && r.success && r.snapshot) applyTheme(r.snapshot);
+      }).catch(() => {
+      });
+    }
+    if (typeof anyApi.themeSubscribe === "function") {
+      anyApi.themeSubscribe().catch(() => {
+      });
+    }
+  }
 
   // src/ui/shell/scripts/main.ts
   registerTab("workspaces", loadWorkspaces);
@@ -4466,6 +4959,14 @@
   }
   try {
     renderRecent();
+  } catch (_) {
+  }
+  try {
+    initPluginShell();
+  } catch (_) {
+  }
+  try {
+    initThemePresenter();
   } catch (_) {
   }
   function reportShellSize() {

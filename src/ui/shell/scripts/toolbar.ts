@@ -88,3 +88,12 @@ document.getElementById('btn-home')!.addEventListener('click', () => {
   if ((api as any).newWebConversation) { (api as any).newWebConversation(); return; }
   if (api.home) api.home();
 });
+
+// ===== 自绘标题栏：窗口控制按钮 =====
+const btnWinMin = document.getElementById('ck-win-min');
+const btnWinMax = document.getElementById('ck-win-max');
+const btnWinClose = document.getElementById('ck-win-close');
+
+if (btnWinMin) btnWinMin.addEventListener('click', () => { if ((api as any).windowMinimize) (api as any).windowMinimize(); });
+if (btnWinClose) btnWinClose.addEventListener('click', () => { if ((api as any).windowClose) (api as any).windowClose(); });
+if (btnWinMax) btnWinMax.addEventListener('click', () => { if ((api as any).windowMaximize) (api as any).windowMaximize(); });
