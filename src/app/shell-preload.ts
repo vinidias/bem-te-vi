@@ -71,7 +71,7 @@ const shellAPI = {
   getDirInfo: (dir: string) => ipcRenderer.invoke('get-dir-info', { dir }),
   // 项目文件树（只读浏览）
   listProjectTree: () => ipcRenderer.invoke('list-project-tree'),
-  openFilePreview: (relPath: string) => ipcRenderer.invoke('file-preview-open', { relPath }),
+  readProjectFile: (relPath: string) => ipcRenderer.invoke('read-project-file', { relPath }),
   openFileExternal: (relPath: string) => ipcRenderer.invoke('open-project-file-external', { relPath }),
   setProjectArchived: (dir: string, archived: boolean) => ipcRenderer.invoke('set-project-archived', { dir, archived }),
   setSessionTitle: (sessionId: string, title: string) => ipcRenderer.invoke('set-session-title', { sessionId, title }),

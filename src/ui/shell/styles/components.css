@@ -277,7 +277,8 @@
   .ck-dialog-msg { font-size: 12.5px; color: var(--ck-text-2); line-height: 1.6; word-break: break-word; }
   /* 侧边栏相对定位（弹层锚点�?*/
   .ck-panel { position: relative; }
-  /* 文件预览区（侧栏内右侧分栏） */
+  /* 「文件」页内：左树 + 右预览 分栏 */
+  .ck-files-cols { flex: 1; min-height: 0; display: flex; flex-direction: row; overflow: hidden; }
   .ck-preview-pane {
     display: none; flex-direction: column;
     width: 420px; flex-shrink: 0;

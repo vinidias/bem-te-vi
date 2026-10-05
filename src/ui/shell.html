@@ -494,7 +494,8 @@
   .ck-dialog-msg { font-size: 12.5px; color: var(--ck-text-2); line-height: 1.6; word-break: break-word; }
   /* 侧边栏相对定位（弹层锚点�?*/
   .ck-panel { position: relative; }
-  /* 文件预览区（侧栏内右侧分栏） */
+  /* 「文件」页内：左树 + 右预览 分栏 */
+  .ck-files-cols { flex: 1; min-height: 0; display: flex; flex-direction: row; overflow: hidden; }
   .ck-preview-pane {
     display: none; flex-direction: column;
     width: 420px; flex-shrink: 0;
@@ -1222,8 +1223,7 @@
             </div>
           </div>
 
-          <div class="ck-panel-cols">
-            <div class="ck-panel-body">
+          <div class="ck-panel-body">
             <!-- ===== 工作区（会话） ===== -->
             <div class="ck-tab ck-tab-active" data-panel="workspaces">
               <div class="ck-actions">
@@ -1249,8 +1249,23 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
                 <input class="ck-ft-search-input" id="ft-search" placeholder="搜索文件名…" spellcheck="false" autocomplete="off" />
               </div>
-              <div class="ck-list ck-ft" id="ft-list">
-                <div class="ck-list-empty">加载中…</div>
+              <div class="ck-files-cols">
+                <div class="ck-list ck-ft" id="ft-list">
+                  <div class="ck-list-empty">加载中…</div>
+                </div>
+                <div class="ck-preview-pane" id="ck-preview-pane">
+                  <div class="ck-preview-head">
+                    <span class="ck-preview-name" id="ck-preview-name">文件预览</span>
+                    <span class="ck-preview-size" id="ck-preview-size"></span>
+                    <span class="ck-preview-acts">
+                      <span class="ck-preview-btn" id="ck-preview-ext" title="用系统程序打开">↗</span>
+                      <span class="ck-preview-btn" id="ck-preview-close" title="关闭预览">✕</span>
+                    </span>
+                  </div>
+                  <div class="ck-preview-body" id="ck-preview-body">
+                    <div class="ck-preview-empty">点击左侧文件查看内容</div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1636,20 +1651,6 @@
               </div>
             </div>
 
-            </div>
-            <div class="ck-preview-pane" id="ck-preview-pane">
-              <div class="ck-preview-head">
-                <span class="ck-preview-name" id="ck-preview-name">文件预览</span>
-                <span class="ck-preview-size" id="ck-preview-size"></span>
-                <span class="ck-preview-acts">
-                  <span class="ck-preview-btn" id="ck-preview-ext" title="用系统程序打开">↗</span>
-                  <span class="ck-preview-btn" id="ck-preview-close" title="关闭预览">✕</span>
-                </span>
-              </div>
-              <div class="ck-preview-body" id="ck-preview-body">
-                <div class="ck-preview-empty">点击左侧文件查看内容</div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1822,7 +1823,6 @@
   var preview_exports = {};
   __export(preview_exports, {
     dismissPreview: () => dismissPreview,
-    hasPreview: () => hasPreview,
     hidePreview: () => hidePreview,
     openPreview: () => openPreview,
     restorePreview: () => restorePreview
@@ -1856,19 +1856,11 @@
     if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
     return (n / 1024 / 1024).toFixed(2) + " MB";
   }
-  function applySidebarWidth(w) {
-    const ww = Math.round(w);
+  function syncSidebarWidth(previewW) {
+    const total = Math.round((baseSidebarWidth || currentSidebarWidth()) + previewW);
     const sb = document.getElementById("ck-sidebar");
-    if (sb && !sb.classList.contains("ck-collapsed")) sb.style.width = ww + "px";
-    if (api.toggleSidebar) api.toggleSidebar(ww);
-  }
-  function showPane() {
-    const p = pane();
-    if (!p || p.classList.contains("open")) return;
-    baseSidebarWidth = currentSidebarWidth();
-    p.style.width = getPreviewWidth() + "px";
-    p.classList.add("open");
-    applySidebarWidth(baseSidebarWidth + getPreviewWidth());
+    if (sb && !sb.classList.contains("ck-collapsed")) sb.style.width = total + "px";
+    if (api.toggleSidebar) api.toggleSidebar(total);
   }
   async function loadFile(relPath) {
     const nameEl = document.getElementById("ck-preview-name");
@@ -1881,7 +1873,7 @@
     if (sizeEl) sizeEl.textContent = "";
     if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">\u52A0\u8F7D\u4E2D\u2026</div>';
     try {
-      const r = await api.openFilePreview(relPath);
+      const r = await api.readProjectFile(relPath);
       if (!r || !r.success) {
         if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">' + escapeHtml(r && r.error || "\u8BFB\u53D6\u5931\u8D25") + "</div>";
         return;
@@ -1898,16 +1890,23 @@
     }
   }
   async function openPreview(relPath) {
-    if (!pane()) return;
+    const p = pane();
+    if (!p) return;
     currentRelPath = relPath;
-    showPane();
+    if (!p.classList.contains("open")) {
+      baseSidebarWidth = currentSidebarWidth();
+      const w = getPreviewWidth();
+      p.style.width = w + "px";
+      p.classList.add("open");
+      syncSidebarWidth(w);
+    }
     await loadFile(relPath);
   }
   function hidePreview() {
     const p = pane();
     if (!p || !p.classList.contains("open")) return;
     p.classList.remove("open");
-    if (baseSidebarWidth > 0) applySidebarWidth(baseSidebarWidth);
+    if (baseSidebarWidth > 0) syncSidebarWidth(0);
     baseSidebarWidth = 0;
   }
   function dismissPreview() {
@@ -1918,16 +1917,13 @@
     if (!currentRelPath) return;
     openPreview(currentRelPath);
   }
-  function hasPreview() {
-    return !!currentRelPath;
-  }
   var PREVIEW_W_KEY, MIN_PREVIEW_W, MAX_PREVIEW_W, baseSidebarWidth, currentRelPath;
   var init_preview = __esm({
     "src/ui/shell/scripts/preview.ts"() {
       "use strict";
       init_shared();
       PREVIEW_W_KEY = "cuckoo-preview-width";
-      MIN_PREVIEW_W = 260;
+      MIN_PREVIEW_W = 240;
       MAX_PREVIEW_W = 1600;
       baseSidebarWidth = 0;
       currentRelPath = "";
@@ -1952,7 +1948,7 @@
               if (w < MIN_PREVIEW_W) w = MIN_PREVIEW_W;
               if (w > MAX_PREVIEW_W) w = MAX_PREVIEW_W;
               p.style.width = w + "px";
-              applySidebarWidth((baseSidebarWidth || currentSidebarWidth()) + w);
+              syncSidebarWidth(w);
             };
             const onUp = () => {
               document.removeEventListener("mousemove", onMove);
@@ -1999,7 +1995,7 @@
     } catch (_) {
     }
   }
-  function applySidebarWidth2(w) {
+  function applySidebarWidth(w) {
     if (!sidebar) return;
     if (typeof w !== "number" || !Number.isFinite(w)) return;
     expandedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(w)));
@@ -2072,7 +2068,7 @@
       e.preventDefault();
       if (api.startSidebarDrag) api.startSidebarDrag();
     });
-    if (api.onSidebarDrag) api.onSidebarDrag((w) => applySidebarWidth2(w));
+    if (api.onSidebarDrag) api.onSidebarDrag((w) => applySidebarWidth(w));
     document.addEventListener("mouseup", () => {
       if (api.endSidebarDrag) api.endSidebarDrag();
     });
