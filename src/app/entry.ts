@@ -629,6 +629,49 @@ injectSessionTitleSetter(async ({ windowId, title }: any) => {
   return r;
 });
 
+// ========== 窗口组探测 ==========
+// 把目标窗口导航到 "首页?cuckoo-probe=1"，等其 bridge 上报探测结果。
+// 返回 'ok' | 'limited' | 'timeout' | 'error'
+const pendingProbes = new Map<string, { resolve: (r: string) => void; timer: any }>();
+
+ipcMainForProfile.handle('probe-result', async (event: any, { result }: any) => {
+  const ctx = windowState.getContextByWebContents(event.sender);
+  if (!ctx || !ctx.win) return { success: false };
+  const key = String(ctx.win.id);
+  const p = pendingProbes.get(key);
+  if (p) { pendingProbes.delete(key); clearTimeout(p.timer); p.resolve(result || 'error'); }
+  return { success: true };
+});
+
+/** 探测指定窗口是否被限流（新开对话发"你好"） */
+async function probeWindow(profileId: string): Promise<string> {
+  // 打开/复用窗口
+  let ctx = windowState.getWindowByProfileId(profileId);
+  let windowId: number;
+  if (ctx && ctx.win && !ctx.win.isDestroyed()) {
+    windowId = ctx.win.id;
+  } else {
+    const prof = profileManager.getProfileById(profileId);
+    if (!prof) return 'error';
+    windowId = createWindow(prof);
+    ctx = windowState.getWindowContext(windowId);
+  }
+  if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return 'error';
+  const wc = ctx.view.webContents;
+  const provider = ctx.providerId ? getProvider(ctx.providerId) : null;
+  const homeUrl = (provider && provider.homeUrl) ? provider.homeUrl : '';
+  if (!homeUrl) return 'error';
+  const probeUrl = homeUrl + (homeUrl.includes('?') ? '&' : '?') + 'cuckoo-probe=1';
+
+  return await new Promise<string>((resolve) => {
+    const key = String(windowId);
+    const timer = setTimeout(() => { pendingProbes.delete(key); resolve('timeout'); }, 70000);
+    pendingProbes.set(key, { resolve, timer });
+    try { wc.loadURL(probeUrl).catch(() => { /* did-fail 由超时兜底 */ }); }
+    catch (_) { clearTimeout(timer); pendingProbes.delete(key); resolve('error'); }
+  });
+}
+
 // ========== 窗口组切换编排 ==========
 /** 把 fromProfileId 窗口的当前对话分享给组内下一个窗口（返回 { success, ... }） */
 async function runSwitchForGroup(groupId: string, fromProfileId: string): Promise<any> {
@@ -654,14 +697,32 @@ async function runSwitchForGroup(groupId: string, fromProfileId: string): Promis
       return { success: false, error: (share && share.error) || '分享失败' };
     }
 
-    // 5) 找组里"下一个窗口"
-    const nextProfileId = windowGroups.getNextWindow(groupId, curProfileId);
-    if (!nextProfileId) return { success: false, error: '组内没有可用窗口' };
-
-    // 6) 取源窗口的项目目录
+    // 5) 取源窗口的项目目录
     const projectDir = (cur.sessionStore && cur.sessionStore.state && cur.sessionStore.state.selectedProjectDir) || null;
 
-    // 7) 打开目标窗口（已开则复用，未开则新建）
+    // 6) 探测轮换：从"下一个"开始，逐个探测组内窗口，找第一个可用的
+    const memberIds: string[] = Array.isArray(group.windowIds) ? group.windowIds : [];
+    const startIdx = memberIds.indexOf(curProfileId);
+    if (startIdx < 0) return { success: false, error: '当前窗口不在组内' };
+    const probeOrder: string[] = [];
+    for (let i = 1; i < memberIds.length; i++) {
+      probeOrder.push(memberIds[(startIdx + i) % memberIds.length]);
+    }
+    if (probeOrder.length === 0) return { success: false, error: '组内没有其他窗口' };
+
+    let nextProfileId: string | null = null;
+    for (const pid of probeOrder) {
+      console.log('[窗口组] 探测窗口 ' + pid + ' …');
+      const pr = await probeWindow(pid);
+      console.log('[窗口组] 探测结果 ' + pid + ' = ' + pr);
+      if (pr === 'ok') { nextProfileId = pid; break; }
+    }
+    if (!nextProfileId) {
+      // 全被限/超时 → 退回源窗口重试（由 retry 引擎处理）
+      return { success: false, error: '组内窗口均不可用（限流/超时），已退回重试', fallback: true };
+    }
+
+    // 7) 打开目标窗口（探测时已开/已建）
     let target = windowState.getWindowByProfileId(nextProfileId);
     let targetWindowId: number;
     if (target && target.win && !target.win.isDestroyed()) {

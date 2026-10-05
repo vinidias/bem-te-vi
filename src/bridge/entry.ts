@@ -22,6 +22,7 @@ import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, startWatchdog, checkSessionChange } from './loop/watchdog.js';
 import { initSubagentIfNeeded } from './subagent.js';
 import { initHarnessBridge } from './harness-bridge.js';
+import { initProbeIfNeeded } from './probe.js';
 import { initFeishuBridge } from './feishu-bridge.js';
 
 const require = createRequire(import.meta.url);
@@ -218,6 +219,9 @@ function init(): void {
 
     // 飞书同步：上报用户消息/AI回复/工具状态，并接收飞书来消息
     initFeishuBridge();
+
+    // 窗口组探测：若本次导航带 cuckoo-probe 标记，发测试消息判限流
+    initProbeIfNeeded();
   } catch (err) {
     console.error('[Cuckoo Code] init() 出错:', err);
     // 兜底：即使出错也强制显示面板
