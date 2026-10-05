@@ -30,9 +30,12 @@ const tpsMeter = createTpsMeter();
 // 避免高频 IPC：同一展示值不重复推送
 let lastPushedTps = '';
 
-/** 把当前 TPS 推送给壳页面状态栏（保留最近一轮的值，下一轮开始时归零） */
+/**
+ * 把当前 TPS 推送给壳页面状态栏。
+ * 仅在一轮生成"进行中"时显示；生成结束（finished）立即清空，避免空闲时残留旧值。
+ */
 function pushTps(): void {
-  const text = tpsMeter.value > 0 ? formatTps(tpsMeter.value) : '';
+  const text = tpsMeter.active && tpsMeter.value > 0 ? formatTps(tpsMeter.value) : '';
   if (text === lastPushedTps) return;
   lastPushedTps = text;
   try {
@@ -377,6 +380,10 @@ function checkAutoCompact() {
  */
 function startTokenCounter() {
   hooks.onInterceptedResponse?.((_text: string, meta: any) => {
+    // 一轮回复完成（正常/异常/中止均会走到这里）：重置测速器并清空显示，
+    // 覆盖"未收到 finished 流式事件"的边界，避免空闲时残留旧值。
+    tpsMeter.reset();
+    pushTps();
     serverTokenUsage = (meta && meta.tokenUsage) || null;
     // 按当前会话写入缓存（切回来时能显示该会话的值）
     const tokens = serverTokenUsage && serverTokenUsage.accumulatedTokens;
@@ -390,7 +397,8 @@ function startTokenCounter() {
   hooks.onTaskIdle?.(() => checkAutoCompact());
   updateConversationTokenDisplay();
 
-  // 输出速度（TPS）：订阅流式正文增量，实时估算并推送
+  // 输出速度（TPS）：订阅流式正文增量，实时估算并推送。
+  // 生成中显示当前值；finished 后 tpsMeter.active 变 false，pushTps 推空串 → UI 隐藏。
   hooks.onStream?.((ev: any) => {
     try {
       const text = (ev && ev.text) || '';
