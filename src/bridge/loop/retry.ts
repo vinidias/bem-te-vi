@@ -192,6 +192,28 @@ let handleError = function handleError(detail: any): void {
   pending = { kind: is429 ? '429' : 'normal', timer: timer, countdownTimer: cdTimer, remainMs: delay };
 };
 
+/** 切换前是否取消过 pending 重试（用于"恢复"时判断） */
+let hadPendingBeforeCancel = false;
+
+/** 取消 pending 时记录"曾有"（供 stop 信号调用） */
+let cancelPendingForSwitch = function cancelPendingForSwitch(): void {
+  hadPendingBeforeCancel = !!pending;
+  cancelPending();
+};
+
+/**
+ * 恢复自动重试（切换失败退回时用）。
+ * 仅当"切换前确有 pending 重试"（即确实是因限流而被取消）才恢复——
+ * 手动切换且源窗口本就没在重试时，不误发重试消息。
+ */
+let resumeRetry = function resumeRetry(): void {
+  if (!hadPendingBeforeCancel) { console.log('[Cuckoo Code][重试] 之前无 pending 重试，不恢复'); return; }
+  hadPendingBeforeCancel = false;
+  if (pending) { console.log('[Cuckoo Code][重试] 已有倒计时，忽略恢复请求'); return; }
+  console.log('[Cuckoo Code][重试] 恢复自动重试');
+  handleError({ reason: 'rate_limit' });
+};
+
 let started = false;
 let startRetryEngine = function startRetryEngine(): void {
   if (started) return;
@@ -210,9 +232,11 @@ setCompacting = withLog(setCompacting, 'retry.setCompacting');
 clearPending = withLog(clearPending, 'retry.clearPending');
 onSuccess = withLog(onSuccess, 'retry.onSuccess');
 cancelPending = withLog(cancelPending, 'retry.cancelPending');
+resumeRetry = withLog(resumeRetry, 'retry.resumeRetry');
+cancelPendingForSwitch = withLog(cancelPendingForSwitch, 'retry.cancelPendingForSwitch');
 showCountdown = withLog(showCountdown, 'retry.showCountdown');
 ensureCountdownBox = withLog(ensureCountdownBox, 'retry.ensureCountdownBox');
 handleError = withLog(handleError, 'retry.handleError');
 startRetryEngine = withLog(startRetryEngine, 'retry.startRetryEngine');
 
-export { startRetryEngine, setCompacting, readConfig, DEFAULT_PROMPT, cancelPending };
+export { startRetryEngine, setCompacting, readConfig, DEFAULT_PROMPT, cancelPending, resumeRetry, cancelPendingForSwitch };

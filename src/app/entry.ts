@@ -694,6 +694,7 @@ async function runSwitchForGroup(groupId: string, fromProfileId: string): Promis
     // 4) 请求源窗口分享当前对话（全量）
     const share = await requestShareFromWindow(curWindowId);
     if (!share || !share.ok || !share.shareId) {
+      try { cur.view.webContents.send('harness-resume-retry'); } catch (_) { /* ignore */ }
       return { success: false, error: (share && share.error) || '分享失败' };
     }
 
@@ -718,7 +719,8 @@ async function runSwitchForGroup(groupId: string, fromProfileId: string): Promis
       if (pr === 'ok') { nextProfileId = pid; break; }
     }
     if (!nextProfileId) {
-      // 全被限/超时 → 退回源窗口重试（由 retry 引擎处理）
+      // 全被限/超时 → 恢复源窗口的重试（切换开始时被取消了）
+      try { cur.view.webContents.send('harness-resume-retry'); } catch (_) { /* ignore */ }
       return { success: false, error: '组内窗口均不可用（限流/超时），已退回重试', fallback: true };
     }
 
@@ -750,7 +752,10 @@ async function runSwitchForGroup(groupId: string, fromProfileId: string): Promis
       }, 2500);
     };
     try { twc.on('did-finish-load', onLoad); } catch (_) { /* ignore */ }
-    try { await twc.loadURL(shareUrl); } catch (err: any) { return { success: false, error: err.message }; }
+    try { await twc.loadURL(shareUrl); } catch (err: any) {
+      try { cur.view.webContents.send('harness-resume-retry'); } catch (_) { /* ignore */ }
+      return { success: false, error: err.message };
+    }
 
     // 9) 焦点切到新窗口
     try { if (tctx.win && !tctx.win.isDestroyed()) tctx.win.focus(); } catch (_) { /* ignore */ }
