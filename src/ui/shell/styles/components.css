@@ -57,6 +57,9 @@
   .ck-btn-anim::before, .ck-btn-anim::after { content: ''; flex: 0 0 0; transition: flex-grow .3s ease; }
   .ck-btn-anim::after { flex-grow: 1; }
   .ck-btn-anim:hover::before, .ck-btn-anim:hover::after { flex-grow: 1; }
+  /* 窗口页顶部：两行按钮（新建窗口+刷新 / 新建窗口组），行间留距 */
+  .ck-tab[data-panel="windows"] .ck-actions { gap: 8px; }
+  .ck-tab[data-panel="windows"] .ck-actions + .ck-actions { margin-top: 8px; }
   /* 方形图标按钮 */
   .ck-icon-btn {
     flex: 0 0 32px; width: 32px; height: 32px;
