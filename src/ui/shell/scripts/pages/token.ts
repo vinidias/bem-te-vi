@@ -50,6 +50,17 @@ if ((api as any).onTokenUpdated) {
     if (data.daily) renderChart(data.daily);
   });
 }
+const tpsItemEl = document.getElementById('sb-tps-item');
+const tpsEl = document.getElementById('sb-tps');
+// 初始隐藏（仅生成中显示）
+if (tpsItemEl) tpsItemEl.style.display = 'none';
+if ((api as any).onTpsUpdated) {
+  (api as any).onTpsUpdated((data: any) => {
+    const t = data && data.tps ? String(data.tps) : '';
+    if (tpsEl) tpsEl.textContent = t || '0';
+    if (tpsItemEl) tpsItemEl.style.display = t ? '' : 'none';
+  });
+}
 if ((api as any).onTotalUpdated) {
   (api as any).onTotalUpdated((data: any) => {
     if (data && systemEl) systemEl.textContent = formatTokenCount(data.systemTotal);

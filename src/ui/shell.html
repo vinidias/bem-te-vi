@@ -1606,6 +1606,11 @@
         <span class="sb-label">对话上下文:</span>
         <span class="sb-value" id="sb-context">0</span>
       </div>
+      <div class="sb-item" id="sb-tps-item" title="模型输出速度：估算的 tokens/秒（生成中显示）">
+        <span class="sb-label">输出速度:</span>
+        <span class="sb-value" id="sb-tps">0</span>
+        <span class="sb-label">t/s</span>
+      </div>
     </div>
 
   </div>
@@ -3048,6 +3053,16 @@
       if (tkToday) tkToday.textContent = formatTokenCount(data.todayCumulative);
       if (tkWindow) tkWindow.textContent = formatTokenCount(data.windowCumulative);
       if (data.daily) renderChart(data.daily);
+    });
+  }
+  var tpsItemEl = document.getElementById("sb-tps-item");
+  var tpsEl = document.getElementById("sb-tps");
+  if (tpsItemEl) tpsItemEl.style.display = "none";
+  if (api.onTpsUpdated) {
+    api.onTpsUpdated((data) => {
+      const t = data && data.tps ? String(data.tps) : "";
+      if (tpsEl) tpsEl.textContent = t || "0";
+      if (tpsItemEl) tpsItemEl.style.display = t ? "" : "none";
     });
   }
   if (api.onTotalUpdated) {

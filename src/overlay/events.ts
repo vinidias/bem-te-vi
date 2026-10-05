@@ -13,14 +13,32 @@ import { loadMcpConfigToJson, renderMcpList, openMcpManager, closeMcpManager, ha
 import { openSettings, closeSettings, resetSettings, saveSettings } from './panels/settings.js';
 import { makeFabDraggable } from './fab.js';
 import { getProviderByUrl } from '../providers/registry.js';
+import { createTpsMeter, formatTps } from './tps.js';
 
 // 回调注入（P4.2-A：overlay 不依赖 bridge）
 let hooks: {
   onInterceptedResponse?: (cb: (text: string, meta: any) => void) => void;
   onTaskIdle?: (cb: () => void) => void;
+  onStream?: (cb: (ev: any) => void) => void;
 } = {};
 // 服务端权威 token 统计（由 bridge 经回调推送，不共享状态）
 let serverTokenUsage: any = null;
+
+// ========== 输出速度（TPS）估算 ==========
+// 服务端不给单轮输出 token，只能用流式正文长度估算（见 tps.ts）
+const tpsMeter = createTpsMeter();
+// 避免高频 IPC：同一展示值不重复推送
+let lastPushedTps = '';
+
+/** 把当前 TPS 推送给壳页面状态栏（保留最近一轮的值，下一轮开始时归零） */
+function pushTps(): void {
+  const text = tpsMeter.value > 0 ? formatTps(tpsMeter.value) : '';
+  if (text === lastPushedTps) return;
+  lastPushedTps = text;
+  try {
+    (window as any).electronAPI.updateTps(text).catch(() => {});
+  } catch (_) {}
+}
 
 // ========== 对话 token 按会话缓存 ==========
 const TOKEN_CACHE_KEY = 'cuckoo-token-cache';
@@ -371,6 +389,16 @@ function startTokenCounter() {
   // 自动压缩：只在"任务空闲"（工具循环结束）时检查——避免与工具结果抢输入框
   hooks.onTaskIdle?.(() => checkAutoCompact());
   updateConversationTokenDisplay();
+
+  // 输出速度（TPS）：订阅流式正文增量，实时估算并推送
+  hooks.onStream?.((ev: any) => {
+    try {
+      const text = (ev && ev.text) || '';
+      const finished = !!(ev && ev.finished);
+      tpsMeter.update(text, finished);
+      pushTps();
+    } catch (_) { /* ignore */ }
+  });
 }
 
 /**
