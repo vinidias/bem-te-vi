@@ -76,9 +76,8 @@ export async function renderWindowList(): Promise<void> {
       html += '<div class="ck-wg" data-group-id="' + escapeAttr(g.id) + '">' +
         '<div class="ck-wg-head">' +
           '<span class="ck-wg-name">' + escapeHtml(g.name) + '</span>' +
-          '<span class="ck-wg-count">' + members.length + ' 个窗口</span>' +
-          '<span class="ck-wg-switch" data-group-id="' + escapeAttr(g.id) + '" title="切换到组内下一个窗口">切换</span>' +
-          '<span class="ck-wg-manage" data-group-id="' + escapeAttr(g.id) + '" title="管理组（改名）">管理</span>' +
+          '<span class="ck-wg-switch" data-group-id="' + escapeAttr(g.id) + '" title="转移当前对话到下一窗口">转移对话</span>' +
+          '<span class="ck-wg-manage" data-group-id="' + escapeAttr(g.id) + '" title="管理组（改名、增删窗口）">管理</span>' +
           '<span class="ck-wg-del" data-group-id="' + escapeAttr(g.id) + '" title="删除组">✕</span>' +
         '</div>' +
         lastLine +
@@ -89,7 +88,7 @@ export async function renderWindowList(): Promise<void> {
     const ungrouped = profiles.filter((p: any) => !inGroup.has(p.id));
     if (ungrouped.length) {
       html += '<div class="ck-wg ck-wg-ungrouped">' +
-        '<div class="ck-wg-head"><span class="ck-wg-name">未分组</span><span class="ck-wg-count">' + ungrouped.length + ' 个窗口</span></div>' +
+        '<div class="ck-wg-head"><span class="ck-wg-name">未分组</span></div>' +
         '<div class="ck-wg-body">' + ungrouped.map((p: any) => renderWindowItem(p, providerMap)).join('') + '</div>' +
       '</div>';
     }
@@ -134,7 +133,7 @@ export async function renderWindowList(): Promise<void> {
         const gid = btn.dataset.groupId;
         if (!(api as any).wgSwitch) return;
         const oldText = btn.textContent;
-        btn.textContent = '切换中…';
+        btn.textContent = '转移中…';
         (btn as any).style.pointerEvents = 'none';
         try {
           const r = await (api as any).wgSwitch(gid);

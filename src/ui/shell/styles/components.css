@@ -335,7 +335,6 @@
     background: var(--ck-surface);
   }
   .ck-wg-name { font-size: 12px; font-weight: 600; color: var(--ck-text); }
-  .ck-wg-count { font-size: 10.5px; color: var(--ck-text-dim); }
   .ck-wg-switch {
     margin-left: auto; font-size: 11px; color: var(--ck-primary);
     padding: 2px 10px; border-radius: 6px; cursor: pointer;
