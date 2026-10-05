@@ -317,5 +317,10 @@ This project is licensed under the GNU General Public License v3.0. See the LICE
 
 - DeepSeek and Claude for providing powerful AI capabilities
 - Electron for the cross-platform desktop framework
-- [@27584](https://github.com/27584): framework-level improvements including the Provider send extension interface, dual-channel streaming stability, custom Provider renderer loading, and MCP tool recognition (PR #9)
+- [@27584](https://github.com/27584):
+  - Framework-level improvements: Provider send extension interface, dual-channel streaming stability, custom Provider renderer loading, MCP tool recognition (PR #9)
+  - **Harness mode (pure chat)**: a Codex-like pure chat UI — hides low-level instructions, showing only user messages / model replies / tool cards; with streaming, collapsible thinking, Goal/Plan panel, slash menu (PR #22)
+  - **Harness enhancements + Plugin market**: multi-session isolation, sidebar "Conversations" tab, Markdown/LaTeX (KaTeX) rendering, Goal/Plan auto-drive, plugin market (GitHub topic auto-discovery & install) (PR #23)
+- [@jiangchengnay](https://github.com/jiangchengnay):
+  - **Plugin web-script injection**: new `scripts/` contribution type for plugins — inject scripts into the web page's main world by URL match, works on built-in platforms (PR #26)
 - All contributors and users
