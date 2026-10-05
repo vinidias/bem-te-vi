@@ -17,6 +17,10 @@ import { onAiError, onInterceptedResponse } from '../intercept/observer.js';
 import { showToast } from '../../overlay/panel.js';
 import { withLog } from '../../infra/with-log.js';
 import { getProviderByUrl } from '../../providers/registry.js';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { ipcRenderer } = require('electron');
 
 const DEFAULT_PROMPT = '刚才的回复似乎中断了，请重新完整回答上一个问题。';
 const DEFAULTS = {
@@ -147,6 +151,10 @@ let handleError = function handleError(detail: any): void {
 
   // 操作频繁：HTTP 429，或 hook 标记的 reason='rate_limit'（如 biz_code=40029）
   const is429 = detail && (detail.httpStatus === 429 || detail.reason === 'rate_limit');
+  // 限流 → 通知主进程（供"窗口组自动切换"决策；主进程自行判断该窗口是否属于某组）
+  if (is429) {
+    try { ipcRenderer.invoke('rate-limit-hit', { sessionId: getCurrentSessionId() }).catch(() => {}); } catch (_) { /* ignore */ }
+  }
   if (is429) {
     if (cfg.count429 >= 0 && count429 >= cfg.count429) {
       showToast('操作频繁重试已达上限（' + cfg.count429 + ' 次），停止自动重试', 4000);

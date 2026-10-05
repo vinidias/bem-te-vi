@@ -630,16 +630,16 @@ injectSessionTitleSetter(async ({ windowId, title }: any) => {
 });
 
 // ========== 窗口组切换编排 ==========
-// 注入给 ipc 层（避免 ipc 直接依赖 entry 的 createWindow）
-injectWindowGroupDeps({
-  runSwitch: async (groupId: string, sender: any) => {
-    // 1) 找"当前窗口"（点按钮的那个；sender 缺失时退回"最近活跃"）
-    const cur = (sender && windowState.getContextByWebContents(sender)) || windowState.getMainContext();
-    if (!cur || !cur.win || cur.win.isDestroyed()) return { success: false, error: '无活跃窗口' };
+/** 把 fromProfileId 窗口的当前对话分享给组内下一个窗口（返回 { success, ... }） */
+async function runSwitchForGroup(groupId: string, fromProfileId: string): Promise<any> {
+    // 1) 找源窗口上下文
+    const allCtx = windowState.getAllContexts().filter((c: any) => c.profileId === fromProfileId && !c.isSubagent);
+    const cur: any = allCtx[0];
+    if (!cur || !cur.win || cur.win.isDestroyed()) return { success: false, error: '源窗口不可用' };
     const curWindowId = cur.win.id;
     const curProfileId = cur.profileId;
 
-    // 2) 校验：当前活跃窗口是否属于该组
+    // 2) 校验：源窗口是否属于该组
     const group = windowGroups.getGroupByWindowId(curProfileId);
     if (!group || group.id !== groupId) {
       return { success: false, error: '当前窗口不属于该组，请先切到组内窗口' };
@@ -703,7 +703,36 @@ injectWindowGroupDeps({
     } catch (_) { /* ignore */ }
 
     return { success: true, toProfileId: nextProfileId };
+}
+
+// 注入给 ipc 层（避免 ipc 直接依赖 entry 的 createWindow）
+injectWindowGroupDeps({
+  runSwitch: async (groupId: string, sender: any) => {
+    const cur = (sender && windowState.getContextByWebContents(sender)) || windowState.getMainContext();
+    if (!cur || !cur.win || cur.win.isDestroyed()) return { success: false, error: '无活跃窗口' };
+    return runSwitchForGroup(groupId, cur.profileId);
   },
+});
+
+// ========== 限流触发自动切换 ==========
+// bridge 检测到限流（429 / rate_limit）→ 上报 → 若该窗口属于某组，则触发自动切换
+ipcMainForProfile.handle('rate-limit-hit', async (event: any) => {
+  const ctx = windowState.getContextByWebContents(event.sender);
+  if (!ctx || !ctx.win || ctx.win.isDestroyed()) return { success: false };
+  const profileId = ctx.profileId;
+  const group = windowGroups.getGroupByWindowId(profileId);
+  if (!group) {
+    console.log('[窗口组] 限流，但该窗口不在任何组，不切换');
+    return { success: true, switched: false, reason: 'not-in-group' };
+  }
+  console.log('[窗口组] 限流触发自动切换，组=' + group.name);
+  // 触发切换（复用 P2 的编排）
+  try {
+    const res = await runSwitchForGroup(group.id, profileId);
+    return { success: true, switched: !!(res && res.success), result: res };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 });
 
 // ========== IPC 处理器 ==========
