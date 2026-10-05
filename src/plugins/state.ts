@@ -17,7 +17,10 @@ function readStateTable(): Record<string, PluginState> {
   try {
     const file = getPluginsStateFile();
     if (!fs.existsSync(file)) return {};
-    const raw = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    // 剥离 UTF-8 BOM：Windows 上手工/PS 写入的状态文件常带 BOM，会导致 JSON.parse 失败
+    let text = fs.readFileSync(file, 'utf-8');
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    const raw = JSON.parse(text);
     return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
   } catch {
     return {};

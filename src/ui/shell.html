@@ -4190,11 +4190,12 @@
     if (c.rules && c.rules.length) parts.push("\u89C4\u5219 " + c.rules.length);
     if (c.mcp) parts.push("MCP");
     if (c.providers && c.providers.length) parts.push("\u53EF\u6267\u884C " + c.providers.length);
+    if (c.scripts && c.scripts.length) parts.push("\u7F51\u9875\u811A\u672C " + c.scripts.length);
     return parts.join(" \xB7 ");
   }
   function pluginHasExec(c) {
     if (!c) return false;
-    return !!(c.providers && c.providers.length > 0 || c.mcp);
+    return !!(c.providers && c.providers.length > 0 || c.mcp || c.scripts && c.scripts.length > 0);
   }
   function isNewerVersion(a, b) {
     if (!a || !b) return false;
