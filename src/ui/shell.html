@@ -1850,6 +1850,13 @@
     const w = sb.getBoundingClientRect().width;
     return w > 0 ? Math.round(w) : 320;
   }
+  function maxPreviewWidth() {
+    const winW = window.innerWidth;
+    const base = baseSidebarWidth || currentSidebarWidth();
+    const minAi = Math.max(360, Math.round(winW * 0.3));
+    const avail = winW - base - minAi;
+    return Math.max(MIN_PREVIEW_W, Math.min(MAX_PREVIEW_W, avail));
+  }
   function fmtSize(n) {
     if (typeof n !== "number") return "";
     if (n < 1024) return n + " B";
@@ -1895,7 +1902,14 @@
     currentRelPath = relPath;
     if (!p.classList.contains("open")) {
       baseSidebarWidth = currentSidebarWidth();
-      const w = getPreviewWidth();
+      const list = document.getElementById("ft-list");
+      if (list) {
+        baseTreeWidth = Math.round(list.getBoundingClientRect().width);
+        list.style.flex = "0 0 " + baseTreeWidth + "px";
+        list.style.width = baseTreeWidth + "px";
+      }
+      const w = Math.min(getPreviewWidth(), maxPreviewWidth());
+      p.style.flex = "0 0 " + w + "px";
       p.style.width = w + "px";
       p.classList.add("open");
       syncSidebarWidth(w);
@@ -1906,8 +1920,14 @@
     const p = pane();
     if (!p || !p.classList.contains("open")) return;
     p.classList.remove("open");
+    const list = document.getElementById("ft-list");
+    if (list) {
+      list.style.flex = "";
+      list.style.width = "";
+    }
     if (baseSidebarWidth > 0) syncSidebarWidth(0);
     baseSidebarWidth = 0;
+    baseTreeWidth = 0;
   }
   function dismissPreview() {
     currentRelPath = "";
@@ -1917,7 +1937,7 @@
     if (!currentRelPath) return;
     openPreview(currentRelPath);
   }
-  var PREVIEW_W_KEY, MIN_PREVIEW_W, MAX_PREVIEW_W, baseSidebarWidth, currentRelPath;
+  var PREVIEW_W_KEY, MIN_PREVIEW_W, MAX_PREVIEW_W, baseSidebarWidth, baseTreeWidth, currentRelPath;
   var init_preview = __esm({
     "src/ui/shell/scripts/preview.ts"() {
       "use strict";
@@ -1926,6 +1946,7 @@
       MIN_PREVIEW_W = 240;
       MAX_PREVIEW_W = 1600;
       baseSidebarWidth = 0;
+      baseTreeWidth = 0;
       currentRelPath = "";
       document.getElementById("ck-preview-close")?.addEventListener("click", dismissPreview);
       document.getElementById("ck-preview-ext")?.addEventListener("click", () => {
@@ -1946,14 +1967,17 @@
             const onMove = (ev) => {
               let w = Math.round(startW - (ev.clientX - startX));
               if (w < MIN_PREVIEW_W) w = MIN_PREVIEW_W;
-              if (w > MAX_PREVIEW_W) w = MAX_PREVIEW_W;
+              const mx = Math.max(MIN_PREVIEW_W, maxPreviewWidth());
+              if (w > mx) w = mx;
+              p.style.flex = "0 0 " + w + "px";
               p.style.width = w + "px";
               syncSidebarWidth(w);
             };
             const onUp = () => {
               document.removeEventListener("mousemove", onMove);
               document.removeEventListener("mouseup", onUp);
-              savePreviewWidth(Math.round(p.getBoundingClientRect().width));
+              const fw = Math.round(p.getBoundingClientRect().width);
+              if (fw <= maxPreviewWidth()) savePreviewWidth(fw);
             };
             document.addEventListener("mousemove", onMove);
             document.addEventListener("mouseup", onUp);

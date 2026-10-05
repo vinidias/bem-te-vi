@@ -40,7 +40,14 @@ const logFile = path.join(logDir, 'electron.log');
 const logStream = fs.createWriteStream(logFile, { flags: 'a' });
 
 // ========== 3. 启动 Electron ==========
-const cmd = isWin ? 'chcp 65001 > nul && electron .' : 'electron .';
+// 远程调试端口（供 Playwright/CDP 连接，仅开发用）。
+// 默认 9333；设 CUCKOO_DEBUG_PORT=off（或 0）可关闭。
+const envPort = process.env.CUCKOO_DEBUG_PORT;
+const debugPort = (envPort === 'off' || envPort === '0') ? '' : (envPort || '9333');
+const debugArg = debugPort ? ' --remote-debugging-port=' + debugPort : '';
+if (debugPort) console.log('[start.js] 开启远程调试端口: ' + debugPort + '（CDP；CUCKOO_DEBUG_PORT=off 可关）');
+// 开关必须在应用路径（.）之前，否则会被当成应用参数
+const cmd = isWin ? ('chcp 65001 > nul && electron' + debugArg + ' .') : ('electron' + debugArg + ' .');
 const child = spawn(cmd, { shell: true, stdio: ['inherit', 'pipe', 'pipe'] });
 
 child.stdout.pipe(logStream);

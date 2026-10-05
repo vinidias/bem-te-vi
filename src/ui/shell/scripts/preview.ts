@@ -10,6 +10,7 @@ const MIN_PREVIEW_W = 240;
 const MAX_PREVIEW_W = 1600;
 
 let baseSidebarWidth = 0;   // 打开预览前的侧栏宽度
+let baseTreeWidth = 0;      // 打开预览前的文件树宽度（锁定，不被挤压）
 let currentRelPath = "";    // 当前预览的文件
 
 function pane(): HTMLElement | null { return document.getElementById("ck-preview-pane"); }
@@ -31,6 +32,15 @@ function currentSidebarWidth(): number {
   if (!sb) return 320;
   const w = sb.getBoundingClientRect().width;
   return w > 0 ? Math.round(w) : 320;
+}
+
+/** 预览可用最大宽度：保证 AI 区域至少留 30%（最小 360px） */
+function maxPreviewWidth(): number {
+  const winW = window.innerWidth;
+  const base = baseSidebarWidth || currentSidebarWidth();
+  const minAi = Math.max(360, Math.round(winW * 0.3));
+  const avail = winW - base - minAi;
+  return Math.max(MIN_PREVIEW_W, Math.min(MAX_PREVIEW_W, avail));
 }
 
 function fmtSize(n: any): string {
@@ -70,15 +80,23 @@ async function loadFile(relPath: string): Promise<void> {
   }
 }
 
-/** 打开预览：显示某文件内容 + 侧栏加宽 */
+/** 打开预览：显示某文件内容 + 侧栏加宽（文件树宽度锁定不变） */
 export async function openPreview(relPath: string): Promise<void> {
   const p = pane();
   if (!p) return;
   currentRelPath = relPath;
   if (!p.classList.contains("open")) {
     baseSidebarWidth = currentSidebarWidth();
-    const w = getPreviewWidth();
-    p.style.width = w + "px";
+    // 锁定文件树宽度（不被预览挤压）
+    const list = document.getElementById("ft-list");
+    if (list) {
+      baseTreeWidth = Math.round(list.getBoundingClientRect().width);
+      (list as any).style.flex = "0 0 " + baseTreeWidth + "px";
+      (list as any).style.width = baseTreeWidth + "px";
+    }
+    const w = Math.min(getPreviewWidth(), maxPreviewWidth());
+    (p as any).style.flex = "0 0 " + w + "px";
+    (p as any).style.width = w + "px";
     p.classList.add("open");
     syncSidebarWidth(w);
   }
@@ -90,8 +108,12 @@ export function hidePreview(): void {
   const p = pane();
   if (!p || !p.classList.contains("open")) return;
   p.classList.remove("open");
+  // 恢复文件树的弹性宽度
+  const list = document.getElementById("ft-list");
+  if (list) { (list as any).style.flex = ""; (list as any).style.width = ""; }
   if (baseSidebarWidth > 0) syncSidebarWidth(0);
   baseSidebarWidth = 0;
+  baseTreeWidth = 0;
 }
 
 /** 真关闭（点 ✕）：忘掉文件 + 缩回侧栏 */
@@ -128,14 +150,17 @@ document.getElementById("ck-preview-ext")?.addEventListener("click", () => {
       const onMove = (ev: any) => {
         let w = Math.round(startW - (ev.clientX - startX));
         if (w < MIN_PREVIEW_W) w = MIN_PREVIEW_W;
-        if (w > MAX_PREVIEW_W) w = MAX_PREVIEW_W;
-        p.style.width = w + "px";
+        const mx = Math.max(MIN_PREVIEW_W, maxPreviewWidth());
+        if (w > mx) w = mx;
+        (p as any).style.flex = "0 0 " + w + "px";
+        (p as any).style.width = w + "px";
         syncSidebarWidth(w);
       };
       const onUp = () => {
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
-        savePreviewWidth(Math.round(p.getBoundingClientRect().width));
+        const fw = Math.round(p.getBoundingClientRect().width);
+        if (fw <= maxPreviewWidth()) savePreviewWidth(fw);
       };
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
