@@ -114,6 +114,16 @@ test('createTpsMeter 上一轮被中止（无 finished），下一轮正文回�
   assert.ok(Math.abs(m.value - 100) < 0.001, 'value=' + m.value);
 });
 
+test('createTpsMeter acc 恒定不增长时回退估算（不会一直不显示）', () => {
+  const m = createTpsMeter();
+  const t0 = 1000;
+  // 服务端 acc 一直等于 1000（未包含输出，或未更新）
+  m.update('你好', false, 1000, t0);
+  m.update('你好世界这是测试内容', false, 1000, t0 + 1000);
+  // acc 差值为 0 → 回退估算，应算出正值而非 0
+  assert.ok(m.value > 0, 'value=' + m.value + '（回归：曾因 acc 恒定而恒为 0）');
+});
+
 test('createTpsMeter reset 清空状态与展示值', () => {
   const m = createTpsMeter();
   m.update('你好', false, null, 1000);

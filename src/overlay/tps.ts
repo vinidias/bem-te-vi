@@ -66,23 +66,26 @@ export function createTpsMeter() {
       running = true;
       lastTextLen = textLen;
 
-      // 精确路径：服务端 token 差值（不含输入 token）
+      // 优先尝试服务端精确 token 差值（不含输入 token）
+      let outTokens = -1;
       if (typeof acc === 'number' && acc >= 0) {
         if (!hasAcc) { baseAcc = acc; hasAcc = true; startAt = now; }
         lastAcc = acc;
-        tokens = Math.max(0, lastAcc - baseAcc);
-        const elapsed = (now - startAt) / 1000;
-        if (elapsed >= MIN_WINDOW && tokens > 0) value = tokens / elapsed;
-        return value;
+        const accTokens = lastAcc - baseAcc;
+        if (accTokens > 0) outTokens = accTokens;
       }
 
-      // 回退路径：正文长度估算
-      const t = estimateTokens(text);
-      if (t <= 0) return value;
-      if (startAt === 0) startAt = now;
-      tokens = t;
+      // 服务端未提供 token 或差值未增长时，回退正文长度估算
+      // （保证只要正文在增长，就一定能算出一个速度，不会一直不显示）
+      if (outTokens <= 0) {
+        outTokens = estimateTokens(text);
+        if (outTokens <= 0) return value;
+        if (startAt === 0) startAt = now;
+      }
+
+      tokens = outTokens;
       const elapsed = (now - startAt) / 1000;
-      if (elapsed >= MIN_WINDOW) value = t / elapsed;
+      if (elapsed >= MIN_WINDOW) value = tokens / elapsed;
       return value;
     },
     /** 完全重置（如切换会话）：清空本轮状态与展示值 */
