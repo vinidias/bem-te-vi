@@ -32,7 +32,8 @@ let lastPushedTps = '';
 
 /**
  * 把当前 TPS 推送给壳页面状态栏。
- * 仅在一轮生成"进行中"时显示；生成结束（finished）立即清空，避免空闲时残留旧值。
+ * 生成中推实时值；生成结束推空串（壳页面显示 "--" 占位）。
+ * 避免空闲时残留上一轮的旧数字。
  */
 function pushTps(): void {
   const text = tpsMeter.active && tpsMeter.value > 0 ? formatTps(tpsMeter.value) : '';
@@ -403,7 +404,9 @@ function startTokenCounter() {
     try {
       const text = (ev && ev.text) || '';
       const finished = !!(ev && ev.finished);
-      tpsMeter.update(text, finished);
+      // DeepSeek 提供 accumulatedTokens（权威）；其余平台为 null，回退估算
+      const acc = ev && typeof ev.accumulatedTokens === 'number' ? ev.accumulatedTokens : null;
+      tpsMeter.update(text, finished, acc);
       pushTps();
     } catch (_) { /* ignore */ }
   });

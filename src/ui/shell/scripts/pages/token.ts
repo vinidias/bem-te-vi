@@ -50,15 +50,12 @@ if ((api as any).onTokenUpdated) {
     if (data.daily) renderChart(data.daily);
   });
 }
-const tpsItemEl = document.getElementById('sb-tps-item');
 const tpsEl = document.getElementById('sb-tps');
-// 初始隐藏（仅生成中显示）
-if (tpsItemEl) tpsItemEl.style.display = 'none';
+// 常驻显示：生成中显示实时值，空闲显示占位符 "--"（不残留旧数字）
 if ((api as any).onTpsUpdated) {
   (api as any).onTpsUpdated((data: any) => {
     const t = data && data.tps ? String(data.tps) : '';
-    if (tpsEl) tpsEl.textContent = t || '0';
-    if (tpsItemEl) tpsItemEl.style.display = t ? '' : 'none';
+    if (tpsEl) tpsEl.textContent = t || '--';
   });
 }
 if ((api as any).onTotalUpdated) {
