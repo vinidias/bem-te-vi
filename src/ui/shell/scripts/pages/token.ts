@@ -51,7 +51,7 @@ if ((api as any).onTokenUpdated) {
   });
 }
 const tpsEl = document.getElementById('sb-tps');
-// 常驻显示：生成中显示实时值，空闲显示占位符 "--"（不残留旧数字）
+// 常驻显示：生成中实时更新，生成结束后保留本轮最终值；无数据时显示 "--"
 if ((api as any).onTpsUpdated) {
   (api as any).onTpsUpdated((data: any) => {
     const t = data && data.tps ? String(data.tps) : '';
