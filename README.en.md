@@ -48,7 +48,7 @@ Not just chat. The AI can read/write files, search code, execute commands, query
 - **Harness mode (pure chat)**: a Codex-like pure chat UI — hides low-level instructions, showing only user messages / model replies / tool cards; supports streaming, Markdown, KaTeX math, collapsible thinking, Goal/Plan panel (toggle with Ctrl+Shift+H)
 - **Workspace sidebar**: lists all conversations grouped by project; rename / archive / new; expand a conversation to see its **subagents** and **compaction history** (session lineage)
 - **Project file tree**: VSCode-style tree with type icons / colors, filename search, and one-click `@` path reference
-- **Plugin market**: auto-discovers plugins via GitHub `topic:cuckoo-plugin`; install / uninstall / toggle in one click (a plugin can bundle skills / agents / rules / MCP / custom providers)
+- **Plugin market**: auto-discovers plugins via GitHub `topic:cuckoo-plugin`; install / uninstall / toggle in one click (a plugin can bundle skills / agents / rules / MCP / custom providers / **web scripts**); **Gitee source supported**
 - **Auto-naming conversations**: the AI names each conversation at the start; the workspace list refreshes live
 - **Skill support**: Claude Code-aligned skills (project `.cuckoo/skills/` + user `~/.cuckoo/skills/`), progressive disclosure — teach the AI domain-specific workflows/rules/scripts. **→ [Configuration & usage](docs/skills.md)**
 - **Agent support**: Claude Code-aligned subagents (project `.cuckoo/agents/` + user `~/.cuckoo/agents/`); the main conversation can delegate tasks to an isolated-context subagent that returns only a summary — isolating context and enabling specialization. **→ [Configuration & usage](docs/agents.md)**
@@ -323,4 +323,5 @@ This project is licensed under the GNU General Public License v3.0. See the LICE
   - **Harness enhancements + Plugin market**: multi-session isolation, sidebar "Conversations" tab, Markdown/LaTeX (KaTeX) rendering, Goal/Plan auto-drive, plugin market (GitHub topic auto-discovery & install) (PR #23)
 - [@jiangchengnay](https://github.com/jiangchengnay):
   - **Plugin web-script injection**: new `scripts/` contribution type for plugins — inject scripts into the web page's main world by URL match, works on built-in platforms (PR #26)
+  - **Gitee plugin market support**: the plugin market gains a Gitee source (search / download / manifest), parallel to GitHub, for users with unstable GitHub access (PR #28)
 - All contributors and users
