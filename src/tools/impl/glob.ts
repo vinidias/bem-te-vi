@@ -13,7 +13,7 @@ export const apiMetas: ToolApiMeta[] = [
     name: 'glob',
     doc: [
       '按 glob 模式查找文件路径，返回纯文本路径列表（以 / 分隔，如 "src/utils/a.js"）。',
-      '使用 ripgrep，包含隐藏文件和已忽略文件，只排除 VCS 元数据目录（.git、.svn 等）。',
+      '使用 ripgrep，包含隐藏文件和已忽略文件；未指定 path 时默认排除 VCS 元数据目录（.git 等）与常见产物目录（node_modules、dist、out、build 等）。',
       'glob 语法：* 匹配单层内任意字符，** 匹配任意层级目录，? 匹配单个字符。',
       '结果包含 footer：未超限时 "(Found N files)"，超限时 "(Showing M of N paths...)"。',
     ].join('\n'),
@@ -51,6 +51,14 @@ const MAX_RESULTS = 100;
 // 对齐 dsh GLOB_VCS_EXCLUDES：ripgrep 不得进入的 VCS 元数据目录
 const GLOB_VCS_EXCLUDES = ['.git', '.svn', '.hg', '.bzr', '.jj', '.sl'];
 
+// 常见产物/依赖目录：未显式指定 path 时默认排除，避免 node_modules 等
+// 淹没项目自身文件（实测某仓库 **/*.ts 命中 1832 个，其中 1680 个在 node_modules）。
+// 显式传 path 时不排除，尊重用户明确的搜索意图。
+const GLOB_ARTIFACT_EXCLUDES = [
+  'node_modules', 'dist', 'out', 'build', 'coverage',
+  '.next', '.nuxt', '.cache', '.turbo', '.parcel-cache', 'vendor',
+];
+
 /**
  * 对齐 dsh parseGlobArgs
  */
@@ -86,6 +94,12 @@ function buildGlobArgs(input: { pattern: string; path?: string }): string[] {
       '--glob=!**/' + name + '/**',
     ]),
   ];
+  // 仅在未显式指定 path 时排除产物目录；给了 path 说明用户明确要搜那里
+  if (input.path === undefined) {
+    for (const name of GLOB_ARTIFACT_EXCLUDES) {
+      parts.push('--glob=!**/' + name, '--glob=!**/' + name + '/**');
+    }
+  }
   if (input.path !== undefined) parts.push('--', input.path);
   return parts;
 }
@@ -159,7 +173,7 @@ class GlobToolNew extends Tool {
     return {
       name: 'tool:glob',
       order: 103,
-      text: '使用 glob 工具（而不是 shell find）按路径模式查找文件。不含 "/" 的模式匹配任意深度的 basename，所以 "*" 匹配树中所有文件而非仅顶层。结果只包含文件，永不包含目录，且包含隐藏和已忽略文件。'
+      text: '使用 glob 工具（而不是 shell find）按路径模式查找文件。不含 "/" 的模式匹配任意深度的 basename，所以 "*" 匹配树中所有文件而非仅顶层。结果只包含文件，永不包含目录，且包含隐藏和已忽略文件。默认排除 node_modules、dist 等产物目录；若确需搜索这些目录，请显式传 path。'
     };
   }
 
@@ -235,4 +249,4 @@ export function bootstrap(__call: any): void {
   };
 }
 
-export { GlobToolNew, parseGlobArgs, formatGlobOutput, MAX_RESULTS, GLOB_VCS_EXCLUDES, buildGlobArgs };
+export { GlobToolNew, parseGlobArgs, formatGlobOutput, MAX_RESULTS, GLOB_VCS_EXCLUDES, GLOB_ARTIFACT_EXCLUDES, buildGlobArgs };
