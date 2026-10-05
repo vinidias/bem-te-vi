@@ -324,4 +324,5 @@ This project is licensed under the GNU General Public License v3.0. See the LICE
 - [@jiangchengnay](https://github.com/jiangchengnay):
   - **Plugin web-script injection**: new `scripts/` contribution type for plugins — inject scripts into the web page's main world by URL match, works on built-in platforms (PR #26)
   - **Gitee plugin market support**: the plugin market gains a Gitee source (search / download / manifest), parallel to GitHub, for users with unstable GitHub access (PR #28)
+  - **Subagent send fix**: fixes subagents getting stuck at "sending task prompt" on contenteditable platforms like Doubao (PR #29)
 - All contributors and users

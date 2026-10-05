@@ -374,4 +374,5 @@ cuckoo-code/
 - [@jiangchengnay](https://github.com/jiangchengnay)：
   - **插件网页脚本注入**：插件新增 `scripts/` 贡献类型——按 URL 匹配向网页主世界注入脚本，可作用于内置平台（PR #26）
   - **Gitee 插件市场支持**：插件市场新增 Gitee 源（检索/下载/清单），与 GitHub 并行，解决国内访问 GitHub 不稳定（PR #28）
+  - **子代理发送修复**：修复豆包等 contenteditable 平台子代理卡在"发送任务提示词"（PR #29）
 - 所有贡献者和用户
