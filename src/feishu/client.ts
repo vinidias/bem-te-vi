@@ -205,6 +205,65 @@ async function sendText(text: string, chatId?: string): Promise<{ success: boole
 }
 
 /**
+ * 把 markdown 拆成飞书卡片 2.0 的 elements：
+ *  - 普通文本 → { tag: 'markdown', content }
+ *  - 表格（连续 | 行）→ { tag: 'table', columns, rows }
+ * 飞书 markdown 元素不支持表格，故表格用 table 组件（卡片 2.0）。
+ */
+function buildCardElements(md: string): any[] {
+  const lines = String(md || '').split('\n');
+  const els: any[] = [];
+  let textBuf: string[] = [];
+  const isTableRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+  const parseRow = (l: string) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+  const flushText = () => {
+    const t = textBuf.join('\n');
+    if (t.trim()) els.push({ tag: 'markdown', content: t });
+    textBuf = [];
+  };
+  let i = 0;
+  while (i < lines.length) {
+    if (isTableRow(lines[i])) {
+      flushText();
+      const rows: string[] = [];
+      while (i < lines.length && isTableRow(lines[i])) { rows.push(lines[i]); i++; }
+      const header = parseRow(rows[0]);
+      const sep = rows.length > 1 && /^[\s|:\-]+$/.test(rows[1]);
+      const dataStart = sep ? 2 : 1;
+      // 列宽：均分（百分比），避免 auto 太窄截断；单元格用 lark_md 支持 markdown
+      const colPct = Math.floor(100 / header.length);
+      const columns = header.map((h, idx) => ({
+        name: 'col_' + idx,
+        display_name: h || ('列' + (idx + 1)),
+        data_type: 'lark_md',
+        width: colPct + '%',
+      }));
+      const dataRows = [];
+      for (let j = dataStart; j < rows.length; j++) {
+        const cells = parseRow(rows[j]);
+        const rowObj: any = {};
+        header.forEach((_h, idx) => { rowObj['col_' + idx] = cells[idx] !== undefined ? cells[idx] : ''; });
+        dataRows.push(rowObj);
+      }
+      els.push({
+        tag: 'table',
+        page_size: Math.max(dataRows.length, 1),
+        row_height: 'low',
+        header_style: { text_align: 'left', text_size: 'normal', background_style: 'grey', bold: true, lines: 1 },
+        columns,
+        rows: dataRows,
+      });
+    } else {
+      textBuf.push(lines[i]);
+      i++;
+    }
+  }
+  flushText();
+  if (els.length === 0) els.push({ tag: 'markdown', content: '' });
+  return els;
+}
+
+/**
  * 发送 Markdown 消息（用飞书交互卡片渲染）。
  *
  * 飞书纯文本消息（msg_type: 'text'）不渲染 Markdown；
@@ -220,21 +279,22 @@ async function sendMarkdown(md: string, chatId?: string): Promise<{ success: boo
     if (!cfg.appId || !cfg.appSecret) return { success: false, error: '未配置' };
     apiClient = new lark.Client({ appId: cfg.appId, appSecret: cfg.appSecret });
   }
-  const text = String(md || '');
-  // 飞书卡片有内容长度上限，过长时分片（每片 ~4000 字符）
+  const fullText = String(md || '');
+  // 飞书卡片内容上限，过长时分片（按原始文本切，每片 ~4000 字符）
   const MAX = 4000;
   const chunks: string[] = [];
-  if (text.length <= MAX) {
-    chunks.push(text);
+  if (fullText.length <= MAX) {
+    chunks.push(fullText);
   } else {
-    for (let i = 0; i < text.length; i += MAX) chunks.push(text.slice(i, i + MAX));
+    for (let i = 0; i < fullText.length; i += MAX) chunks.push(fullText.slice(i, i + MAX));
   }
 
   const sendOne = async (chunk: string, receiveIdType: 'chat_id' | 'open_id', receiveId: string): Promise<{ success: boolean; error?: string }> => {
-    // 交互卡片：markdown 元素
-    const card = {
+    // 卡片 2.0：文本 → markdown 元素；表格 → table 组件（能对齐）
+    const card: any = {
+      schema: '2.0',
       config: { wide_screen_mode: true },
-      elements: [{ tag: 'markdown', content: chunk }],
+      body: { elements: buildCardElements(chunk) },
     };
     try {
       const res = await apiClient.im.message.create({
