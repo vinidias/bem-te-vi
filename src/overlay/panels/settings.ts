@@ -212,8 +212,13 @@ function applySettingsData(data: any): { success: boolean; error?: string } {
   if (!Number.isFinite(amin) || amin < 0) return { success: false, error: '附件上传间隔最小值必须是非负数字' };
   if (!Number.isFinite(amax) || amax < amin) return { success: false, error: '附件上传间隔最大值不能小于最小值' };
   if (amax > 60000) return { success: false, error: '附件上传间隔最大值不能超过 60 秒' };
-  const goalMax = parseInt(data && data.goalMaxIterations, 10);
-  if (Number.isNaN(goalMax) || goalMax <= 0) return { success: false, error: '目标最大迭代次数必须是正整数' };
+  // 目标最大迭代次数：属"纯净模式（harness）"自身设置（harness 页有独立入口）。
+  // 壳页面设置页不提供此字段 → 仅在显式提供时才校验，缺失时保留原值（不清空、不报错）。
+  let goalMax: number | null = null;
+  if (data && data.goalMaxIterations !== undefined && data.goalMaxIterations !== null && data.goalMaxIterations !== '') {
+    goalMax = parseInt(data.goalMaxIterations, 10);
+    if (Number.isNaN(goalMax) || goalMax <= 0) return { success: false, error: '目标最大迭代次数必须是正整数' };
+  }
 
   try {
     localStorage.setItem('cuckoo-retry-enabled', (data && data.retryEnabled) ? '1' : '0');
@@ -230,8 +235,9 @@ function applySettingsData(data: any): { success: boolean; error?: string } {
     localStorage.setItem('cuckoo-send-delay-max', String(smax));
     localStorage.setItem('cuckoo-attach-delay-min', String(amin));
     localStorage.setItem('cuckoo-attach-delay-max', String(amax));
-    localStorage.setItem('cuckoo-goal-max-iterations', String(goalMax));
-    localStorage.setItem('cuckoo-ssrf-guard', (data && data.ssrfGuard) ? '1' : '0');
+    if (goalMax !== null) localStorage.setItem('cuckoo-goal-max-iterations', String(goalMax));
+    // ssrfGuard 仅当显式提供时才写（避免未传该字段的调用方把它清成 0）
+    if (data && data.ssrfGuard !== undefined) localStorage.setItem('cuckoo-ssrf-guard', data.ssrfGuard ? '1' : '0');
   } catch (err: any) {
     return { success: false, error: '写入失败: ' + err.message };
   }
