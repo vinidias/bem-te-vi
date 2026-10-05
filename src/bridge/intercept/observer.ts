@@ -270,7 +270,13 @@ function startInterceptObserver(): void {
     try {
       const detail = ev && ev.detail;
       if (!detail) return;
-      emitStream({ think: detail.think || '', text: detail.text || '', finished: !!detail.finished });
+      emitStream({
+        think: detail.think || '',
+        text: detail.text || '',
+        finished: !!detail.finished,
+        // 透传服务端权威 token（DeepSeek）；缺失时为 undefined，下游回退估算
+        accumulatedTokens: typeof detail.accumulatedTokens === 'number' ? detail.accumulatedTokens : null,
+      });
     } catch (_) { /* ignore */ }
   });
   window.addEventListener('cuckoo-ai-error', (ev: any) => {
