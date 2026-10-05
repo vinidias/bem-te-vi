@@ -34,12 +34,11 @@ function currentSidebarWidth(): number {
   return w > 0 ? Math.round(w) : 320;
 }
 
-/** 预览可用最大宽度：保证 AI 区域至少留 30%（最小 360px） */
+/** 预览可用最大宽度：保证 AI 区域至少留 280px */
 function maxPreviewWidth(): number {
   const winW = window.innerWidth;
   const base = baseSidebarWidth || currentSidebarWidth();
-  const minAi = Math.max(360, Math.round(winW * 0.3));
-  const avail = winW - base - minAi;
+  const avail = winW - base - 280;
   return Math.max(MIN_PREVIEW_W, Math.min(MAX_PREVIEW_W, avail));
 }
 
@@ -87,17 +86,14 @@ export async function openPreview(relPath: string): Promise<void> {
   currentRelPath = relPath;
   if (!p.classList.contains("open")) {
     baseSidebarWidth = currentSidebarWidth();
-    // 锁定文件树宽度（不被预览挤压）
-    const list = document.getElementById("ft-list");
-    if (list) {
-      baseTreeWidth = Math.round(list.getBoundingClientRect().width);
-      (list as any).style.flex = "0 0 " + baseTreeWidth + "px";
-      (list as any).style.width = baseTreeWidth + "px";
-    }
     const w = Math.min(getPreviewWidth(), maxPreviewWidth());
+    // 预览固定宽度；文件树保持 flex:1 占剩余 → 树宽不变、侧栏加宽、AI 缩窄
     (p as any).style.flex = "0 0 " + w + "px";
     (p as any).style.width = w + "px";
     p.classList.add("open");
+    // 预览打开时隐藏侧栏右缘拖拽条（避免两条并存）
+    const sbRz = document.querySelector(".ck-sidebar-resizer") as any;
+    if (sbRz) sbRz.style.display = "none";
     syncSidebarWidth(w);
   }
   await loadFile(relPath);
@@ -108,9 +104,9 @@ export function hidePreview(): void {
   const p = pane();
   if (!p || !p.classList.contains("open")) return;
   p.classList.remove("open");
-  // 恢复文件树的弹性宽度
-  const list = document.getElementById("ft-list");
-  if (list) { (list as any).style.flex = ""; (list as any).style.width = ""; }
+  // 恢复侧栏右缘拖拽条
+  const sbRz = document.querySelector(".ck-sidebar-resizer") as any;
+  if (sbRz) sbRz.style.display = "";
   if (baseSidebarWidth > 0) syncSidebarWidth(0);
   baseSidebarWidth = 0;
   baseTreeWidth = 0;
