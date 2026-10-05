@@ -14,6 +14,7 @@ import { registerSnippetsIpc } from './snippets.js';
 import { registerSettingsIpc } from './settings.js';
 import { registerFeishuIpc } from './feishu.js';
 import { registerPluginIpc } from './plugin.js';
+import { registerWindowGroupsIpc } from './window-groups.js';
 
 function registerIpcHandlers(): void {
   registerProjectIpc();
@@ -28,6 +29,7 @@ function registerIpcHandlers(): void {
   registerSettingsIpc();
   registerFeishuIpc();
   registerPluginIpc();
+  registerWindowGroupsIpc();
 }
 
 export { registerIpcHandlers };

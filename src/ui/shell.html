@@ -539,7 +539,45 @@
   /* 已勾选「默认打开」：始终可见 */
   .ck-win-check.ck-win-check-on { opacity: 1; pointer-events: auto; }
   .ck-win-check input { accent-color: var(--ck-primary); cursor: pointer; margin: 0; }
-  /* 收起：只隐藏面板，保留图标栏（宽度从 320 �?46�?*/
+  /* 窗口组 */
+  .ck-wg { margin-bottom: 6px; }
+  .ck-wg-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px; border-radius: 8px;
+    background: var(--ck-surface);
+  }
+  .ck-wg-name { font-size: 12px; font-weight: 600; color: var(--ck-text); }
+  .ck-wg-count { font-size: 10.5px; color: var(--ck-text-dim); }
+  .ck-wg-switch {
+    margin-left: auto; font-size: 11px; color: var(--ck-primary);
+    padding: 2px 10px; border-radius: 6px; cursor: pointer;
+    background: var(--ck-primary-soft); transition: background .15s;
+  }
+  .ck-wg-switch:hover { background: var(--ck-primary); color: #fff; }
+  .ck-wg-del {
+    width: 20px; height: 20px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 11px; color: var(--ck-text-dim);
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .ck-wg-del:hover { background: var(--ck-danger); color: #fff; }
+  .ck-wg-body { padding-left: 8px; }
+  .ck-wg-ungrouped { opacity: .85; }
+  .ck-wg-ungrouped .ck-wg-head { background: transparent; }
+  /* 右键上下文菜单 */
+  .ck-ctx-menu {
+    position: fixed; z-index: 9999;
+    min-width: 140px; padding: 4px;
+    background: var(--ck-surface); border: 1px solid var(--ck-border);
+    border-radius: 9px; box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  }
+  .ck-ctx-item {
+    padding: 7px 10px; border-radius: 6px; font-size: 12px;
+    color: var(--ck-text-2); cursor: pointer; white-space: nowrap;
+  }
+  .ck-ctx-item:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-ctx-item-new { color: var(--ck-primary); }
+  /* 收起：只隐藏面板，保留图标栏（宽度从 320 → 46）*/
   .ck-sidebar.ck-collapsed { width: 46px; }
   .ck-sidebar.ck-collapsed .ck-panel { display: none; }
   /* 拖拽调宽手柄（贴右边，宽热区） */
@@ -3212,6 +3250,13 @@
   function providerAvatarStyle(providerId) {
     return PROVIDER_COLORS[providerId] || "";
   }
+  function renderWindowItem(p, providerMap) {
+    const pname = providerMap[p.providerId] || "\u672A\u9009\u5E73\u53F0";
+    const checked = p.autoOpen === true ? " checked" : "";
+    const initial = (p.name || "?").trim().charAt(0).toUpperCase();
+    const avatarStyle = providerAvatarStyle(p.providerId);
+    return '<div class="ck-win-item" data-profile-id="' + escapeHtml(p.id) + '"><div class="ck-win-top"><span class="ck-win-avatar"' + (avatarStyle ? ' style="background:' + avatarStyle + '"' : "") + ">" + escapeHtml(initial) + '</span><span class="ck-win-name">' + escapeHtml(p.name) + '</span><span class="ck-win-del" data-profile-id="' + escapeHtml(p.id) + '" title="\u5220\u9664\u7A97\u53E3">\u2715</span></div><div class="ck-win-bottom"><span class="ck-win-provider">' + escapeHtml(pname) + '</span><label class="ck-win-check' + (p.autoOpen === true ? " ck-win-check-on" : "") + '" title="\u542F\u52A8\u65F6\u9ED8\u8BA4\u6253\u5F00"><input type="checkbox" data-profile-id="' + escapeHtml(p.id) + '"' + checked + " />\u9ED8\u8BA4\u6253\u5F00</label></div></div>";
+  }
   async function renderWindowList() {
     const listEl = document.getElementById("win-list");
     if (!listEl || !api.listProfiles) return;
@@ -3230,13 +3275,26 @@
         });
       } catch (_) {
       }
-      listEl.innerHTML = profiles.map((p) => {
-        const pname = providerMap[p.providerId] || "\u672A\u9009\u5E73\u53F0";
-        const checked = p.autoOpen === true ? " checked" : "";
-        const initial = (p.name || "?").trim().charAt(0).toUpperCase();
-        const avatarStyle = providerAvatarStyle(p.providerId);
-        return '<div class="ck-win-item" data-profile-id="' + escapeHtml(p.id) + '"><div class="ck-win-top"><span class="ck-win-avatar"' + (avatarStyle ? ' style="background:' + avatarStyle + '"' : "") + ">" + escapeHtml(initial) + '</span><span class="ck-win-name">' + escapeHtml(p.name) + '</span><span class="ck-win-del" data-profile-id="' + escapeHtml(p.id) + '" title="\u5220\u9664\u7A97\u53E3">\u2715</span></div><div class="ck-win-bottom"><span class="ck-win-provider">' + escapeHtml(pname) + '</span><label class="ck-win-check' + (p.autoOpen === true ? " ck-win-check-on" : "") + '" title="\u542F\u52A8\u65F6\u9ED8\u8BA4\u6253\u5F00"><input type="checkbox" data-profile-id="' + escapeHtml(p.id) + '"' + checked + " />\u9ED8\u8BA4\u6253\u5F00</label></div></div>";
-      }).join("");
+      let groups = [];
+      try {
+        const gr = await api.wgList?.();
+        if (gr && gr.success) groups = gr.groups || [];
+      } catch (_) {
+      }
+      const inGroup = /* @__PURE__ */ new Set();
+      for (const g of groups) for (const w of g.windowIds || []) inGroup.add(w);
+      const byId = {};
+      for (const p of profiles) byId[p.id] = p;
+      let html = "";
+      for (const g of groups) {
+        const members = (g.windowIds || []).map((w) => byId[w]).filter(Boolean);
+        html += '<div class="ck-wg" data-group-id="' + escapeAttr(g.id) + '"><div class="ck-wg-head"><span class="ck-wg-name">' + escapeHtml(g.name) + '</span><span class="ck-wg-count">' + members.length + ' \u4E2A\u7A97\u53E3</span><span class="ck-wg-switch" data-group-id="' + escapeAttr(g.id) + '" title="\u5207\u6362\u5230\u7EC4\u5185\u4E0B\u4E00\u4E2A\u7A97\u53E3">\u5207\u6362</span><span class="ck-wg-del" data-group-id="' + escapeAttr(g.id) + '" title="\u5220\u9664\u7EC4">\u2715</span></div><div class="ck-wg-body">' + members.map((p) => renderWindowItem(p, providerMap)).join("") + "</div></div>";
+      }
+      const ungrouped = profiles.filter((p) => !inGroup.has(p.id));
+      if (ungrouped.length) {
+        html += '<div class="ck-wg ck-wg-ungrouped"><div class="ck-wg-head"><span class="ck-wg-name">\u672A\u5206\u7EC4</span><span class="ck-wg-count">' + ungrouped.length + ' \u4E2A\u7A97\u53E3</span></div><div class="ck-wg-body">' + ungrouped.map((p) => renderWindowItem(p, providerMap)).join("") + "</div></div>";
+      }
+      listEl.innerHTML = html;
       listEl.querySelectorAll(".ck-win-check input").forEach((cb) => {
         cb.addEventListener("click", (e) => e.stopPropagation());
         cb.addEventListener("change", async () => {
@@ -3275,9 +3333,91 @@
           }
         });
       });
+      listEl.querySelectorAll(".ck-wg-switch").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const gid = btn.dataset.groupId;
+          console.log("[\u7A97\u53E3\u7EC4] \u5207\u6362\uFF08\u5F85\u5B9E\u73B0\u94FE\u8DEF\uFF09: " + gid);
+          if (api.wgSwitch) {
+            try {
+              await api.wgSwitch(gid);
+            } catch (_) {
+            }
+          }
+        });
+      });
+      listEl.querySelectorAll(".ck-wg-del").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const gid = btn.dataset.groupId;
+          if (!await ckConfirm("\u786E\u5B9A\u5220\u9664\u8BE5\u7A97\u53E3\u7EC4\uFF1F\uFF08\u7A97\u53E3\u672C\u8EAB\u4E0D\u5220\uFF09")) return;
+          try {
+            await api.wgDelete?.(gid);
+            renderWindowList();
+          } catch (_) {
+          }
+        });
+      });
+      listEl.querySelectorAll(".ck-win-item").forEach((el) => {
+        el.addEventListener("contextmenu", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const pid = el.dataset.profileId;
+          await showJoinGroupMenu(pid, e.clientX, e.clientY);
+        });
+      });
     } catch (_) {
       listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
+  }
+  async function showJoinGroupMenu(windowId, x, y) {
+    let groups = [];
+    try {
+      const gr = await api.wgList?.();
+      if (gr && gr.success) groups = gr.groups || [];
+    } catch (_) {
+    }
+    const menu = document.createElement("div");
+    menu.className = "ck-ctx-menu";
+    menu.style.left = x + "px";
+    menu.style.top = y + "px";
+    let items = "";
+    for (const g of groups) {
+      items += '<div class="ck-ctx-item" data-gid="' + escapeAttr(g.id) + '">' + escapeHtml(g.name) + "</div>";
+    }
+    items += '<div class="ck-ctx-item ck-ctx-item-new" data-new="1">\uFF0B \u65B0\u5EFA\u7EC4\u2026</div>';
+    menu.innerHTML = items;
+    document.body.appendChild(menu);
+    const close = () => {
+      try {
+        menu.remove();
+      } catch (_) {
+      }
+      document.removeEventListener("click", close);
+    };
+    setTimeout(() => document.addEventListener("click", close), 0);
+    menu.querySelectorAll(".ck-ctx-item").forEach((it) => {
+      it.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        close();
+        if (it.dataset.new) {
+          const name = await ckPrompt({ title: "\u65B0\u5EFA\u7A97\u53E3\u7EC4", placeholder: "\u7EC4\u540D\uFF08\u53EF\u7A7A\uFF09", value: "" });
+          if (name === null) return;
+          try {
+            const cr = await api.wgCreate?.(name || void 0);
+            if (cr && cr.success && cr.group) await api.wgAddWindow?.(cr.group.id, windowId);
+            renderWindowList();
+          } catch (_) {
+          }
+        } else if (it.dataset.gid) {
+          try {
+            await api.wgAddWindow?.(it.dataset.gid, windowId);
+            renderWindowList();
+          } catch (_) {
+          }
+        }
+      });
+    });
   }
   document.getElementById("win-new")?.addEventListener("click", async () => {
     try {
