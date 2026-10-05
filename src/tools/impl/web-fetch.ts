@@ -3,6 +3,7 @@ import type { ToolApiMeta } from '../core/Tool.js';
 import { ToolResult } from '../core/ToolResult.js';
 import TurndownService from 'turndown';
 import { gfm } from '@joplin/turndown-plugin-gfm';
+import { assertUrlAllowed } from '../../infra/ssrf-guard.js';
 
 // ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
 export const apiMetas: ToolApiMeta[] = [
@@ -21,7 +22,7 @@ export const apiMetas: ToolApiMeta[] = [
     paramDocs: {
       url: '要获取的 HTTP(S) URL',
     },
-    throws: 'URL 为空、非 http/https、请求超时或失败时抛出异常',
+    throws: 'URL 为空、非 http/https、指向内网/保留地址、请求超时或失败时抛出异常',
   },
 ];
 
@@ -103,7 +104,7 @@ class WebFetchTool extends Tool {
   constructor() {
     super(
       'webFetch',
-      '获取指定 HTTP(S) URL 的内容并解码为文本。HTML 会转换为 Markdown（turndown + GFM）。返回纯文本：Fetched <url> (HTTP <status>) + 正文。内容超过上限（约 20000 字符）会截断并附 footer。',
+      '获取指定 HTTP(S) URL 的内容并解码为文本。HTML 会转换为 Markdown（turndown + GFM）。返回纯文本：Fetched <url> (HTTP <status>) + 正文。内容超过上限（约 20000 字符）会截断并附 footer。出于安全考虑，拒绝访问内网/回环/链路本地/保留地址。',
       {
         type: 'object',
         properties: {
@@ -133,10 +134,11 @@ class WebFetchTool extends Tool {
     try {
       const input = parseFetchArgs(url);
 
-      // 安全限制：只允许 http/https
-      const parsedUrl = new URL(input.url);
-      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        return ToolResult.error('仅支持 http/https 协议');
+      // 安全限制：仅 http/https，且拒绝内网/回环/链路本地/保留地址（防 SSRF）
+      try {
+        await assertUrlAllowed(input.url);
+      } catch (e: any) {
+        return ToolResult.error(e.message);
       }
 
       const controller = new AbortController();
