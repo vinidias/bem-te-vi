@@ -1830,10 +1830,19 @@
   function pane() {
     return document.getElementById("ck-preview-pane");
   }
+  function listEl() {
+    return document.getElementById("ft-list");
+  }
+  function sidebarEl() {
+    return document.getElementById("ck-sidebar");
+  }
+  function colsEl() {
+    return document.querySelector(".ck-files-cols");
+  }
   function getPreviewWidth() {
     try {
       const v = Number(localStorage.getItem(PREVIEW_W_KEY));
-      if (Number.isFinite(v) && v >= MIN_PREVIEW_W && v <= MAX_PREVIEW_W) return Math.round(v);
+      if (Number.isFinite(v) && v >= MIN_PREVIEW_W && v <= 1600) return Math.round(v);
     } catch (_) {
     }
     return 420;
@@ -1845,28 +1854,22 @@
     }
   }
   function currentSidebarWidth() {
-    const sb = document.getElementById("ck-sidebar");
+    const sb = sidebarEl();
     if (!sb) return 320;
     const w = sb.getBoundingClientRect().width;
     return w > 0 ? Math.round(w) : 320;
   }
-  function maxPreviewWidth() {
-    const winW = window.innerWidth;
-    const base = baseSidebarWidth || currentSidebarWidth();
-    const avail = winW - base - 280;
-    return Math.max(MIN_PREVIEW_W, Math.min(MAX_PREVIEW_W, avail));
+  function setSidebarWidth(total) {
+    const ww = Math.round(total);
+    const sb = sidebarEl();
+    if (sb && !sb.classList.contains("ck-collapsed")) sb.style.width = ww + "px";
+    if (api.toggleSidebar) api.toggleSidebar(ww);
   }
   function fmtSize(n) {
     if (typeof n !== "number") return "";
     if (n < 1024) return n + " B";
     if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
     return (n / 1024 / 1024).toFixed(2) + " MB";
-  }
-  function syncSidebarWidth(previewW) {
-    const total = Math.round((baseSidebarWidth || currentSidebarWidth()) + previewW);
-    const sb = document.getElementById("ck-sidebar");
-    if (sb && !sb.classList.contains("ck-collapsed")) sb.style.width = total + "px";
-    if (api.toggleSidebar) api.toggleSidebar(total);
   }
   async function loadFile(relPath) {
     const nameEl = document.getElementById("ck-preview-name");
@@ -1900,14 +1903,17 @@
     if (!p) return;
     currentRelPath = relPath;
     if (!p.classList.contains("open")) {
+      const l = listEl();
       baseSidebarWidth = currentSidebarWidth();
-      const w = Math.min(getPreviewWidth(), maxPreviewWidth());
-      p.style.flex = "0 0 " + w + "px";
-      p.style.width = w + "px";
+      if (l) {
+        const treeW = Math.round(l.getBoundingClientRect().width);
+        l.style.flex = "0 0 " + treeW + "px";
+        l.style.width = treeW + "px";
+      }
       p.classList.add("open");
-      const sbRz = document.querySelector(".ck-sidebar-resizer");
-      if (sbRz) sbRz.style.display = "none";
-      syncSidebarWidth(w);
+      p.style.flex = "1 1 0";
+      p.style.width = "";
+      setSidebarWidth(baseSidebarWidth + getPreviewWidth());
     }
     await loadFile(relPath);
   }
@@ -1915,11 +1921,13 @@
     const p = pane();
     if (!p || !p.classList.contains("open")) return;
     p.classList.remove("open");
-    const sbRz = document.querySelector(".ck-sidebar-resizer");
-    if (sbRz) sbRz.style.display = "";
-    if (baseSidebarWidth > 0) syncSidebarWidth(0);
+    const l = listEl();
+    if (l) {
+      l.style.flex = "";
+      l.style.width = "";
+    }
+    if (baseSidebarWidth > 0) setSidebarWidth(baseSidebarWidth);
     baseSidebarWidth = 0;
-    baseTreeWidth = 0;
   }
   function dismissPreview() {
     currentRelPath = "";
@@ -1929,16 +1937,15 @@
     if (!currentRelPath) return;
     openPreview(currentRelPath);
   }
-  var PREVIEW_W_KEY, MIN_PREVIEW_W, MAX_PREVIEW_W, baseSidebarWidth, baseTreeWidth, currentRelPath;
+  var PREVIEW_W_KEY, MIN_PREVIEW_W, MIN_TREE_W, baseSidebarWidth, currentRelPath;
   var init_preview = __esm({
     "src/ui/shell/scripts/preview.ts"() {
       "use strict";
       init_shared();
       PREVIEW_W_KEY = "cuckoo-preview-width";
-      MIN_PREVIEW_W = 240;
-      MAX_PREVIEW_W = 1600;
+      MIN_PREVIEW_W = 180;
+      MIN_TREE_W = 120;
       baseSidebarWidth = 0;
-      baseTreeWidth = 0;
       currentRelPath = "";
       document.getElementById("ck-preview-close")?.addEventListener("click", dismissPreview);
       document.getElementById("ck-preview-ext")?.addEventListener("click", () => {
@@ -1950,26 +1957,29 @@
         if (p) {
           const rz = document.createElement("div");
           rz.className = "ck-preview-resizer";
-          rz.title = "\u62D6\u52A8\u8C03\u6574\u9884\u89C8\u5BBD\u5EA6";
+          rz.title = "\u62D6\u52A8\u8C03\u6574\uFF1A\u6587\u4EF6\u6811 / \u5185\u5BB9\u533A";
           p.appendChild(rz);
           rz.addEventListener("mousedown", (e) => {
             e.preventDefault();
             const startX = e.clientX;
-            const startW = p.getBoundingClientRect().width;
+            const l = listEl();
+            const cols = colsEl();
+            if (!l || !cols) return;
+            const startTreeW = l.getBoundingClientRect().width;
+            const totalW = cols.getBoundingClientRect().width;
             const onMove = (ev) => {
-              let w = Math.round(startW - (ev.clientX - startX));
-              if (w < MIN_PREVIEW_W) w = MIN_PREVIEW_W;
-              const mx = Math.max(MIN_PREVIEW_W, maxPreviewWidth());
-              if (w > mx) w = mx;
-              p.style.flex = "0 0 " + w + "px";
-              p.style.width = w + "px";
-              syncSidebarWidth(w);
+              let treeW = Math.round(startTreeW + (ev.clientX - startX));
+              const maxTree = Math.max(MIN_TREE_W, totalW - MIN_PREVIEW_W);
+              if (treeW < MIN_TREE_W) treeW = MIN_TREE_W;
+              if (treeW > maxTree) treeW = maxTree;
+              l.style.flex = "0 0 " + treeW + "px";
+              l.style.width = treeW + "px";
             };
             const onUp = () => {
               document.removeEventListener("mousemove", onMove);
               document.removeEventListener("mouseup", onUp);
-              const fw = Math.round(p.getBoundingClientRect().width);
-              if (fw <= maxPreviewWidth()) savePreviewWidth(fw);
+              const treeW = l.getBoundingClientRect().width;
+              savePreviewWidth(Math.max(MIN_PREVIEW_W, Math.round(totalW - treeW)));
             };
             document.addEventListener("mousemove", onMove);
             document.addEventListener("mouseup", onUp);
@@ -2306,8 +2316,8 @@
     const tip = document.getElementById("ws-tip");
     if (tip) tip.style.display = "none";
   }
-  function bindWorkspaceEvents(listEl) {
-    listEl.querySelectorAll(".ck-ws-group-title").forEach((el) => {
+  function bindWorkspaceEvents(listEl2) {
+    listEl2.querySelectorAll(".ck-ws-group-title").forEach((el) => {
       el.addEventListener("click", () => {
         const groupEl = el.closest(".ck-ws-group");
         if (!groupEl) return;
@@ -2317,7 +2327,7 @@
         else expandedDirs.delete(dir);
       });
     });
-    listEl.querySelectorAll(".ck-ws-archived-title").forEach((el) => {
+    listEl2.querySelectorAll(".ck-ws-archived-title").forEach((el) => {
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         const boxEl = el.closest(".ck-ws-archived");
@@ -2328,21 +2338,21 @@
         else archivedOpen.delete(dir);
       });
     });
-    listEl.querySelectorAll(".ck-ws-archived-projects-title").forEach((el) => {
+    listEl2.querySelectorAll(".ck-ws-archived-projects-title").forEach((el) => {
       el.addEventListener("click", () => {
         const boxEl = el.closest(".ck-ws-archived-projects");
         if (!boxEl) return;
         archivedProjectsOpen.v = boxEl.classList.toggle("open");
       });
     });
-    listEl.querySelectorAll(".ck-ws-group-title").forEach((el) => {
+    listEl2.querySelectorAll(".ck-ws-group-title").forEach((el) => {
       el.addEventListener("mouseenter", () => {
         const groupEl = el.closest(".ck-ws-group");
         if (groupEl) showDirTip(groupEl.dataset.dir, el);
       });
       el.addEventListener("mouseleave", hideDirTip);
     });
-    listEl.querySelectorAll(".ck-ws-gact").forEach((btn) => {
+    listEl2.querySelectorAll(".ck-ws-gact").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         e.stopPropagation();
         const groupEl = btn.closest(".ck-ws-group");
@@ -2372,7 +2382,7 @@
         }
       });
     });
-    listEl.querySelectorAll(".ck-ws-expand").forEach((el) => {
+    listEl2.querySelectorAll(".ck-ws-expand").forEach((el) => {
       if (el.classList.contains("ck-ws-expand-hidden")) return;
       el.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -2385,7 +2395,7 @@
         loadWorkspaces();
       });
     });
-    listEl.querySelectorAll(".ck-ws-subgroup-title").forEach((el) => {
+    listEl2.querySelectorAll(".ck-ws-subgroup-title").forEach((el) => {
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         const key = el.dataset.subgroup;
@@ -2395,7 +2405,7 @@
         loadWorkspaces();
       });
     });
-    listEl.querySelectorAll(".ck-ws-item").forEach((el) => {
+    listEl2.querySelectorAll(".ck-ws-item").forEach((el) => {
       el.addEventListener("click", async (e) => {
         if (e.target.closest('[data-act="rename"]')) {
           e.stopPropagation();
@@ -2443,8 +2453,8 @@
     });
   }
   async function loadWorkspaces() {
-    const listEl = document.getElementById("ws-list");
-    if (!listEl || !api.listAllSessions) return;
+    const listEl2 = document.getElementById("ws-list");
+    if (!listEl2 || !api.listAllSessions) return;
     try {
       if (api.getProjectDir) {
         try {
@@ -2458,7 +2468,7 @@
       const currentSessionId = r && r.currentSessionId || null;
       archivedProjects = r && Array.isArray(r.archivedProjects) ? r.archivedProjects : [];
       if (sessions.length === 0) {
-        listEl.innerHTML = '<div class="ck-list-empty">\u6682\u65E0\u4F1A\u8BDD</div>';
+        listEl2.innerHTML = '<div class="ck-list-empty">\u6682\u65E0\u4F1A\u8BDD</div>';
         return;
       }
       const byId = {};
@@ -2526,10 +2536,10 @@
       if (archivedDirs.length) {
         html += '<div class="ck-ws-archived-projects' + (archivedProjectsOpen.v ? " open" : "") + '"><div class="ck-ws-archived-projects-title">\u5DF2\u5F52\u6863 ' + archivedDirs.length + ' \u9879\u76EE</div><div class="ck-ws-archived-projects-items">' + archivedDirs.map((d) => renderGroup(d)).join("") + "</div></div>";
       }
-      listEl.innerHTML = html;
-      bindWorkspaceEvents(listEl);
+      listEl2.innerHTML = html;
+      bindWorkspaceEvents(listEl2);
     } catch (_) {
-      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
   }
   document.getElementById("ws-refresh")?.addEventListener("click", loadWorkspaces);
@@ -2761,8 +2771,8 @@
       return '<div class="ck-ft-row ' + cls + '" data-path="' + escapeAttr(n.path) + '" title="' + escapeAttr(n.path) + '">' + iconHtml(n.name, n.type) + '<span class="' + nameClass(n.name, n.type) + '">' + highlight(n.name, kw) + '</span><span class="ck-ft-path">' + highlight(n.path, kw) + "</span>" + atBtn(n.path) + "</div>";
     }).join("") + (matched.length > 500 ? '<div class="ck-ft-truncated">\uFF08\u7ED3\u679C\u8FC7\u591A\uFF0C\u4EC5\u663E\u793A\u524D 500 \u9879\uFF09</div>' : "");
   }
-  function bindRowEvents(listEl) {
-    listEl.querySelectorAll(".ck-ft-at").forEach((el) => {
+  function bindRowEvents(listEl2) {
+    listEl2.querySelectorAll(".ck-ft-at").forEach((el) => {
       el.addEventListener("click", async (e) => {
         e.stopPropagation();
         const p = el.dataset.at;
@@ -2773,7 +2783,7 @@
         }
       });
     });
-    listEl.querySelectorAll(".ck-ft-dir").forEach((el) => {
+    listEl2.querySelectorAll(".ck-ft-dir").forEach((el) => {
       el.addEventListener("click", () => {
         const p = el.dataset.path;
         if (expanded.has(p)) expanded.delete(p);
@@ -2781,7 +2791,7 @@
         loadFiles();
       });
     });
-    listEl.querySelectorAll(".ck-ft-file").forEach((el) => {
+    listEl2.querySelectorAll(".ck-ft-file").forEach((el) => {
       el.addEventListener("click", async (e) => {
         if (e.target.closest(".ck-ft-at")) return;
         const p = el.dataset.path;
@@ -2799,12 +2809,12 @@
     return s ? String(s.value || "").trim() : "";
   }
   async function loadFiles() {
-    const listEl = document.getElementById("ft-list");
-    if (!listEl || !api.listProjectTree) return;
+    const listEl2 = document.getElementById("ft-list");
+    if (!listEl2 || !api.listProjectTree) return;
     try {
       const r = await api.listProjectTree();
       if (!r || !r.success) {
-        listEl.innerHTML = '<div class="ck-list-empty">' + escapeHtml(r && r.error || "\u52A0\u8F7D\u5931\u8D25") + "</div>";
+        listEl2.innerHTML = '<div class="ck-list-empty">' + escapeHtml(r && r.error || "\u52A0\u8F7D\u5931\u8D25") + "</div>";
         return;
       }
       const rootEl = document.getElementById("ft-root");
@@ -2815,23 +2825,23 @@
       }
       cachedTree = r.tree || [];
       cachedTruncated = !!r.truncated;
-      renderList(listEl);
+      renderList(listEl2);
     } catch (_) {
-      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
   }
-  function renderList(listEl) {
+  function renderList(listEl2) {
     const kw = currentKeyword();
     if (kw) {
-      listEl.innerHTML = renderSearch(kw);
+      listEl2.innerHTML = renderSearch(kw);
     } else {
       if (cachedTree.length === 0) {
-        listEl.innerHTML = '<div class="ck-list-empty">\u7A7A\u76EE\u5F55</div>';
+        listEl2.innerHTML = '<div class="ck-list-empty">\u7A7A\u76EE\u5F55</div>';
         return;
       }
-      listEl.innerHTML = renderNodes(cachedTree, 0) + (cachedTruncated ? '<div class="ck-ft-truncated">\uFF08\u8282\u70B9\u8FC7\u591A\uFF0C\u5DF2\u622A\u65AD\u663E\u793A\uFF09</div>' : "");
+      listEl2.innerHTML = renderNodes(cachedTree, 0) + (cachedTruncated ? '<div class="ck-ft-truncated">\uFF08\u8282\u70B9\u8FC7\u591A\uFF0C\u5DF2\u622A\u65AD\u663E\u793A\uFF09</div>' : "");
     }
-    bindRowEvents(listEl);
+    bindRowEvents(listEl2);
   }
   document.getElementById("ft-refresh")?.addEventListener("click", loadFiles);
   {
@@ -2841,15 +2851,15 @@
       searchEl.addEventListener("input", () => {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
-          const listEl = document.getElementById("ft-list");
-          if (listEl) renderList(listEl);
+          const listEl2 = document.getElementById("ft-list");
+          if (listEl2) renderList(listEl2);
         }, 150);
       });
       searchEl.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
           searchEl.value = "";
-          const listEl = document.getElementById("ft-list");
-          if (listEl) renderList(listEl);
+          const listEl2 = document.getElementById("ft-list");
+          if (listEl2) renderList(listEl2);
         }
       });
     }
@@ -2959,17 +2969,17 @@
     renderSnippets();
   }
   function renderSnippets() {
-    const listEl = document.getElementById("snip-list");
-    if (!listEl) return;
+    const listEl2 = document.getElementById("snip-list");
+    if (!listEl2) return;
     if (!snippets.length) {
-      listEl.innerHTML = '<div class="ck-list-empty">\u8FD8\u6CA1\u6709\u63D0\u793A\u8BCD\uFF0C\u70B9\u4E0A\u65B9\u65B0\u5EFA</div>';
+      listEl2.innerHTML = '<div class="ck-list-empty">\u8FD8\u6CA1\u6709\u63D0\u793A\u8BCD\uFF0C\u70B9\u4E0A\u65B9\u65B0\u5EFA</div>';
       return;
     }
-    listEl.innerHTML = snippets.map((s) => {
+    listEl2.innerHTML = snippets.map((s) => {
       const badge = s.autoSend ? '<span class="ck-snip-badge">\u81EA\u52A8\u53D1\u9001</span>' : "";
       return '<div class="ck-snip-item" data-id="' + escapeAttr(s.id) + '"><div class="ck-snip-top"><span class="ck-snip-name">' + escapeHtml(s.name) + badge + '</span><div class="ck-snip-actions"><button class="ck-snip-icon-btn" data-edit="' + escapeAttr(s.id) + '" title="\u7F16\u8F91"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="ck-snip-icon-btn danger" data-del="' + escapeAttr(s.id) + '" title="\u5220\u9664"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div></div><span class="ck-snip-preview">' + escapeHtml(s.content) + "</span></div>";
     }).join("");
-    listEl.querySelectorAll(".ck-snip-item").forEach((el) => {
+    listEl2.querySelectorAll(".ck-snip-item").forEach((el) => {
       el.addEventListener("click", async (e) => {
         if (e.target.closest("[data-edit]") || e.target.closest("[data-del]")) return;
         const s = snippets.filter((x) => x.id === el.dataset.id)[0];
@@ -2981,14 +2991,14 @@
         addRecent("snippet", s.name, { payload: s.content, autoSend: s.autoSend });
       });
     });
-    listEl.querySelectorAll("[data-edit]").forEach((btn) => {
+    listEl2.querySelectorAll("[data-edit]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         const s = snippets.filter((x) => x.id === btn.dataset.edit)[0];
         if (s) openSnipModal(s);
       });
     });
-    listEl.querySelectorAll("[data-del]").forEach((btn) => {
+    listEl2.querySelectorAll("[data-del]").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         e.stopPropagation();
         const id = btn.dataset.del;
@@ -3069,13 +3079,13 @@
   // src/ui/shell/scripts/pages/skills.ts
   init_shared();
   async function loadSkills() {
-    const listEl = document.getElementById("skill-list");
-    if (!listEl || !api.listSkills) return;
+    const listEl2 = document.getElementById("skill-list");
+    if (!listEl2 || !api.listSkills) return;
     try {
       const r = await api.listSkills();
       const skills = r && r.success ? r.skills : [];
       if (!skills || skills.length === 0) {
-        listEl.innerHTML = '<div class="ck-list-empty">\u672A\u53D1\u73B0\u6280\u80FD<br>\uFF08.cuckoo/skills/ \u6216 ~/.cuckoo/skills/\uFF09</div>';
+        listEl2.innerHTML = '<div class="ck-list-empty">\u672A\u53D1\u73B0\u6280\u80FD<br>\uFF08.cuckoo/skills/ \u6216 ~/.cuckoo/skills/\uFF09</div>';
         return;
       }
       const skillCard = (s) => '<div class="ck-skill-item" data-name="' + escapeHtml(s.name) + '"><div class="ck-skill-top"><span class="ck-skill-name">' + escapeHtml(s.name) + '</span></div><div class="ck-skill-desc">' + escapeHtml(s.description || "\uFF08\u65E0\u63CF\u8FF0\uFF09") + "</div></div>";
@@ -3084,8 +3094,8 @@
       let html = "";
       if (userSkills.length) html += '<div class="ck-mcp-group-title">\u7528\u6237\u7EA7</div>' + userSkills.map(skillCard).join("");
       if (projSkills.length) html += '<div class="ck-mcp-group-title">\u9879\u76EE\u7EA7</div>' + projSkills.map(skillCard).join("");
-      listEl.innerHTML = html;
-      listEl.querySelectorAll(".ck-skill-item").forEach((el) => {
+      listEl2.innerHTML = html;
+      listEl2.querySelectorAll(".ck-skill-item").forEach((el) => {
         el.addEventListener("click", async () => {
           if (api.appendSnippet) {
             try {
@@ -3097,7 +3107,7 @@
         });
       });
     } catch (_) {
-      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
   }
   document.getElementById("skill-refresh")?.addEventListener("click", loadSkills);
@@ -3105,13 +3115,13 @@
   // src/ui/shell/scripts/pages/agents.ts
   init_shared();
   async function loadAgents() {
-    const listEl = document.getElementById("agent-list");
-    if (!listEl || !api.listAgents) return;
+    const listEl2 = document.getElementById("agent-list");
+    if (!listEl2 || !api.listAgents) return;
     try {
       const r = await api.listAgents();
       const agents = r && r.success ? r.agents : [];
       if (!agents || agents.length === 0) {
-        listEl.innerHTML = '<div class="ck-list-empty">\u672A\u53D1\u73B0\u5B50\u4EE3\u7406<br>\uFF08.cuckoo/agents/ \u6216 ~/.cuckoo/agents/\uFF09</div>';
+        listEl2.innerHTML = '<div class="ck-list-empty">\u672A\u53D1\u73B0\u5B50\u4EE3\u7406<br>\uFF08.cuckoo/agents/ \u6216 ~/.cuckoo/agents/\uFF09</div>';
         return;
       }
       const agentCard = (a) => '<div class="ck-skill-item ck-agent-item" data-name="' + escapeHtml(a.name) + '" data-path="' + escapeAttr(a.agentPath) + '"><div class="ck-skill-top"><span class="ck-skill-name">' + escapeHtml(a.name) + '</span><div class="ck-agent-actions"><button class="ck-snip-icon-btn" data-edit-agent="' + escapeAttr(a.agentPath) + '" title="\u7F16\u8F91"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="ck-snip-icon-btn danger" data-del-agent="' + escapeAttr(a.agentPath) + '" title="\u5220\u9664"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div></div><div class="ck-skill-desc">' + escapeHtml(a.description || "\uFF08\u65E0\u63CF\u8FF0\uFF09") + "</div></div>";
@@ -3120,8 +3130,8 @@
       let html = "";
       if (userAgents.length) html += '<div class="ck-mcp-group-title">\u7528\u6237\u7EA7</div>' + userAgents.map(agentCard).join("");
       if (projAgents.length) html += '<div class="ck-mcp-group-title">\u9879\u76EE\u7EA7</div>' + projAgents.map(agentCard).join("");
-      listEl.innerHTML = html;
-      listEl.querySelectorAll(".ck-skill-item").forEach((el) => {
+      listEl2.innerHTML = html;
+      listEl2.querySelectorAll(".ck-skill-item").forEach((el) => {
         el.addEventListener("click", async (e) => {
           if (e.target.closest("[data-edit-agent]") || e.target.closest("[data-del-agent]")) return;
           if (api.appendSnippet) {
@@ -3133,14 +3143,14 @@
           addRecent("agent", el.dataset.name);
         });
       });
-      listEl.querySelectorAll("[data-edit-agent]").forEach((btn) => {
+      listEl2.querySelectorAll("[data-edit-agent]").forEach((btn) => {
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
           const cardEl = btn.closest(".ck-agent-item");
           openAgentEditModal(btn.dataset.editAgent, cardEl ? cardEl.dataset.name : "");
         });
       });
-      listEl.querySelectorAll("[data-del-agent]").forEach((btn) => {
+      listEl2.querySelectorAll("[data-del-agent]").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
           if (!await ckConfirm("\u786E\u5B9A\u5220\u9664\u8BE5\u5B50\u4EE3\u7406\u6587\u4EF6\uFF1F\u6B64\u64CD\u4F5C\u4E0D\u53EF\u6062\u590D\u3002")) return;
@@ -3155,7 +3165,7 @@
         });
       });
     } catch (_) {
-      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
   }
   var agentEditPath = "";
@@ -3247,13 +3257,13 @@
   // src/ui/shell/scripts/pages/mcp.ts
   init_shared();
   async function loadMcpServers() {
-    const listEl = document.getElementById("mcp-list");
-    if (!listEl || !api.listMcpServers) return;
+    const listEl2 = document.getElementById("mcp-list");
+    if (!listEl2 || !api.listMcpServers) return;
     try {
       const r = await api.listMcpServers();
       const servers = r && r.success ? r.servers : [];
       if (!servers || servers.length === 0) {
-        listEl.innerHTML = '<div class="ck-list-empty">\u672A\u914D\u7F6E MCP server</div>';
+        listEl2.innerHTML = '<div class="ck-list-empty">\u672A\u914D\u7F6E MCP server</div>';
         return;
       }
       const cardHtml = (s) => {
@@ -3265,8 +3275,8 @@
       let html = "";
       if (userServers.length) html += '<div class="ck-mcp-group-title">\u7528\u6237\u7EA7</div>' + userServers.map(cardHtml).join("");
       if (projServers.length) html += '<div class="ck-mcp-group-title">\u9879\u76EE\u7EA7</div>' + projServers.map(cardHtml).join("");
-      listEl.innerHTML = html;
-      listEl.querySelectorAll(".ck-mcp-item").forEach((el) => {
+      listEl2.innerHTML = html;
+      listEl2.querySelectorAll(".ck-mcp-item").forEach((el) => {
         el.addEventListener("click", async () => {
           if (api.appendSnippet) {
             try {
@@ -3278,7 +3288,7 @@
         });
       });
     } catch (_) {
-      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
   }
   document.getElementById("mcp-refresh")?.addEventListener("click", loadMcpServers);
@@ -3597,13 +3607,13 @@
     return '<div class="ck-win-item" data-profile-id="' + escapeHtml(p.id) + '"><div class="ck-win-top"><span class="ck-win-avatar"' + (avatarStyle ? ' style="background:' + avatarStyle + '"' : "") + ">" + escapeHtml(initial) + '</span><span class="ck-win-name">' + escapeHtml(p.name) + '</span><span class="ck-win-del" data-profile-id="' + escapeHtml(p.id) + '" title="\u5220\u9664\u7A97\u53E3">\u2715</span></div><div class="ck-win-bottom"><span class="ck-win-provider">' + escapeHtml(pname) + '</span><label class="ck-win-check' + (p.autoOpen === true ? " ck-win-check-on" : "") + '" title="\u542F\u52A8\u65F6\u9ED8\u8BA4\u6253\u5F00"><input type="checkbox" data-profile-id="' + escapeHtml(p.id) + '"' + checked + " />\u9ED8\u8BA4\u6253\u5F00</label></div></div>";
   }
   async function renderWindowList() {
-    const listEl = document.getElementById("win-list");
-    if (!listEl || !api.listProfiles) return;
+    const listEl2 = document.getElementById("win-list");
+    if (!listEl2 || !api.listProfiles) return;
     try {
       const res = await api.listProfiles();
       const profiles = res && res.success ? res.profiles : [];
       if (!profiles || profiles.length === 0) {
-        listEl.innerHTML = '<div class="ck-list-empty">\u6682\u65E0\u7A97\u53E3</div>';
+        listEl2.innerHTML = '<div class="ck-list-empty">\u6682\u65E0\u7A97\u53E3</div>';
         return;
       }
       const providerMap = {};
@@ -3639,8 +3649,8 @@
       if (ungrouped.length) {
         html += '<div class="ck-wg ck-wg-ungrouped"><div class="ck-wg-head"><span class="ck-wg-name">\u672A\u5206\u7EC4</span></div><div class="ck-wg-body">' + ungrouped.map((p) => renderWindowItem(p, providerMap)).join("") + "</div></div>";
       }
-      listEl.innerHTML = html;
-      listEl.querySelectorAll(".ck-win-check input").forEach((cb) => {
+      listEl2.innerHTML = html;
+      listEl2.querySelectorAll(".ck-win-check input").forEach((cb) => {
         cb.addEventListener("click", (e) => e.stopPropagation());
         cb.addEventListener("change", async () => {
           const pid = cb.dataset.profileId;
@@ -3655,7 +3665,7 @@
           }
         });
       });
-      listEl.querySelectorAll(".ck-win-item").forEach((el) => {
+      listEl2.querySelectorAll(".ck-win-item").forEach((el) => {
         el.addEventListener("click", async (e) => {
           if (e.target.classList.contains("ck-win-del")) return;
           if (e.target.closest(".ck-win-check")) return;
@@ -3665,7 +3675,7 @@
           }
         });
       });
-      listEl.querySelectorAll(".ck-win-del").forEach((btn) => {
+      listEl2.querySelectorAll(".ck-win-del").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
           const pid = btn.dataset.profileId;
@@ -3678,7 +3688,7 @@
           }
         });
       });
-      listEl.querySelectorAll(".ck-wg-switch").forEach((btn) => {
+      listEl2.querySelectorAll(".ck-wg-switch").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
           const gid = btn.dataset.groupId;
@@ -3700,7 +3710,7 @@
           }
         });
       });
-      listEl.querySelectorAll(".ck-wg-del").forEach((btn) => {
+      listEl2.querySelectorAll(".ck-wg-del").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
           const gid = btn.dataset.groupId;
@@ -3712,7 +3722,7 @@
           }
         });
       });
-      listEl.querySelectorAll(".ck-wg-manage").forEach((btn) => {
+      listEl2.querySelectorAll(".ck-wg-manage").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
           const gid = btn.dataset.groupId;
@@ -3720,7 +3730,7 @@
           if (g) await openGroupManager(g, profiles);
         });
       });
-      listEl.querySelectorAll(".ck-wg-last").forEach((el) => {
+      listEl2.querySelectorAll(".ck-wg-last").forEach((el) => {
         el.addEventListener("click", async (e) => {
           e.stopPropagation();
           const wid = el.dataset.windowId;
@@ -3739,7 +3749,7 @@
         });
       });
     } catch (_) {
-      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
   }
   async function openGroupManager(group, profiles) {
@@ -3933,15 +3943,15 @@
   init_shared();
   var harnessBusy = false;
   function applyBusyState() {
-    const listEl = document.getElementById("conv-list");
-    if (!listEl) return;
-    listEl.querySelectorAll(".ck-conv-item").forEach((el) => {
+    const listEl2 = document.getElementById("conv-list");
+    if (!listEl2) return;
+    listEl2.querySelectorAll(".ck-conv-item").forEach((el) => {
       el.classList.toggle("ck-conv-disabled", harnessBusy);
     });
   }
   async function loadConversations(retainOnEmpty) {
-    const listEl = document.getElementById("conv-list");
-    if (!listEl || !api.listWebSessions) return;
+    const listEl2 = document.getElementById("conv-list");
+    if (!listEl2 || !api.listWebSessions) return;
     let res = null;
     try {
       res = await api.listWebSessions();
@@ -3952,21 +3962,21 @@
     const curUrl = res && res.currentUrl || "";
     if (!sessions.length) {
       if (retainOnEmpty) return;
-      if (listEl.querySelector(".ck-conv-item")) return;
-      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u4E2D\u2026\uFF08\u82E5\u6301\u7EED\u4E3A\u7A7A\uFF0C\u8BF7\u70B9\u5237\u65B0\uFF09</div>';
+      if (listEl2.querySelector(".ck-conv-item")) return;
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u4E2D\u2026\uFF08\u82E5\u6301\u7EED\u4E3A\u7A7A\uFF0C\u8BF7\u70B9\u5237\u65B0\uFF09</div>';
       return;
     }
-    listEl.innerHTML = sessions.map((s) => {
+    listEl2.innerHTML = sessions.map((s) => {
       const active = s.href === curUrl ? " ck-conv-active" : "";
       return '<div class="ck-conv-item' + active + '" data-url="' + escapeAttr(s.href) + '" title="' + escapeAttr(s.title) + '"><span class="ck-conv-title">' + escapeHtml(s.title) + "</span></div>";
     }).join("");
-    listEl.querySelectorAll(".ck-conv-item").forEach((el) => {
+    listEl2.querySelectorAll(".ck-conv-item").forEach((el) => {
       el.addEventListener("click", () => {
         if (harnessBusy) return;
         const url = el.getAttribute("data-url");
         if (url && api.navigateWebSession) {
           api.navigateWebSession(url);
-          listEl.querySelectorAll(".ck-conv-item").forEach((x) => x.classList.remove("ck-conv-active"));
+          listEl2.querySelectorAll(".ck-conv-item").forEach((x) => x.classList.remove("ck-conv-active"));
           el.classList.add("ck-conv-active");
         }
       });
@@ -4059,16 +4069,16 @@
     return '<div class="ck-plugin-meta">' + cells.join('<span class="sep">\xB7</span>') + "</div>";
   }
   async function loadInstalledPlugins() {
-    const listEl = document.getElementById("plugin-installed-list");
-    if (!listEl || !api.listInstalledPlugins) return;
+    const listEl2 = document.getElementById("plugin-installed-list");
+    if (!listEl2 || !api.listInstalledPlugins) return;
     try {
       const r = await api.listInstalledPlugins();
       const plugins = r && r.success ? r.plugins : [];
       if (!plugins.length) {
-        listEl.innerHTML = '<div class="ck-list-empty">\u8FD8\u6CA1\u6709\u5B89\u88C5\u63D2\u4EF6<br>\u4ECE\u4E0B\u65B9\u5E02\u573A\u5B89\u88C5</div>';
+        listEl2.innerHTML = '<div class="ck-list-empty">\u8FD8\u6CA1\u6709\u5B89\u88C5\u63D2\u4EF6<br>\u4ECE\u4E0B\u65B9\u5E02\u573A\u5B89\u88C5</div>';
         return;
       }
-      listEl.innerHTML = plugins.map((p) => {
+      listEl2.innerHTML = plugins.map((p) => {
         const hasExec = pluginHasExec(p.contributes);
         const swTitle = hasExec ? "\u542F\u7528\u540E\uFF1A\u6280\u80FD/\u4EE3\u7406/\u89C4\u5219 + MCP + \u53EF\u6267\u884C\u5185\u5BB9\u5168\u90E8\u751F\u6548" : "\u542F\u7528\u540E\uFF1A\u6280\u80FD/\u4EE3\u7406/\u89C4\u5219\u5168\u90E8\u751F\u6548";
         const sw = '<label class="ck-switch" title="' + escapeAttr(swTitle) + '"><input type="checkbox" data-toggle="' + escapeAttr(p.id) + '"' + (p.enabled ? " checked" : "") + ' /><span class="ck-switch-track"></span></label>';
@@ -4079,7 +4089,7 @@
         if (contrib) meta.push(escapeHtml(contrib));
         return '<div class="ck-plugin-item" data-plugin="' + escapeAttr(p.id) + '"><div class="ck-plugin-head"><span class="ck-plugin-name">' + escapeHtml(p.name || p.id) + "</span>" + (hasExec ? '<span class="ck-plugin-badge update" title="\u542B\u53EF\u6267\u884C\u5185\u5BB9">\u542B\u53EF\u6267\u884C</span>' : "") + '<div class="ck-plugin-switch-row"><span class="ck-plugin-switch-label">' + (p.enabled ? "\u5DF2\u542F\u7528" : "\u5DF2\u7981\u7528") + "</span>" + sw + '</div><div class="ck-plugin-actions"><button class="ck-snip-icon-btn danger" data-uninstall="' + escapeAttr(p.id) + '" title="\u5378\u8F7D">' + ICON_TRASH + '</button></div></div><div class="ck-plugin-desc">' + escapeHtml(p.description || "\uFF08\u65E0\u63CF\u8FF0\uFF09") + "</div>" + pluginMetaHtml(meta) + "</div>";
       }).join("");
-      listEl.querySelectorAll("[data-uninstall]").forEach((btn) => {
+      listEl2.querySelectorAll("[data-uninstall]").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
           const id = btn.dataset.uninstall;
@@ -4093,7 +4103,7 @@
           await loadPlugins();
         });
       });
-      listEl.querySelectorAll("[data-toggle]").forEach((input2) => {
+      listEl2.querySelectorAll("[data-toggle]").forEach((input2) => {
         input2.addEventListener("change", async () => {
           const id = input2.dataset.toggle;
           const p = plugins.filter((x) => x.id === id)[0];
@@ -4123,19 +4133,19 @@
         });
       });
     } catch (_) {
-      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
   }
   function renderPluginMarket() {
-    const listEl = document.getElementById("plugin-market-list");
-    if (!listEl) return;
+    const listEl2 = document.getElementById("plugin-market-list");
+    if (!listEl2) return;
     const notice = pluginMarketNotice ? '<div class="ck-list-empty">' + escapeHtml(pluginMarketNotice) + "</div>" : "";
     if (!pluginMarketItems.length) {
-      listEl.innerHTML = notice + '<div class="ck-list-empty">\u6682\u65E0\u63D2\u4EF6<br><br>\u7ED9\u4F60\u7684\u4ED3\u5E93\u6253\u4E0A <b>cuckoo-plugin</b> topic\uFF0C<br>\u5B83\u5C31\u4F1A\u51FA\u73B0\u5728\u8FD9\u91CC</div>';
+      listEl2.innerHTML = notice + '<div class="ck-list-empty">\u6682\u65E0\u63D2\u4EF6<br><br>\u7ED9\u4F60\u7684\u4ED3\u5E93\u6253\u4E0A <b>cuckoo-plugin</b> topic\uFF0C<br>\u5B83\u5C31\u4F1A\u51FA\u73B0\u5728\u8FD9\u91CC</div>';
       return;
     }
-    listEl.innerHTML = notice + pluginMarketItems.map(marketCardHtml).join("");
-    listEl.querySelectorAll("[data-install]").forEach((btn) => {
+    listEl2.innerHTML = notice + pluginMarketItems.map(marketCardHtml).join("");
+    listEl2.querySelectorAll("[data-install]").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         e.stopPropagation();
         const id = btn.dataset.install;
@@ -4174,9 +4184,9 @@
     ]) + req + "</div>";
   }
   async function loadPluginMarket(force) {
-    const listEl = document.getElementById("plugin-market-list");
-    if (!listEl || !api.pluginMarketList) return;
-    listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u4E2D\u2026</div>';
+    const listEl2 = document.getElementById("plugin-market-list");
+    if (!listEl2 || !api.pluginMarketList) return;
+    listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u4E2D\u2026</div>';
     try {
       const r = await api.pluginMarketList({ force: !!force });
       if (!r || !r.success) {
@@ -4191,7 +4201,7 @@
       renderPluginMarket();
       loadRemoteManifests();
     } catch (_) {
-      listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
   }
   async function loadRemoteManifests() {
