@@ -159,15 +159,13 @@ export async function renderWindowList(): Promise<void> {
         try { await (api as any).wgDelete?.(gid); renderWindowList(); } catch (_) { /* ignore */ }
       });
     });
-    // 组：管理（改名）
+    // 组：管理（改名 + 增删组内窗口）
     listEl.querySelectorAll('.ck-wg-manage').forEach((btn: any) => {
       btn.addEventListener('click', async (e: any) => {
         e.stopPropagation();
         const gid = btn.dataset.groupId;
         const g = groups.find((x: any) => x.id === gid);
-        const name = await ckPrompt({ title: '重命名窗口组', placeholder: '组名', value: (g && g.name) || '' });
-        if (name === null || !name.trim()) return;
-        try { await (api as any).wgRename?.(gid, name.trim()); renderWindowList(); } catch (_) { /* ignore */ }
+        if (g) await openGroupManager(g, profiles);
       });
     });
     // 组：「最近」→ 跳到该窗口的最近对话
@@ -183,54 +181,87 @@ export async function renderWindowList(): Promise<void> {
         } catch (_) { /* ignore */ }
       });
     });
-    // 窗口：右键"加入组"（简化：长按/右键菜单）
-    listEl.querySelectorAll('.ck-win-item').forEach((el: any) => {
-      el.addEventListener('contextmenu', async (e: any) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const pid = el.dataset.profileId;
-        await showJoinGroupMenu(pid, e.clientX, e.clientY);
-      });
-    });
   } catch (_) {
     listEl.innerHTML = '<div class="ck-list-empty">加载失败</div>';
   }
 }
 
-/** 弹出"加入组"菜单：选已有组 / 新建组 */
-async function showJoinGroupMenu(windowId: string, x: number, y: number): Promise<void> {
-  let groups: any[] = [];
-  try { const gr = await (api as any).wgList?.(); if (gr && gr.success) groups = gr.groups || []; } catch (_) { /* ignore */ }
-  const menu = document.createElement('div');
-  menu.className = 'ck-ctx-menu';
-  menu.style.left = x + 'px';
-  menu.style.top = y + 'px';
-  let items = '';
-  for (const g of groups) {
-    items += '<div class="ck-ctx-item" data-gid="' + escapeAttr(g.id) + '">' + escapeHtml(g.name) + '</div>';
-  }
-  items += '<div class="ck-ctx-item ck-ctx-item-new" data-new="1">＋ 新建组…</div>';
-  menu.innerHTML = items;
-  document.body.appendChild(menu);
-  const close = () => { try { menu.remove(); } catch (_) {} document.removeEventListener('click', close); };
-  setTimeout(() => document.addEventListener('click', close), 0);
-  menu.querySelectorAll('.ck-ctx-item').forEach((it: any) => {
-    it.addEventListener('click', async (e: any) => {
-      e.stopPropagation();
-      close();
-      if (it.dataset.new) {
-        const name = await ckPrompt({ title: '新建窗口组', placeholder: '组名（可空）', value: '' });
-        if (name === null) return;
-        try {
-          const cr = await (api as any).wgCreate?.(name || undefined);
-          if (cr && cr.success && cr.group) await (api as any).wgAddWindow?.(cr.group.id, windowId);
-          renderWindowList();
-        } catch (_) { /* ignore */ }
-      } else if (it.dataset.gid) {
-        try { await (api as any).wgAddWindow?.(it.dataset.gid, windowId); renderWindowList(); } catch (_) { /* ignore */ }
-      }
+/** 打开"管理窗口组"弹窗：改名 + 增删组内窗口 */
+async function openGroupManager(group: any, profiles: any[]): Promise<void> {
+  const mask = document.getElementById('wg-modal');
+  const nameEl = document.getElementById('wg-modal-name') as any;
+  const membersEl = document.getElementById('wg-modal-members');
+  const addSel = document.getElementById('wg-modal-add') as any;
+  const cancelBtn = document.getElementById('wg-modal-cancel') as any;
+  const saveBtn = document.getElementById('wg-modal-save') as any;
+  if (!mask || !nameEl || !membersEl || !addSel) return;
+
+  let members: string[] = Array.isArray(group.windowIds) ? group.windowIds.slice() : [];
+  const byId: Record<string, any> = {};
+  for (const p of profiles) byId[p.id] = p;
+
+  const renderMembers = () => {
+    membersEl.innerHTML = members.length
+      ? members.map((id: string) => {
+          const w = byId[id];
+          return '<div class="ck-wg-member" data-id="' + escapeAttr(id) + '">' +
+            '<span class="ck-wg-member-name">' + escapeHtml(w ? w.name : id) + '</span>' +
+            '<span class="ck-wg-member-del" data-id="' + escapeAttr(id) + '" title="移除">✕</span>' +
+          '</div>';
+        }).join('')
+      : '<div class="ck-wg-member-empty">（暂无窗口）</div>';
+    membersEl.querySelectorAll('.ck-wg-member-del').forEach((b: any) => {
+      b.addEventListener('click', () => {
+        members = members.filter((x) => x !== b.dataset.id);
+        renderMembers(); renderAddOptions();
+      });
     });
-  });
+  };
+  const renderAddOptions = () => {
+    const avail = profiles.filter((p: any) => !members.includes(p.id));
+    addSel.innerHTML = '<option value="">（选择要加入的窗口…）</option>' +
+      avail.map((p: any) => '<option value="' + escapeAttr(p.id) + '">' + escapeHtml(p.name) + '</option>').join('');
+  };
+
+  nameEl.value = group.name || '';
+  renderMembers();
+  renderAddOptions();
+  mask.classList.remove('cuckoo-hidden');
+  setTimeout(() => nameEl.focus(), 50);
+
+  const onAdd = () => {
+    const id = addSel.value;
+    if (id && !members.includes(id)) { members.push(id); renderMembers(); renderAddOptions(); }
+  };
+  const cleanup = () => {
+    mask!.classList.add('cuckoo-hidden');
+    cancelBtn.removeEventListener('click', onCancel);
+    saveBtn.removeEventListener('click', onSave);
+    addSel.removeEventListener('change', onAdd);
+    mask!.removeEventListener('click', onMask);
+  };
+  const onCancel = () => { cleanup(); };
+  const onMask = (e: any) => { if (e.target === mask) cleanup(); };
+  const onSave = async () => {
+    try {
+      const newName = String(nameEl.value || '').trim();
+      if (newName && newName !== group.name) await (api as any).wgRename?.(group.id, newName);
+      // 同步组内窗口：先把现有成员逐个移除，再按新顺序加入
+      const cur = (group.windowIds || []).slice();
+      for (const id of cur) {
+        if (!members.includes(id)) await (api as any).wgRemoveWindow?.(group.id, id);
+      }
+      for (const id of members) {
+        if (!cur.includes(id)) await (api as any).wgAddWindow?.(group.id, id);
+      }
+      cleanup();
+      renderWindowList();
+    } catch (_) { cleanup(); }
+  };
+  addSel.addEventListener('change', onAdd);
+  cancelBtn.addEventListener('click', onCancel);
+  saveBtn.addEventListener('click', onSave);
+  mask.addEventListener('click', onMask);
 }
 
 document.getElementById('win-new')?.addEventListener('click', async () => {

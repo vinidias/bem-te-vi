@@ -569,6 +569,21 @@
     transition: background .15s, color .15s;
   }
   .ck-wg-last:hover { background: var(--ck-surface-hover); color: var(--ck-primary); }
+  /* 管理窗口组弹窗：成员列表 */
+  .ck-wg-members { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+  .ck-wg-member {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 7px;
+    background: var(--ck-surface); font-size: 12px; color: var(--ck-text-2);
+  }
+  .ck-wg-member-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-wg-member-del {
+    width: 20px; height: 20px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 11px; color: var(--ck-text-dim); cursor: pointer;
+  }
+  .ck-wg-member-del:hover { background: var(--ck-danger); color: #fff; }
+  .ck-wg-member-empty { font-size: 11.5px; color: var(--ck-text-dim); padding: 4px 2px; }
   .ck-wg-del {
     width: 20px; height: 20px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
@@ -1114,6 +1129,28 @@
                 <button class="ck-btn ck-btn-secondary cuckoo-hidden" id="agent-open-file">打开正文</button>
                 <button class="ck-btn ck-btn-secondary" id="agent-cancel">取消</button>
                 <button class="ck-btn ck-btn-primary" id="agent-create">创建并打开</button>
+              </div>
+            </div>
+          </div>
+          <!-- 窗口组管理弹窗 -->
+          <div class="ck-modal-mask cuckoo-hidden" id="wg-modal">
+            <div class="ck-modal">
+              <span class="ck-modal-title">管理窗口组</span>
+              <div class="ck-field">
+                <span class="ck-field-label">组名</span>
+                <input class="ck-input" id="wg-modal-name" placeholder="组名" />
+              </div>
+              <div class="ck-field">
+                <span class="ck-field-label">组内窗口（按顺序轮换）</span>
+                <div class="ck-wg-members" id="wg-modal-members"></div>
+              </div>
+              <div class="ck-field" id="wg-modal-add-wrap">
+                <span class="ck-field-label">添加窗口</span>
+                <select class="ck-input" id="wg-modal-add"></select>
+              </div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary" id="wg-modal-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="wg-modal-save">保存</button>
               </div>
             </div>
           </div>
@@ -3397,13 +3434,7 @@
           e.stopPropagation();
           const gid = btn.dataset.groupId;
           const g = groups.find((x) => x.id === gid);
-          const name = await ckPrompt({ title: "\u91CD\u547D\u540D\u7A97\u53E3\u7EC4", placeholder: "\u7EC4\u540D", value: g && g.name || "" });
-          if (name === null || !name.trim()) return;
-          try {
-            await api.wgRename?.(gid, name.trim());
-            renderWindowList();
-          } catch (_) {
-          }
+          if (g) await openGroupManager(g, profiles);
         });
       });
       listEl.querySelectorAll(".ck-wg-last").forEach((el) => {
@@ -3424,66 +3455,85 @@
           }
         });
       });
-      listEl.querySelectorAll(".ck-win-item").forEach((el) => {
-        el.addEventListener("contextmenu", async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const pid = el.dataset.profileId;
-          await showJoinGroupMenu(pid, e.clientX, e.clientY);
-        });
-      });
     } catch (_) {
       listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
   }
-  async function showJoinGroupMenu(windowId, x, y) {
-    let groups = [];
-    try {
-      const gr = await api.wgList?.();
-      if (gr && gr.success) groups = gr.groups || [];
-    } catch (_) {
-    }
-    const menu = document.createElement("div");
-    menu.className = "ck-ctx-menu";
-    menu.style.left = x + "px";
-    menu.style.top = y + "px";
-    let items = "";
-    for (const g of groups) {
-      items += '<div class="ck-ctx-item" data-gid="' + escapeAttr(g.id) + '">' + escapeHtml(g.name) + "</div>";
-    }
-    items += '<div class="ck-ctx-item ck-ctx-item-new" data-new="1">\uFF0B \u65B0\u5EFA\u7EC4\u2026</div>';
-    menu.innerHTML = items;
-    document.body.appendChild(menu);
-    const close = () => {
-      try {
-        menu.remove();
-      } catch (_) {
-      }
-      document.removeEventListener("click", close);
-    };
-    setTimeout(() => document.addEventListener("click", close), 0);
-    menu.querySelectorAll(".ck-ctx-item").forEach((it) => {
-      it.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        close();
-        if (it.dataset.new) {
-          const name = await ckPrompt({ title: "\u65B0\u5EFA\u7A97\u53E3\u7EC4", placeholder: "\u7EC4\u540D\uFF08\u53EF\u7A7A\uFF09", value: "" });
-          if (name === null) return;
-          try {
-            const cr = await api.wgCreate?.(name || void 0);
-            if (cr && cr.success && cr.group) await api.wgAddWindow?.(cr.group.id, windowId);
-            renderWindowList();
-          } catch (_) {
-          }
-        } else if (it.dataset.gid) {
-          try {
-            await api.wgAddWindow?.(it.dataset.gid, windowId);
-            renderWindowList();
-          } catch (_) {
-          }
-        }
+  async function openGroupManager(group, profiles) {
+    const mask = document.getElementById("wg-modal");
+    const nameEl = document.getElementById("wg-modal-name");
+    const membersEl = document.getElementById("wg-modal-members");
+    const addSel = document.getElementById("wg-modal-add");
+    const cancelBtn = document.getElementById("wg-modal-cancel");
+    const saveBtn = document.getElementById("wg-modal-save");
+    if (!mask || !nameEl || !membersEl || !addSel) return;
+    let members = Array.isArray(group.windowIds) ? group.windowIds.slice() : [];
+    const byId = {};
+    for (const p of profiles) byId[p.id] = p;
+    const renderMembers = () => {
+      membersEl.innerHTML = members.length ? members.map((id) => {
+        const w = byId[id];
+        return '<div class="ck-wg-member" data-id="' + escapeAttr(id) + '"><span class="ck-wg-member-name">' + escapeHtml(w ? w.name : id) + '</span><span class="ck-wg-member-del" data-id="' + escapeAttr(id) + '" title="\u79FB\u9664">\u2715</span></div>';
+      }).join("") : '<div class="ck-wg-member-empty">\uFF08\u6682\u65E0\u7A97\u53E3\uFF09</div>';
+      membersEl.querySelectorAll(".ck-wg-member-del").forEach((b) => {
+        b.addEventListener("click", () => {
+          members = members.filter((x) => x !== b.dataset.id);
+          renderMembers();
+          renderAddOptions();
+        });
       });
-    });
+    };
+    const renderAddOptions = () => {
+      const avail = profiles.filter((p) => !members.includes(p.id));
+      addSel.innerHTML = '<option value="">\uFF08\u9009\u62E9\u8981\u52A0\u5165\u7684\u7A97\u53E3\u2026\uFF09</option>' + avail.map((p) => '<option value="' + escapeAttr(p.id) + '">' + escapeHtml(p.name) + "</option>").join("");
+    };
+    nameEl.value = group.name || "";
+    renderMembers();
+    renderAddOptions();
+    mask.classList.remove("cuckoo-hidden");
+    setTimeout(() => nameEl.focus(), 50);
+    const onAdd = () => {
+      const id = addSel.value;
+      if (id && !members.includes(id)) {
+        members.push(id);
+        renderMembers();
+        renderAddOptions();
+      }
+    };
+    const cleanup = () => {
+      mask.classList.add("cuckoo-hidden");
+      cancelBtn.removeEventListener("click", onCancel);
+      saveBtn.removeEventListener("click", onSave);
+      addSel.removeEventListener("change", onAdd);
+      mask.removeEventListener("click", onMask);
+    };
+    const onCancel = () => {
+      cleanup();
+    };
+    const onMask = (e) => {
+      if (e.target === mask) cleanup();
+    };
+    const onSave = async () => {
+      try {
+        const newName = String(nameEl.value || "").trim();
+        if (newName && newName !== group.name) await api.wgRename?.(group.id, newName);
+        const cur = (group.windowIds || []).slice();
+        for (const id of cur) {
+          if (!members.includes(id)) await api.wgRemoveWindow?.(group.id, id);
+        }
+        for (const id of members) {
+          if (!cur.includes(id)) await api.wgAddWindow?.(group.id, id);
+        }
+        cleanup();
+        renderWindowList();
+      } catch (_) {
+        cleanup();
+      }
+    };
+    addSel.addEventListener("change", onAdd);
+    cancelBtn.addEventListener("click", onCancel);
+    saveBtn.addEventListener("click", onSave);
+    mask.addEventListener("click", onMask);
   }
   document.getElementById("win-new")?.addEventListener("click", async () => {
     try {

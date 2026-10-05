@@ -45,6 +45,28 @@
               </div>
             </div>
           </div>
+          <!-- 窗口组管理弹窗 -->
+          <div class="ck-modal-mask cuckoo-hidden" id="wg-modal">
+            <div class="ck-modal">
+              <span class="ck-modal-title">管理窗口组</span>
+              <div class="ck-field">
+                <span class="ck-field-label">组名</span>
+                <input class="ck-input" id="wg-modal-name" placeholder="组名" />
+              </div>
+              <div class="ck-field">
+                <span class="ck-field-label">组内窗口（按顺序轮换）</span>
+                <div class="ck-wg-members" id="wg-modal-members"></div>
+              </div>
+              <div class="ck-field" id="wg-modal-add-wrap">
+                <span class="ck-field-label">添加窗口</span>
+                <select class="ck-input" id="wg-modal-add"></select>
+              </div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary" id="wg-modal-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="wg-modal-save">保存</button>
+              </div>
+            </div>
+          </div>
           <!-- 通用输入弹窗（重命名会话等） -->
           <div class="ck-modal-mask cuckoo-hidden" id="input-modal">
             <div class="ck-modal">
