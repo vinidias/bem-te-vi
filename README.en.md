@@ -328,4 +328,5 @@ This project is licensed under the GNU General Public License v3.0. See the LICE
 - [@8555uuy](https://github.com/8555uuy):
   - **Dangerous-command detection hardening**: fixes detection bypass via compound commands (`&&` `||` `;` `|` `&`); unifies into a single source of truth and adds more dangerous variants (PR #30)
   - **glob excludes artifact dirs**: excludes dependency/artifact dirs like `node_modules` by default when no path is given, avoiding drowning out the project's own files (PR #31)
+  - **webFetch SSRF protection**: rejects internal/loopback/reserved addresses (opt-in via Settings, off by default) (PR #32)
 - All contributors and users
