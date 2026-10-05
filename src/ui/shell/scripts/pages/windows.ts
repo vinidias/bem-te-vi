@@ -113,13 +113,27 @@ export async function renderWindowList(): Promise<void> {
         } catch (_) { /* ignore */ }
       });
     });
-    // 组：切换（占位，链路后续实现）
+    // 组：切换（分享当前对话给组内下一个窗口）
     listEl.querySelectorAll('.ck-wg-switch').forEach((btn: any) => {
       btn.addEventListener('click', async (e: any) => {
         e.stopPropagation();
         const gid = btn.dataset.groupId;
-        console.log('[窗口组] 切换（待实现链路）: ' + gid);
-        if ((api as any).wgSwitch) { try { await (api as any).wgSwitch(gid); } catch (_) { /* ignore */ } }
+        if (!(api as any).wgSwitch) return;
+        const oldText = btn.textContent;
+        btn.textContent = '切换中…';
+        (btn as any).style.pointerEvents = 'none';
+        try {
+          const r = await (api as any).wgSwitch(gid);
+          if (!r || !r.success) {
+            alert('切换失败：' + ((r && r.error) || '未知错误'));
+          }
+        } catch (err: any) {
+          alert('切换失败：' + (err.message || String(err)));
+        } finally {
+          btn.textContent = oldText;
+          (btn as any).style.pointerEvents = '';
+          renderWindowList();
+        }
       });
     });
     // 组：删除组

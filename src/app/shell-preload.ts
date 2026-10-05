@@ -56,6 +56,7 @@ const shellAPI = {
   wgRemoveWindow: (groupId: string, windowId: string) => ipcRenderer.invoke('wg-remove-window', { groupId, windowId }),
   wgRename: (groupId: string, name: string) => ipcRenderer.invoke('wg-rename', { groupId, name }),
   wgDelete: (groupId: string) => ipcRenderer.invoke('wg-delete', { groupId }),
+  wgSwitch: (groupId: string) => ipcRenderer.invoke('wg-switch', { groupId }),
   // ========== 窗口管理 ==========
   listProfiles: () => ipcRenderer.invoke('list-profiles'),
   listProviders: () => ipcRenderer.invoke('list-providers'),

@@ -17,6 +17,7 @@ import * as settingsPanel from '../overlay/panels/settings.js';
 import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/registry.js';
 import { startInterceptObserver, onInterceptedResponse, onTaskIdle } from './intercept/observer.js';
+import { shareAllForSwitch } from '../session/compaction.js';
 import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, startWatchdog, checkSessionChange } from './loop/watchdog.js';
 import { initSubagentIfNeeded } from './subagent.js';
@@ -160,6 +161,15 @@ function init(): void {
         ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: true });
       } catch (err: any) {
         ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    // 窗口组切换：主进程请求"全量分享当前会话"，回执 shareId
+    ipcRenderer.on('cuckoo-switch-share', async (_e: any, { reqId }: any) => {
+      try {
+        const r = await shareAllForSwitch();
+        ipcRenderer.send('cuckoo-switch-share-result', { reqId, ok: true, shareId: r.shareId, sessionId: r.sessionId });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-switch-share-result', { reqId, ok: false, error: err.message });
       }
     });
     // 追加文本到输入框末尾（MCP 名等，不发送）

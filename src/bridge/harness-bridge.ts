@@ -24,6 +24,7 @@ import {
   requestAbort, clearAbort,
 } from './intercept/observer.js';
 import { sendToChat, cancelPendingSend, onMessageDelivered } from '../overlay/chat-input.js';
+import { cancelPending as cancelRetryPending } from './loop/retry.js';
 
 const require = createRequire(import.meta.url);
 const { ipcRenderer } = require('electron');
@@ -136,7 +137,8 @@ export function initHarnessBridge(): void {
   ipcRenderer.on('harness-stop-signal', () => {
     try { cancelPendingSend(); } catch (_) { /* ignore */ }
     try { requestAbort(); } catch (_) { /* ignore */ }
+    try { cancelRetryPending(); } catch (_) { /* ignore */ }
     setAiGenerating(false);
-    console.log('[Cuckoo Harness] 收到停止信号：已取消待发送 + 中止工具回传');
+    console.log('[Cuckoo Harness] 收到停止信号：已取消待发送 + 中止工具回传 + 取消重试倒计时');
   });
 }

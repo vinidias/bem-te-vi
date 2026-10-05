@@ -132,6 +132,21 @@ function deleteGroup(groupId: string): boolean {
   return true;
 }
 
+/**
+ * 取组内"下一个窗口"（按添加顺序循环）。
+ * @param currentWindowId 当前窗口；为空则取第一个
+ */
+function getNextWindow(groupId: string, currentWindowId: string): string | null {
+  const groups = readGroups();
+  const g = groups.find(x => x.id === groupId);
+  if (!g || !Array.isArray(g.windowIds) || g.windowIds.length === 0) return null;
+  const ids: string[] = g.windowIds;
+  if (!currentWindowId) return ids[0];
+  const idx = ids.indexOf(currentWindowId);
+  if (idx < 0) return ids[0];
+  return ids[(idx + 1) % ids.length];
+}
+
 /** 记录"最后一次继续"的窗口与对话 */
 function setLastContinue(groupId: string, windowId: string, sessionId: string | null): void {
   if (!groupId) return;
@@ -169,4 +184,5 @@ export {
   deleteGroup,
   setLastContinue,
   pruneWindow,
+  getNextWindow,
 };

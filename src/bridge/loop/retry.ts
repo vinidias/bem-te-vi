@@ -207,4 +207,4 @@ ensureCountdownBox = withLog(ensureCountdownBox, 'retry.ensureCountdownBox');
 handleError = withLog(handleError, 'retry.handleError');
 startRetryEngine = withLog(startRetryEngine, 'retry.startRetryEngine');
 
-export { startRetryEngine, setCompacting, readConfig, DEFAULT_PROMPT };
+export { startRetryEngine, setCompacting, readConfig, DEFAULT_PROMPT, cancelPending };

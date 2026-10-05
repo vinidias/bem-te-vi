@@ -55,7 +55,10 @@ import { injectGoalDonePusher } from '../tools/impl/goal-done.js';
 import { isSubagentWindow, pushGoalDone } from './goal.js';
 import { injectSessionTitleSetter } from '../tools/impl/name-conversation.js';
 import { pushUrlState } from './ipc/shell.js';
-import { pushHarnessState } from './ipc/harness.js';
+import { pushHarnessState, stopGeneration } from './ipc/harness.js';
+import { injectWindowGroupDeps, requestShareFromWindow } from './ipc/window-groups.js';
+import { initProject } from '../session/project-context.js';
+import * as windowGroups from './window-groups.js';
 
 // 退出前需要 flush 的 sessions
 const sessionsToFlush = new Set<any>();
@@ -624,6 +627,83 @@ injectSessionTitleSetter(async ({ windowId, title }: any) => {
     try { if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send('shell-sessions-changed'); } catch (_) { /* ignore */ }
   }
   return r;
+});
+
+// ========== 窗口组切换编排 ==========
+// 注入给 ipc 层（避免 ipc 直接依赖 entry 的 createWindow）
+injectWindowGroupDeps({
+  runSwitch: async (groupId: string, sender: any) => {
+    // 1) 找"当前窗口"（点按钮的那个；sender 缺失时退回"最近活跃"）
+    const cur = (sender && windowState.getContextByWebContents(sender)) || windowState.getMainContext();
+    if (!cur || !cur.win || cur.win.isDestroyed()) return { success: false, error: '无活跃窗口' };
+    const curWindowId = cur.win.id;
+    const curProfileId = cur.profileId;
+
+    // 2) 校验：当前活跃窗口是否属于该组
+    const group = windowGroups.getGroupByWindowId(curProfileId);
+    if (!group || group.id !== groupId) {
+      return { success: false, error: '当前窗口不属于该组，请先切到组内窗口' };
+    }
+
+    // 3) 停掉当前窗口的生成 + 工具调用
+    try { await stopGeneration(cur); } catch (_) { /* ignore */ }
+
+    // 4) 请求源窗口分享当前对话（全量）
+    const share = await requestShareFromWindow(curWindowId);
+    if (!share || !share.ok || !share.shareId) {
+      return { success: false, error: (share && share.error) || '分享失败' };
+    }
+
+    // 5) 找组里"下一个窗口"
+    const nextProfileId = windowGroups.getNextWindow(groupId, curProfileId);
+    if (!nextProfileId) return { success: false, error: '组内没有可用窗口' };
+
+    // 6) 取源窗口的项目目录
+    const projectDir = (cur.sessionStore && cur.sessionStore.state && cur.sessionStore.state.selectedProjectDir) || null;
+
+    // 7) 打开目标窗口（已开则复用，未开则新建）
+    let target = windowState.getWindowByProfileId(nextProfileId);
+    let targetWindowId: number;
+    if (target && target.win && !target.win.isDestroyed()) {
+      targetWindowId = target.win.id;
+    } else {
+      const prof = profileManager.getProfileById(nextProfileId);
+      if (!prof) return { success: false, error: '目标窗口不存在' };
+      targetWindowId = createWindow(prof);
+    }
+    const tctx = windowState.getWindowContext(targetWindowId);
+    if (!tctx || !tctx.view || tctx.view.webContents.isDestroyed()) {
+      return { success: false, error: '目标窗口视图不可用' };
+    }
+    const twc = tctx.view.webContents;
+
+    // 8) 导航到分享链接；加载完成后初始化项目
+    const shareUrl = 'https://chat.deepseek.com/share/' + share.shareId;
+    const onLoad = () => {
+      try { twc.off('did-finish-load', onLoad); } catch (_) { /* ignore */ }
+      setTimeout(async () => {
+        try {
+          // 指定项目目录；不追加"请继续"（isCompaction=false, extraPrompt=''）
+          await initProject(false, tctx, projectDir, false, '', false);
+        } catch (_) { /* ignore */ }
+      }, 2500);
+    };
+    try { twc.on('did-finish-load', onLoad); } catch (_) { /* ignore */ }
+    try { await twc.loadURL(shareUrl); } catch (err: any) { return { success: false, error: err.message }; }
+
+    // 9) 焦点切到新窗口
+    try { if (tctx.win && !tctx.win.isDestroyed()) tctx.win.focus(); } catch (_) { /* ignore */ }
+
+    // 10) 记录"最后一次继续"
+    try {
+      setTimeout(() => {
+        const sid = (tctx.sessionStore && tctx.sessionStore.state && tctx.sessionStore.state.currentSessionId) || null;
+        windowGroups.setLastContinue(groupId, nextProfileId, sid);
+      }, 5000);
+    } catch (_) { /* ignore */ }
+
+    return { success: true, toProfileId: nextProfileId };
+  },
 });
 
 // ========== IPC 处理器 ==========

@@ -3337,12 +3337,21 @@
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
           const gid = btn.dataset.groupId;
-          console.log("[\u7A97\u53E3\u7EC4] \u5207\u6362\uFF08\u5F85\u5B9E\u73B0\u94FE\u8DEF\uFF09: " + gid);
-          if (api.wgSwitch) {
-            try {
-              await api.wgSwitch(gid);
-            } catch (_) {
+          if (!api.wgSwitch) return;
+          const oldText = btn.textContent;
+          btn.textContent = "\u5207\u6362\u4E2D\u2026";
+          btn.style.pointerEvents = "none";
+          try {
+            const r = await api.wgSwitch(gid);
+            if (!r || !r.success) {
+              alert("\u5207\u6362\u5931\u8D25\uFF1A" + (r && r.error || "\u672A\u77E5\u9519\u8BEF"));
             }
+          } catch (err) {
+            alert("\u5207\u6362\u5931\u8D25\uFF1A" + (err.message || String(err)));
+          } finally {
+            btn.textContent = oldText;
+            btn.style.pointerEvents = "";
+            renderWindowList();
           }
         });
       });

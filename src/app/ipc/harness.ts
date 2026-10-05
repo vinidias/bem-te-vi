@@ -114,6 +114,53 @@ function findContext(sender: any): any {
 }
 
 /**
+ * 停止指定窗口的生成：先给 bridge 发停止信号（取消延时发送 + 中止工具回传），
+ * 再定位并点击网页的"停止"按钮（优先 CDP 真实鼠标事件）。
+ * 供 harness-stop IPC 与"窗口组切换"复用。
+ */
+async function stopGeneration(ctx: any): Promise<any> {
+  if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false };
+  const wc = ctx.view.webContents;
+  try {
+    try { wc.send('harness-stop-signal'); } catch (_) { /* ignore */ }
+    try { wc.focus(); } catch (_) { /* ignore */ }
+    let locateFn = attachStopFn;
+    try {
+      const provider = ctx.providerId ? getProvider(ctx.providerId) : null;
+      if (provider && typeof provider.getStopFn === 'function') {
+        const f = provider.getStopFn();
+        if (typeof f === 'function') locateFn = f;
+      }
+    } catch (_) { /* 回退内置定位 */ }
+    const code = '(' + locateFn.toString() + ')(document, window)';
+    const r = await wc.executeJavaScript(code);
+    console.log('[Cuckoo Harness] stopGeneration 定位结果: ' + JSON.stringify(r));
+    if (r && r.found && typeof r.x === 'number') {
+      let cdpOk = false;
+      try {
+        if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+        await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x, y: r.y, button: 'none', clickCount: 0 });
+        await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mousePressed', x: r.x, y: r.y, button: 'left', buttons: 1, clickCount: 1 });
+        await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mouseReleased', x: r.x, y: r.y, button: 'left', buttons: 0, clickCount: 1 });
+        cdpOk = true;
+      } catch (e: any) { console.log('[Cuckoo Harness] CDP 失败: ' + (e && e.message)); }
+      if (!cdpOk) {
+        wc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
+        wc.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+        wc.sendInputEvent({ type: 'mouseUp', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+      }
+      return { success: true, method: cdpOk ? 'cdp' : 'sendInputEvent' };
+    }
+    wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape', key: 'Escape' });
+    wc.sendInputEvent({ type: 'keyUp', keyCode: 'Escape', key: 'Escape' });
+    return { success: false, method: 'escape' };
+  } catch (err: any) {
+    console.log('[Cuckoo Harness] stopGeneration 异常: ' + err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * 通知 harness 视图：当前对话已作废，请完整重置。
  *
  * 为什么必须是一个**独立事件**，而不是靠 URL 变化触发的 `session-changed`：
@@ -173,53 +220,11 @@ function registerHarnessIpc(): void {
     return { success: true };
   });
 
-  // 停止生成：优先 CDP 派发真实鼠标事件（isTrusted=true，React 站点唯一可靠方式）
+  // 停止生成（IPC 入口）
   ipcMain.handle('harness-stop', async (event: any) => {
     const ctx = findContext(event.sender);
-    if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false };
-    const wc = ctx.view.webContents;
-    try {
-      // 先给 bridge 发停止信号：取消延时发送 + 中止工具回传（关键：否则停止后仍会自动发送）
-      try { wc.send('harness-stop-signal'); } catch (_) { /* ignore */ }
-      try { wc.focus(); } catch (e) { /* ignore */ }
-      // 平台可提供自定义停止按钮定位；内置启发式只覆盖部分站点（如 DeepSeek 设计系统类名）
-      let locateFn = attachStopFn;
-      try {
-        const provider = ctx.providerId ? getProvider(ctx.providerId) : null;
-        if (provider && typeof provider.getStopFn === 'function') {
-          const f = provider.getStopFn();
-          if (typeof f === 'function') locateFn = f;
-        }
-      } catch (_) { /* 回退内置定位 */ }
-      const code = '(' + locateFn.toString() + ')(document, window)';
-      const r = await wc.executeJavaScript(code);
-      console.log('[Cuckoo Harness] harness-stop 定位结果: ' + JSON.stringify(r));
-      if (r && r.found && typeof r.x === 'number') {
-        let cdpOk = false;
-        try {
-          if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
-          await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x, y: r.y, button: 'none', clickCount: 0 });
-          await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mousePressed', x: r.x, y: r.y, button: 'left', buttons: 1, clickCount: 1 });
-          await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mouseReleased', x: r.x, y: r.y, button: 'left', buttons: 0, clickCount: 1 });
-          cdpOk = true;
-          console.log('[Cuckoo Harness] CDP 已派发真实点击 (' + r.x + ',' + r.y + ')');
-        } catch (e: any) { console.log('[Cuckoo Harness] CDP 失败: ' + (e && e.message)); }
-        if (!cdpOk) {
-          wc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
-          wc.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
-          wc.sendInputEvent({ type: 'mouseUp', x: r.x, y: r.y, button: 'left', clickCount: 1 });
-          console.log('[Cuckoo Harness] sendInputEvent 兜底点击 (' + r.x + ',' + r.y + ')');
-        }
-        return { success: true, method: cdpOk ? 'cdp' : 'sendInputEvent', result: r };
-      }
-      wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape', key: 'Escape' });
-      wc.sendInputEvent({ type: 'keyUp', keyCode: 'Escape', key: 'Escape' });
-      console.log('[Cuckoo Harness] 未定位到停止按钮，已发送 Escape');
-      return { success: false, method: 'escape', result: r };
-    } catch (err: any) {
-      console.log('[Cuckoo Harness] harness-stop 异常: ' + err.message);
-      return { success: false, error: err.message };
-    }
+    if (!ctx) return { success: false };
+    return stopGeneration(ctx);
   });
 
   // 列出可用技能与工具
@@ -476,6 +481,6 @@ function attachStopFn(doc: any, win: any) {
   }
 }
 
-export { registerHarnessIpc, prepareNewConversation, pushHarnessState };
+export { registerHarnessIpc, prepareNewConversation, pushHarnessState, stopGeneration };
 
 
