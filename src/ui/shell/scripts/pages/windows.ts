@@ -61,13 +61,27 @@ export async function renderWindowList(): Promise<void> {
     // 已分组的窗口
     for (const g of groups) {
       const members = (g.windowIds || []).map((w: string) => byId[w]).filter(Boolean);
+      // "最后一次继续"：窗口名 + 对话标题（可点击跳转）
+      let lastLine = '';
+      if (g.lastWindowId) {
+        const lastWin = byId[g.lastWindowId];
+        const winName = lastWin ? lastWin.name : g.lastWindowId;
+        lastLine = '<div class="ck-wg-last" data-group-id="' + escapeAttr(g.id) +
+          '" data-window-id="' + escapeAttr(g.lastWindowId) +
+          '" data-session-id="' + escapeAttr(g.lastSessionId || '') +
+          '" title="点击跳到该窗口的最近对话">' +
+          '最近：' + escapeHtml(winName) + (g.lastSessionId ? '' : '') +
+        '</div>';
+      }
       html += '<div class="ck-wg" data-group-id="' + escapeAttr(g.id) + '">' +
         '<div class="ck-wg-head">' +
           '<span class="ck-wg-name">' + escapeHtml(g.name) + '</span>' +
           '<span class="ck-wg-count">' + members.length + ' 个窗口</span>' +
           '<span class="ck-wg-switch" data-group-id="' + escapeAttr(g.id) + '" title="切换到组内下一个窗口">切换</span>' +
+          '<span class="ck-wg-manage" data-group-id="' + escapeAttr(g.id) + '" title="管理组（改名）">管理</span>' +
           '<span class="ck-wg-del" data-group-id="' + escapeAttr(g.id) + '" title="删除组">✕</span>' +
         '</div>' +
+        lastLine +
         '<div class="ck-wg-body">' + members.map((p: any) => renderWindowItem(p, providerMap)).join('') + '</div>' +
       '</div>';
     }
@@ -145,6 +159,30 @@ export async function renderWindowList(): Promise<void> {
         try { await (api as any).wgDelete?.(gid); renderWindowList(); } catch (_) { /* ignore */ }
       });
     });
+    // 组：管理（改名）
+    listEl.querySelectorAll('.ck-wg-manage').forEach((btn: any) => {
+      btn.addEventListener('click', async (e: any) => {
+        e.stopPropagation();
+        const gid = btn.dataset.groupId;
+        const g = groups.find((x: any) => x.id === gid);
+        const name = await ckPrompt({ title: '重命名窗口组', placeholder: '组名', value: (g && g.name) || '' });
+        if (name === null || !name.trim()) return;
+        try { await (api as any).wgRename?.(gid, name.trim()); renderWindowList(); } catch (_) { /* ignore */ }
+      });
+    });
+    // 组：「最近」→ 跳到该窗口的最近对话
+    listEl.querySelectorAll('.ck-wg-last').forEach((el: any) => {
+      el.addEventListener('click', async (e: any) => {
+        e.stopPropagation();
+        const wid = el.dataset.windowId;
+        const sid = el.dataset.sessionId;
+        if (!wid) return;
+        try {
+          await api.openProfileWindow?.(wid);
+          if (sid && api.navigateSession) { try { await api.navigateSession(sid); } catch (_) { /* ignore */ } }
+        } catch (_) { /* ignore */ }
+      });
+    });
     // 窗口：右键"加入组"（简化：长按/右键菜单）
     listEl.querySelectorAll('.ck-win-item').forEach((el: any) => {
       el.addEventListener('contextmenu', async (e: any) => {
@@ -199,3 +237,12 @@ document.getElementById('win-new')?.addEventListener('click', async () => {
   try { await api.createProfileWindow?.(); renderWindowList(); } catch (_) { /* ignore */ }
 });
 document.getElementById('win-refresh')?.addEventListener('click', renderWindowList);
+// 新建窗口组（只需输入组名，之后把窗口加进去）
+document.getElementById('wg-new')?.addEventListener('click', async () => {
+  const name = await ckPrompt({ title: '新建窗口组', placeholder: '组名（如：主力账号组）', value: '' });
+  if (name === null) return;
+  try {
+    await (api as any).wgCreate?.(name.trim() || undefined);
+    renderWindowList();
+  } catch (_) { /* ignore */ }
+});

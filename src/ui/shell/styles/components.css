@@ -339,6 +339,21 @@
     background: var(--ck-primary-soft); transition: background .15s;
   }
   .ck-wg-switch:hover { background: var(--ck-primary); color: #fff; }
+  .ck-wg-manage {
+    font-size: 11px; color: var(--ck-text-dim);
+    padding: 2px 8px; border-radius: 6px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .ck-wg-manage:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-wg-last {
+    margin: 4px 0 2px 12px; padding: 4px 8px;
+    font-size: 11px; color: var(--ck-text-dim);
+    border-left: 2px solid var(--ck-primary-soft);
+    border-radius: 4px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background .15s, color .15s;
+  }
+  .ck-wg-last:hover { background: var(--ck-surface-hover); color: var(--ck-primary); }
   .ck-wg-del {
     width: 20px; height: 20px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;

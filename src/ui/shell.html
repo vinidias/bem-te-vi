@@ -554,6 +554,21 @@
     background: var(--ck-primary-soft); transition: background .15s;
   }
   .ck-wg-switch:hover { background: var(--ck-primary); color: #fff; }
+  .ck-wg-manage {
+    font-size: 11px; color: var(--ck-text-dim);
+    padding: 2px 8px; border-radius: 6px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .ck-wg-manage:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-wg-last {
+    margin: 4px 0 2px 12px; padding: 4px 8px;
+    font-size: 11px; color: var(--ck-text-dim);
+    border-left: 2px solid var(--ck-primary-soft);
+    border-radius: 4px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background .15s, color .15s;
+  }
+  .ck-wg-last:hover { background: var(--ck-surface-hover); color: var(--ck-primary); }
   .ck-wg-del {
     width: 20px; height: 20px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
@@ -1260,6 +1275,10 @@
                 <button class="ck-btn ck-btn-anim" id="win-new">
                   <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
                   <span>新建窗口</span>
+                </button>
+                <button class="ck-btn ck-btn-anim" id="wg-new">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  <span>新建窗口组</span>
                 </button>
                 <button class="ck-icon-btn" id="win-refresh" title="刷新列表">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -3288,7 +3307,13 @@
       let html = "";
       for (const g of groups) {
         const members = (g.windowIds || []).map((w) => byId[w]).filter(Boolean);
-        html += '<div class="ck-wg" data-group-id="' + escapeAttr(g.id) + '"><div class="ck-wg-head"><span class="ck-wg-name">' + escapeHtml(g.name) + '</span><span class="ck-wg-count">' + members.length + ' \u4E2A\u7A97\u53E3</span><span class="ck-wg-switch" data-group-id="' + escapeAttr(g.id) + '" title="\u5207\u6362\u5230\u7EC4\u5185\u4E0B\u4E00\u4E2A\u7A97\u53E3">\u5207\u6362</span><span class="ck-wg-del" data-group-id="' + escapeAttr(g.id) + '" title="\u5220\u9664\u7EC4">\u2715</span></div><div class="ck-wg-body">' + members.map((p) => renderWindowItem(p, providerMap)).join("") + "</div></div>";
+        let lastLine = "";
+        if (g.lastWindowId) {
+          const lastWin = byId[g.lastWindowId];
+          const winName = lastWin ? lastWin.name : g.lastWindowId;
+          lastLine = '<div class="ck-wg-last" data-group-id="' + escapeAttr(g.id) + '" data-window-id="' + escapeAttr(g.lastWindowId) + '" data-session-id="' + escapeAttr(g.lastSessionId || "") + '" title="\u70B9\u51FB\u8DF3\u5230\u8BE5\u7A97\u53E3\u7684\u6700\u8FD1\u5BF9\u8BDD">\u6700\u8FD1\uFF1A' + escapeHtml(winName) + (g.lastSessionId ? "" : "") + "</div>";
+        }
+        html += '<div class="ck-wg" data-group-id="' + escapeAttr(g.id) + '"><div class="ck-wg-head"><span class="ck-wg-name">' + escapeHtml(g.name) + '</span><span class="ck-wg-count">' + members.length + ' \u4E2A\u7A97\u53E3</span><span class="ck-wg-switch" data-group-id="' + escapeAttr(g.id) + '" title="\u5207\u6362\u5230\u7EC4\u5185\u4E0B\u4E00\u4E2A\u7A97\u53E3">\u5207\u6362</span><span class="ck-wg-manage" data-group-id="' + escapeAttr(g.id) + '" title="\u7BA1\u7406\u7EC4\uFF08\u6539\u540D\uFF09">\u7BA1\u7406</span><span class="ck-wg-del" data-group-id="' + escapeAttr(g.id) + '" title="\u5220\u9664\u7EC4">\u2715</span></div>' + lastLine + '<div class="ck-wg-body">' + members.map((p) => renderWindowItem(p, providerMap)).join("") + "</div></div>";
       }
       const ungrouped = profiles.filter((p) => !inGroup.has(p.id));
       if (ungrouped.length) {
@@ -3367,6 +3392,38 @@
           }
         });
       });
+      listEl.querySelectorAll(".ck-wg-manage").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const gid = btn.dataset.groupId;
+          const g = groups.find((x) => x.id === gid);
+          const name = await ckPrompt({ title: "\u91CD\u547D\u540D\u7A97\u53E3\u7EC4", placeholder: "\u7EC4\u540D", value: g && g.name || "" });
+          if (name === null || !name.trim()) return;
+          try {
+            await api.wgRename?.(gid, name.trim());
+            renderWindowList();
+          } catch (_) {
+          }
+        });
+      });
+      listEl.querySelectorAll(".ck-wg-last").forEach((el) => {
+        el.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const wid = el.dataset.windowId;
+          const sid = el.dataset.sessionId;
+          if (!wid) return;
+          try {
+            await api.openProfileWindow?.(wid);
+            if (sid && api.navigateSession) {
+              try {
+                await api.navigateSession(sid);
+              } catch (_) {
+              }
+            }
+          } catch (_) {
+          }
+        });
+      });
       listEl.querySelectorAll(".ck-win-item").forEach((el) => {
         el.addEventListener("contextmenu", async (e) => {
           e.preventDefault();
@@ -3436,6 +3493,15 @@
     }
   });
   document.getElementById("win-refresh")?.addEventListener("click", renderWindowList);
+  document.getElementById("wg-new")?.addEventListener("click", async () => {
+    const name = await ckPrompt({ title: "\u65B0\u5EFA\u7A97\u53E3\u7EC4", placeholder: "\u7EC4\u540D\uFF08\u5982\uFF1A\u4E3B\u529B\u8D26\u53F7\u7EC4\uFF09", value: "" });
+    if (name === null) return;
+    try {
+      await api.wgCreate?.(name.trim() || void 0);
+      renderWindowList();
+    } catch (_) {
+    }
+  });
 
   // src/ui/shell/scripts/pages/settings.ts
   var SET_FIELDS = [
