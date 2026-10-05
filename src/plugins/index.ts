@@ -58,6 +58,21 @@ export {
 } from './github.js';
 
 export {
+  GITEE_BASE,
+  GITEE_API,
+  GITEE_PREFIX,
+  isGiteeRepo,
+  stripGiteePrefix,
+  withGiteePrefix,
+  isValidGiteeRepo,
+  isValidGiteeBranch,
+  buildGiteeArchiveUrl,
+  buildGiteeRawUrl,
+  buildGiteeSearchUrl,
+  buildGiteeUserReposUrl,
+} from './gitee.js';
+
+export {
   TOPIC,
   CACHE_TTL_MS,
   MANIFEST_CACHE_TTL_MS,

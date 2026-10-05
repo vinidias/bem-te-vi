@@ -384,3 +384,65 @@ test('installPlugin: plugins 根目录被正确创建', async () => {
   await installPlugin({ httpGet: httpWith(body), repo: 'alice/demo', branch: 'master' });
   assert.ok(fs.existsSync(getPluginsDir()));
 });
+
+
+// ===== Gitee 来源 =====
+
+test('installPlugin: Gitee 来源走 archive.tar.gz 通道', async () => {
+  const body = await makeTarball({ 'plugin.json': GOOD_MANIFEST }, 'repo-abc');
+  const calls = [];
+  const r = await installPlugin({
+    httpGet: httpWith(body, 200, calls),
+    repo: 'gitee:alice/demo',
+    branch: 'master',
+  });
+  assert.strictEqual(r.success, true);
+  assert.strictEqual(r.plugin.manifest.id, 'demo');
+  // 下载 URL 必须是 Gitee 归档地址
+  assert.ok(calls.length >= 1);
+  assert.ok(calls[0].url.indexOf('gitee.com/alice/demo/repository/archive/master.tar.gz') !== -1);
+});
+
+test('installPlugin: Gitee 中文分支正确编码', async () => {
+  const body = await makeTarball({ 'plugin.json': GOOD_MANIFEST }, 'repo-abc');
+  const calls = [];
+  const r = await installPlugin({
+    httpGet: httpWith(body, 200, calls),
+    repo: 'gitee:alice/demo',
+    branch: '稳定喵',
+  });
+  assert.strictEqual(r.success, true);
+  assert.ok(calls[0].url.indexOf(encodeURIComponent('稳定喵')) !== -1);
+});
+
+test('installPlugin: Gitee 非法仓库被拒', async () => {
+  const r = await installPlugin({
+    httpGet: httpWith(Buffer.from(''), 200),
+    repo: 'gitee:a/b/c',
+    branch: 'master',
+  });
+  assert.strictEqual(r.success, false);
+  assert.ok(r.error.indexOf('非法') !== -1);
+});
+
+test('installPlugin: Gitee 分支含 .. 被拒', async () => {
+  const r = await installPlugin({
+    httpGet: httpWith(Buffer.from(''), 200),
+    repo: 'gitee:alice/demo',
+    branch: '..',
+  });
+  assert.strictEqual(r.success, false);
+});
+
+test('installPlugin: Gitee 来源记录 .install-meta 正确', async () => {
+  const body = await makeTarball({ 'plugin.json': GOOD_MANIFEST }, 'repo-abc');
+  const r = await installPlugin({
+    httpGet: httpWith(body, 200),
+    repo: 'gitee:alice/demo',
+    branch: 'master',
+  });
+  assert.strictEqual(r.success, true);
+  const meta = JSON.parse(fs.readFileSync(path.join(r.plugin.dir, '.install-meta.json'), 'utf-8'));
+  assert.strictEqual(meta.repo, 'gitee:alice/demo');
+  assert.ok(meta.url.indexOf('gitee.com/alice/demo') !== -1);
+});
