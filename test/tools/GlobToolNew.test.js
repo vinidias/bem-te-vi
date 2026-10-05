@@ -1,7 +1,7 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES } from '../../src/tools/impl/glob.js';
+import { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES, GLOB_ARTIFACT_EXCLUDES } from '../../src/tools/impl/glob.js';
 
 test('parseGlobArgs 正常', () => {
   assert.deepStrictEqual(parseGlobArgs('**/*.js', undefined), { pattern: '**/*.js' });
@@ -56,4 +56,27 @@ test('formatGlobOutput 截断', () => {
 test('MAX_RESULTS 为 100', () => {
   assert.strictEqual(MAX_RESULTS, 100);
 });
+
+// ===== 产物目录排除（P1：默认遍历 node_modules）=====
+test('buildGlobArgs 无 path 时排除产物目录', () => {
+  const args = buildGlobArgs({ pattern: '*.ts' });
+  for (const name of GLOB_ARTIFACT_EXCLUDES) {
+    assert.ok(args.includes('--glob=!**/' + name), 'missing !**/' + name);
+    assert.ok(args.includes('--glob=!**/' + name + '/**'), 'missing !**/' + name + '/**');
+  }
+  assert.ok(args.includes('--glob=!**/node_modules'));
+  assert.ok(args.includes('--glob=!**/node_modules/**'));
+});
+
+test('buildGlobArgs 显式 path 时不排除产物目录', () => {
+  const args = buildGlobArgs({ pattern: '*.ts', path: 'src' });
+  assert.ok(!args.some(a => a.startsWith('--glob=!**/node_modules')));
+});
+
+test('GLOB_ARTIFACT_EXCLUDES 含常见产物目录', () => {
+  for (const name of ['node_modules', 'dist', 'out', 'build']) {
+    assert.ok(GLOB_ARTIFACT_EXCLUDES.includes(name), 'missing ' + name);
+  }
+});
+
 
