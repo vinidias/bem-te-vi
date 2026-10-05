@@ -28,6 +28,14 @@ export interface ShellAPI {
   listInstalledPlugins?: () => Promise<any>;
   pluginSetEnabled?: (id: string, enabled: boolean) => Promise<any>;
   pluginOpenDir?: () => Promise<any>;
+  // 窗口组
+  wgList?: () => Promise<any>;
+  wgCreate?: (name?: string) => Promise<any>;
+  wgAddWindow?: (groupId: string, windowId: string) => Promise<any>;
+  wgRemoveWindow?: (groupId: string, windowId: string) => Promise<any>;
+  wgRename?: (groupId: string, name: string) => Promise<any>;
+  wgDelete?: (groupId: string) => Promise<any>;
+  wgSwitch?: (groupId: string) => Promise<any>;
   /** 切换纯净对话模式（Harness） */
   toggleHarness?: () => Promise<any>;
   /** 纯净模式状态变化（harness=true 表示已进入纯净模式） */

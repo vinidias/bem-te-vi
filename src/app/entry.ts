@@ -55,7 +55,10 @@ import { injectGoalDonePusher } from '../tools/impl/goal-done.js';
 import { isSubagentWindow, pushGoalDone } from './goal.js';
 import { injectSessionTitleSetter } from '../tools/impl/name-conversation.js';
 import { pushUrlState } from './ipc/shell.js';
-import { pushHarnessState } from './ipc/harness.js';
+import { pushHarnessState, stopGeneration } from './ipc/harness.js';
+import { injectWindowGroupDeps, requestShareFromWindow } from './ipc/window-groups.js';
+import { initProject } from '../session/project-context.js';
+import * as windowGroups from './window-groups.js';
 
 // 退出前需要 flush 的 sessions
 const sessionsToFlush = new Set<any>();
@@ -624,6 +627,178 @@ injectSessionTitleSetter(async ({ windowId, title }: any) => {
     try { if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send('shell-sessions-changed'); } catch (_) { /* ignore */ }
   }
   return r;
+});
+
+// ========== 窗口组探测 ==========
+// 把目标窗口导航到 "首页?cuckoo-probe=1"，等其 bridge 上报探测结果。
+// 返回 'ok' | 'limited' | 'timeout' | 'error'
+const pendingProbes = new Map<string, { resolve: (r: string) => void; timer: any }>();
+
+ipcMainForProfile.handle('probe-result', async (event: any, { result }: any) => {
+  const ctx = windowState.getContextByWebContents(event.sender);
+  if (!ctx || !ctx.win) return { success: false };
+  const key = String(ctx.win.id);
+  const p = pendingProbes.get(key);
+  if (p) { pendingProbes.delete(key); clearTimeout(p.timer); p.resolve(result || 'error'); }
+  return { success: true };
+});
+
+/** 探测指定窗口是否被限流（新开对话发"你好"） */
+async function probeWindow(profileId: string): Promise<string> {
+  // 打开/复用窗口
+  let ctx = windowState.getWindowByProfileId(profileId);
+  let windowId: number;
+  if (ctx && ctx.win && !ctx.win.isDestroyed()) {
+    windowId = ctx.win.id;
+  } else {
+    const prof = profileManager.getProfileById(profileId);
+    if (!prof) return 'error';
+    windowId = createWindow(prof);
+    ctx = windowState.getWindowContext(windowId);
+  }
+  if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return 'error';
+  const wc = ctx.view.webContents;
+  const provider = ctx.providerId ? getProvider(ctx.providerId) : null;
+  const homeUrl = (provider && provider.homeUrl) ? provider.homeUrl : '';
+  if (!homeUrl) return 'error';
+  const probeUrl = homeUrl + (homeUrl.includes('?') ? '&' : '?') + 'cuckoo-probe=1';
+
+  return await new Promise<string>((resolve) => {
+    const key = String(windowId);
+    const timer = setTimeout(() => { pendingProbes.delete(key); resolve('timeout'); }, 70000);
+    pendingProbes.set(key, { resolve, timer });
+    try { wc.loadURL(probeUrl).catch(() => { /* did-fail 由超时兜底 */ }); }
+    catch (_) { clearTimeout(timer); pendingProbes.delete(key); resolve('error'); }
+  });
+}
+
+// ========== 窗口组切换编排 ==========
+/** 把 fromProfileId 窗口的当前对话分享给组内下一个窗口（返回 { success, ... }） */
+async function runSwitchForGroup(groupId: string, fromProfileId: string): Promise<any> {
+    // 1) 找源窗口上下文
+    const allCtx = windowState.getAllContexts().filter((c: any) => c.profileId === fromProfileId && !c.isSubagent);
+    const cur: any = allCtx[0];
+    if (!cur || !cur.win || cur.win.isDestroyed()) return { success: false, error: '源窗口不可用' };
+    const curWindowId = cur.win.id;
+    const curProfileId = cur.profileId;
+
+    // 2) 校验：源窗口是否属于该组
+    const group = windowGroups.getGroupByWindowId(curProfileId);
+    if (!group || group.id !== groupId) {
+      return { success: false, error: '当前窗口不属于该组，请先切到组内窗口' };
+    }
+
+    // 3) 停掉当前窗口的生成 + 工具调用
+    try { await stopGeneration(cur); } catch (_) { /* ignore */ }
+
+    // 4) 请求源窗口分享当前对话（全量）
+    const share = await requestShareFromWindow(curWindowId);
+    if (!share || !share.ok || !share.shareId) {
+      try { cur.view.webContents.send('harness-resume-retry'); } catch (_) { /* ignore */ }
+      return { success: false, error: (share && share.error) || '分享失败' };
+    }
+
+    // 5) 取源窗口的项目目录
+    const projectDir = (cur.sessionStore && cur.sessionStore.state && cur.sessionStore.state.selectedProjectDir) || null;
+
+    // 6) 探测轮换：从"下一个"开始，逐个探测组内窗口，找第一个可用的
+    const memberIds: string[] = Array.isArray(group.windowIds) ? group.windowIds : [];
+    const startIdx = memberIds.indexOf(curProfileId);
+    if (startIdx < 0) return { success: false, error: '当前窗口不在组内' };
+    const probeOrder: string[] = [];
+    for (let i = 1; i < memberIds.length; i++) {
+      probeOrder.push(memberIds[(startIdx + i) % memberIds.length]);
+    }
+    if (probeOrder.length === 0) return { success: false, error: '组内没有其他窗口' };
+
+    let nextProfileId: string | null = null;
+    for (const pid of probeOrder) {
+      console.log('[窗口组] 探测窗口 ' + pid + ' …');
+      const pr = await probeWindow(pid);
+      console.log('[窗口组] 探测结果 ' + pid + ' = ' + pr);
+      if (pr === 'ok') { nextProfileId = pid; break; }
+    }
+    if (!nextProfileId) {
+      // 全被限/超时 → 恢复源窗口的重试（切换开始时被取消了）
+      try { cur.view.webContents.send('harness-resume-retry'); } catch (_) { /* ignore */ }
+      return { success: false, error: '组内窗口均不可用（限流/超时），已退回重试', fallback: true };
+    }
+
+    // 7) 打开目标窗口（探测时已开/已建）
+    let target = windowState.getWindowByProfileId(nextProfileId);
+    let targetWindowId: number;
+    if (target && target.win && !target.win.isDestroyed()) {
+      targetWindowId = target.win.id;
+    } else {
+      const prof = profileManager.getProfileById(nextProfileId);
+      if (!prof) return { success: false, error: '目标窗口不存在' };
+      targetWindowId = createWindow(prof);
+    }
+    const tctx = windowState.getWindowContext(targetWindowId);
+    if (!tctx || !tctx.view || tctx.view.webContents.isDestroyed()) {
+      return { success: false, error: '目标窗口视图不可用' };
+    }
+    const twc = tctx.view.webContents;
+
+    // 8) 导航到分享链接；加载完成后初始化项目
+    const shareUrl = 'https://chat.deepseek.com/share/' + share.shareId;
+    const onLoad = () => {
+      try { twc.off('did-finish-load', onLoad); } catch (_) { /* ignore */ }
+      setTimeout(async () => {
+        try {
+          // 指定项目目录；不追加"请继续"（isCompaction=false, extraPrompt=''）
+          await initProject(false, tctx, projectDir, false, '', false);
+        } catch (_) { /* ignore */ }
+      }, 2500);
+    };
+    try { twc.on('did-finish-load', onLoad); } catch (_) { /* ignore */ }
+    try { await twc.loadURL(shareUrl); } catch (err: any) {
+      try { cur.view.webContents.send('harness-resume-retry'); } catch (_) { /* ignore */ }
+      return { success: false, error: err.message };
+    }
+
+    // 9) 焦点切到新窗口
+    try { if (tctx.win && !tctx.win.isDestroyed()) tctx.win.focus(); } catch (_) { /* ignore */ }
+
+    // 10) 记录"最后一次继续"
+    try {
+      setTimeout(() => {
+        const sid = (tctx.sessionStore && tctx.sessionStore.state && tctx.sessionStore.state.currentSessionId) || null;
+        windowGroups.setLastContinue(groupId, nextProfileId, sid);
+      }, 5000);
+    } catch (_) { /* ignore */ }
+
+    return { success: true, toProfileId: nextProfileId };
+}
+
+// 注入给 ipc 层（避免 ipc 直接依赖 entry 的 createWindow）
+injectWindowGroupDeps({
+  runSwitch: async (groupId: string, sender: any) => {
+    const cur = (sender && windowState.getContextByWebContents(sender)) || windowState.getMainContext();
+    if (!cur || !cur.win || cur.win.isDestroyed()) return { success: false, error: '无活跃窗口' };
+    return runSwitchForGroup(groupId, cur.profileId);
+  },
+});
+
+// ========== 限流触发自动切换 ==========
+// bridge 检测到限流（429 / rate_limit）→ 上报 → 若该窗口属于某组，则触发自动切换
+ipcMainForProfile.handle('rate-limit-hit', async (event: any) => {
+  const ctx = windowState.getContextByWebContents(event.sender);
+  if (!ctx || !ctx.win || ctx.win.isDestroyed()) return { success: false };
+  const profileId = ctx.profileId;
+  const group = windowGroups.getGroupByWindowId(profileId);
+  if (!group) {
+    console.log('[窗口组] 限流，但该窗口不在任何组，不切换');
+    return { success: true, switched: false, reason: 'not-in-group' };
+  }
+  console.log('[窗口组] 限流触发自动切换，组=' + group.name);
+  // 触发切换（复用 P2 的编排）
+  try {
+    const res = await runSwitchForGroup(group.id, profileId);
+    return { success: true, switched: !!(res && res.success), result: res };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 });
 
 // ========== IPC 处理器 ==========

@@ -17,10 +17,12 @@ import * as settingsPanel from '../overlay/panels/settings.js';
 import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/registry.js';
 import { startInterceptObserver, onInterceptedResponse, onTaskIdle } from './intercept/observer.js';
+import { shareAllForSwitch } from '../session/compaction.js';
 import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, startWatchdog, checkSessionChange } from './loop/watchdog.js';
 import { initSubagentIfNeeded } from './subagent.js';
 import { initHarnessBridge } from './harness-bridge.js';
+import { initProbeIfNeeded } from './probe.js';
 import { initFeishuBridge } from './feishu-bridge.js';
 
 const require = createRequire(import.meta.url);
@@ -162,6 +164,15 @@ function init(): void {
         ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: false, error: err.message });
       }
     });
+    // 窗口组切换：主进程请求"全量分享当前会话"，回执 shareId
+    ipcRenderer.on('cuckoo-switch-share', async (_e: any, { reqId }: any) => {
+      try {
+        const r = await shareAllForSwitch();
+        ipcRenderer.send('cuckoo-switch-share-result', { reqId, ok: true, shareId: r.shareId, sessionId: r.sessionId });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-switch-share-result', { reqId, ok: false, error: err.message });
+      }
+    });
     // 追加文本到输入框末尾（MCP 名等，不发送）
     ipcRenderer.on('cuckoo-append-input', (_e: any, data: any) => {
       try {
@@ -208,6 +219,9 @@ function init(): void {
 
     // 飞书同步：上报用户消息/AI回复/工具状态，并接收飞书来消息
     initFeishuBridge();
+
+    // 窗口组探测：若本次导航带 cuckoo-probe 标记，发测试消息判限流
+    initProbeIfNeeded();
   } catch (err) {
     console.error('[Cuckoo Code] init() 出错:', err);
     // 兜底：即使出错也强制显示面板

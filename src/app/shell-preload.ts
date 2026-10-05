@@ -49,6 +49,14 @@ const shellAPI = {
   },
   // 壳页面上报真实可视尺寸（供主进程精确布局 WebContentsView，避免菜单栏高度误差）
   reportShellSize: (w: number, h: number) => ipcRenderer.send('shell-report-size', { w, h }),
+  // ========== 窗口组 ==========
+  wgList: () => ipcRenderer.invoke('wg-list'),
+  wgCreate: (name?: string) => ipcRenderer.invoke('wg-create', { name }),
+  wgAddWindow: (groupId: string, windowId: string) => ipcRenderer.invoke('wg-add-window', { groupId, windowId }),
+  wgRemoveWindow: (groupId: string, windowId: string) => ipcRenderer.invoke('wg-remove-window', { groupId, windowId }),
+  wgRename: (groupId: string, name: string) => ipcRenderer.invoke('wg-rename', { groupId, name }),
+  wgDelete: (groupId: string) => ipcRenderer.invoke('wg-delete', { groupId }),
+  wgSwitch: (groupId: string) => ipcRenderer.invoke('wg-switch', { groupId }),
   // ========== 窗口管理 ==========
   listProfiles: () => ipcRenderer.invoke('list-profiles'),
   listProviders: () => ipcRenderer.invoke('list-providers'),

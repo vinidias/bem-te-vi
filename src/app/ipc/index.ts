@@ -14,8 +14,15 @@ import { registerSnippetsIpc } from './snippets.js';
 import { registerSettingsIpc } from './settings.js';
 import { registerFeishuIpc } from './feishu.js';
 import { registerPluginIpc } from './plugin.js';
+import { registerWindowGroupsIpc, onSwitchShareResult } from './window-groups.js';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { ipcMain } = require('electron');
 
 function registerIpcHandlers(): void {
+  // 窗口组切换：AI 页面分享回执
+  ipcMain.on('cuckoo-switch-share-result', onSwitchShareResult);
   registerProjectIpc();
   registerSessionIpc();
   registerCommandIpc();
@@ -28,6 +35,7 @@ function registerIpcHandlers(): void {
   registerSettingsIpc();
   registerFeishuIpc();
   registerPluginIpc();
+  registerWindowGroupsIpc();
 }
 
 export { registerIpcHandlers };

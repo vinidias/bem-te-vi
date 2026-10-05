@@ -361,6 +361,27 @@ function checkPendingInit(): void {
   }, 3000);
 }
 
-export { runCompaction, checkPendingCompact, checkPendingInit };
+/**
+ * 全量分享当前会话（供"窗口组切换"用）。
+ * 与压缩不同：这里分享**全部消息**（ratio=1），用于把当前对话完整交给另一个窗口。
+ * @returns { shareId, sessionId }
+ */
+async function shareAllForSwitch(): Promise<{ shareId: string; sessionId: string }> {
+  const sessionId = getSessionIdFromUrl();
+  if (!sessionId) throw new Error('无法从 URL 获取 chat_session_id');
+  const headers = getCachedHeaders();
+  if (!headers || !headers['authorization']) {
+    throw new Error('未获取到认证请求头（请刷新页面后重试）');
+  }
+  const { list: allMsgs, currentMessageId } = await getMessagesFromIndexedDB(sessionId);
+  if (allMsgs.length === 0) throw new Error('未读取到消息列表');
+  const ids = pickRecentPairedIds(allMsgs, currentMessageId, 1.0);
+  if (ids.length === 0) throw new Error('无有效消息可分享');
+  logStep('switch', '全量分享 ' + ids.length + ' 条消息（会话 ' + sessionId + '）');
+  const shareId = await createShare(sessionId, ids, headers);
+  return { shareId, sessionId };
+}
+
+export { runCompaction, checkPendingCompact, checkPendingInit, shareAllForSwitch };
 // 纯函数导出（测试用）
 export { pickRecentPairedIds as _pickRecentPairedIds };

@@ -539,7 +539,75 @@
   /* 已勾选「默认打开」：始终可见 */
   .ck-win-check.ck-win-check-on { opacity: 1; pointer-events: auto; }
   .ck-win-check input { accent-color: var(--ck-primary); cursor: pointer; margin: 0; }
-  /* 收起：只隐藏面板，保留图标栏（宽度从 320 �?46�?*/
+  /* 窗口组 */
+  .ck-wg { margin-bottom: 6px; }
+  .ck-wg-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px; border-radius: 8px;
+    background: var(--ck-surface);
+  }
+  .ck-wg-name { font-size: 12px; font-weight: 600; color: var(--ck-text); }
+  .ck-wg-count { font-size: 10.5px; color: var(--ck-text-dim); }
+  .ck-wg-switch {
+    margin-left: auto; font-size: 11px; color: var(--ck-primary);
+    padding: 2px 10px; border-radius: 6px; cursor: pointer;
+    background: var(--ck-primary-soft); transition: background .15s;
+  }
+  .ck-wg-switch:hover { background: var(--ck-primary); color: #fff; }
+  .ck-wg-manage {
+    font-size: 11px; color: var(--ck-text-dim);
+    padding: 2px 8px; border-radius: 6px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .ck-wg-manage:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-wg-last {
+    margin: 4px 0 2px 12px; padding: 4px 8px;
+    font-size: 11px; color: var(--ck-text-dim);
+    border-left: 2px solid var(--ck-primary-soft);
+    border-radius: 4px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background .15s, color .15s;
+  }
+  .ck-wg-last:hover { background: var(--ck-surface-hover); color: var(--ck-primary); }
+  /* 管理窗口组弹窗：成员列表 */
+  .ck-wg-members { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+  .ck-wg-member {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 7px;
+    background: var(--ck-surface); font-size: 12px; color: var(--ck-text-2);
+  }
+  .ck-wg-member-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-wg-member-del {
+    width: 20px; height: 20px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 11px; color: var(--ck-text-dim); cursor: pointer;
+  }
+  .ck-wg-member-del:hover { background: var(--ck-danger); color: #fff; }
+  .ck-wg-member-empty { font-size: 11.5px; color: var(--ck-text-dim); padding: 4px 2px; }
+  .ck-wg-del {
+    width: 20px; height: 20px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 11px; color: var(--ck-text-dim);
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .ck-wg-del:hover { background: var(--ck-danger); color: #fff; }
+  .ck-wg-body { padding-left: 8px; }
+  .ck-wg-ungrouped { opacity: .85; }
+  .ck-wg-ungrouped .ck-wg-head { background: transparent; }
+  /* 右键上下文菜单 */
+  .ck-ctx-menu {
+    position: fixed; z-index: 9999;
+    min-width: 140px; padding: 4px;
+    background: var(--ck-surface); border: 1px solid var(--ck-border);
+    border-radius: 9px; box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  }
+  .ck-ctx-item {
+    padding: 7px 10px; border-radius: 6px; font-size: 12px;
+    color: var(--ck-text-2); cursor: pointer; white-space: nowrap;
+  }
+  .ck-ctx-item:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-ctx-item-new { color: var(--ck-primary); }
+  /* 收起：只隐藏面板，保留图标栏（宽度从 320 → 46）*/
   .ck-sidebar.ck-collapsed { width: 46px; }
   .ck-sidebar.ck-collapsed .ck-panel { display: none; }
   /* 拖拽调宽手柄（贴右边，宽热区） */
@@ -1064,6 +1132,28 @@
               </div>
             </div>
           </div>
+          <!-- 窗口组管理弹窗 -->
+          <div class="ck-modal-mask cuckoo-hidden" id="wg-modal">
+            <div class="ck-modal">
+              <span class="ck-modal-title">管理窗口组</span>
+              <div class="ck-field">
+                <span class="ck-field-label">组名</span>
+                <input class="ck-input" id="wg-modal-name" placeholder="组名" />
+              </div>
+              <div class="ck-field">
+                <span class="ck-field-label">组内窗口（按顺序轮换）</span>
+                <div class="ck-wg-members" id="wg-modal-members"></div>
+              </div>
+              <div class="ck-field" id="wg-modal-add-wrap">
+                <span class="ck-field-label">添加窗口</span>
+                <select class="ck-input" id="wg-modal-add"></select>
+              </div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary" id="wg-modal-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="wg-modal-save">保存</button>
+              </div>
+            </div>
+          </div>
           <!-- 通用输入弹窗（重命名会话等） -->
           <div class="ck-modal-mask cuckoo-hidden" id="input-modal">
             <div class="ck-modal">
@@ -1222,6 +1312,10 @@
                 <button class="ck-btn ck-btn-anim" id="win-new">
                   <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
                   <span>新建窗口</span>
+                </button>
+                <button class="ck-btn ck-btn-anim" id="wg-new">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  <span>新建窗口组</span>
                 </button>
                 <button class="ck-icon-btn" id="win-refresh" title="刷新列表">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -3212,6 +3306,13 @@
   function providerAvatarStyle(providerId) {
     return PROVIDER_COLORS[providerId] || "";
   }
+  function renderWindowItem(p, providerMap) {
+    const pname = providerMap[p.providerId] || "\u672A\u9009\u5E73\u53F0";
+    const checked = p.autoOpen === true ? " checked" : "";
+    const initial = (p.name || "?").trim().charAt(0).toUpperCase();
+    const avatarStyle = providerAvatarStyle(p.providerId);
+    return '<div class="ck-win-item" data-profile-id="' + escapeHtml(p.id) + '"><div class="ck-win-top"><span class="ck-win-avatar"' + (avatarStyle ? ' style="background:' + avatarStyle + '"' : "") + ">" + escapeHtml(initial) + '</span><span class="ck-win-name">' + escapeHtml(p.name) + '</span><span class="ck-win-del" data-profile-id="' + escapeHtml(p.id) + '" title="\u5220\u9664\u7A97\u53E3">\u2715</span></div><div class="ck-win-bottom"><span class="ck-win-provider">' + escapeHtml(pname) + '</span><label class="ck-win-check' + (p.autoOpen === true ? " ck-win-check-on" : "") + '" title="\u542F\u52A8\u65F6\u9ED8\u8BA4\u6253\u5F00"><input type="checkbox" data-profile-id="' + escapeHtml(p.id) + '"' + checked + " />\u9ED8\u8BA4\u6253\u5F00</label></div></div>";
+  }
   async function renderWindowList() {
     const listEl = document.getElementById("win-list");
     if (!listEl || !api.listProfiles) return;
@@ -3230,13 +3331,32 @@
         });
       } catch (_) {
       }
-      listEl.innerHTML = profiles.map((p) => {
-        const pname = providerMap[p.providerId] || "\u672A\u9009\u5E73\u53F0";
-        const checked = p.autoOpen === true ? " checked" : "";
-        const initial = (p.name || "?").trim().charAt(0).toUpperCase();
-        const avatarStyle = providerAvatarStyle(p.providerId);
-        return '<div class="ck-win-item" data-profile-id="' + escapeHtml(p.id) + '"><div class="ck-win-top"><span class="ck-win-avatar"' + (avatarStyle ? ' style="background:' + avatarStyle + '"' : "") + ">" + escapeHtml(initial) + '</span><span class="ck-win-name">' + escapeHtml(p.name) + '</span><span class="ck-win-del" data-profile-id="' + escapeHtml(p.id) + '" title="\u5220\u9664\u7A97\u53E3">\u2715</span></div><div class="ck-win-bottom"><span class="ck-win-provider">' + escapeHtml(pname) + '</span><label class="ck-win-check' + (p.autoOpen === true ? " ck-win-check-on" : "") + '" title="\u542F\u52A8\u65F6\u9ED8\u8BA4\u6253\u5F00"><input type="checkbox" data-profile-id="' + escapeHtml(p.id) + '"' + checked + " />\u9ED8\u8BA4\u6253\u5F00</label></div></div>";
-      }).join("");
+      let groups = [];
+      try {
+        const gr = await api.wgList?.();
+        if (gr && gr.success) groups = gr.groups || [];
+      } catch (_) {
+      }
+      const inGroup = /* @__PURE__ */ new Set();
+      for (const g of groups) for (const w of g.windowIds || []) inGroup.add(w);
+      const byId = {};
+      for (const p of profiles) byId[p.id] = p;
+      let html = "";
+      for (const g of groups) {
+        const members = (g.windowIds || []).map((w) => byId[w]).filter(Boolean);
+        let lastLine = "";
+        if (g.lastWindowId) {
+          const lastWin = byId[g.lastWindowId];
+          const winName = lastWin ? lastWin.name : g.lastWindowId;
+          lastLine = '<div class="ck-wg-last" data-group-id="' + escapeAttr(g.id) + '" data-window-id="' + escapeAttr(g.lastWindowId) + '" data-session-id="' + escapeAttr(g.lastSessionId || "") + '" title="\u70B9\u51FB\u8DF3\u5230\u8BE5\u7A97\u53E3\u7684\u6700\u8FD1\u5BF9\u8BDD">\u6700\u8FD1\uFF1A' + escapeHtml(winName) + (g.lastSessionId ? "" : "") + "</div>";
+        }
+        html += '<div class="ck-wg" data-group-id="' + escapeAttr(g.id) + '"><div class="ck-wg-head"><span class="ck-wg-name">' + escapeHtml(g.name) + '</span><span class="ck-wg-count">' + members.length + ' \u4E2A\u7A97\u53E3</span><span class="ck-wg-switch" data-group-id="' + escapeAttr(g.id) + '" title="\u5207\u6362\u5230\u7EC4\u5185\u4E0B\u4E00\u4E2A\u7A97\u53E3">\u5207\u6362</span><span class="ck-wg-manage" data-group-id="' + escapeAttr(g.id) + '" title="\u7BA1\u7406\u7EC4\uFF08\u6539\u540D\uFF09">\u7BA1\u7406</span><span class="ck-wg-del" data-group-id="' + escapeAttr(g.id) + '" title="\u5220\u9664\u7EC4">\u2715</span></div>' + lastLine + '<div class="ck-wg-body">' + members.map((p) => renderWindowItem(p, providerMap)).join("") + "</div></div>";
+      }
+      const ungrouped = profiles.filter((p) => !inGroup.has(p.id));
+      if (ungrouped.length) {
+        html += '<div class="ck-wg ck-wg-ungrouped"><div class="ck-wg-head"><span class="ck-wg-name">\u672A\u5206\u7EC4</span><span class="ck-wg-count">' + ungrouped.length + ' \u4E2A\u7A97\u53E3</span></div><div class="ck-wg-body">' + ungrouped.map((p) => renderWindowItem(p, providerMap)).join("") + "</div></div>";
+      }
+      listEl.innerHTML = html;
       listEl.querySelectorAll(".ck-win-check input").forEach((cb) => {
         cb.addEventListener("click", (e) => e.stopPropagation());
         cb.addEventListener("change", async () => {
@@ -3275,9 +3395,145 @@
           }
         });
       });
+      listEl.querySelectorAll(".ck-wg-switch").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const gid = btn.dataset.groupId;
+          if (!api.wgSwitch) return;
+          const oldText = btn.textContent;
+          btn.textContent = "\u5207\u6362\u4E2D\u2026";
+          btn.style.pointerEvents = "none";
+          try {
+            const r = await api.wgSwitch(gid);
+            if (!r || !r.success) {
+              alert("\u5207\u6362\u5931\u8D25\uFF1A" + (r && r.error || "\u672A\u77E5\u9519\u8BEF"));
+            }
+          } catch (err) {
+            alert("\u5207\u6362\u5931\u8D25\uFF1A" + (err.message || String(err)));
+          } finally {
+            btn.textContent = oldText;
+            btn.style.pointerEvents = "";
+            renderWindowList();
+          }
+        });
+      });
+      listEl.querySelectorAll(".ck-wg-del").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const gid = btn.dataset.groupId;
+          if (!await ckConfirm("\u786E\u5B9A\u5220\u9664\u8BE5\u7A97\u53E3\u7EC4\uFF1F\uFF08\u7A97\u53E3\u672C\u8EAB\u4E0D\u5220\uFF09")) return;
+          try {
+            await api.wgDelete?.(gid);
+            renderWindowList();
+          } catch (_) {
+          }
+        });
+      });
+      listEl.querySelectorAll(".ck-wg-manage").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const gid = btn.dataset.groupId;
+          const g = groups.find((x) => x.id === gid);
+          if (g) await openGroupManager(g, profiles);
+        });
+      });
+      listEl.querySelectorAll(".ck-wg-last").forEach((el) => {
+        el.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const wid = el.dataset.windowId;
+          const sid = el.dataset.sessionId;
+          if (!wid) return;
+          try {
+            await api.openProfileWindow?.(wid);
+            if (sid && api.navigateSession) {
+              try {
+                await api.navigateSession(sid);
+              } catch (_) {
+              }
+            }
+          } catch (_) {
+          }
+        });
+      });
     } catch (_) {
       listEl.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
     }
+  }
+  async function openGroupManager(group, profiles) {
+    const mask = document.getElementById("wg-modal");
+    const nameEl = document.getElementById("wg-modal-name");
+    const membersEl = document.getElementById("wg-modal-members");
+    const addSel = document.getElementById("wg-modal-add");
+    const cancelBtn = document.getElementById("wg-modal-cancel");
+    const saveBtn = document.getElementById("wg-modal-save");
+    if (!mask || !nameEl || !membersEl || !addSel) return;
+    let members = Array.isArray(group.windowIds) ? group.windowIds.slice() : [];
+    const byId = {};
+    for (const p of profiles) byId[p.id] = p;
+    const renderMembers = () => {
+      membersEl.innerHTML = members.length ? members.map((id) => {
+        const w = byId[id];
+        return '<div class="ck-wg-member" data-id="' + escapeAttr(id) + '"><span class="ck-wg-member-name">' + escapeHtml(w ? w.name : id) + '</span><span class="ck-wg-member-del" data-id="' + escapeAttr(id) + '" title="\u79FB\u9664">\u2715</span></div>';
+      }).join("") : '<div class="ck-wg-member-empty">\uFF08\u6682\u65E0\u7A97\u53E3\uFF09</div>';
+      membersEl.querySelectorAll(".ck-wg-member-del").forEach((b) => {
+        b.addEventListener("click", () => {
+          members = members.filter((x) => x !== b.dataset.id);
+          renderMembers();
+          renderAddOptions();
+        });
+      });
+    };
+    const renderAddOptions = () => {
+      const avail = profiles.filter((p) => !members.includes(p.id));
+      addSel.innerHTML = '<option value="">\uFF08\u9009\u62E9\u8981\u52A0\u5165\u7684\u7A97\u53E3\u2026\uFF09</option>' + avail.map((p) => '<option value="' + escapeAttr(p.id) + '">' + escapeHtml(p.name) + "</option>").join("");
+    };
+    nameEl.value = group.name || "";
+    renderMembers();
+    renderAddOptions();
+    mask.classList.remove("cuckoo-hidden");
+    setTimeout(() => nameEl.focus(), 50);
+    const onAdd = () => {
+      const id = addSel.value;
+      if (id && !members.includes(id)) {
+        members.push(id);
+        renderMembers();
+        renderAddOptions();
+      }
+    };
+    const cleanup = () => {
+      mask.classList.add("cuckoo-hidden");
+      cancelBtn.removeEventListener("click", onCancel);
+      saveBtn.removeEventListener("click", onSave);
+      addSel.removeEventListener("change", onAdd);
+      mask.removeEventListener("click", onMask);
+    };
+    const onCancel = () => {
+      cleanup();
+    };
+    const onMask = (e) => {
+      if (e.target === mask) cleanup();
+    };
+    const onSave = async () => {
+      try {
+        const newName = String(nameEl.value || "").trim();
+        if (newName && newName !== group.name) await api.wgRename?.(group.id, newName);
+        const cur = (group.windowIds || []).slice();
+        for (const id of cur) {
+          if (!members.includes(id)) await api.wgRemoveWindow?.(group.id, id);
+        }
+        for (const id of members) {
+          if (!cur.includes(id)) await api.wgAddWindow?.(group.id, id);
+        }
+        cleanup();
+        renderWindowList();
+      } catch (_) {
+        cleanup();
+      }
+    };
+    addSel.addEventListener("change", onAdd);
+    cancelBtn.addEventListener("click", onCancel);
+    saveBtn.addEventListener("click", onSave);
+    mask.addEventListener("click", onMask);
   }
   document.getElementById("win-new")?.addEventListener("click", async () => {
     try {
@@ -3287,6 +3543,15 @@
     }
   });
   document.getElementById("win-refresh")?.addEventListener("click", renderWindowList);
+  document.getElementById("wg-new")?.addEventListener("click", async () => {
+    const name = await ckPrompt({ title: "\u65B0\u5EFA\u7A97\u53E3\u7EC4", placeholder: "\u7EC4\u540D\uFF08\u5982\uFF1A\u4E3B\u529B\u8D26\u53F7\u7EC4\uFF09", value: "" });
+    if (name === null) return;
+    try {
+      await api.wgCreate?.(name.trim() || void 0);
+      renderWindowList();
+    } catch (_) {
+    }
+  });
 
   // src/ui/shell/scripts/pages/settings.ts
   var SET_FIELDS = [

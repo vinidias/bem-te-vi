@@ -17,6 +17,10 @@ import { onAiError, onInterceptedResponse } from '../intercept/observer.js';
 import { showToast } from '../../overlay/panel.js';
 import { withLog } from '../../infra/with-log.js';
 import { getProviderByUrl } from '../../providers/registry.js';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { ipcRenderer } = require('electron');
 
 const DEFAULT_PROMPT = '刚才的回复似乎中断了，请重新完整回答上一个问题。';
 const DEFAULTS = {
@@ -147,6 +151,10 @@ let handleError = function handleError(detail: any): void {
 
   // 操作频繁：HTTP 429，或 hook 标记的 reason='rate_limit'（如 biz_code=40029）
   const is429 = detail && (detail.httpStatus === 429 || detail.reason === 'rate_limit');
+  // 限流 → 通知主进程（供"窗口组自动切换"决策；主进程自行判断该窗口是否属于某组）
+  if (is429) {
+    try { ipcRenderer.invoke('rate-limit-hit', { sessionId: getCurrentSessionId() }).catch(() => {}); } catch (_) { /* ignore */ }
+  }
   if (is429) {
     if (cfg.count429 >= 0 && count429 >= cfg.count429) {
       showToast('操作频繁重试已达上限（' + cfg.count429 + ' 次），停止自动重试', 4000);
@@ -184,6 +192,28 @@ let handleError = function handleError(detail: any): void {
   pending = { kind: is429 ? '429' : 'normal', timer: timer, countdownTimer: cdTimer, remainMs: delay };
 };
 
+/** 切换前是否取消过 pending 重试（用于"恢复"时判断） */
+let hadPendingBeforeCancel = false;
+
+/** 取消 pending 时记录"曾有"（供 stop 信号调用） */
+let cancelPendingForSwitch = function cancelPendingForSwitch(): void {
+  hadPendingBeforeCancel = !!pending;
+  cancelPending();
+};
+
+/**
+ * 恢复自动重试（切换失败退回时用）。
+ * 仅当"切换前确有 pending 重试"（即确实是因限流而被取消）才恢复——
+ * 手动切换且源窗口本就没在重试时，不误发重试消息。
+ */
+let resumeRetry = function resumeRetry(): void {
+  if (!hadPendingBeforeCancel) { console.log('[Cuckoo Code][重试] 之前无 pending 重试，不恢复'); return; }
+  hadPendingBeforeCancel = false;
+  if (pending) { console.log('[Cuckoo Code][重试] 已有倒计时，忽略恢复请求'); return; }
+  console.log('[Cuckoo Code][重试] 恢复自动重试');
+  handleError({ reason: 'rate_limit' });
+};
+
 let started = false;
 let startRetryEngine = function startRetryEngine(): void {
   if (started) return;
@@ -202,9 +232,11 @@ setCompacting = withLog(setCompacting, 'retry.setCompacting');
 clearPending = withLog(clearPending, 'retry.clearPending');
 onSuccess = withLog(onSuccess, 'retry.onSuccess');
 cancelPending = withLog(cancelPending, 'retry.cancelPending');
+resumeRetry = withLog(resumeRetry, 'retry.resumeRetry');
+cancelPendingForSwitch = withLog(cancelPendingForSwitch, 'retry.cancelPendingForSwitch');
 showCountdown = withLog(showCountdown, 'retry.showCountdown');
 ensureCountdownBox = withLog(ensureCountdownBox, 'retry.ensureCountdownBox');
 handleError = withLog(handleError, 'retry.handleError');
 startRetryEngine = withLog(startRetryEngine, 'retry.startRetryEngine');
 
-export { startRetryEngine, setCompacting, readConfig, DEFAULT_PROMPT };
+export { startRetryEngine, setCompacting, readConfig, DEFAULT_PROMPT, cancelPending, resumeRetry, cancelPendingForSwitch };
