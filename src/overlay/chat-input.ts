@@ -288,44 +288,42 @@ async function sendInitialPromptToInput(): Promise<boolean> {
 
   return true;
 }
-/**
- * 等待输入框出现后再发送初始提示
- */
-function waitForInitialPromptAndSend(): void {
-  let attempts = 0;
-  const maxAttempts = 30;
-  console.log('[' + new Date().toISOString() + '] [Cuckoo Code] 开始等待输入框出现（最多 ' + maxAttempts + ' 次，每次 500ms）');
+/** 初始提示发送的最大尝试次数（跨"等输入框"与"等发送成功"共用） */
+const INITIAL_PROMPT_MAX_ATTEMPTS = 30;
 
-  const checkInterval = setInterval(() => {
-    attempts++;
-    if (attempts > maxAttempts) {
-      clearInterval(checkInterval);
+/**
+ * 尝试发送初始提示；失败则重试，直到成功或达上限。
+ * @param attempt 已尝试次数（递归时 +1 传递，不重置，避免无限重试）
+ */
+function trySendInitialPrompt(attempt: number): void {
+  const input = findInputArea();
+  if (!input) {
+    if (attempt >= INITIAL_PROMPT_MAX_ATTEMPTS) {
       state.pendingInitialPrompt = false;
-      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] 等待输入框超时，放弃发送初始提示');
+      console.log('[Cuckoo Code] 等待输入框超时，放弃发送初始提示');
       return;
     }
+    setTimeout(() => trySendInitialPrompt(attempt + 1), 500);
+    return;
+  }
+  // 找到输入框：尝试发送（sendInitialPromptToInput 内部会校验填充是否成功）
+  sendInitialPromptToInput().then((ok) => {
+    if (ok) return;
+    if (attempt < INITIAL_PROMPT_MAX_ATTEMPTS) {
+      console.log('[Cuckoo Code] 初始提示发送失败，重试（第 ' + (attempt + 1) + ' 次）');
+      setTimeout(() => trySendInitialPrompt(attempt + 1), 500);
+    } else {
+      console.log('[Cuckoo Code] 初始提示发送失败，已达上限，放弃');
+      state.pendingInitialPrompt = false;
+    }
+  }).catch(() => {
+    if (attempt < INITIAL_PROMPT_MAX_ATTEMPTS) setTimeout(() => trySendInitialPrompt(attempt + 1), 500);
+  });
+}
 
-    const found = !!findInputArea();
-    if (attempts === 1 || attempts % 5 === 0 || found) {
-      console.log('[' + new Date().toISOString() + '] [Cuckoo Code] 等待输入框第 ' + attempts + ' 次检查, 输入框=' + (found ? '找到' : '未找到'));
-    }
-    if (found) {
-      clearInterval(checkInterval);
-      // 发送失败（如 contenteditable 填充被拒/输入框未就绪）→ 继续重试，而非静默丢弃。
-      // 子代理窗口（豆包等）曾因"填了但发不出"卡死在这里。
-      sendInitialPromptToInput().then((ok) => {
-        if (!ok && attempts < maxAttempts) {
-          console.log('[Cuckoo Code] 初始提示发送失败，继续重试');
-          waitForInitialPromptAndSend();
-        } else if (!ok) {
-          console.log('[Cuckoo Code] 初始提示发送失败，放弃');
-          state.pendingInitialPrompt = false;
-        }
-      }).catch(() => {
-        if (attempts < maxAttempts) waitForInitialPromptAndSend();
-      });
-    }
-  }, 500);
+/** 等待输入框出现后再发送初始提示（对外入口，从 0 开始） */
+function waitForInitialPromptAndSend(): void {
+  trySendInitialPrompt(0);
 }
 /** 读取输入框当前文本 */
 function getInputText(input: any): string {
@@ -486,12 +484,8 @@ ipcRenderer.on('initial-prompt', (_event: any, content: string) => {
     try {
       const input = findInputArea();
       console.log('[' + new Date().toISOString() + '] [Cuckoo Code] 首次查找输入框结果=' + (input ? '找到' : '未找到'));
-      if (input) {
-        sendInitialPromptToInput();
-      } else {
-        // 等待输入框出现
-        waitForInitialPromptAndSend();
-      }
+      // 统一走"尝试发送 + 失败重试"（找到/未找到都在内部处理）
+      waitForInitialPromptAndSend();
     } catch (e: any) {
       console.error('[' + new Date().toISOString() + '] [Cuckoo Code] initial-prompt 处理异常:', e.message);
     }
