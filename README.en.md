@@ -327,4 +327,5 @@ This project is licensed under the GNU General Public License v3.0. See the LICE
   - **Subagent send fix**: fixes subagents getting stuck at "sending task prompt" on contenteditable platforms like Doubao (PR #29)
 - [@8555uuy](https://github.com/8555uuy):
   - **Dangerous-command detection hardening**: fixes detection bypass via compound commands (`&&` `||` `;` `|` `&`); unifies into a single source of truth and adds more dangerous variants (PR #30)
+  - **glob excludes artifact dirs**: excludes dependency/artifact dirs like `node_modules` by default when no path is given, avoiding drowning out the project's own files (PR #31)
 - All contributors and users
