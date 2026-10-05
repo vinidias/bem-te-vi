@@ -184,6 +184,15 @@ function bindRowEvents(listEl: HTMLElement): void {
       loadFiles();
     });
   });
+  // 点击文件行 → 打开文件预览（主区域覆盖视图）
+  listEl.querySelectorAll('.ck-ft-file').forEach((el: any) => {
+    el.addEventListener('click', async (e: any) => {
+      if (e.target.closest('.ck-ft-at')) return; // 点 @ 按钮不触发预览
+      const p = el.dataset.path;
+      if (!p || !(api as any).openFilePreview) return;
+      try { await (api as any).openFilePreview(p); } catch (_) { /* ignore */ }
+    });
+  });
 }
 
 function currentKeyword(): string {

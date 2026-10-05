@@ -2525,6 +2525,17 @@
         loadFiles();
       });
     });
+    listEl.querySelectorAll(".ck-ft-file").forEach((el) => {
+      el.addEventListener("click", async (e) => {
+        if (e.target.closest(".ck-ft-at")) return;
+        const p = el.dataset.path;
+        if (!p || !api.openFilePreview) return;
+        try {
+          await api.openFilePreview(p);
+        } catch (_) {
+        }
+      });
+    });
   }
   function currentKeyword() {
     const s = document.getElementById("ft-search");
