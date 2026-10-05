@@ -3,7 +3,6 @@ name: shell-ui
 paths:
   - "src/ui/shell/**/*"
   - "src/ui/shell.html"
-  - "scripts/build-shell.mjs"
 ---
 
 # 壳页面（shell UI）规则
