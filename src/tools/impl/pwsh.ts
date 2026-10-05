@@ -4,6 +4,7 @@ import { ToolResult } from '../core/ToolResult.js';
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { decodeOutput } from '../../infra/decode-output.js';
+import { isDangerous, DANGEROUS_CMDS } from '../../infra/dangerous-commands.js';
 
 // ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
 export const apiMetas: ToolApiMeta[] = [
@@ -40,22 +41,9 @@ export const apiMetas: ToolApiMeta[] = [
   },
 ];
 
-// PowerShell 危险命令列表（额外覆盖 PowerShell 特有危险操作）
-const DANGEROUS_PWSH_CMDS = [
-  /^rm\s+-rf\s+\//i,
-  /^format\s+/i,
-  /^del\s+\/f/i,
-  /^rd\s+\/s/i,
-  /^shutdown\s+/i,
-  /^taskkill\s+/i,
-  /^diskpart/i,
-  /^reg\s+delete/i,
-  /^cipher\s+\/w/i,
-  /^Stop-Computer\b/i,
-  /^Restart-Computer\b/i,
-  /^Remove-Item\s+\S*\s*-Recurse\s*-Force\s+C:\\/i,
-  /^Clear-Disk\b/i,
-];
+// 危险命令列表统一由 infra/dangerous-commands 提供（含 PowerShell 特有项）。
+// 保留本别名仅为向后兼容既有引用；请勿在此另立一份列表。
+const DANGEROUS_PWSH_CMDS = DANGEROUS_CMDS;
 
 /**
  * pwsh 执行工具 - 仿照 dsh 的 pwsh 最小移植。
@@ -116,8 +104,8 @@ class PwshTool extends Tool {
         return ToolResult.error('invalid command: expected a non-empty string');
       }
 
-      // 危险命令检查
-      if (DANGEROUS_PWSH_CMDS.some((p) => p.test(trimmed))) {
+      // 危险命令检查（统一检测：按 shell 控制符分段逐段匹配）
+      if (isDangerous(trimmed)) {
         return ToolResult.error('命令被安全策略拒绝（危险命令）: ' + trimmed);
       }
 
