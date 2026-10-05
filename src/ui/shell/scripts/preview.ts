@@ -9,6 +9,7 @@
  * 左条改树的固定宽（总宽不动），右条改侧栏总宽（现成机制，树固定故内容跟随）。
  */
 import { api, escapeHtml } from "./shared.js";
+import { showInMonaco } from "./preview-monaco.js";
 
 const PREVIEW_W_KEY = "cuckoo-preview-width";
 const MIN_PREVIEW_W = 180;
@@ -58,22 +59,27 @@ function fmtSize(n: any): string {
 async function loadFile(relPath: string): Promise<void> {
   const nameEl = document.getElementById("ck-preview-name");
   const sizeEl = document.getElementById("ck-preview-size");
-  const bodyEl = document.getElementById("ck-preview-body");
+  const emptyEl = document.getElementById("ck-preview-empty");
+  const monacoEl = document.getElementById("ck-monaco");
   if (nameEl) { nameEl.textContent = relPath; nameEl.title = relPath; }
   if (sizeEl) sizeEl.textContent = "";
-  if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">加载中…</div>';
+  if (emptyEl) { emptyEl.style.display = "block"; emptyEl.textContent = "加载中…"; }
+  if (monacoEl) monacoEl.style.display = "none";
   try {
     const r = await (api as any).readProjectFile(relPath);
-    if (!r || !r.success) { if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">' + escapeHtml((r && r.error) || "读取失败") + '</div>'; return; }
+    if (!r || !r.success) {
+      if (emptyEl) { emptyEl.style.display = "block"; emptyEl.textContent = (r && r.error) || "读取失败"; }
+      return;
+    }
     if (sizeEl) sizeEl.textContent = fmtSize(r.size);
-    if (bodyEl) {
-      bodyEl.innerHTML = "";
-      const pre = document.createElement("pre");
-      pre.textContent = r.content;
-      bodyEl.appendChild(pre);
+    if (monacoEl) {
+      monacoEl.style.display = "block";
+      if (emptyEl) emptyEl.style.display = "none";
+      await showInMonaco(monacoEl, relPath, r.content);
     }
   } catch (err: any) {
-    if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">读取失败: ' + escapeHtml(err.message) + '</div>';
+    if (emptyEl) { emptyEl.style.display = "block"; emptyEl.textContent = "读取失败: " + escapeHtml(err.message); }
+    if (monacoEl) monacoEl.style.display = "none";
   }
 }
 

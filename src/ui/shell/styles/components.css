@@ -303,7 +303,8 @@
     transition: background .15s, color .15s;
   }
   .ck-preview-btn:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
-  .ck-preview-body { flex: 1; overflow: auto; }
+  .ck-preview-body { flex: 1; overflow: hidden; position: relative; }
+  .ck-monaco { position: absolute; inset: 0; }
   .ck-preview-body pre {
     margin: 0; padding: 12px 14px;
     font-family: "Consolas", "Courier New", monospace;
@@ -445,10 +446,6 @@
   .ck-sidebar-resizer:hover { background: var(--ck-primary-soft); }
   .ck-sidebar.ck-collapsed .ck-sidebar-resizer { display: none; }
   /* 滚动条（跟随主题�?*/
-  .ck-panel-body::-webkit-scrollbar { width: 4px; }
-  .ck-panel-body::-webkit-scrollbar-track { background: transparent; }
-  .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
-  .ck-panel-body::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
 
   /* ===== 项目文件树 ===== */
   .ck-ft-search {
@@ -468,10 +465,6 @@
   .ck-tab[data-panel="files"] { flex: 1; min-height: 0; }
   .ck-ft { padding: 2px 0; overflow: auto; flex: 1; min-height: 0; }
   /* 滚动条：与侧边栏一致（4px、圆角 2px、透明轨道） */
-  .ck-ft::-webkit-scrollbar { width: 4px; height: 4px; }
-  .ck-ft::-webkit-scrollbar-track { background: transparent; }
-  .ck-ft::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
-  .ck-ft::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
   .ck-ft-row {
     display: flex; align-items: center; gap: 4px;
     padding: 4px 8px; border-radius: 6px; cursor: pointer;

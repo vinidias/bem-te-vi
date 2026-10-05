@@ -5,7 +5,16 @@
 <head>
 <meta charset="UTF-8">
 <title>Cuckoo</title>
+<script src="vendor/monaco/vs/loader.js"></script>
 <style>
+/* ===== 全局滚动条（统一规范：4px 细条、透明轨道、圆角滑块）=====
+ * 不要逐个元素写滚动条样式——统一在这里定义，避免各处不一致。
+ */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
+
 /* ===== 浅色（默认）===== */
   :root {
     --ck-bg: #ffffff;
@@ -520,7 +529,8 @@
     transition: background .15s, color .15s;
   }
   .ck-preview-btn:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
-  .ck-preview-body { flex: 1; overflow: auto; }
+  .ck-preview-body { flex: 1; overflow: hidden; position: relative; }
+  .ck-monaco { position: absolute; inset: 0; }
   .ck-preview-body pre {
     margin: 0; padding: 12px 14px;
     font-family: "Consolas", "Courier New", monospace;
@@ -662,10 +672,6 @@
   .ck-sidebar-resizer:hover { background: var(--ck-primary-soft); }
   .ck-sidebar.ck-collapsed .ck-sidebar-resizer { display: none; }
   /* 滚动条（跟随主题�?*/
-  .ck-panel-body::-webkit-scrollbar { width: 4px; }
-  .ck-panel-body::-webkit-scrollbar-track { background: transparent; }
-  .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
-  .ck-panel-body::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
 
   /* ===== 项目文件树 ===== */
   .ck-ft-search {
@@ -685,10 +691,6 @@
   .ck-tab[data-panel="files"] { flex: 1; min-height: 0; }
   .ck-ft { padding: 2px 0; overflow: auto; flex: 1; min-height: 0; }
   /* 滚动条：与侧边栏一致（4px、圆角 2px、透明轨道） */
-  .ck-ft::-webkit-scrollbar { width: 4px; height: 4px; }
-  .ck-ft::-webkit-scrollbar-track { background: transparent; }
-  .ck-ft::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
-  .ck-ft::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
   .ck-ft-row {
     display: flex; align-items: center; gap: 4px;
     padding: 4px 8px; border-radius: 6px; cursor: pointer;
@@ -1263,7 +1265,8 @@
                     </span>
                   </div>
                   <div class="ck-preview-body" id="ck-preview-body">
-                    <div class="ck-preview-empty">点击左侧文件查看内容</div>
+                    <div class="ck-preview-empty" id="ck-preview-empty">点击左侧文件查看内容</div>
+                    <div class="ck-monaco" id="ck-monaco" style="display:none;"></div>
                   </div>
                 </div>
               </div>
@@ -1819,6 +1822,144 @@
     }
   });
 
+  // src/ui/shell/scripts/preview-monaco.ts
+  function langOf(name) {
+    const dot = name.lastIndexOf(".");
+    if (dot < 0) return "plaintext";
+    return LANG_MAP[name.slice(dot + 1).toLowerCase()] || "plaintext";
+  }
+  function loadMonaco() {
+    if (monacoPromise) return monacoPromise;
+    monacoPromise = new Promise((resolve, reject) => {
+      const req = window.require;
+      if (!req) {
+        reject(new Error("Monaco loader \u672A\u52A0\u8F7D"));
+        return;
+      }
+      try {
+        req.config({ paths: { vs: "vendor/monaco/vs" } });
+        window.MonacoEnvironment = {
+          getWorkerUrl: function(moduleId, label) {
+            const base = "vendor/monaco/vs/";
+            if (label === "json") return base + "language/json/json.worker.js";
+            if (label === "css" || label === "scss" || label === "less") return base + "language/css/css.worker.js";
+            if (label === "html" || label === "handlebars" || label === "razor") return base + "language/html/html.worker.js";
+            if (label === "typescript" || label === "javascript") return base + "language/typescript/ts.worker.js";
+            return base + "editor/editor.worker.js";
+          }
+        };
+        req(["vs/editor/editor.main"], () => {
+          resolve(window.monaco);
+        }, (err) => reject(err || new Error("\u52A0\u8F7D\u5931\u8D25")));
+      } catch (e) {
+        reject(e);
+      }
+    });
+    return monacoPromise;
+  }
+  function themeName() {
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "vs-dark" : "vs";
+  }
+  async function showInMonaco(container, fileName, content) {
+    const monaco = await loadMonaco();
+    const lang = langOf(fileName);
+    if (!editor) {
+      editor = monaco.editor.create(container, {
+        value: content,
+        language: lang,
+        theme: themeName(),
+        readOnly: true,
+        automaticLayout: true,
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        fontSize: 12.5,
+        lineNumbers: "on",
+        renderWhitespace: "none",
+        wordWrap: "off"
+      });
+    } else {
+      const model = monaco.editor.createModel(content, lang);
+      const old = editor.getModel();
+      editor.setModel(model);
+      if (old) old.dispose();
+    }
+  }
+  function syncMonacoTheme() {
+    if (editor) {
+      try {
+        window.monaco.editor.setTheme(themeName());
+      } catch (_) {
+      }
+    }
+  }
+  var monacoPromise, editor, LANG_MAP;
+  var init_preview_monaco = __esm({
+    "src/ui/shell/scripts/preview-monaco.ts"() {
+      "use strict";
+      monacoPromise = null;
+      editor = null;
+      LANG_MAP = {
+        ts: "typescript",
+        tsx: "typescript",
+        mts: "typescript",
+        cts: "typescript",
+        js: "javascript",
+        jsx: "javascript",
+        mjs: "javascript",
+        cjs: "javascript",
+        json: "json",
+        json5: "json",
+        md: "markdown",
+        markdown: "markdown",
+        mdx: "markdown",
+        css: "css",
+        scss: "scss",
+        less: "less",
+        sass: "scss",
+        html: "html",
+        htm: "html",
+        vue: "html",
+        svelte: "html",
+        py: "python",
+        pyw: "python",
+        java: "java",
+        kt: "kotlin",
+        kts: "kotlin",
+        go: "go",
+        rs: "rust",
+        rb: "ruby",
+        php: "php",
+        c: "c",
+        h: "c",
+        cc: "cpp",
+        cpp: "cpp",
+        hpp: "cpp",
+        cxx: "cpp",
+        cs: "csharp",
+        sh: "shell",
+        bash: "shell",
+        zsh: "shell",
+        bat: "bat",
+        cmd: "bat",
+        ps1: "powershell",
+        yml: "yaml",
+        yaml: "yaml",
+        xml: "xml",
+        svg: "xml",
+        sql: "sql",
+        txt: "plaintext",
+        log: "plaintext",
+        lock: "plaintext"
+      };
+      if (window.matchMedia) {
+        try {
+          window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncMonacoTheme);
+        } catch (_) {
+        }
+      }
+    }
+  });
+
   // src/ui/shell/scripts/preview.ts
   var preview_exports = {};
   __export(preview_exports, {
@@ -1874,28 +2015,39 @@
   async function loadFile(relPath) {
     const nameEl = document.getElementById("ck-preview-name");
     const sizeEl = document.getElementById("ck-preview-size");
-    const bodyEl = document.getElementById("ck-preview-body");
+    const emptyEl = document.getElementById("ck-preview-empty");
+    const monacoEl = document.getElementById("ck-monaco");
     if (nameEl) {
       nameEl.textContent = relPath;
       nameEl.title = relPath;
     }
     if (sizeEl) sizeEl.textContent = "";
-    if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">\u52A0\u8F7D\u4E2D\u2026</div>';
+    if (emptyEl) {
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "\u52A0\u8F7D\u4E2D\u2026";
+    }
+    if (monacoEl) monacoEl.style.display = "none";
     try {
       const r = await api.readProjectFile(relPath);
       if (!r || !r.success) {
-        if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">' + escapeHtml(r && r.error || "\u8BFB\u53D6\u5931\u8D25") + "</div>";
+        if (emptyEl) {
+          emptyEl.style.display = "block";
+          emptyEl.textContent = r && r.error || "\u8BFB\u53D6\u5931\u8D25";
+        }
         return;
       }
       if (sizeEl) sizeEl.textContent = fmtSize(r.size);
-      if (bodyEl) {
-        bodyEl.innerHTML = "";
-        const pre = document.createElement("pre");
-        pre.textContent = r.content;
-        bodyEl.appendChild(pre);
+      if (monacoEl) {
+        monacoEl.style.display = "block";
+        if (emptyEl) emptyEl.style.display = "none";
+        await showInMonaco(monacoEl, relPath, r.content);
       }
     } catch (err) {
-      if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">\u8BFB\u53D6\u5931\u8D25: ' + escapeHtml(err.message) + "</div>";
+      if (emptyEl) {
+        emptyEl.style.display = "block";
+        emptyEl.textContent = "\u8BFB\u53D6\u5931\u8D25: " + escapeHtml(err.message);
+      }
+      if (monacoEl) monacoEl.style.display = "none";
     }
   }
   async function openPreview(relPath) {
@@ -1942,6 +2094,7 @@
     "src/ui/shell/scripts/preview.ts"() {
       "use strict";
       init_shared();
+      init_preview_monaco();
       PREVIEW_W_KEY = "cuckoo-preview-width";
       MIN_PREVIEW_W = 180;
       MIN_TREE_W = 120;

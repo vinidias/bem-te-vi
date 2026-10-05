@@ -1,3 +1,11 @@
+/* ===== 全局滚动条（统一规范：4px 细条、透明轨道、圆角滑块）=====
+ * 不要逐个元素写滚动条样式——统一在这里定义，避免各处不一致。
+ */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
+
 /* ===== 浅色（默认）===== */
   :root {
     --ck-bg: #ffffff;
