@@ -4,6 +4,7 @@ import { ToolResult } from '../core/ToolResult.js';
 import { exec } from 'node:child_process';
 import path from 'node:path';
 import { decodeOutput, normalizeCommand } from '../../infra/decode-output.js';
+import { isDangerous, DANGEROUS_CMDS } from '../../infra/dangerous-commands.js';
 
 // ========== D12：API 契约元数据（构建期生成 api.d.ts）==========
 export const apiMetas: ToolApiMeta[] = [
@@ -56,19 +57,6 @@ export function bootstrap(__call: any): void {
     });
   };
 }
-
-// 危险命令列表（保持不变）
-const DANGEROUS_CMDS = [
-  /^rm\s+-rf\s+\//i,
-  /^format\s+/i,
-  /^del\s+\/f/i,
-  /^rd\s+\/s/i,
-  /^shutdown\s+/i,
-  /^taskkill\s+/i,
-  /^diskpart/i,
-  /^reg\s+delete/i,
-  /^cipher\s+\/w/i,
-];
 
 /**
  * Bash 执行工具 - 最小移植 dsh 风格。
@@ -127,8 +115,8 @@ class BashTool extends Tool {
         return ToolResult.error('invalid command: expected a non-empty string');
       }
 
-      // 危险命令检查
-      if (DANGEROUS_CMDS.some((p) => p.test(trimmed))) {
+      // 危险命令检查（统一检测：按 shell 控制符分段逐段匹配）
+      if (isDangerous(trimmed)) {
         return ToolResult.error('命令被安全策略拒绝（危险命令）: ' + trimmed);
       }
 
