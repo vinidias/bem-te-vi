@@ -212,43 +212,6 @@ function createWindow(profile: any) {
     return hv;
   };
 
-  // ========== 文件预览覆盖视图（懒加载，仿 harnessView）==========
-  let filePreviewView: any = null;
-  (mainWindow as any).__ckFilePreviewView = null;
-  (mainWindow as any).__ckFilePreviewVisible = false;
-  const ensureFilePreviewView = (): any => {
-    if (filePreviewView && !filePreviewView.webContents.isDestroyed()) return filePreviewView;
-    const fv = new WebContentsView({
-      webPreferences: {
-        preload: path.join(import.meta.dirname, 'file-preview-preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: false,
-        partition: profileData.partition,
-        additionalArguments: ['--cuckoo-user-data=' + app.getPath('userData')],
-      },
-    });
-    mainWindow.contentView.addChildView(fv);
-    fv.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#16181d' : '#ffffff');
-    fv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
-    filePreviewView = fv;
-    (mainWindow as any).__ckFilePreviewView = fv;
-    {
-      const ctx: any = windowState.getWindowContext(mainWindow.id);
-      if (ctx) ctx.filePreviewView = fv;
-    }
-    fv.webContents.loadFile(resolveSrc('ui/file-preview.html'));
-    fv.webContents.on('did-finish-load', () => { console.log('[FilePreview] 页面加载完成'); });
-    fv.webContents.on('did-fail-load', (_e: any, code: any, desc: any) => {
-      console.error('[FilePreview] 页面加载失败: ' + code + ' ' + desc);
-    });
-    fv.webContents.on('before-input-event', (_event: any, input: any) => {
-      if (input.control && !input.shift && (input.key === 'r' || input.key === 'R')) fv.webContents.reloadIgnoringCache();
-      if (input.key === 'Escape') { try { (mainWindow as any).__ckToggleFilePreview?.(false); } catch (_) {} }
-    });
-    return fv;
-  };
-
   // 布局：AI 页面占地址栏下方、Cuckoo 侧边栏右侧区域。
   // 侧边栏可收起（收起时 x=0，AI 页面铺满）。
   const TOOLBAR_HEIGHT = 46; // 地址栏 46（与 shell.css .toolbar height 保持一致）
@@ -285,19 +248,6 @@ function createWindow(profile: any) {
         hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
       }
     }
-    // 文件预览覆盖整个"网页区域"
-    const fv = (mainWindow as any).__ckFilePreviewView;
-    if (fv && !fv.webContents.isDestroyed()) {
-      if ((mainWindow as any).__ckFilePreviewVisible) {
-        fv.setBounds({
-          x: sbw, y: tbh,
-          width: Math.max(0, w - sbw),
-          height: Math.max(0, h - tbh - STATUS_HEIGHT),
-        });
-      } else {
-        fv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
-      }
-    }
   };
   (mainWindow as any).__ckLayout = layoutView;
   layoutView();
@@ -329,28 +279,6 @@ function createWindow(profile: any) {
       if (provider && typeof provider.extractSessionId === 'function') sid = provider.extractSessionId(url) || '';
       hv.webContents.send('harness-event', { type: 'session-changed', sessionId: sid });
     } catch (_) { /* ignore */ }
-  };
-
-  // 显示/隐藏文件预览覆盖视图
-  (mainWindow as any).__ckToggleFilePreview = (show?: boolean, relPath?: string) => {
-    if (mainWindow.isDestroyed()) return;
-    const next = typeof show === 'boolean' ? show : !(mainWindow as any).__ckFilePreviewVisible;
-    (mainWindow as any).__ckFilePreviewVisible = next;
-    if (next) {
-      const fv = ensureFilePreviewView();
-      layoutView();
-      if (fv && !fv.webContents.isDestroyed()) {
-        try { fv.webContents.focus(); } catch (_) { /* ignore */ }
-        if (relPath) {
-          const send = () => { try { fv.webContents.send('file-preview-show', { relPath }); } catch (_) {} };
-          // 页面可能仍在加载：就绪后补发一次
-          try { fv.webContents.once('did-finish-load', send); } catch (_) { /* ignore */ }
-          send();
-        }
-      }
-    } else {
-      layoutView();
-    }
   };
 
   // 切换纯净模式（同窗口）：true=显示 harness，false=显示网页

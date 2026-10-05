@@ -3,6 +3,7 @@
  * 用注册表解耦（各页面自己注册 tab 名 → 加载函数）。
  */
 import { api } from './shared.js';
+import { hidePreview, restorePreview } from './preview.js';
 
 const abItems = document.querySelectorAll('.ck-ab-item');
 const tabs = document.querySelectorAll('.ck-tab');
@@ -47,6 +48,7 @@ function applySidebarWidth(w: number): void {
 export function setCollapsed(collapsed: boolean): void {
   if (!sidebar) return;
   if (collapsed) {
+    try { hidePreview(); } catch (_) { /* ignore */ }
     sidebar.classList.add('ck-collapsed');
     sidebar.style.width = ''; // 交给 CSS 的 46px
     if (api.toggleSidebar) api.toggleSidebar(SIDEBAR_COLLAPSED);
@@ -64,6 +66,9 @@ function activateTab(item: any, tab: string): void {
     if (p.dataset.panel === tab) p.classList.add('ck-tab-active');
     else p.classList.remove('ck-tab-active');
   });
+  // 预览区：切走 → 临时隐藏；切回「文件」→ 恢复
+  if (tab === 'files') restorePreview();
+  else hidePreview();
 }
 
 abItems.forEach((item: any) => {

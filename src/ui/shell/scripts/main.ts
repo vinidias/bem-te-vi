@@ -5,6 +5,7 @@
 import { api } from './shared.js';
 import { registerTab } from './sidebar.js';
 import './toolbar.js';
+import './preview.js';
 import './platform.js';
 
 import { loadWorkspaces } from './pages/workspaces.js';

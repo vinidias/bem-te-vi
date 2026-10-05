@@ -189,8 +189,8 @@ function bindRowEvents(listEl: HTMLElement): void {
     el.addEventListener('click', async (e: any) => {
       if (e.target.closest('.ck-ft-at')) return; // 点 @ 按钮不触发预览
       const p = el.dataset.path;
-      if (!p || !(api as any).openFilePreview) return;
-      try { await (api as any).openFilePreview(p); } catch (_) { /* ignore */ }
+      if (!p) return;
+      try { const { openPreview } = await import('../preview.js'); await openPreview(p); } catch (_) { /* ignore */ }
     });
   });
 }

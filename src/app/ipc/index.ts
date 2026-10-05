@@ -15,7 +15,6 @@ import { registerSettingsIpc } from './settings.js';
 import { registerFeishuIpc } from './feishu.js';
 import { registerPluginIpc } from './plugin.js';
 import { registerWindowGroupsIpc, onSwitchShareResult } from './window-groups.js';
-import { registerFilePreviewIpc } from './file-preview.js';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -37,7 +36,6 @@ function registerIpcHandlers(): void {
   registerFeishuIpc();
   registerPluginIpc();
   registerWindowGroupsIpc();
-  registerFilePreviewIpc();
 }
 
 export { registerIpcHandlers };

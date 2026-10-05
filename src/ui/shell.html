@@ -208,7 +208,9 @@
   .ck-ab-spacer { flex: 1; }
 
   .ck-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-  .ck-panel-body { flex: 1; overflow-y: auto; padding: 16px 8px; display: flex; flex-direction: column; gap: 14px; }
+  /* 面板列：左（各页）+ 右（文件预览，默认隐藏） */
+  .ck-panel-cols { flex: 1; min-width: 0; display: flex; flex-direction: row; overflow: hidden; }
+  .ck-panel-body { flex: 1; min-width: 0; overflow-y: auto; padding: 16px 8px; display: flex; flex-direction: column; gap: 14px; }
   .ck-tab { display: none; flex-direction: column; gap: 14px; }
   .ck-tab.ck-tab-active { display: flex; }
   .ck-placeholder { color: var(--ck-text-dim); font-size: 12px; text-align: center; padding: 20px 0; }
@@ -492,6 +494,45 @@
   .ck-dialog-msg { font-size: 12.5px; color: var(--ck-text-2); line-height: 1.6; word-break: break-word; }
   /* 侧边栏相对定位（弹层锚点�?*/
   .ck-panel { position: relative; }
+  /* 文件预览区（侧栏内右侧分栏） */
+  .ck-preview-pane {
+    display: none; flex-direction: column;
+    width: 420px; flex-shrink: 0;
+    border-left: 1px solid var(--ck-border);
+    overflow: hidden; position: relative;
+  }
+  .ck-preview-pane.open { display: flex; }
+  .ck-preview-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 10px 10px 14px; border-bottom: 1px solid var(--ck-border);
+    flex-shrink: 0;
+  }
+  .ck-preview-name {
+    flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: var(--ck-text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ck-preview-size { font-size: 10.5px; color: var(--ck-text-dim); flex-shrink: 0; }
+  .ck-preview-acts { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  .ck-preview-btn {
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 13px; color: var(--ck-text-dim); cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .ck-preview-btn:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-preview-body { flex: 1; overflow: auto; }
+  .ck-preview-body pre {
+    margin: 0; padding: 12px 14px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 12px; line-height: 1.6; white-space: pre; tab-size: 2;
+    color: var(--ck-text-2);
+  }
+  .ck-preview-empty { padding: 30px 16px; text-align: center; color: var(--ck-text-dim); font-size: 12px; }
+  /* 预览区左缘拖拽手柄 */
+  .ck-preview-resizer {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+    cursor: col-resize; z-index: 5;
+  }
+  .ck-preview-resizer:hover { background: var(--ck-primary-soft); }
   /* 窗口卡片（两行） */
   .ck-win-item {
     display: flex; flex-direction: column; gap: 9px;
@@ -1181,7 +1222,8 @@
             </div>
           </div>
 
-          <div class="ck-panel-body">
+          <div class="ck-panel-cols">
+            <div class="ck-panel-body">
             <!-- ===== 工作区（会话） ===== -->
             <div class="ck-tab ck-tab-active" data-panel="workspaces">
               <div class="ck-actions">
@@ -1594,6 +1636,20 @@
               </div>
             </div>
 
+            </div>
+            <div class="ck-preview-pane" id="ck-preview-pane">
+              <div class="ck-preview-head">
+                <span class="ck-preview-name" id="ck-preview-name">文件预览</span>
+                <span class="ck-preview-size" id="ck-preview-size"></span>
+                <span class="ck-preview-acts">
+                  <span class="ck-preview-btn" id="ck-preview-ext" title="用系统程序打开">↗</span>
+                  <span class="ck-preview-btn" id="ck-preview-close" title="关闭预览">✕</span>
+                </span>
+              </div>
+              <div class="ck-preview-body" id="ck-preview-body">
+                <div class="ck-preview-empty">点击左侧文件查看内容</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1613,8 +1669,22 @@
 <script>
 "use strict";
 (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __esm = (fn, res, err) => function __init() {
+    if (err) throw err[0];
+    try {
+      return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+    } catch (e) {
+      throw err = [e], e;
+    }
+  };
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+
   // src/ui/shell/scripts/shared.ts
-  var api = window.shellAPI || {};
   function ckDialog(opts) {
     return new Promise((resolve) => {
       const mask = document.getElementById("ck-dialog");
@@ -1740,8 +1810,169 @@
     if (n >= 1e4) return (n / 1e4).toFixed(1) + "\u4E07";
     return String(Math.round(n));
   }
+  var api;
+  var init_shared = __esm({
+    "src/ui/shell/scripts/shared.ts"() {
+      "use strict";
+      api = window.shellAPI || {};
+    }
+  });
+
+  // src/ui/shell/scripts/preview.ts
+  var preview_exports = {};
+  __export(preview_exports, {
+    dismissPreview: () => dismissPreview,
+    hasPreview: () => hasPreview,
+    hidePreview: () => hidePreview,
+    openPreview: () => openPreview,
+    restorePreview: () => restorePreview
+  });
+  function pane() {
+    return document.getElementById("ck-preview-pane");
+  }
+  function getPreviewWidth() {
+    try {
+      const v = Number(localStorage.getItem(PREVIEW_W_KEY));
+      if (Number.isFinite(v) && v >= MIN_PREVIEW_W && v <= MAX_PREVIEW_W) return Math.round(v);
+    } catch (_) {
+    }
+    return 420;
+  }
+  function savePreviewWidth(w) {
+    try {
+      localStorage.setItem(PREVIEW_W_KEY, String(w));
+    } catch (_) {
+    }
+  }
+  function currentSidebarWidth() {
+    const sb = document.getElementById("ck-sidebar");
+    if (!sb) return 320;
+    const w = sb.getBoundingClientRect().width;
+    return w > 0 ? Math.round(w) : 320;
+  }
+  function fmtSize(n) {
+    if (typeof n !== "number") return "";
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+    return (n / 1024 / 1024).toFixed(2) + " MB";
+  }
+  function applySidebarWidth(w) {
+    const ww = Math.round(w);
+    const sb = document.getElementById("ck-sidebar");
+    if (sb && !sb.classList.contains("ck-collapsed")) sb.style.width = ww + "px";
+    if (api.toggleSidebar) api.toggleSidebar(ww);
+  }
+  function showPane() {
+    const p = pane();
+    if (!p || p.classList.contains("open")) return;
+    baseSidebarWidth = currentSidebarWidth();
+    p.style.width = getPreviewWidth() + "px";
+    p.classList.add("open");
+    applySidebarWidth(baseSidebarWidth + getPreviewWidth());
+  }
+  async function loadFile(relPath) {
+    const nameEl = document.getElementById("ck-preview-name");
+    const sizeEl = document.getElementById("ck-preview-size");
+    const bodyEl = document.getElementById("ck-preview-body");
+    if (nameEl) {
+      nameEl.textContent = relPath;
+      nameEl.title = relPath;
+    }
+    if (sizeEl) sizeEl.textContent = "";
+    if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">\u52A0\u8F7D\u4E2D\u2026</div>';
+    try {
+      const r = await api.openFilePreview(relPath);
+      if (!r || !r.success) {
+        if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">' + escapeHtml(r && r.error || "\u8BFB\u53D6\u5931\u8D25") + "</div>";
+        return;
+      }
+      if (sizeEl) sizeEl.textContent = fmtSize(r.size);
+      if (bodyEl) {
+        bodyEl.innerHTML = "";
+        const pre = document.createElement("pre");
+        pre.textContent = r.content;
+        bodyEl.appendChild(pre);
+      }
+    } catch (err) {
+      if (bodyEl) bodyEl.innerHTML = '<div class="ck-preview-empty">\u8BFB\u53D6\u5931\u8D25: ' + escapeHtml(err.message) + "</div>";
+    }
+  }
+  async function openPreview(relPath) {
+    if (!pane()) return;
+    currentRelPath = relPath;
+    showPane();
+    await loadFile(relPath);
+  }
+  function hidePreview() {
+    const p = pane();
+    if (!p || !p.classList.contains("open")) return;
+    p.classList.remove("open");
+    if (baseSidebarWidth > 0) applySidebarWidth(baseSidebarWidth);
+    baseSidebarWidth = 0;
+  }
+  function dismissPreview() {
+    currentRelPath = "";
+    hidePreview();
+  }
+  function restorePreview() {
+    if (!currentRelPath) return;
+    openPreview(currentRelPath);
+  }
+  function hasPreview() {
+    return !!currentRelPath;
+  }
+  var PREVIEW_W_KEY, MIN_PREVIEW_W, MAX_PREVIEW_W, baseSidebarWidth, currentRelPath;
+  var init_preview = __esm({
+    "src/ui/shell/scripts/preview.ts"() {
+      "use strict";
+      init_shared();
+      PREVIEW_W_KEY = "cuckoo-preview-width";
+      MIN_PREVIEW_W = 260;
+      MAX_PREVIEW_W = 1600;
+      baseSidebarWidth = 0;
+      currentRelPath = "";
+      document.getElementById("ck-preview-close")?.addEventListener("click", dismissPreview);
+      document.getElementById("ck-preview-ext")?.addEventListener("click", () => {
+        if (currentRelPath && api.openFileExternal) api.openFileExternal(currentRelPath).catch(() => {
+        });
+      });
+      {
+        const p = pane();
+        if (p) {
+          const rz = document.createElement("div");
+          rz.className = "ck-preview-resizer";
+          rz.title = "\u62D6\u52A8\u8C03\u6574\u9884\u89C8\u5BBD\u5EA6";
+          p.appendChild(rz);
+          rz.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startW = p.getBoundingClientRect().width;
+            const onMove = (ev) => {
+              let w = Math.round(startW - (ev.clientX - startX));
+              if (w < MIN_PREVIEW_W) w = MIN_PREVIEW_W;
+              if (w > MAX_PREVIEW_W) w = MAX_PREVIEW_W;
+              p.style.width = w + "px";
+              applySidebarWidth((baseSidebarWidth || currentSidebarWidth()) + w);
+            };
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+              savePreviewWidth(Math.round(p.getBoundingClientRect().width));
+            };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          });
+        }
+      }
+    }
+  });
+
+  // src/ui/shell/scripts/main.ts
+  init_shared();
 
   // src/ui/shell/scripts/sidebar.ts
+  init_shared();
+  init_preview();
   var abItems = document.querySelectorAll(".ck-ab-item");
   var tabs = document.querySelectorAll(".ck-tab");
   var sidebar = document.getElementById("ck-sidebar");
@@ -1768,7 +1999,7 @@
     } catch (_) {
     }
   }
-  function applySidebarWidth(w) {
+  function applySidebarWidth2(w) {
     if (!sidebar) return;
     if (typeof w !== "number" || !Number.isFinite(w)) return;
     expandedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(w)));
@@ -1780,6 +2011,10 @@
   function setCollapsed(collapsed) {
     if (!sidebar) return;
     if (collapsed) {
+      try {
+        hidePreview();
+      } catch (_) {
+      }
       sidebar.classList.add("ck-collapsed");
       sidebar.style.width = "";
       if (api.toggleSidebar) api.toggleSidebar(SIDEBAR_COLLAPSED);
@@ -1796,6 +2031,8 @@
       if (p.dataset.panel === tab) p.classList.add("ck-tab-active");
       else p.classList.remove("ck-tab-active");
     });
+    if (tab === "files") restorePreview();
+    else hidePreview();
   }
   abItems.forEach((item) => {
     item.addEventListener("click", () => {
@@ -1835,13 +2072,14 @@
       e.preventDefault();
       if (api.startSidebarDrag) api.startSidebarDrag();
     });
-    if (api.onSidebarDrag) api.onSidebarDrag((w) => applySidebarWidth(w));
+    if (api.onSidebarDrag) api.onSidebarDrag((w) => applySidebarWidth2(w));
     document.addEventListener("mouseup", () => {
       if (api.endSidebarDrag) api.endSidebarDrag();
     });
   }
 
   // src/ui/shell/scripts/toolbar.ts
+  init_shared();
   var input = document.getElementById("url-input");
   var btnBack = document.getElementById("btn-back");
   var btnForward = document.getElementById("btn-forward");
@@ -1935,7 +2173,11 @@
     if (api.home) api.home();
   });
 
+  // src/ui/shell/scripts/main.ts
+  init_preview();
+
   // src/ui/shell/scripts/platform.ts
+  init_shared();
   function setPlatformSelectingMode(selecting) {
     const sb = document.getElementById("ck-sidebar");
     if (sb) {
@@ -1950,6 +2192,7 @@
   if (api.onPlatformMode) api.onPlatformMode((d) => setPlatformSelectingMode(d && d.selecting));
 
   // src/ui/shell/scripts/pages/workspaces.ts
+  init_shared();
   function baseName(dir) {
     if (!dir) return "\u672A\u547D\u540D";
     const parts = String(dir).replace(/[\\/]+$/, "").split(/[\\/]/);
@@ -2300,6 +2543,7 @@
   }
 
   // src/ui/shell/scripts/pages/files.ts
+  init_shared();
   var expanded = /* @__PURE__ */ new Set();
   var cachedTree = [];
   var cachedTruncated = false;
@@ -2529,9 +2773,10 @@
       el.addEventListener("click", async (e) => {
         if (e.target.closest(".ck-ft-at")) return;
         const p = el.dataset.path;
-        if (!p || !api.openFilePreview) return;
+        if (!p) return;
         try {
-          await api.openFilePreview(p);
+          const { openPreview: openPreview2 } = await Promise.resolve().then(() => (init_preview(), preview_exports));
+          await openPreview2(p);
         } catch (_) {
         }
       });
@@ -2604,7 +2849,11 @@
     });
   }
 
+  // src/ui/shell/scripts/pages/snippets.ts
+  init_shared();
+
   // src/ui/shell/scripts/recent.ts
+  init_shared();
   var KEY = "cuckoo-shell-recent-tools";
   var MAX = 5;
   function snippetText(type, name) {
@@ -2806,6 +3055,7 @@
   document.getElementById("snip-refresh")?.addEventListener("click", loadSnippets);
 
   // src/ui/shell/scripts/pages/skills.ts
+  init_shared();
   async function loadSkills() {
     const listEl = document.getElementById("skill-list");
     if (!listEl || !api.listSkills) return;
@@ -2841,6 +3091,7 @@
   document.getElementById("skill-refresh")?.addEventListener("click", loadSkills);
 
   // src/ui/shell/scripts/pages/agents.ts
+  init_shared();
   async function loadAgents() {
     const listEl = document.getElementById("agent-list");
     if (!listEl || !api.listAgents) return;
@@ -2982,6 +3233,7 @@
   });
 
   // src/ui/shell/scripts/pages/mcp.ts
+  init_shared();
   async function loadMcpServers() {
     const listEl = document.getElementById("mcp-list");
     if (!listEl || !api.listMcpServers) return;
@@ -3020,6 +3272,7 @@
   document.getElementById("mcp-refresh")?.addEventListener("click", loadMcpServers);
 
   // src/ui/shell/scripts/pages/token.ts
+  init_shared();
   var contextEl = document.getElementById("sb-context");
   var cumulativeEl = document.getElementById("sb-cumulative");
   var windowEl = document.getElementById("sb-window");
@@ -3125,6 +3378,7 @@
   });
 
   // src/ui/shell/scripts/pages/about.ts
+  init_shared();
   async function loadAbout() {
     if (api.getAppInfo) {
       try {
@@ -3160,6 +3414,7 @@
   });
 
   // src/ui/shell/scripts/pages/feishu.ts
+  init_shared();
   function renderFeishuStatus(status, detail) {
     const dot = document.getElementById("fs-dot");
     const txt = document.getElementById("fs-status-text");
@@ -3313,6 +3568,7 @@
   });
 
   // src/ui/shell/scripts/pages/windows.ts
+  init_shared();
   var PROVIDER_COLORS = {
     deepseek: "linear-gradient(135deg, #4d6bfe, #3b5bdb)",
     claude: "linear-gradient(135deg, #d97757, #c05a3a)",
@@ -3569,6 +3825,7 @@
   });
 
   // src/ui/shell/scripts/pages/settings.ts
+  init_shared();
   var SET_FIELDS = [
     ["retry-delay-min", "retryDelayMin"],
     ["retry-delay-max", "retryDelayMax"],
@@ -3661,6 +3918,7 @@
   });
 
   // src/ui/shell/scripts/pages/conversations.ts
+  init_shared();
   var harnessBusy = false;
   function applyBusyState() {
     const listEl = document.getElementById("conv-list");
@@ -3728,6 +3986,7 @@
   });
 
   // src/ui/shell/scripts/pages/plugins.ts
+  init_shared();
   var pluginMarketItems = [];
   var pluginMarketNotice = "";
   var pluginInstalled = {};

@@ -44,7 +44,6 @@ function getContextByWebContents(webContents: any): WindowContext | null {
   for (const ctx of windows.values()) {
     if (ctx.win.webContents === webContents) return ctx;
     if (ctx.view && ctx.view.webContents === webContents) return ctx;
-    if ((ctx as any).filePreviewView && (ctx as any).filePreviewView.webContents === webContents) return ctx;
     if ((ctx as any).harnessView && (ctx as any).harnessView.webContents === webContents) return ctx;
   }
   return null;
