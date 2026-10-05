@@ -15,7 +15,7 @@ const PREVIEW_W_KEY = "cuckoo-preview-width";
 const MIN_PREVIEW_W = 180;
 const MIN_TREE_W = 120;
 
-let baseSidebarWidth = 0;   // 打开预览前的侧栏宽度
+let openedBaseWidth = 0;    // 打开预览时的侧栏基础宽（关闭时恢复）
 let currentRelPath = "";
 
 function pane(): HTMLElement | null { return document.getElementById("ck-preview-pane"); }
@@ -30,20 +30,31 @@ function getPreviewWidth(): number {
   } catch (_) { /* ignore */ }
   return 420;
 }
+
+/** 预览可用最大宽：保证 AI 区域至少留 300px */
+function maxPreviewWidth(): number {
+  const avail = window.innerWidth - baseSidebarWidth() - 300;
+  return Math.max(MIN_PREVIEW_W, avail);
+}
 function savePreviewWidth(w: number): void {
   try { localStorage.setItem(PREVIEW_W_KEY, String(w)); } catch (_) { /* ignore */ }
 }
 
-function currentSidebarWidth(): number {
-  const sb = sidebarEl();
-  if (!sb) return 320;
-  const w = sb.getBoundingClientRect().width;
-  return w > 0 ? Math.round(w) : 320;
+/** 侧栏"基础宽"：用 sidebar.ts 存的稳定值（不被预览加宽污染） */
+function baseSidebarWidth(): number {
+  try {
+    const v = Number(localStorage.getItem("cuckoo-sidebar-width"));
+    if (Number.isFinite(v) && v >= 320) return Math.round(v);
+  } catch (_) { /* ignore */ }
+  return 320;
 }
 
-/** 设置侧栏总宽（改 AI 区域） */
+/** 设置侧栏总宽（改 AI 区域）；clamp 到窗口的 75% 防超界 */
 function setSidebarWidth(total: number): void {
-  const ww = Math.round(total);
+  let ww = Math.round(total);
+  const max = Math.round(window.innerWidth * 0.75);
+  if (ww > max) ww = max;
+  if (ww < 320) ww = 320;
   const sb = sidebarEl();
   if (sb && !sb.classList.contains("ck-collapsed")) sb.style.width = ww + "px";
   if (api.toggleSidebar) api.toggleSidebar(ww);
@@ -90,7 +101,7 @@ export async function openPreview(relPath: string): Promise<void> {
   currentRelPath = relPath;
   if (!p.classList.contains("open")) {
     const l = listEl();
-    baseSidebarWidth = currentSidebarWidth();
+    openedBaseWidth = baseSidebarWidth();
     // 树固定当前宽（不再被预览挤压）
     if (l) {
       const treeW = Math.round(l.getBoundingClientRect().width);
@@ -102,7 +113,7 @@ export async function openPreview(relPath: string): Promise<void> {
     p.style.flex = "1 1 0";
     p.style.width = "";
     // 侧栏加宽 = 初始预览宽（给预览腾地方）
-    setSidebarWidth(baseSidebarWidth + getPreviewWidth());
+    setSidebarWidth(openedBaseWidth + Math.min(getPreviewWidth(), maxPreviewWidth()));
   }
   await loadFile(relPath);
 }
@@ -114,8 +125,8 @@ export function hidePreview(): void {
   p.classList.remove("open");
   const l = listEl();
   if (l) { l.style.flex = ""; l.style.width = ""; }
-  if (baseSidebarWidth > 0) setSidebarWidth(baseSidebarWidth);
-  baseSidebarWidth = 0;
+  if (openedBaseWidth > 0) setSidebarWidth(openedBaseWidth);
+  openedBaseWidth = 0;
 }
 
 /** 真关闭（点 ✕）：忘掉文件 + 缩回侧栏 */

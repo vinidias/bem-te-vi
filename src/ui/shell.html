@@ -1988,20 +1988,29 @@
     }
     return 420;
   }
+  function maxPreviewWidth() {
+    const avail = window.innerWidth - baseSidebarWidth() - 300;
+    return Math.max(MIN_PREVIEW_W, avail);
+  }
   function savePreviewWidth(w) {
     try {
       localStorage.setItem(PREVIEW_W_KEY, String(w));
     } catch (_) {
     }
   }
-  function currentSidebarWidth() {
-    const sb = sidebarEl();
-    if (!sb) return 320;
-    const w = sb.getBoundingClientRect().width;
-    return w > 0 ? Math.round(w) : 320;
+  function baseSidebarWidth() {
+    try {
+      const v = Number(localStorage.getItem("cuckoo-sidebar-width"));
+      if (Number.isFinite(v) && v >= 320) return Math.round(v);
+    } catch (_) {
+    }
+    return 320;
   }
   function setSidebarWidth(total) {
-    const ww = Math.round(total);
+    let ww = Math.round(total);
+    const max = Math.round(window.innerWidth * 0.75);
+    if (ww > max) ww = max;
+    if (ww < 320) ww = 320;
     const sb = sidebarEl();
     if (sb && !sb.classList.contains("ck-collapsed")) sb.style.width = ww + "px";
     if (api.toggleSidebar) api.toggleSidebar(ww);
@@ -2056,7 +2065,7 @@
     currentRelPath = relPath;
     if (!p.classList.contains("open")) {
       const l = listEl();
-      baseSidebarWidth = currentSidebarWidth();
+      openedBaseWidth = baseSidebarWidth();
       if (l) {
         const treeW = Math.round(l.getBoundingClientRect().width);
         l.style.flex = "0 0 " + treeW + "px";
@@ -2065,7 +2074,7 @@
       p.classList.add("open");
       p.style.flex = "1 1 0";
       p.style.width = "";
-      setSidebarWidth(baseSidebarWidth + getPreviewWidth());
+      setSidebarWidth(openedBaseWidth + Math.min(getPreviewWidth(), maxPreviewWidth()));
     }
     await loadFile(relPath);
   }
@@ -2078,8 +2087,8 @@
       l.style.flex = "";
       l.style.width = "";
     }
-    if (baseSidebarWidth > 0) setSidebarWidth(baseSidebarWidth);
-    baseSidebarWidth = 0;
+    if (openedBaseWidth > 0) setSidebarWidth(openedBaseWidth);
+    openedBaseWidth = 0;
   }
   function dismissPreview() {
     currentRelPath = "";
@@ -2089,7 +2098,7 @@
     if (!currentRelPath) return;
     openPreview(currentRelPath);
   }
-  var PREVIEW_W_KEY, MIN_PREVIEW_W, MIN_TREE_W, baseSidebarWidth, currentRelPath;
+  var PREVIEW_W_KEY, MIN_PREVIEW_W, MIN_TREE_W, openedBaseWidth, currentRelPath;
   var init_preview = __esm({
     "src/ui/shell/scripts/preview.ts"() {
       "use strict";
@@ -2098,7 +2107,7 @@
       PREVIEW_W_KEY = "cuckoo-preview-width";
       MIN_PREVIEW_W = 180;
       MIN_TREE_W = 120;
-      baseSidebarWidth = 0;
+      openedBaseWidth = 0;
       currentRelPath = "";
       document.getElementById("ck-preview-close")?.addEventListener("click", dismissPreview);
       document.getElementById("ck-preview-ext")?.addEventListener("click", () => {
