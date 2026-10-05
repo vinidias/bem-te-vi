@@ -264,8 +264,9 @@ declare function mysql(options: MySQLOptions): Promise<string>;
  * HTML 会转换为 Markdown（turndown + GFM）。
  * 返回纯文本：Fetched <url> (HTTP <status>) + 正文。
  * 内容超过上限（约 20000 字符）会截断并附 footer。
+ * 出于安全考虑，可在设置里开启"拒绝访问内网地址"（默认关闭）。
  * @param url 要获取的 HTTP(S) URL
- * @throws URL 为空、非 http/https、请求超时或失败时抛出异常
+ * @throws URL 为空、非 http/https、指向内网/保留地址、请求超时或失败时抛出异常
  */
 declare function webFetch(url: string): Promise<string>;
 

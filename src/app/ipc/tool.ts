@@ -36,7 +36,7 @@ function registerToolIpc(): void {
   });
 
   // 执行 JS 脚本
-  ipcMain.handle('execute-js', async (event: any, { code, callId, attachDelayMin, attachDelayMax }: any) => {
+  ipcMain.handle('execute-js', async (event: any, { code, callId, attachDelayMin, attachDelayMax, ssrfGuard }: any) => {
     if (!code || typeof code !== 'string') {
       return { callId, success: false, error: '无效的 JS 代码' };
     }
@@ -47,7 +47,7 @@ function registerToolIpc(): void {
     const win = ctx ? ctx.win : null;
     const windowId = win && !win.isDestroyed() ? win.id : null;
     try {
-      const result = await jsRunner.run(code, selectedDir, windowId, { attachDelayMin, attachDelayMax, sessionId });
+      const result = await jsRunner.run(code, selectedDir, windowId, { attachDelayMin, attachDelayMax, sessionId, ssrfGuard });
       // 复用官方 todoWrite 结果：执行后读取 globalThis.__cuckooTodos（官方规范化的列表），推给 harness
       try {
         const todos = (globalThis as any).__cuckooTodos;

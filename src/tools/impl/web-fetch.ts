@@ -16,6 +16,7 @@ export const apiMetas: ToolApiMeta[] = [
       'HTML 会转换为 Markdown（turndown + GFM）。',
       '返回纯文本：Fetched <url> (HTTP <status>) + 正文。',
       '内容超过上限（约 20000 字符）会截断并附 footer。',
+      '出于安全考虑，可在设置里开启"拒绝访问内网地址"（默认关闭）。',
     ].join('\n'),
     params: 'url: string',
     returns: 'Promise<string>',
@@ -104,7 +105,7 @@ class WebFetchTool extends Tool {
   constructor() {
     super(
       'webFetch',
-      '获取指定 HTTP(S) URL 的内容并解码为文本。HTML 会转换为 Markdown（turndown + GFM）。返回纯文本：Fetched <url> (HTTP <status>) + 正文。内容超过上限（约 20000 字符）会截断并附 footer。出于安全考虑，拒绝访问内网/回环/链路本地/保留地址。',
+      '获取指定 HTTP(S) URL 的内容并解码为文本。HTML 会转换为 Markdown（turndown + GFM）。返回纯文本：Fetched <url> (HTTP <status>) + 正文。内容超过上限（约 20000 字符）会截断并附 footer。出于安全考虑，可在设置里开启"拒绝访问内网地址"（默认关闭）。',
       {
         type: 'object',
         properties: {
@@ -129,16 +130,26 @@ class WebFetchTool extends Tool {
   }
 
   async execute(params: any): Promise<ToolResult> {
-    const { url } = params;
+    const { url, ssrfGuard } = params;
 
     try {
       const input = parseFetchArgs(url);
 
-      // 安全限制：仅 http/https，且拒绝内网/回环/链路本地/保留地址（防 SSRF）
-      try {
-        await assertUrlAllowed(input.url);
-      } catch (e: any) {
-        return ToolResult.error(e.message);
+      // 安全限制（**默认关闭**，需在设置里开启）：
+      // 仅 http/https，且拒绝内网/回环/链路本地/保留地址（防 SSRF）。
+      // 关闭时保留原行为（可访问任意 http/https URL，含本地项目）。
+      if (ssrfGuard === true) {
+        try {
+          await assertUrlAllowed(input.url);
+        } catch (e: any) {
+          return ToolResult.error(e.message);
+        }
+      } else {
+        // 未开启防护时，仍只允许 http/https（原行为）
+        const protocol = new URL(input.url).protocol;
+        if (protocol !== 'http:' && protocol !== 'https:') {
+          return ToolResult.error('仅支持 http/https 协议');
+        }
       }
 
       const controller = new AbortController();

@@ -31,6 +31,8 @@ function renderSettings(data: any): void {
   if (!data) return;
   const enEl = document.getElementById('st-retry-enabled') as any;
   if (enEl) enEl.checked = data.retryEnabled !== false;
+  const ssrfEl = document.getElementById('st-ssrf-guard') as any;
+  if (ssrfEl) ssrfEl.checked = data.ssrfGuard === true;
   for (const [id, key] of SET_FIELDS) setVal(id, data[key]);
 }
 
@@ -45,8 +47,10 @@ export async function loadSettings(): Promise<void> {
 function collectSettings(): any {
   const num = (id: string) => { const n = parseFloat(getVal(id)); return Number.isFinite(n) ? n : 0; };
   const enEl = document.getElementById('st-retry-enabled') as any;
+  const ssrfEl = document.getElementById('st-ssrf-guard') as any;
   return {
     retryEnabled: !!(enEl && enEl.checked),
+    ssrfGuard: !!(ssrfEl && ssrfEl.checked),
     retryDelayMin: num('retry-delay-min'),
     retryDelayMax: num('retry-delay-max'),
     retryCount: parseInt(getVal('retry-count'), 10) || 0,

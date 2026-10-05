@@ -144,6 +144,8 @@ interface SettingsData {
   attachDelayMin: number;
   attachDelayMax: number;
   goalMaxIterations: number;
+  /** 拒绝 webFetch 访问内网/保留地址（默认关闭） */
+  ssrfGuard: boolean;
 }
 
 /** 读取当前设置（UI 单位：秒） */
@@ -173,6 +175,7 @@ function getSettingsData(): SettingsData {
     attachDelayMin: sec(lsGet('cuckoo-attach-delay-min'), 0.5),
     attachDelayMax: sec(lsGet('cuckoo-attach-delay-max'), 1),
     goalMaxIterations: int(lsGet('cuckoo-goal-max-iterations'), 50),
+    ssrfGuard: lsGet('cuckoo-ssrf-guard') === '1',
   };
 }
 
@@ -228,6 +231,7 @@ function applySettingsData(data: any): { success: boolean; error?: string } {
     localStorage.setItem('cuckoo-attach-delay-min', String(amin));
     localStorage.setItem('cuckoo-attach-delay-max', String(amax));
     localStorage.setItem('cuckoo-goal-max-iterations', String(goalMax));
+    localStorage.setItem('cuckoo-ssrf-guard', (data && data.ssrfGuard) ? '1' : '0');
   } catch (err: any) {
     return { success: false, error: '写入失败: ' + err.message };
   }
@@ -244,7 +248,7 @@ function resetSettingsData(): SettingsData {
     'cuckoo-retry-prompt', 'cuckoo-xhr-idle-timeout', 'cuckoo-watchdog-prompt',
     'cuckoo-watchdog-count', 'cuckoo-send-delay-min', 'cuckoo-send-delay-max',
     'cuckoo-attach-delay-min', 'cuckoo-attach-delay-max',
-    'cuckoo-goal-max-iterations',
+    'cuckoo-goal-max-iterations', 'cuckoo-ssrf-guard',
   ];
   try { for (const k of KEYS) localStorage.removeItem(k); } catch (_) {}
   state.sendDelayMin = 2000;
