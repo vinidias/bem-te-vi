@@ -76,6 +76,16 @@ export interface Provider {
   /** 返回自定义提示词模板（优先级最高；返回空则回退到文件模板） */
   getPromptTemplate?(): string;
 
+  /**
+   * 可选的「工具结果回传格式转换」实现。
+   * 工具执行结果在回传给 AI 前会经过此函数；某些平台对回传文本格式敏感
+   * （如含 emoji / XML 标签 / 命令行痕迹的长文本可能触发风控），可在此
+   * 转换为更自然的文本。未提供或返回空串时不改动原文。
+   * @param text 已拼装好的工具结果文本
+   * @returns 转换后的文本；返回空串则保持原文
+   */
+  transformToolResult?(text: string): string;
+
   findInput?(): InputElement | null;
   findSendButton?(): InputElement | null;
   extractUserInfo?(): string;
