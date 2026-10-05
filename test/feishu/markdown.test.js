@@ -56,8 +56,9 @@ test('发送 Markdown 用交互卡片', async () => {
   const data = sent[0].data;
   assert.equal(data.msg_type, 'interactive');
   const card = JSON.parse(data.content);
-  assert.equal(card.elements[0].tag, 'markdown');
-  assert.match(card.elements[0].content, /粗体/);
+  assert.equal(card.schema, '2.0');
+  assert.equal(card.body.elements[0].tag, 'markdown');
+  assert.match(card.body.elements[0].content, /粗体/);
 });
 
 test('过长内容分片', async () => {
