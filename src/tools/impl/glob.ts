@@ -131,6 +131,22 @@ async function runRipgrep(args: string[], cwd: string): Promise<{ stdout: string
 }
 
 /**
+ * 检查 baseDir 下哪些"被默认忽略的产物目录"真实存在。
+ * 返回提醒文案（无则空串），供 AI 知道"有目录被忽略、可显式传 path 搜索"。
+ */
+function buildIgnoreNote(baseDir: string): string {
+  const existing = GLOB_ARTIFACT_EXCLUDES.filter((name) => {
+    try {
+      const p = path.join(baseDir, name);
+      return fs.existsSync(p) && fs.statSync(p).isDirectory();
+    } catch (_) { return false; }
+  });
+  if (existing.length === 0) return '';
+  return '(Note: 以下目录存在但已被默认忽略：' + existing.join('、') +
+    '。如需搜索这些目录，请显式传 path 参数指定该目录。)';
+}
+
+/**
  * 对齐 dsh formatGlobOutput：纯文本路径列表 + footer
  */
 function formatGlobOutput(items: string[], seen: number, truncated: boolean): string {
@@ -219,6 +235,9 @@ class GlobToolNew extends Tool {
       const args = buildGlobArgs(input);
       const { stdout } = await runRipgrep(args, baseDir);
 
+      // 未指定 path 时，检查哪些被忽略的产物目录"真实存在"——提醒 AI 别误判"文件不存在"
+      const ignoreNote = input.path ? '' : buildIgnoreNote(baseDir);
+
       // 解析路径并按字母序排序（保持 cuckoo 现状）
       const allResults = stdout
         .split(/\r?\n/)
@@ -232,10 +251,11 @@ class GlobToolNew extends Tool {
       console.log('[GlobTool] 搜索完成: pattern=' + input.pattern + ', baseDir=' + baseDir + ', 匹配 ' + allResults.length + ' 个文件');
 
       if (items.length === 0) {
-        return ToolResult.success('No files found');
+        return ToolResult.success('No files found' + (ignoreNote ? '\n\n' + ignoreNote : ''));
       }
 
-      return ToolResult.success(formatGlobOutput(items, allResults.length, truncated));
+      const out = formatGlobOutput(items, allResults.length, truncated);
+      return ToolResult.success(ignoreNote ? out + '\n\n' + ignoreNote : out);
     } catch (err: any) {
       return ToolResult.error('Glob 搜索失败: ' + err.message);
     }
@@ -249,4 +269,4 @@ export function bootstrap(__call: any): void {
   };
 }
 
-export { GlobToolNew, parseGlobArgs, formatGlobOutput, MAX_RESULTS, GLOB_VCS_EXCLUDES, GLOB_ARTIFACT_EXCLUDES, buildGlobArgs };
+export { GlobToolNew, parseGlobArgs, formatGlobOutput, MAX_RESULTS, GLOB_VCS_EXCLUDES, GLOB_ARTIFACT_EXCLUDES, buildGlobArgs, buildIgnoreNote };

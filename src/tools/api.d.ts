@@ -108,7 +108,7 @@ declare function edit(filePath: string, oldString: string, newString: string, re
 
 /**
  * 按 glob 模式查找文件路径，返回纯文本路径列表（以 / 分隔，如 "src/utils/a.js"）。
- * 使用 ripgrep，包含隐藏文件和已忽略文件，只排除 VCS 元数据目录（.git、.svn 等）。
+ * 使用 ripgrep，包含隐藏文件和已忽略文件；未指定 path 时默认排除 VCS 元数据目录（.git 等）与常见产物目录（node_modules、dist、out、build 等）。
  * glob 语法：* 匹配单层内任意字符，** 匹配任意层级目录，? 匹配单个字符。
  * 结果包含 footer：未超限时 "(Found N files)"，超限时 "(Showing M of N paths...)"。
  * @param pattern glob 匹配模式，如 src 下所有 .js / .ts，或 *.json

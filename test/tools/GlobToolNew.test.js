@@ -1,7 +1,10 @@
 'use strict';
 import { test } from 'vitest';
 import assert from 'node:assert';
-import { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES, GLOB_ARTIFACT_EXCLUDES } from '../../src/tools/impl/glob.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES, GLOB_ARTIFACT_EXCLUDES, buildIgnoreNote } from '../../src/tools/impl/glob.js';
 
 test('parseGlobArgs 正常', () => {
   assert.deepStrictEqual(parseGlobArgs('**/*.js', undefined), { pattern: '**/*.js' });
@@ -76,6 +79,33 @@ test('buildGlobArgs 显式 path 时不排除产物目录', () => {
 test('GLOB_ARTIFACT_EXCLUDES 含常见产物目录', () => {
   for (const name of ['node_modules', 'dist', 'out', 'build']) {
     assert.ok(GLOB_ARTIFACT_EXCLUDES.includes(name), 'missing ' + name);
+  }
+});
+
+// ===== 忽略提示（让 AI 知道哪些目录被忽略了）=====
+test('buildIgnoreNote：存在被忽略的目录 → 提示列出', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cuckoo-glob-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'node_modules'));
+    fs.mkdirSync(path.join(dir, 'dist'));
+    fs.mkdirSync(path.join(dir, 'src')); // 非忽略目录，不该出现
+    const note = buildIgnoreNote(dir);
+    assert.ok(note.includes('node_modules'));
+    assert.ok(note.includes('dist'));
+    assert.ok(!note.includes('src'));
+    assert.ok(note.includes('path'));
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('buildIgnoreNote：无被忽略的目录 → 空串', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cuckoo-glob-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'src'));
+    assert.strictEqual(buildIgnoreNote(dir), '');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 
