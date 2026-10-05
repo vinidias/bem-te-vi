@@ -1,7 +1,10 @@
 # UI 设计规范（Cuckoo 侧边栏 / 壳窗口）
 
 > 本文件定义 Cuckoo Code **壳窗口 UI**（地址栏、状态条、左侧边栏）的设计规范。
-> **新页面照此实现**，保持一致。真源：\`src/ui/shell.html\`。
+> **新页面照此实现**，保持一致。
+>
+> ⚠️ **真源是 src/ui/shell/ 目录**（index.html + partials/ + scripts/ + styles/）。
+> src/ui/shell.html 是 build-shell.mjs 的**生成物**——改真源、跑 npm run compile，**别手改 shell.html**。
 
 ---
 
