@@ -263,8 +263,18 @@ async function sendInitialPromptToInput(): Promise<boolean> {
   }
 
   if (!(await setInputContent(input, state.initialPromptContent))) {
+    console.log('[Cuckoo Code] 初始提示填充失败');
     return false;
   }
+
+  // 校验：填充后输入框确实有内容（contenteditable 合成粘贴可能被站点拒绝）
+  try {
+    const filled = getInputText(input);
+    if (!filled || filled.trim().length < 10) {
+      console.log('[Cuckoo Code] 初始提示填充后输入框为空，判定失败');
+      return false;
+    }
+  } catch (_) { /* ignore */ }
 
   const sendDelay = randomDelay();
   console.log('[Cuckoo Code] 初始提示已填入，随机等待 ' + sendDelay + 'ms 后发送...');
@@ -301,7 +311,19 @@ function waitForInitialPromptAndSend(): void {
     }
     if (found) {
       clearInterval(checkInterval);
-      sendInitialPromptToInput();
+      // 发送失败（如 contenteditable 填充被拒/输入框未就绪）→ 继续重试，而非静默丢弃。
+      // 子代理窗口（豆包等）曾因"填了但发不出"卡死在这里。
+      sendInitialPromptToInput().then((ok) => {
+        if (!ok && attempts < maxAttempts) {
+          console.log('[Cuckoo Code] 初始提示发送失败，继续重试');
+          waitForInitialPromptAndSend();
+        } else if (!ok) {
+          console.log('[Cuckoo Code] 初始提示发送失败，放弃');
+          state.pendingInitialPrompt = false;
+        }
+      }).catch(() => {
+        if (attempts < maxAttempts) waitForInitialPromptAndSend();
+      });
     }
   }, 500);
 }
