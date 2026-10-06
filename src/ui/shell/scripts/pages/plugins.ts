@@ -4,7 +4,7 @@
  * 落盘前校验清单、可执行内容需显式启用授权。
  */
 // ===== 插件 =====
-import { api, ckAlert, ckConfirm, escapeHtml, escapeAttr } from '../shared.js';
+import { api, ckAlert, ckConfirm, ckPrompt, escapeHtml, escapeAttr } from '../shared.js';
 
 // 市场唯一搜索源是 GitHub topic:cuckoo-plugin。
 // 搜索为空就如实显示空状态 —— 不做关键词兜底、不做官方精选清单。
@@ -21,6 +21,7 @@ const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 export async function loadPlugins(): Promise<void> {
   await loadInstalledPlugins();
   await loadPluginMarket(false);
+  await loadCuckooPlugins();
 }
 
 function pluginContribSummary(c: any): string {
@@ -417,4 +418,88 @@ async function openPluginConfig(pluginId: string): Promise<void> {
   cancelBtn.addEventListener('click', onCancel);
   mask.classList.remove('cuckoo-hidden');
 }
+
+// ===== Cuckoo 插件（DSH 兼容）=====
+function ckpRenderItem(p: any): string {
+  const on = !!p.enabled;
+  return '<div class="ck-list-item" data-id="' + escapeAttr(p.id) + '">' +
+    '<div class="ck-list-main">' +
+      '<div class="ck-list-title">' + escapeHtml(p.name || p.id) +
+        (p.version ? ' <span class="ck-plugin-ver">v' + escapeHtml(p.version) + '</span>' : '') +
+      '</div>' +
+      (p.description ? '<div class="ck-list-desc">' + escapeHtml(p.description) + '</div>' : '') +
+      '<div class="ck-plugin-meta"><span>' + escapeHtml(p.id) + '</span></div>' +
+    '</div>' +
+    '<label class="ck-switch" title="' + (on ? '已启用' : '已禁用') + '">' +
+      '<input type="checkbox" class="ckp-toggle" ' + (on ? 'checked' : '') + ' />' +
+      '<span class="ck-switch-track"></span>' +
+    '</label>' +
+    '<button class="ck-icon-btn ckp-del" title="卸载">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+    '</button>' +
+  '</div>';
+}
+
+export async function loadCuckooPlugins(): Promise<void> {
+  const listEl = document.getElementById('ckp-list');
+  const apiAny: any = api as any;
+  if (!listEl || typeof apiAny.cuckooPluginList !== 'function') return;
+  try {
+    const r = await apiAny.cuckooPluginList();
+    const plugins: any[] = (r && r.success) ? (r.plugins || []) : [];
+    if (plugins.length === 0) {
+      listEl.innerHTML = '<div class="ck-list-empty">暂无 DSH 插件（点 + 安装）</div>';
+      return;
+    }
+    listEl.innerHTML = plugins.map(ckpRenderItem).join('');
+    listEl.querySelectorAll('.ck-list-item').forEach((el: any) => {
+      const id = el.getAttribute('data-id');
+      const toggle = el.querySelector('.ckp-toggle') as any;
+      const del = el.querySelector('.ckp-del') as any;
+      if (toggle) {
+        toggle.addEventListener('change', async () => {
+          const r2 = await apiAny.cuckooPluginToggle(id, !!toggle.checked);
+          if (!r2 || !r2.success) { await ckAlert((r2 && r2.error) || '操作失败'); toggle.checked = !toggle.checked; }
+        });
+      }
+      if (del) {
+        del.addEventListener('click', async () => {
+          if (!(await ckConfirm('确定卸载插件「' + id + '」？\n（工具需重启后移除）'))) return;
+          const r2 = await apiAny.cuckooPluginUninstall(id);
+          if (!r2 || !r2.success) { await ckAlert((r2 && r2.error) || '卸载失败'); return; }
+          await loadCuckooPlugins();
+        });
+      }
+    });
+  } catch (_) {
+    listEl.innerHTML = '<div class="ck-list-empty">加载失败</div>';
+  }
+}
+
+document.getElementById('ckp-install-btn')?.addEventListener('click', async () => {
+  const apiAny: any = api as any;
+  if (typeof apiAny.cuckooPluginInstall !== 'function') return;
+  const pkgName = await ckPrompt({ title: '安装 DSH 插件', placeholder: 'npm 包名，如 @scope/dsh-plugin-xxx', value: '' });
+  if (!pkgName) return;
+  const btn = document.getElementById('ckp-install-btn') as any;
+  if (btn) btn.disabled = true;
+  try {
+    const r = await apiAny.cuckooPluginInstall(pkgName);
+    if (!r || !r.success) { await ckAlert((r && r.error) || '安装失败', '安装失败'); return; }
+    const tools = (r.tools || []).join(', ');
+    await ckAlert('已安装：' + (r.pluginName || r.id) + '\n工具：' + (tools || '(无)') + '\n\n重启应用后工具生效。', '安装完成');
+    await loadCuckooPlugins();
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+});
+
+document.getElementById('ckp-open-dir')?.addEventListener('click', async () => {
+  const apiAny: any = api as any;
+  if (typeof apiAny.cuckooPluginOpenDir !== 'function') return;
+  const r = await apiAny.cuckooPluginOpenDir();
+  if (r && !r.success) await ckAlert(r.error || '打开目录失败');
+});
+// ===== Cuckoo 插件（结束） =====
+
 // ===== 插件（结束） =====

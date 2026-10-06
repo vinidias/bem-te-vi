@@ -167,6 +167,12 @@ const shellAPI = {
   pluginSetEnabled: (id: string, enabled: boolean) =>
     ipcRenderer.invoke('plugin-set-enabled', { id, enabled }),
   pluginOpenDir: () => ipcRenderer.invoke('plugin-open-dir'),
+  // ===== Cuckoo 插件（DSH 兼容）=====
+  cuckooPluginList: () => ipcRenderer.invoke('cuckoo-plugin-list'),
+  cuckooPluginInstall: (pkgName: string) => ipcRenderer.invoke('cuckoo-plugin-install', { pkgName }),
+  cuckooPluginUninstall: (id: string) => ipcRenderer.invoke('cuckoo-plugin-uninstall', { id }),
+  cuckooPluginToggle: (id: string, enabled: boolean) => ipcRenderer.invoke('cuckoo-plugin-toggle', { id, enabled }),
+  cuckooPluginOpenDir: () => ipcRenderer.invoke('cuckoo-plugin-open-dir'),
   // ========== 关于 ==========
   getAppInfo: () => ipcRenderer.invoke('get-app-info'),
   checkUpdate: () => ipcRenderer.invoke('check-update'),

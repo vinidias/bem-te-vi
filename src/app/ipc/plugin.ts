@@ -27,6 +27,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { invalidateCustomProvidersCache } from '../../providers/custom/loader.js';
 import { parseCordisPatch } from '../../plugins/runtime/patch.js';
+import {
+  installAndLoad,
+  loadEnabledPlugins,
+  loadPluginFromDir,
+  uninstallCuckooPlugin,
+} from '../../plugins/cuckoo-plugins/index.js';
+import {
+  listCuckooPluginDirs,
+  getCuckooPluginsDir,
+} from '../../plugins/cuckoo-plugins/paths.js';
+import {
+  isCuckooPluginEnabled,
+  setCuckooPluginEnabled,
+} from '../../plugins/cuckoo-plugins/state.js';
+import { registry as toolRegistry } from '../../tools/index.js';
 import * as windowState from '../window.js';
 import * as mcpClient from '../../mcp/client.js';
 
@@ -433,6 +448,73 @@ function registerPluginIpc(): void {
   ipcMain.handle('plugin-open-dir', async () => {
     try {
       const dir = getPluginsDir();
+      const err = await shell.openPath(dir);
+      return err ? { success: false, error: err } : { success: true };
+    } catch (err: any) {
+      return { success: false, error: err && err.message ? err.message : String(err) };
+    }
+  });
+
+  // ===== Cuckoo 插件（DSH 兼容）：npm 安装 + 加载 + 启停 =====
+  // 列表：已安装的 Cuckoo 插件（~/.cuckoo/cuckoo-plugins/）
+  ipcMain.handle('cuckoo-plugin-list', async () => {
+    try {
+      const plugins = listCuckooPluginDirs().map((dir) => {
+        const id = dir.split(/[\\/]/).pop() || '';
+        let name = id, version = '', description = '';
+        try {
+          const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf-8'));
+          name = pkg.name || id; version = pkg.version || ''; description = pkg.description || '';
+        } catch (_) { /* ignore */ }
+        return { id, name, version, description, enabled: isCuckooPluginEnabled(id) };
+      });
+      return { success: true, plugins };
+    } catch (err: any) {
+      return { success: false, plugins: [], error: err && err.message ? err.message : String(err) };
+    }
+  });
+
+  // 安装（npm 下载 + 加载 + 注册工具）
+  ipcMain.handle('cuckoo-plugin-install', async (_event: any, { pkgName }: any = {}) => {
+    try {
+      if (!pkgName || typeof pkgName !== 'string') return { success: false, error: '缺少包名' };
+      const r = await installAndLoad(pkgName, toolRegistry);
+      return { success: true, id: r.id, pluginName: r.pluginName, tools: r.tools };
+    } catch (err: any) {
+      return { success: false, error: err && err.message ? err.message : String(err) };
+    }
+  });
+
+  // 卸载（清状态；重启生效）
+  ipcMain.handle('cuckoo-plugin-uninstall', async (_event: any, { id }: any = {}) => {
+    try {
+      uninstallCuckooPlugin(id);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err && err.message ? err.message : String(err) };
+    }
+  });
+
+  // 启用/禁用（重启生效；启用时若工具未注册则立即注册）
+  ipcMain.handle('cuckoo-plugin-toggle', async (_event: any, { id, enabled }: any = {}) => {
+    try {
+      const ok = setCuckooPluginEnabled(id, !!enabled);
+      if (!ok) return { success: false, error: '插件 id 非法' };
+      if (enabled) {
+        // 尝试立即加载（工具已注册会覆盖告警，无碍）
+        try { await loadPluginFromDir(getCuckooPluginsDir() + '/' + id, toolRegistry); } catch (_) { /* 已加载或失败，重启兜底 */ }
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err && err.message ? err.message : String(err) };
+    }
+  });
+
+  // 打开 Cuckoo 插件目录
+  ipcMain.handle('cuckoo-plugin-open-dir', async () => {
+    try {
+      const dir = getCuckooPluginsDir();
+      fs.mkdirSync(dir, { recursive: true });
       const err = await shell.openPath(dir);
       return err ? { success: false, error: err } : { success: true };
     } catch (err: any) {

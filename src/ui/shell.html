@@ -1378,6 +1378,19 @@
               <div class="ck-list" id="plugin-market-list">
                 <div class="ck-list-empty">加载中…</div>
               </div>
+              <!-- ===== DSH 兼容插件（npm 安装）===== -->
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;">DSH 插件（npm）</span>
+                <button class="ck-icon-btn" id="ckp-open-dir" title="打开插件目录">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                </button>
+                <button class="ck-icon-btn" id="ckp-install-btn" title="安装 DSH 插件（输入 npm 包名）">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              </div>
+              <div class="ck-list" id="ckp-list">
+                <div class="ck-list-empty">加载中…</div>
+              </div>
             </div>
 
             <!-- ===== Token ===== -->
@@ -4344,6 +4357,7 @@
   async function loadPlugins() {
     await loadInstalledPlugins();
     await loadPluginMarket(false);
+    await loadCuckooPlugins();
   }
   function pluginContribSummary(c) {
     if (!c) return "";
@@ -4675,6 +4689,77 @@
     cancelBtn.addEventListener("click", onCancel);
     mask.classList.remove("cuckoo-hidden");
   }
+  function ckpRenderItem(p) {
+    const on = !!p.enabled;
+    return '<div class="ck-list-item" data-id="' + escapeAttr(p.id) + '"><div class="ck-list-main"><div class="ck-list-title">' + escapeHtml(p.name || p.id) + (p.version ? ' <span class="ck-plugin-ver">v' + escapeHtml(p.version) + "</span>" : "") + "</div>" + (p.description ? '<div class="ck-list-desc">' + escapeHtml(p.description) + "</div>" : "") + '<div class="ck-plugin-meta"><span>' + escapeHtml(p.id) + '</span></div></div><label class="ck-switch" title="' + (on ? "\u5DF2\u542F\u7528" : "\u5DF2\u7981\u7528") + '"><input type="checkbox" class="ckp-toggle" ' + (on ? "checked" : "") + ' /><span class="ck-switch-track"></span></label><button class="ck-icon-btn ckp-del" title="\u5378\u8F7D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>';
+  }
+  async function loadCuckooPlugins() {
+    const listEl2 = document.getElementById("ckp-list");
+    const apiAny = api;
+    if (!listEl2 || typeof apiAny.cuckooPluginList !== "function") return;
+    try {
+      const r = await apiAny.cuckooPluginList();
+      const plugins = r && r.success ? r.plugins || [] : [];
+      if (plugins.length === 0) {
+        listEl2.innerHTML = '<div class="ck-list-empty">\u6682\u65E0 DSH \u63D2\u4EF6\uFF08\u70B9 + \u5B89\u88C5\uFF09</div>';
+        return;
+      }
+      listEl2.innerHTML = plugins.map(ckpRenderItem).join("");
+      listEl2.querySelectorAll(".ck-list-item").forEach((el) => {
+        const id = el.getAttribute("data-id");
+        const toggle = el.querySelector(".ckp-toggle");
+        const del = el.querySelector(".ckp-del");
+        if (toggle) {
+          toggle.addEventListener("change", async () => {
+            const r2 = await apiAny.cuckooPluginToggle(id, !!toggle.checked);
+            if (!r2 || !r2.success) {
+              await ckAlert(r2 && r2.error || "\u64CD\u4F5C\u5931\u8D25");
+              toggle.checked = !toggle.checked;
+            }
+          });
+        }
+        if (del) {
+          del.addEventListener("click", async () => {
+            if (!await ckConfirm("\u786E\u5B9A\u5378\u8F7D\u63D2\u4EF6\u300C" + id + "\u300D\uFF1F\n\uFF08\u5DE5\u5177\u9700\u91CD\u542F\u540E\u79FB\u9664\uFF09")) return;
+            const r2 = await apiAny.cuckooPluginUninstall(id);
+            if (!r2 || !r2.success) {
+              await ckAlert(r2 && r2.error || "\u5378\u8F7D\u5931\u8D25");
+              return;
+            }
+            await loadCuckooPlugins();
+          });
+        }
+      });
+    } catch (_) {
+      listEl2.innerHTML = '<div class="ck-list-empty">\u52A0\u8F7D\u5931\u8D25</div>';
+    }
+  }
+  document.getElementById("ckp-install-btn")?.addEventListener("click", async () => {
+    const apiAny = api;
+    if (typeof apiAny.cuckooPluginInstall !== "function") return;
+    const pkgName = await ckPrompt({ title: "\u5B89\u88C5 DSH \u63D2\u4EF6", placeholder: "npm \u5305\u540D\uFF0C\u5982 @scope/dsh-plugin-xxx", value: "" });
+    if (!pkgName) return;
+    const btn = document.getElementById("ckp-install-btn");
+    if (btn) btn.disabled = true;
+    try {
+      const r = await apiAny.cuckooPluginInstall(pkgName);
+      if (!r || !r.success) {
+        await ckAlert(r && r.error || "\u5B89\u88C5\u5931\u8D25", "\u5B89\u88C5\u5931\u8D25");
+        return;
+      }
+      const tools = (r.tools || []).join(", ");
+      await ckAlert("\u5DF2\u5B89\u88C5\uFF1A" + (r.pluginName || r.id) + "\n\u5DE5\u5177\uFF1A" + (tools || "(\u65E0)") + "\n\n\u91CD\u542F\u5E94\u7528\u540E\u5DE5\u5177\u751F\u6548\u3002", "\u5B89\u88C5\u5B8C\u6210");
+      await loadCuckooPlugins();
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+  document.getElementById("ckp-open-dir")?.addEventListener("click", async () => {
+    const apiAny = api;
+    if (typeof apiAny.cuckooPluginOpenDir !== "function") return;
+    const r = await apiAny.cuckooPluginOpenDir();
+    if (r && !r.success) await ckAlert(r.error || "\u6253\u5F00\u76EE\u5F55\u5931\u8D25");
+  });
 
   // src/ui/shell/scripts/plugin-shell.ts
   init_shared();

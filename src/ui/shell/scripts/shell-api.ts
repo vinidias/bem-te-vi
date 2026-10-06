@@ -30,6 +30,12 @@ export interface ShellAPI {
   listInstalledPlugins?: () => Promise<any>;
   pluginSetEnabled?: (id: string, enabled: boolean) => Promise<any>;
   pluginOpenDir?: () => Promise<any>;
+  // ===== Cuckoo 插件（DSH 兼容）=====
+  cuckooPluginList?: () => Promise<any>;
+  cuckooPluginInstall?: (pkgName: string) => Promise<any>;
+  cuckooPluginUninstall?: (id: string) => Promise<any>;
+  cuckooPluginToggle?: (id: string, enabled: boolean) => Promise<any>;
+  cuckooPluginOpenDir?: () => Promise<any>;
   // 窗口组
   wgList?: () => Promise<any>;
   wgCreate?: (name?: string) => Promise<any>;
