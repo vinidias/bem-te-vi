@@ -17,6 +17,10 @@ import { resolveAsset, resolveSrc } from '../infra/paths.js';
 const require = createRequire(import.meta.url);
 const { app, BrowserWindow, WebContentsView, Menu, dialog, screen, nativeTheme, ipcMain: ipcMainForProfile } = require('electron');
 
+// ========== 关闭确认 ==========
+/** 已确认关闭的窗口 id（确认后再次触发 close 时直接放行，避免重复弹框） */
+const closeConfirmed = new Set<number>();
+
 // ========== 持久化会话配置 ==========
 const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
 const USER_DATA_DIR = path.join(app.getPath('appData'), SESSION_DIR);
@@ -408,8 +412,31 @@ function createWindow(profile: any) {
   });
 
   // 关闭前记录窗口大小/位置（用 getNormalBounds 取"还原后"尺寸；closed 时窗口已销毁取不到）
-  mainWindow.on('close', () => {
-    if (profileData.isSubagent) return; // 子代理窗口不记录
+  mainWindow.on('close', (e: any) => {
+    if (profileData.isSubagent) return; // 子代理窗口：不记录、不弹框
+    // 未确认关闭 且 非程序主动关闭 → 弹框确认
+    if (!closeConfirmed.has(mainWindow.id) && !(mainWindow as any).__programmaticClose) {
+      e.preventDefault();
+      // 防重复：弹框已打开时再点 ✕ 不再弹
+      if ((mainWindow as any).__closeDialogOpen) return;
+      (mainWindow as any).__closeDialogOpen = true;
+      dialog.showMessageBox(mainWindow, {
+        type: 'question',
+        buttons: ['取消', '关闭'],
+        defaultId: 1,
+        cancelId: 0,
+        noLink: true,
+        title: '确认关闭',
+        message: '确定要关闭窗口「' + (profileData.name || profileData.id) + '」吗？',
+      }).then((res: any) => {
+        (mainWindow as any).__closeDialogOpen = false;
+        if (res && res.response === 1) {
+          closeConfirmed.add(mainWindow.id);
+          if (!mainWindow.isDestroyed()) mainWindow.close();
+        }
+      }).catch(() => { (mainWindow as any).__closeDialogOpen = false; });
+      return;
+    }
     try {
       if (mainWindow.isDestroyed()) return;
       const b = mainWindow.getNormalBounds();
@@ -827,7 +854,10 @@ ipcMainForProfile.handle('delete-profile', async (_event: any, { profileId }: an
   // 关掉该 profile 的**全部**窗口（含子代理分身）
   const all = windowState.getAllWindowsByProfileId(profileId);
   for (const c of all) {
-    if (c && c.win && !c.win.isDestroyed()) c.win.close();
+    if (c && c.win && !c.win.isDestroyed()) {
+      (c.win as any).__programmaticClose = true; // 删除窗口是明确意图，跳过关闭确认
+      c.win.close();
+    }
   }
   const ok = profileManager.deleteProfile(profileId);
   return { success: ok, error: ok ? null : '窗口不存在' };
