@@ -157,9 +157,6 @@ describe('loadPluginModule - 入口契约', () => {
   });
 });
 
-import { describe, it, expect } from 'vitest';
-import { parseCordisPatch, hasPatchDeclared } from '../src/plugins/runtime/patch.js';
-
 describe('parseCordisPatch', () => {
   it('解析单个 insert', () => {
     const yml = `- insert:
