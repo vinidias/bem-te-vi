@@ -380,4 +380,5 @@ cuckoo-code/
   - **glob 排除产物目录**：未指定 path 时默认排除 `node_modules` 等依赖/产物目录，避免淹没项目自身文件（PR #31）
   - **webFetch SSRF 防护**：拒绝访问内网/回环/保留地址（可在设置页开启，默认关闭）（PR #32）
   - **状态栏输出速度（TPS）**：显示模型输出速度，DeepSeek 用服务端精确 token，ChatGPT/Claude 估算（PR #33）
+  - **provider 自定义工具结果格式**：新增 `transformToolResult` 可选钩子，插件可在工具结果回传前自定义文本格式（PR #34）
 - 所有贡献者和用户

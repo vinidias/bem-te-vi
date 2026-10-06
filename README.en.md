@@ -330,4 +330,5 @@ This project is licensed under the GNU General Public License v3.0. See the LICE
   - **glob excludes artifact dirs**: excludes dependency/artifact dirs like `node_modules` by default when no path is given, avoiding drowning out the project's own files (PR #31)
   - **webFetch SSRF protection**: rejects internal/loopback/reserved addresses (opt-in via Settings, off by default) (PR #32)
   - **Status-bar output speed (TPS)**: shows model output speed — exact server-side token count on DeepSeek, estimated on ChatGPT/Claude (PR #33)
+  - **Provider-customizable tool-result format**: new optional `transformToolResult` hook lets plugins customize the text format before tool results are sent back (PR #34)
 - All contributors and users
