@@ -55,11 +55,17 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
     selectedDir = '';
     console.log('[Cuckoo Code] noDialog：跳过目录选择（无预设目录）');
   } else {
-    // 先让用户选择目录
+    // 先让用户选择目录；默认打开"上次选的目录"（若存在且仍有效）
+    let defaultPath: string | undefined;
+    try {
+      const last = sessionStore && sessionStore.state ? sessionStore.state.selectedProjectDir : null;
+      if (last && fs.existsSync(last)) defaultPath = last;
+    } catch (_) { /* ignore */ }
     const result = dialog.showOpenDialogSync(mainWindow, {
       properties: ['openDirectory'],
       buttonLabel: '选择目录',
       title: '请选择要分析的项目目录',
+      defaultPath,
     });
 
     // 无论用户是否选择目录，对话框关闭后都恢复主窗口焦点（避免输入框失效）
