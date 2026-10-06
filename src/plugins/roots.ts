@@ -75,7 +75,6 @@ export function getEnabledPluginProviderFiles(): string[] {
 }
 
 /**
-<<<<<<< HEAD
  * 已启用插件的 DSH 风格插件入口（`dsh/*.js` 绝对路径，已排序）。
  *
  * 与 providers/*.js 同级：都会被"执行"，等同运行第三方代码，
