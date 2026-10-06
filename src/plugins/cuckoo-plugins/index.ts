@@ -11,17 +11,33 @@ import { loadCuckooPlugin } from './loader.js';
 import { listCuckooPluginDirs, getCuckooPluginDir, isValidPluginId } from './paths.js';
 import { isCuckooPluginEnabled, setCuckooPluginEnabled, clearCuckooPluginState } from './state.js';
 
+/** 从 JSON Schema 生成 JS 调用签名（供提示词），如 greet(name: string, age?: number) */
+function buildJsApi(name: string, parameters: any): string {
+  const props = (parameters && parameters.properties) || {};
+  const required: string[] = (parameters && parameters.required) || [];
+  const parts = Object.keys(props).map((k) => {
+    const t = (props[k] && props[k].type) || 'any';
+    const opt = required.includes(k) ? '' : '?';
+    return k + opt + ': ' + t;
+  });
+  return name + '(' + parts.join(', ') + ')';
+}
+
 /** 把 DSH 插件工具（{name,description,parameters,execute}）包成 Cuckoo Tool */
 class DshPluginTool extends Tool {
   private _exec: (args: any) => Promise<any>;
   constructor(def: any) {
-    super(def.name, def.description, def.parameters, null);
+    super(def.name, def.description, def.parameters, buildJsApi(def.name, def.parameters));
     this._exec = def.execute;
+    this.dynamic = true; // 运行时工具：沙箱注入 + 提示词由运行期生成
   }
   async execute(params: any): Promise<any> {
-    // Cuckoo 工具约定：返回 { success, output } 或字符串
+    // Cuckoo 工具约定：返回 { success, data }
     const out = await this._exec(params);
-    return { success: true, output: typeof out === 'string' ? out : JSON.stringify(out) };
+    return { success: true, data: typeof out === 'string' ? out : JSON.stringify(out) };
+  }
+  getPromptSection() {
+    return { name: 'tool:' + this.name, order: 200, text: '使用 ' + this.jsApi + ' 工具：' + this.description };
   }
 }
 

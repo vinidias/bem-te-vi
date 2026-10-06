@@ -1237,6 +1237,17 @@ if (!gotSingleInstanceLock) {
     setupAppMenu();
     // MCP 配置首次迁移（旧 userData/mcp.json → ~/.cuckoo/mcp.json，旧文件保留）
     try { mcpConfig.migrateLegacy(); } catch (_) { /* ignore */ }
+    // 加载已启用的 Cuckoo 插件（DSH 兼容；注册其工具到全局工具表）
+    import('../plugins/cuckoo-plugins/index.js').then((m: any) => {
+      import('../tools/index.js').then((t: any) => {
+        m.loadEnabledPlugins(t.registry).then((r: any) => {
+          if (r.loaded.length || r.failed.length) {
+            console.log('[Cuckoo Plugin] 已加载: ' + (r.loaded.join(' | ') || '(无)') +
+              (r.failed.length ? '；失败: ' + r.failed.map((f: any) => f.id + ':' + f.error).join(' | ') : ''));
+          }
+        }).catch((e: any) => console.error('[Cuckoo Plugin] 加载失败:', e && e.message));
+      });
+    }).catch(() => {});
     // 清理子代理窗口遗留的 session 存储文件（历史 bug：子代理不需要持久化）
     try { profileManager.cleanupSubagentStores(); } catch (_) { /* ignore */ }
     // 启动时打开所有"默认打开"的窗口；若一个都没勾，回退默认（上次活跃的或第一个）

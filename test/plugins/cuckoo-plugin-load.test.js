@@ -54,7 +54,7 @@ test('loadPluginFromDir：注册到 ToolRegistry 并可执行', async () => {
     assert.ok(registry.get('greet'), 'registry 应含 greet');
     const res = await registry.execute('greet', { name: 'Cuckoo' });
     assert.strictEqual(res.success, true);
-    assert.strictEqual(res.output, 'Hello, Cuckoo!');
+    assert.strictEqual(res.data, 'Hello, Cuckoo!');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
