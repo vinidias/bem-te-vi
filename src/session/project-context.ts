@@ -11,6 +11,27 @@ import { buildPrompt, PROMPT_DIR } from './prompt-builder.js';
 const require = createRequire(import.meta.url);
 const { app, dialog } = require('electron');
 
+// ========== 全局"上次项目目录"（跨窗口共享，用于目录选择框的默认位置）==========
+function getLastProjectDirFile(): string {
+  return path.join(app.getPath('userData'), 'last-project-dir.json');
+}
+function readLastProjectDir(): string | null {
+  try {
+    const f = getLastProjectDirFile();
+    if (fs.existsSync(f)) {
+      const d = JSON.parse(fs.readFileSync(f, 'utf-8'));
+      return (d && d.dir) || null;
+    }
+  } catch (_) { /* ignore */ }
+  return null;
+}
+function writeLastProjectDir(dir: string): void {
+  if (!dir) return;
+  try {
+    fs.writeFileSync(getLastProjectDirFile(), JSON.stringify({ dir }, null, 2), 'utf-8');
+  } catch (_) { /* ignore */ }
+}
+
 /**
  * 同时输出到终端和对应平台的日志文件（与渲染进程日志同目录）
  */
@@ -55,10 +76,11 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
     selectedDir = '';
     console.log('[Cuckoo Code] noDialog：跳过目录选择（无预设目录）');
   } else {
-    // 先让用户选择目录；默认打开"上次选的目录"（若存在且仍有效）
+    // 先让用户选择目录；默认打开"上次选的目录"（本窗口优先，否则全局；存在且有效才用）
     let defaultPath: string | undefined;
     try {
-      const last = sessionStore && sessionStore.state ? sessionStore.state.selectedProjectDir : null;
+      const winLast = sessionStore && sessionStore.state ? sessionStore.state.selectedProjectDir : null;
+      const last = (winLast && fs.existsSync(winLast)) ? winLast : readLastProjectDir();
       if (last && fs.existsSync(last)) defaultPath = last;
     } catch (_) { /* ignore */ }
     const result = dialog.showOpenDialogSync(mainWindow, {
@@ -90,6 +112,9 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
   if (isCompaction && parentSessionId && sessionStore) {
     sessionStore.state.pendingLineage = { parentId: parentSessionId, kind: 'compaction', agentName: null };
   }
+
+  // 记录"上次项目目录"（全局，供下次目录选择框默认定位）
+  if (selectedDir) writeLastProjectDir(selectedDir);
 
   // 保存选中的项目目录（若该窗口有独立的 sessionStore）
   if (sessionStore) {
