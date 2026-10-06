@@ -50,6 +50,14 @@ if ((api as any).onTokenUpdated) {
     if (data.daily) renderChart(data.daily);
   });
 }
+const tpsEl = document.getElementById('sb-tps');
+// 常驻显示：生成中实时更新，生成结束后保留本轮最终值；无数据时显示 "--"
+if ((api as any).onTpsUpdated) {
+  (api as any).onTpsUpdated((data: any) => {
+    const t = data && data.tps ? String(data.tps) : '';
+    if (tpsEl) tpsEl.textContent = t || '--';
+  });
+}
 if ((api as any).onTotalUpdated) {
   (api as any).onTotalUpdated((data: any) => {
     if (data && systemEl) systemEl.textContent = formatTokenCount(data.systemTotal);

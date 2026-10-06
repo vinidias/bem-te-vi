@@ -88,6 +88,13 @@ function pushTokenUsage(view: any, context: number, cumulative: number, windowCu
   ctx.win.webContents.send('shell-token-updated', { context, cumulative, windowCumulative, todayCumulative, daily });
 }
 
+/** 把输出速度（TPS）展示文本推送给壳页面状态条 */
+function pushTps(view: any, text: string): void {
+  const ctx = view ? windowState.getContextByWebContents(view.webContents) : null;
+  if (!ctx || !ctx.win || ctx.win.isDestroyed()) return;
+  ctx.win.webContents.send('shell-tps-updated', { tps: typeof text === 'string' ? text : '' });
+}
+
 function registerShellIpc(): void {
   // 启动时清理子代理遗留的 token 统计键（历史 bug：子代理上报污染系统总累计）
   try { cleanupSubagentKeys(); } catch (_) { /* ignore */ }
@@ -113,6 +120,13 @@ function registerShellIpc(): void {
         broadcastSystemTotal();
       }
     } catch (_) {}
+    return { success: true };
+  });
+
+  // 输出速度（TPS）→ 转发给壳页面状态条
+  ipcMain.handle('update-tps', async (event: any, { text }: any) => {
+    const view = viewOf(event);
+    if (view) pushTps(view, text);
     return { success: true };
   });
 

@@ -13,14 +13,36 @@ import { loadMcpConfigToJson, renderMcpList, openMcpManager, closeMcpManager, ha
 import { openSettings, closeSettings, resetSettings, saveSettings } from './panels/settings.js';
 import { makeFabDraggable } from './fab.js';
 import { getProviderByUrl } from '../providers/registry.js';
+import { createTpsMeter, formatTps } from './tps.js';
 
 // 回调注入（P4.2-A：overlay 不依赖 bridge）
 let hooks: {
   onInterceptedResponse?: (cb: (text: string, meta: any) => void) => void;
   onTaskIdle?: (cb: () => void) => void;
+  onStream?: (cb: (ev: any) => void) => void;
 } = {};
 // 服务端权威 token 统计（由 bridge 经回调推送，不共享状态）
 let serverTokenUsage: any = null;
+
+// ========== 输出速度（TPS）估算 ==========
+// 服务端不给单轮输出 token，只能用流式正文长度估算（见 tps.ts）
+const tpsMeter = createTpsMeter();
+// 避免高频 IPC：同一展示值不重复推送
+let lastPushedTps = '';
+
+/**
+ * 把当前 TPS 推送给壳页面状态栏。
+ * 生成中实时更新；**生成结束后保留本轮最终速度**（不清零），
+ * 直到下一轮生成开始才被新值覆盖。无任何数据时推空串（壳页面显示 "--"）。
+ */
+function pushTps(): void {
+  const text = tpsMeter.value > 0 ? formatTps(tpsMeter.value) : '';
+  if (text === lastPushedTps) return;
+  lastPushedTps = text;
+  try {
+    (window as any).electronAPI.updateTps(text).catch(() => {});
+  } catch (_) {}
+}
 
 // ========== 对话 token 按会话缓存 ==========
 const TOKEN_CACHE_KEY = 'cuckoo-token-cache';
@@ -359,6 +381,8 @@ function checkAutoCompact() {
  */
 function startTokenCounter() {
   hooks.onInterceptedResponse?.((_text: string, meta: any) => {
+    // 一轮回复完成：保留本轮最终 TPS（不清零），仅更新 token 统计。
+    // 下一轮生成开始时由测速器内部自动重置。
     serverTokenUsage = (meta && meta.tokenUsage) || null;
     // 按当前会话写入缓存（切回来时能显示该会话的值）
     const tokens = serverTokenUsage && serverTokenUsage.accumulatedTokens;
@@ -371,6 +395,19 @@ function startTokenCounter() {
   // 自动压缩：只在"任务空闲"（工具循环结束）时检查——避免与工具结果抢输入框
   hooks.onTaskIdle?.(() => checkAutoCompact());
   updateConversationTokenDisplay();
+
+  // 输出速度（TPS）：订阅流式正文增量，实时计算并推送。
+  // 生成中实时更新；finished 后测速器冻结最终值，pushTps 保留显示（不清零）。
+  hooks.onStream?.((ev: any) => {
+    try {
+      const text = (ev && ev.text) || '';
+      const finished = !!(ev && ev.finished);
+      // DeepSeek 提供 accumulatedTokens（权威）；其余平台为 null，回退估算
+      const acc = ev && typeof ev.accumulatedTokens === 'number' ? ev.accumulatedTokens : null;
+      tpsMeter.update(text, finished, acc);
+      pushTps();
+    } catch (_) { /* ignore */ }
+  });
 }
 
 /**

@@ -93,13 +93,20 @@ function install(): void {
 
   // 流式增量事件（纯新增，供纯净模式实时渲染；节流 ~80ms）
   var lastStreamAt = 0;
-  function dispatchStream(think, text, finished) {
+  // acc：服务端下发的 accumulated_token_usage（= prompt + 已生成输出），
+  // 下游用"当前 acc − 本轮起始 acc"得到精确的本轮输出 token 数。
+  function dispatchStream(think, text, finished, acc) {
     var now = Date.now();
     if (!finished && now - lastStreamAt < 80) return;
     lastStreamAt = now;
     try {
       window.dispatchEvent(new CustomEvent('cuckoo-ai-stream', {
-        detail: { think: think || '', text: text || '', finished: !!finished }
+        detail: {
+          think: think || '',
+          text: text || '',
+          finished: !!finished,
+          accumulatedTokens: typeof acc === 'number' ? acc : null
+        }
       }));
     } catch (e) { /* ignore */ }
   }
@@ -354,7 +361,7 @@ function install(): void {
         var parsed = parseBlock(frames[i]);
         if (parsed) extractor.consume(parsed);
       }
-      dispatchStream(extractor.think, extractor.text, extractor.finished);
+      dispatchStream(extractor.think, extractor.text, extractor.finished, extractor.tokenUsage ? extractor.tokenUsage.accumulatedTokens : null);
       if (extractor.finished && !dispatched) {
         dispatched = true;
         dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds, null, Object.assign({ path: 'feed-finished-frame' }, extractor.snapshot()));
@@ -560,7 +567,7 @@ function install(): void {
         var parsed = parseBlock(frames[i]);
         if (parsed) extractor.consume(parsed);
       }
-      dispatchStream(extractor.think, extractor.text, extractor.finished);
+      dispatchStream(extractor.think, extractor.text, extractor.finished, extractor.tokenUsage ? extractor.tokenUsage.accumulatedTokens : null);
       if (extractor.finished && !dispatched) {
         dispatched = true;
         dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds, null, Object.assign({ path: 'xhr-finished-frame' }, extractor.snapshot()));

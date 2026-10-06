@@ -81,6 +81,10 @@ let electronAPI: any = {
   updateTokenUsage: (context: any, cumulative: any, windowCumulative: any, todayCumulative: any, daily: any) => {
     return ipcRenderer.invoke('update-token-usage', { context, cumulative, windowCumulative, todayCumulative, daily });
   },
+  // 输出速度（TPS）展示文本；空串表示本轮已结束/无数据
+  updateTps: (text: any) => {
+    return ipcRenderer.invoke('update-tps', { text });
+  },
   // ========== 技能相关 API ==========
   refreshSkills: () => {
     return ipcRenderer.invoke('refresh-skills');
