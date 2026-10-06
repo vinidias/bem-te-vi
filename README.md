@@ -381,4 +381,6 @@ cuckoo-code/
   - **webFetch SSRF 防护**：拒绝访问内网/回环/保留地址（可在设置页开启，默认关闭）（PR #32）
   - **状态栏输出速度（TPS）**：显示模型输出速度，DeepSeek 用服务端精确 token，ChatGPT/Claude 估算（PR #33）
   - **provider 自定义工具结果格式**：新增 `transformToolResult` 可选钩子，插件可在工具结果回传前自定义文本格式（PR #34）
+- [@ZiJiangel](https://github.com/ZiJiangel)：
+  - **飞书 Markdown 卡片**：飞书推送 AI 回复改用交互卡片渲染 Markdown（含表格）（PR #35）
 - 所有贡献者和用户
