@@ -97,3 +97,28 @@ test('findInputArea 兜底返回第一个可见 textarea', () => {
   document.querySelectorAll = () => [ta];
   assert.strictEqual(chat.findInputArea(), ta);
 });
+
+
+// ===== applyResultTransform（provider 工具结果格式转换）=====
+
+test('applyResultTransform: provider 未实现时保持原文', () => {
+  assert.strictEqual(chat.applyResultTransform('原文', null), '原文');
+  assert.strictEqual(chat.applyResultTransform('原文', {}), '原文');
+  assert.strictEqual(chat.applyResultTransform('原文', { transformToolResult: 'not-fn' }), '原文');
+});
+
+test('applyResultTransform: provider 转换生效', () => {
+  const p = { transformToolResult: (t) => t.replace('✅', '') };
+  assert.strictEqual(chat.applyResultTransform('✅ 成功', p), ' 成功');
+});
+
+test('applyResultTransform: 转换函数抛错时回退原文', () => {
+  const p = { transformToolResult: () => { throw new Error('boom'); } };
+  assert.strictEqual(chat.applyResultTransform('原文', p), '原文');
+});
+
+test('applyResultTransform: 返回空串时保持原文（失败路径）', () => {
+  assert.strictEqual(chat.applyResultTransform('原文', { transformToolResult: () => '' }), '原文');
+  assert.strictEqual(chat.applyResultTransform('原文', { transformToolResult: () => null }), '原文');
+  assert.strictEqual(chat.applyResultTransform('原文', { transformToolResult: () => 123 }), '原文');
+});

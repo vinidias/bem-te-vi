@@ -180,6 +180,22 @@ function sendMessageToChat(msg: string, tag?: string, afterSent?: () => void): P
   return sendToChat(msg, tag, undefined, afterSent);
 }
 /**
+ * 应用 provider 的工具结果格式转换（若提供）。
+ * 独立成纯函数：接收文本与 provider，返回转换后文本，便于单测。
+ * @returns 转换后文本；provider 未实现或返回空串时保持原文
+ */
+function applyResultTransform(text: string, provider: any): string {
+  if (provider && typeof provider.transformToolResult === 'function') {
+    try {
+      const t = provider.transformToolResult(text);
+      if (typeof t === 'string' && t) return t;
+    } catch (err: any) {
+      console.warn('[Cuckoo Code] transformToolResult 调用失败:', err && err.message);
+    }
+  }
+  return text;
+}
+/**
  * 将 JS 工具脚本执行结果发送回 DeepSeek 聊天，让 AI 看到结果并继续工作
  */
 async function sendCombinedJsResultsToChat(results: any, onSent?: () => void): Promise<boolean> {
@@ -206,6 +222,9 @@ async function sendCombinedJsResultsToChat(results: any, onSent?: () => void): P
     }
     msg += sep + sep;
   }
+
+  // provider 可自定义回传格式（某些平台对格式敏感，如触发风控）
+  msg = applyResultTransform(msg, getCurrentProvider());
 
   // 追加（不覆盖）：保留用户已输入的内容，工具结果拼在其后一起发送
   const input = findInputArea();
@@ -504,6 +523,7 @@ export {
   onMessageDelivered,
   isSystemTag,
   sendMessageToChat,
+  applyResultTransform,
   sendCombinedJsResultsToChat,
   cancelPendingSend,
   findInputArea,
