@@ -37,6 +37,26 @@ function resolveEntry(pluginDir: string): string | null {
   return null;
 }
 
+/** 万能空接口模块（CJS）：任何属性/调用/构造都返回 stub，永不抛错 */
+const STUB_MODULE_CODE = [
+  "const __makeStub = (name) => {",
+  "  const fn = function () { return p; };",
+  "  const p = new Proxy(fn, {",
+  "    get(t, prop) {",
+  "      if (prop === 'then') return undefined;",
+  "      if (prop === '__esModule') return false;",
+  "      if (prop === 'default') return p;",
+  "      if (prop === 'toString') return () => '[dsh-stub ' + name + ']';",
+  "      return __makeStub(name + '.' + String(prop));",
+  "    },",
+  "    apply() { return p; },",
+  "    construct() { return p; },",
+  "  });",
+  "  return p;",
+  "};",
+  "module.exports = __makeStub('@deepseek-ai/stub');",
+].join('\n');
+
 /** 用 esbuild 打包插件：把 @deepseek-ai/* 映射到我们的 shim */
 async function bundlePlugin(entryFile: string): Promise<string> {
   const esbuild = require(path.join(process.cwd(), 'node_modules', 'esbuild', 'lib', 'main.js'));
@@ -51,18 +71,38 @@ async function bundlePlugin(entryFile: string): Promise<string> {
     plugins: [{
       name: 'cuckoo-dsh-shim',
       setup(build: any) {
-        // @deepseek-ai/cordis / dsh-tools → 我们的 shim
+        // @deepseek-ai/cordis / dsh-tools → 我们的 shim（真实现）
         build.onResolve({ filter: /^@deepseek-ai\/(cordis|dsh-tools)$/ }, () => ({ path: shim }));
+        // 其他（含 schemastery）→ 万能空接口（CJS 虚拟模块，支持 default import）
+        build.onResolve({ filter: /^@deepseek-ai\// }, (args: any) => ({ path: args.path, namespace: 'dsh-stub' }));
+        build.onLoad({ filter: /.*/, namespace: 'dsh-stub' }, () => ({ contents: STUB_MODULE_CODE, loader: 'js' }));
       },
     }],
   });
   return result.outputFiles[0].text;
 }
 
-/** 一个"假 ctx"——收集插件注册的工具 */
+/** 万能 stub（与 shim 同款）：任意属性/调用/构造不抛错 */
+function makeStub(name: string): any {
+  const fn: any = function () { return p; };
+  const p: any = new Proxy(fn, {
+    get(_t, prop) {
+      if (prop === 'then') return undefined;
+      if (prop === '__esModule') return false;
+      if (prop === 'default') return p;
+      if (prop === 'toString') return () => '[dsh-stub ' + name + ']';
+      return makeStub(name + '.' + String(prop));
+    },
+    apply() { return p; },
+    construct() { return p; },
+  });
+  return p;
+}
+
+/** 一个"假 ctx"——收集插件注册的工具；未知属性用 stub 兜底（够用空接口） */
 function createCollectorCtx(pluginName: string): { ctx: any; tools: any[] } {
   const tools: any[] = [];
-  const ctx: any = {
+  const base: any = {
     name: pluginName,
     log: (...args: any[]) => console.log('[DSHPlugin:' + pluginName + ']', ...args),
     tools: {
@@ -77,8 +117,17 @@ function createCollectorCtx(pluginName: string): { ctx: any; tools: any[] } {
     scope() { return { effect: () => () => {}, on: () => () => {}, dispose() {}, disposed: false }; },
     provide() { return () => {}; },
     get() { return undefined; },
-    inject(_names: any, cb: any) { if (typeof cb === 'function') cb(); return () => {}; },
+    // inject 回调传 ctx 自身（带 stub 兜底），插件拿到 projectionCtx.sessionProjections 等不报错
+    inject(_names: any, cb: any) { if (typeof cb === 'function') { try { cb(ctx); } catch (_) { /* 空转 */ } } return () => {}; },
   };
+  // 未知属性 → stub 兜底
+  const ctx: any = new Proxy(base, {
+    get(t, prop) {
+      if (prop in t) return (t as any)[prop];
+      if (typeof prop === 'symbol') return undefined;
+      return makeStub('ctx.' + String(prop));
+    },
+  });
   return { ctx, tools };
 }
 

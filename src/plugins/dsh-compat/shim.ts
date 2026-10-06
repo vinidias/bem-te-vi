@@ -72,7 +72,8 @@ function defineTool(options: DshDefineToolOptions): CuckooTool {
     description: options.description,
     parameters: dshParamsToJsonSchema(options.parameters),
     execute: async (args: any) => {
-      const value = await options.execute(args || {}, {});
+      // exec 用 stub 兜底：插件调 exec.agent.session.append(...) 等不抛错（副作用空转）
+      const value = await options.execute(args || {}, makeStub('exec'));
       // DSH 的 output.render 把值转成 ContentBlock[]；Cuckoo 工具返回字符串即可
       if (options.output && typeof options.output.render === 'function') {
         try {
@@ -87,6 +88,30 @@ function defineTool(options: DshDefineToolOptions): CuckooTool {
   };
 }
 
+/**
+ * 万能空接口（stub）：Proxy 包装的函数——任何属性访问/调用/构造都返回新 stub，永不抛错。
+ * 用于填补 DSH 框架内部模块与 ctx 上的空服务。
+ */
+function makeStub(name: string): any {
+  const fn: any = function () { return p; };
+  const p: any = new Proxy(fn, {
+    get(_t, prop) {
+      if (prop === 'then') return undefined;
+      if (prop === '__esModule') return false;
+      if (prop === 'default') return p;
+      if (prop === 'toString') return () => '[dsh-stub ' + name + ']';
+      if (prop === Symbol.toPrimitive) return () => name;
+      return makeStub(name + '.' + String(prop));
+    },
+    apply() { return p; },
+    construct() { return p; },
+  });
+  return p;
+}
+
+/** schemastery / zod 的"够用空"（模块初始化不抛；校验被跳过） */
+const z: any = makeStub('z');
+
 /** DSH cordis 的 Service 基类（P1 简化占位；P2 补真实现）*/
 class Service {
   ctx: any;
@@ -97,5 +122,5 @@ class Service {
   }
 }
 
-export { defineTool, dshParamsToJsonSchema, Service };
+export { defineTool, dshParamsToJsonSchema, Service, makeStub, z };
 export type { DshDefineToolOptions, DshParamProp, CuckooTool };
