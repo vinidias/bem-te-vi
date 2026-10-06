@@ -7,7 +7,12 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { contextBridge, ipcRenderer } = require('electron');
 
+// 平台（主进程经 additionalArguments 传入）：mac 上保留系统红绿灯、隐藏自绘窗口按钮
+const platformArg = (process.argv || []).find((a) => a.startsWith('--cuckoo-platform='));
+const platform = platformArg ? platformArg.slice('--cuckoo-platform='.length) : process.platform;
+
 const shellAPI = {
+  platform,
   navigate: (url: string) => ipcRenderer.invoke('shell-navigate', { url }),
   back: () => ipcRenderer.invoke('shell-back'),
   forward: () => ipcRenderer.invoke('shell-forward'),

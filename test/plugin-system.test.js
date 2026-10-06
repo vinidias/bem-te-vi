@@ -8,7 +8,7 @@ import { loadPluginModule, safeLoad } from '../src/plugins/runtime/loader.js';
 import { ServiceRegistryImpl } from '../src/plugins/runtime/service-registry.js';
 import { Service } from '../src/plugins/runtime/service.js';
 import { esmToCjs } from '../src/plugins/runtime/loader.js';
-import { parseCordisPatch } from '../src/plugins/runtime/patch.js';
+import { parseCordisPatch, hasPatchDeclared } from '../src/plugins/runtime/patch.js';
 import { PluginHost, diagnose } from '../src/plugins/runtime/plugin-host.js';
 import { registerContext, unregisterContext, bindCuckooEvents } from '../src/plugins/runtime/compat/bridge.js';
 

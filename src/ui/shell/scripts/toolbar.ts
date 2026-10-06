@@ -76,7 +76,17 @@ if (btnHarness) {
 }
 if (api.onHarnessMode) {
   api.onHarnessMode((d: any) => {
-    if (btnHarness) btnHarness.textContent = (d && d.harness) ? '原版模式' : '纯净模式';
+    if (btnHarness) btnHarness.textContent = (d && d.harness) ? '原' : '净';
+  });
+}
+
+// 地址栏显隐切换（默认隐藏）
+const btnAddress = document.getElementById('btn-address');
+const urlWrap = document.querySelector('.url-wrap');
+if (btnAddress && urlWrap) {
+  btnAddress.addEventListener('click', () => {
+    const hidden = urlWrap.classList.toggle('cuckoo-hidden');
+    if (!hidden && input) { input.focus(); input.select(); }
   });
 }
 
@@ -89,7 +99,13 @@ document.getElementById('btn-home')!.addEventListener('click', () => {
   if (api.home) api.home();
 });
 
-// ===== 自绘标题栏：窗口控制按钮 =====
+// ===== 自绘标题栏：窗口控制按钮（mac 用系统红绿灯，隐藏自绘按钮）=====
+const isMac = (api as any).platform === 'darwin';
+if (isMac) {
+  const wc = document.querySelector('.ck-win-controls') as any;
+  if (wc) wc.style.display = 'none';
+  document.body.classList.add('ck-mac');
+}
 const btnWinMin = document.getElementById('ck-win-min');
 const btnWinMax = document.getElementById('ck-win-max');
 const btnWinClose = document.getElementById('ck-win-close');

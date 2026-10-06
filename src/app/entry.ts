@@ -122,11 +122,14 @@ function createWindow(profile: any) {
   const cascadeOffset = savedBounds ? 0 : winCount * 30;
 
   // 壳窗口：webContents 承载地址栏（src/ui/shell.html），AI 页面放入下方 WebContentsView
+  const isMac = process.platform === 'darwin';
   const mainWindow = new BrowserWindow({
     width: defaultBounds.width,
     height: defaultBounds.height,
-    // 自绘标题栏：隐藏系统边框，顶部工具栏兼任拖拽区（主题可完全定制）
-    frame: false,
+    // 自绘标题栏：
+    //  - macOS：hiddenInset（保留左上角红绿灯，隐藏标题栏）
+    //  - Windows/Linux：无边框（顶部工具栏兼任拖拽区，右上角自绘窗口按钮）
+    ...(isMac ? { titleBarStyle: 'hiddenInset' as const } : { frame: false }),
     // 最小尺寸：保证工具栏(46)+状态栏(28)+内容区都放得下（防止恢复成过小窗口导致状态栏被挤出）
     minWidth: 480,
     minHeight: 240,
@@ -140,7 +143,7 @@ function createWindow(profile: any) {
       nodeIntegration: false,
       sandbox: false,
       partition: profileData.partition, // 每个 profile 独立持久化 session
-      additionalArguments: ['--cuckoo-user-data=' + app.getPath('userData')],
+      additionalArguments: ['--cuckoo-user-data=' + app.getPath('userData'), '--cuckoo-platform=' + process.platform],
     },
   });
 

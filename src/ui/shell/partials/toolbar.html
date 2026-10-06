@@ -4,7 +4,7 @@
         <span class="pp-name" id="pp-name">未选择</span>
         <svg class="pp-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <button class="harness-toggle" id="btn-harness" title="切换纯净对话模式（Ctrl+Shift+H）">纯净模式</button>
+      <button class="harness-toggle" id="btn-harness" title="切换纯净对话模式（Ctrl+Shift+H）">净</button>
       <div class="divider"></div>
       <button class="nav-btn disabled" id="btn-back" title="后退">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -15,7 +15,10 @@
       <button class="nav-btn" id="btn-reload" title="刷新">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       </button>
-      <div class="url-wrap">
+      <button class="nav-btn" id="btn-address" title="显示/隐藏地址栏">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>
+      </button>
+      <div class="url-wrap cuckoo-hidden">
         <svg class="lock" id="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
         <input class="url-input" id="url-input" placeholder="输入网址后回车" spellcheck="false" autocomplete="off"/>
       </div>

@@ -3,6 +3,8 @@
  * 全部方法可选——用防御式调用（if (api.xxx) api.xxx()）。
  */
 export interface ShellAPI {
+  /** 运行平台（darwin/win32/linux） */
+  platform?: string;
   navigate?: (url: string) => void;
   back?: () => void;
   forward?: () => void;

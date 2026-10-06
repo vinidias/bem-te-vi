@@ -72,8 +72,8 @@
   }
   /* 纯净模式/原版模式 切换按钮（项目选择器右侧） */
   .harness-toggle {
-    height: 30px; padding: 0 12px; flex-shrink: 0;
-    border: none; border-radius: 999px;
+    height: 30px; min-width: 30px; padding: 0 8px; flex-shrink: 0;
+    border: none; border-radius: 8px;
     background: transparent; color: var(--ck-text-2);
     font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
     transition: background .14s, color .14s;
@@ -127,6 +127,7 @@
     border-radius: 9px;
     transition: border-color .15s, background .15s, box-shadow .15s;
   }
+  .url-wrap.cuckoo-hidden { display: none; }
   .url-wrap:hover { background: var(--ck-surface-hover); }
   .url-wrap:focus-within { border-color: var(--ck-primary); background: var(--ck-bg); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
   .lock { width: 13px; height: 13px; flex-shrink: 0; margin-right: 9px; color: var(--ck-green); }
@@ -217,6 +218,8 @@
   .toolbar {
     -webkit-app-region: drag;
   }
+  /* macOS：左上角给系统红绿灯留出空间 */
+  body.ck-mac .toolbar { padding-left: 78px; }
   .toolbar button,
   .toolbar input,
   .toolbar .url-wrap,
