@@ -43,11 +43,13 @@ Not just chat. The AI can read/write files, search code, execute commands, query
 ## Main Features
 
 - **Multi-window management**: each window has an independent profile context; tick "Default" to auto-open on startup
-- **Address bar**: top bar to view/copy the URL, navigate back/forward/reload, quick-jump; a status bar below shows token usage
+- **Address bar**: top bar to view/copy the URL, navigate back/forward/reload, quick-jump; a status bar below shows token usage and **output speed (TPS)**
+- **Feishu push**: AI replies can be pushed to Feishu (rendered as interactive cards with Markdown, including tables)
 - **Project initialization**: after selecting a project directory, the AI gets the directory tree and system prompt
 - **Harness mode (pure chat)**: a Codex-like pure chat UI — hides low-level instructions, showing only user messages / model replies / tool cards; supports streaming, Markdown, KaTeX math, collapsible thinking, Goal/Plan panel (toggle with Ctrl+Shift+H)
 - **Workspace sidebar**: lists all conversations grouped by project; rename / archive / new; expand a conversation to see its **subagents** and **compaction history** (session lineage)
 - **Project file tree**: VSCode-style tree with type icons / colors, filename search, and one-click `@` path reference
+- **File preview (Monaco)**: click a file to preview its content to the right of the tree (VSCode's editor: line numbers + syntax highlighting), without covering the AI; drag the left bar to resize the tree, the right bar to resize the sidebar
 - **Plugin market**: auto-discovers plugins via GitHub `topic:cuckoo-plugin`; install / uninstall / toggle in one click (a plugin can bundle skills / agents / rules / MCP / custom providers / **web scripts**); **Gitee source supported**
 - **Auto-naming conversations**: the AI names each conversation at the start; the workspace list refreshes live
 - **Skill support**: Claude Code-aligned skills (project `.cuckoo/skills/` + user `~/.cuckoo/skills/`), progressive disclosure — teach the AI domain-specific workflows/rules/scripts. **→ [Configuration & usage](docs/skills.md)**
@@ -59,7 +61,7 @@ Not just chat. The AI can read/write files, search code, execute commands, query
 - **Context compaction**: long sessions auto-compact (clear IDB + refresh + share link) to avoid hitting the context limit
 - **Automatic retry**: two mechanisms — (1) retry with backoff when a reply is truncated/fails; (2) watchdog prompts "continue" when the SSE stream goes silent
 - **Session persistence**: login state and settings are saved to %APPDATA%/cuckoo-ai-pro-session
-- **Safety mechanisms**: 30-second command timeout, 60-second sandbox timeout, 1MB output buffer, dangerous command confirmation
+- **Safety mechanisms**: 30-second command timeout, 60-second sandbox timeout, 1MB output buffer, dangerous command confirmation (including compound commands); webFetch can optionally **reject internal addresses** (SSRF protection, enabled in Settings)
 
 ---
 
