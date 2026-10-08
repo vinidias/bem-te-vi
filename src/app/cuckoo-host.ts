@@ -5,6 +5,10 @@
 import * as windowState from './window.js';
 import { registry } from '../tools/index.js';
 import { getPluginConfig, setPluginConfig } from '../plugins/plugins-config.js';
+import { scanSkills } from '../skills/index.js';
+import { getPluginScanRoots } from '../plugins/roots.js';
+import { listSnippets } from './snippets.js';
+import { getTotal as getTokenTotal } from './token-stats.js';
 import type { CuckooHost } from '../plugins/cuckoo-plugins/loader.js';
 
 /** 取"当前会话"（优先最后一个活跃窗口） */
@@ -50,6 +54,39 @@ function buildCuckooHost(): CuckooHost {
       const found = allSessions().find((s) => s.id === id);
       return found || null;
     },
+    // ===== C6 =====
+    listSkills: () => {
+      try {
+        const dir = currentSession().projectDir;
+        let extra: string[] = [];
+        try { extra = getPluginScanRoots().skillDirs; } catch (_) { /* ignore */ }
+        return scanSkills(dir, extra).map((s: any) => ({ name: s.name, description: s.description, source: s.source }));
+      } catch (_) { return []; }
+    },
+    listCommands: () => {
+      try { return listSnippets().map((s: any) => ({ id: s.name || s.id, title: s.name || s.id })); } catch (_) { return []; }
+    },
+    getSessionTitle: () => {
+      const ctxs = windowState.getAllContexts();
+      const ctx = ctxs.length > 0 ? ctxs[ctxs.length - 1] : null;
+      const store = ctx ? ctx.sessionStore : null;
+      const sid = store ? store.state.currentSessionId : null;
+      if (!sid || !store) return null;
+      const meta = store.getSessionMeta(sid);
+      return (meta && meta.title) || null;
+    },
+    setSessionTitle: (title: string) => {
+      const ctxs = windowState.getAllContexts();
+      const ctx = ctxs.length > 0 ? ctxs[ctxs.length - 1] : null;
+      const store = ctx ? ctx.sessionStore : null;
+      const sid = store ? store.state.currentSessionId : null;
+      if (!store || !sid) return false;
+      try { store.updateSessionTitle(sid, title); return true; } catch (_) { return false; }
+    },
+    getTokens: () => ({
+      context: 0, cumulative: 0, today: 0, windowCumulative: 0,
+      total: (() => { try { return getTokenTotal(); } catch (_) { return 0; } })(),
+    }),
   };
 }
 

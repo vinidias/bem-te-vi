@@ -15,6 +15,7 @@ import { registerPromptSection, getPromptSections } from '../dsh-compat/prompt-s
 import { createFs } from '../dsh-compat/fs-service.js';
 import { createAgents } from '../dsh-compat/agents-service.js';
 import { PluginStorage } from './plugin-storage.js';
+import { createC6Services } from '../dsh-compat/c6-services.js';
 
 const require = createRequire(import.meta.url);
 
@@ -144,6 +145,16 @@ interface CuckooHost {
   listSessions?: () => Array<{ id: string; title?: string }>;
   /** 某会话 */
   getSession?: (id: string) => { id: string; title?: string } | null;
+  // ===== C6 =====
+  listSkills?: () => Array<{ name: string; description?: string; source?: string }>;
+  listCommands?: () => Array<{ id: string; title: string }>;
+  registerCommand?: (cmd: { id: string; title: string; run: () => any }) => () => void;
+  getGoal?: () => { active: boolean; text?: string } | null;
+  triggerCompaction?: () => Promise<boolean>;
+  listWorkspaceFiles?: () => Array<{ path: string; type: string }>;
+  getSessionTitle?: () => string | null;
+  setSessionTitle?: (title: string) => boolean;
+  getTokens?: () => { context: number; cumulative: number; today: number; windowCumulative: number; total: number };
 }
 
 /** 一个"假 ctx"——收集插件注册的工具；未知属性用 stub 兜底（够用空接口） */
@@ -179,6 +190,8 @@ function createCollectorCtx(pluginName: string, host?: CuckooHost, runtime?: any
     fs: createFs(() => (host && host.getCurrentSession ? host.getCurrentSession().projectDir : null)),
     // 子代理服务（C4-C）：会话 → agent 视图
     agents: createAgents(host),
+    // C6：skills/commands/goals/compaction/workspaceFiles/sessionTitle/tokenMeter
+    ...createC6Services(host),
     // 提示词段（C4）：插件 ctx.systemPrompt.section(...) 注册进全局表
     systemPrompt: {
       section(sec: any) { return registerPromptSection(sec, pluginName); },
