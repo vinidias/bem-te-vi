@@ -20,6 +20,7 @@ import { getProvider } from '../../providers/registry.js';
 import { resetTodosCache } from './tool.js';
 import { cdpAttach } from './cdp-attach.js';
 import { initProject } from '../../session/project-context.js';
+import { windowManager } from '../../tools/impl/browser-window-manager.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
@@ -323,9 +324,8 @@ function registerHarnessIpc(): void {
     if (!url || typeof url !== 'string') return { success: false };
     if (!/^https?:\/\//i.test(url)) return { success: false, error: 'invalid-url' };
     try {
-      const { shell } = require('electron');
-      await shell.openExternal(url);
-      return { success: true };
+      const windowId = windowManager.openWindow(null, url, { width: 1200, height: 800 });
+      return { success: true, windowId };
     } catch (err: any) {
       return { success: false, error: err.message };
     }
