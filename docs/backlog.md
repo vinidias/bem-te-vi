@@ -173,7 +173,7 @@
 | **agents** | 子代理 | agents-service（会话视图）| ✅ | — |
 | **skills** | 技能 | Cuckoo skills | ❌ | 🟡 |
 | **commands** | 命令 | Cuckoo 命令 | ❌ | 🟡 |
-| **storage / storageDomain** | 持久化 | ❌ | ❌ | 🟡 |
+| **storage / storageDomain** | 持久化 | plugin-storage（JSONL）| ✅ | — |
 | **sessionQuery** | 会话查询 | ❌ | ❌ | 🟡 |
 | **sessionTitle** | 会话标题 | nameConversation | ❌ | 🟡 |
 | **compaction** | 上下文压缩 | Cuckoo 压缩 | ❌ | 🟡 |
@@ -202,7 +202,7 @@
 | **C4-A** | **systemPrompt**（提示词段）| ✅ **已完成（2026-10-08）** |
 | **C4-B** | **fs**（文件读写）| ✅ **已完成（2026-10-08）** |
 | **C4-C** | **agents**（子代理）| ✅ **已完成（2026-10-08）** |
-| **C5** | **storage 落盘**（学 DSH 独立层）| 🟡 待做 |
+| **C5** | **storage 落盘**（JSONL + 重放）| ✅ **已完成（2026-10-08）** |
 | **C6** | skills / commands / goals / compaction 等 | 🟡 待做 |
 | **P3** | UI/主题等 DSH 客户端能力 | 🟢 待做 |
 

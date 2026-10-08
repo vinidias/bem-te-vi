@@ -95,6 +95,7 @@ DSH（DeepSeek Harness）是 DeepSeek 官方的 Agent 框架，生态里已有�
 - **简化自 DSH**：不做落盘 / checkpoint / watermark / change feed（DSH 的性能优化，Cuckoo 用不着）
 
 > **⚠️ 边界**：内存流水——**本次运行内**写读自洽；**重启/换会话丢失**（未落盘）。
+> **C5 已解决**：见下方 C5 章节（JSONL 落盘 + 启动重放）。
 
 ## C3：事件总线（`src/plugins/cuckoo-plugins/event-bridge.ts`）
 
@@ -124,6 +125,15 @@ DSH（DeepSeek Harness）是 DeepSeek 官方的 Agent 框架，生态里已有�
 - **对比 DSH**：DSH 是"活 agent 注册表 + handle/dispose"；Cuckoo 无 agent registry，用会话映射
 
 > **C4 完整**（systemPrompt + fs + agents 全接真）。
+
+## C5：插件会话落盘（`src/plugins/cuckoo-plugins/plugin-storage.ts`）
+
+- **存储**：JSONL（`~/.cuckoo/cuckoo-plugins-data/<id>/session.jsonl`），事件流追加
+- **运行时**：`attachStorage`——加载时**读回重放**（驱动投影恢复状态）；`append` 时**落盘**
+- **lazily build**：投影**后注册**时，**fold 已有历史**（DSH 机制）
+- **对比 DSH**：DSH 有 `storage`（hub）+ 后端（json/sqlite）+ domain；Cuckoo 简化到"一个 JSONL 文件"
+
+**现在**：插件 `append` 的事件**落盘** → **重启后投影恢复**。
 
 ## 验证
 
