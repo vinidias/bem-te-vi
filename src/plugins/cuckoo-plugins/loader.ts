@@ -12,6 +12,7 @@ import { setDshSession } from '../dsh-compat/shim.js';
 import { EventBus } from '../runtime/events.js';
 import { registerBus, unregisterBus } from './event-bridge.js';
 import { registerPromptSection, getPromptSections } from '../dsh-compat/prompt-sections.js';
+import { createFs } from '../dsh-compat/fs-service.js';
 
 const require = createRequire(import.meta.url);
 
@@ -172,6 +173,8 @@ function createCollectorCtx(pluginName: string, host?: CuckooHost, runtime?: any
         host.setPluginConfig(pluginName, cur);
       },
     },
+    // 文件服务（C4-B）：接真（node:fs，项目根由宿主提供）
+    fs: createFs(() => (host && host.getCurrentSession ? host.getCurrentSession().projectDir : null)),
     // 提示词段（C4）：插件 ctx.systemPrompt.section(...) 注册进全局表
     systemPrompt: {
       section(sec: any) { return registerPromptSection(sec, pluginName); },
