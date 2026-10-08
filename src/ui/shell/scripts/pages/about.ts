@@ -22,5 +22,5 @@ export async function loadAbout(): Promise<void> {
 
 // 插件改造版：已删除「检查更新」按钮（禁用原版在线更新）
 document.getElementById('about-github')?.addEventListener('click', () => {
-  if (api.openExternal) api.openExternal('https://github.com/wangyongpeng90/cuckoo-code');
+  if (api.openExternal) api.openExternal('https://github.com/vinidias/bem-te-vi');
 });

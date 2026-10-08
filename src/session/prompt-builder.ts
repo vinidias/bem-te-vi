@@ -207,6 +207,15 @@ function buildPrompt(opts: { providerId: string; selectedDir: string; isCompacti
   }
 
 
+  const userLang = process.env.BEM_TE_VI_LANGUAGE;
+  if (userLang === 'en') {
+    combined += '\n\nUser-facing communication: respond in English unless the user requests another language. Keep tool identifiers and code protocols unchanged.';
+  } else if (userLang === 'zh-CN') {
+    combined += '\n\n与用户的沟通：除非用户要求其他语言，否则请用简体中文回复。保持工具标识符和代码协议不变。';
+  } else {
+    combined += '\n\nComunicação com o usuário: responda em português do Brasil, salvo se o usuário pedir outro idioma. Preserve identificadores das ferramentas e protocolos de código.';
+  }
+
   // 压缩后初始化：末尾追加提示，让 AI 接着之前的工作继续
   if (isCompaction) {
     combined += '\n\n---\n\n请继续你之前的工作';

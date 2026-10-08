@@ -3,6 +3,8 @@
  * 全部方法可选——用防御式调用（if (api.xxx) api.xxx()）。
  */
 export interface ShellAPI {
+  getLanguage?: () => Promise<{ language: string; preference: string }>;
+  setLanguage?: (language: string) => Promise<{ language: string; preference: string; restartRequired: boolean }>;
   /** 运行平台（darwin/win32/linux） */
   platform?: string;
   navigate?: (url: string) => void;
