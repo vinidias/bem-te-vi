@@ -105,6 +105,13 @@ DSH（DeepSeek Harness）是 DeepSeek 官方的 Agent 框架，生态里已有�
 
 **现在**：DSH 插件 `ctx.on('agent/turn-end', ...)` **能收到** Cuckoo 的 AI 事件。
 
+## C4-A：ctx.systemPrompt（`src/plugins/dsh-compat/prompt-sections.ts`）
+
+- **注册表**：插件 `ctx.systemPrompt.section({name, order, text})` → 全局表（按 order 排序）
+- **合并**：`prompt-builder.ts` 把插件段合并进 `{{TOOL_SECTIONS}}`（与工具 section 一起进系统提示词）
+
+**现在**：DSH 插件注册的提示词段**真进** Cuckoo 系统提示词。
+
 ## 验证
 
 ### 单测（865 tests 全过）
