@@ -11,6 +11,7 @@ import { DshRuntime } from '../dsh-compat/runtime.js';
 import { setDshSession } from '../dsh-compat/shim.js';
 import { EventBus } from '../runtime/events.js';
 import { registerBus, unregisterBus } from './event-bridge.js';
+import { registerPromptSection, getPromptSections } from '../dsh-compat/prompt-sections.js';
 
 const require = createRequire(import.meta.url);
 
@@ -170,6 +171,12 @@ function createCollectorCtx(pluginName: string, host?: CuckooHost, runtime?: any
         cur[key] = value;
         host.setPluginConfig(pluginName, cur);
       },
+    },
+    // 提示词段（C4）：插件 ctx.systemPrompt.section(...) 注册进全局表
+    systemPrompt: {
+      section(sec: any) { return registerPromptSection(sec, pluginName); },
+      /** 取已注册段（DSH 有的读面） */
+      sections() { return getPromptSections(); },
     },
     // 真·会话（宿主注入）
     sessions: {
