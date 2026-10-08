@@ -1,0 +1,1324 @@
+﻿source (zh),pt-BR,en,zh-CN
+"
+
+⚠️ 警告：此命令可能存在风险，请谨慎确认！","
+
+⚠️ Aviso: este comando pode apresentar riscos, confirme com cuidado!","
+
+⚠️ Warning: this command may be risky, please confirm carefully!","
+
+⚠️ 警告：此命令可能存在风险，请谨慎确认！"
+"
+
+装好后默认处于禁用状态，需在「已安装」处打开开关才生效。","
+
+Após a instalação, ele fica desativado por padrão. Você precisa ativá-lo na seção「Instalados」para que funcione.","
+
+It is disabled by default after installation. You need to turn on the toggle under「Installed」for it to take effect.","
+
+装好后默认处于禁用状态，需在「已安装」处打开开关才生效。"
+"
+
+请持续推进并完成上述目标，要求：
+","
+
+Continue avançando e conclua o objetivo acima, com os requisitos:
+","
+
+Keep advancing and complete the above goal, requirements:
+","
+
+请持续推进并完成上述目标，要求：
+"
+"
+
+重启应用后工具生效。","
+
+A ferramenta terá efeito após reiniciar o aplicativo.","
+
+The tool takes effect after restarting the app.","
+
+重启应用后工具生效。"
+"
+
+默认禁用。在「已安装」处打开开关后，它的技能 / 代理 / 规则 / MCP / 可执行内容才会生效。","
+
+Desativado por padrão. Suas habilidades / agentes / regras / MCP / conteúdo executável só entrarão em vigor após ativar o interruptor em「Instalados」.","
+
+Disabled by default. Its skills / agents / rules / MCP / executable content will only take effect after you turn on the toggle under「Installed」.","
+
+默认禁用。在「已安装」处打开开关后，它的技能 / 代理 / 规则 / MCP / 可执行内容才会生效。"
+"
+…[历史记录已截断]","
+…[histórico truncado]","
+…[history truncated]","
+…[历史记录已截断]"
+"
+工具：","
+Ferramenta:","
+Tool:","
+工具："
+"
+  在群里发消息（可直接发，无需 @ 机器人），就会送到绑定该群的窗口。","
+  Envie uma mensagem no grupo (pode enviar diretamente, sem precisar @ o bot) e ela será enviada para a janela vinculada a esse grupo.","
+  Send a message in the group (you can send directly, no need to @ the bot) and it will be delivered to the window bound to that group.","
+  在群里发消息（可直接发，无需 @ 机器人），就会送到绑定该群的窗口。"
+"
+  检查 App ID / App Secret 是否正确；检查第 6 步「订阅方式」是否选了「使用长连接」。","
+  Verifique se o App ID / App Secret estão corretos; verifique se no passo 6 «Modo de assinatura» foi selecionado «Usar conexão longa».","
+  Check if App ID / App Secret are correct; check if in step 6 «Subscription method» «Use long connection» is selected.","
+  检查 App ID / App Secret 是否正确；检查第 6 步「订阅方式」是否选了「使用长连接」。"
+"
+  检查第 6 步「事件订阅」是否配了 ","
+  Verifique se a «Assinatura de eventos» foi configurada no passo 6 ","
+  Check if «Event subscription» is configured in step 6 ","
+  检查第 6 步「事件订阅」是否配了 "
+"
+  检查该窗口是否","
+  Verifique se esta janela","
+  Check if this window","
+  检查该窗口是否"
+"
+  每个窗口要绑定","
+  Cada janela deve ser vinculada a","
+  Each window must be bound to","
+  每个窗口要绑定"
+"  { content: ""第一步说明"", status: ""pending"" },
+","  { content: ""Descrição da primeira etapa"", status: ""pending"" },
+","  { content: ""First step description"", status: ""pending"" },
+","  { content: ""第一步说明"", status: ""pending"" },
+"
+"  { content: ""第二步说明"", status: ""pending"" }
+","  { content: ""Descrição da segunda etapa"", status: ""pending"" }
+","  { content: ""Second step description"", status: ""pending"" }
+","  { content: ""第二步说明"", status: ""pending"" }
+"
+ (活跃窗口), (janela ativa), (active window), (活跃窗口)
+ (父窗口 , (janela pai , (parent window , (父窗口 
+ (群), (grupo), (group), (群)
+ + 目标描述，开启自动多轮推进, + descrição do objetivo para iniciar a progressão automática de múltiplas rodadas, + goal description to enable automatic multi-round progression, + 目标描述，开启自动多轮推进
+ - AI任务已完成, - Tarefa de IA concluída, - AI task completed, - AI任务已完成
+" /><span class=""ck-switch-track""></span></label><button class=""ck-icon-btn ckp-del"" title=""卸载""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div>"," /><span class=""ck-switch-track""></span></label><button class=""ck-icon-btn ckp-del"" title=""Desinstalar""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div>"," /><span class=""ck-switch-track""></span></label><button class=""ck-icon-btn ckp-del"" title=""Uninstall""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div>"," /><span class=""ck-switch-track""></span></label><button class=""ck-icon-btn ckp-del"" title=""卸载""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div>"
+" />默认</label><span class=""cuckoo-window-left""><span class=""cuckoo-window-name"">"," />Padrão</label><span class=""cuckoo-window-left""><span class=""cuckoo-window-name"">"," />Default</label><span class=""cuckoo-window-left""><span class=""cuckoo-window-name"">"," />默认</label><span class=""cuckoo-window-left""><span class=""cuckoo-window-name"">"
+ />默认打开</label></div></div>, />Abrir por padrão</label></div></div>, />Open by default</label></div></div>, />默认打开</label></div></div>
+ >= 阈值 , >= limite , >= threshold , >= 阈值 
+ · 步骤 , · Etapa , · Step , · 步骤 
+ · 迭代 , · Iteração , · Iteration , · 迭代 
+ → 用刚注册的账号登录, → Faça login com a conta recém-cadastrada, → Log in with the newly registered account, → 用刚注册的账号登录
+ → 用手机号注册（免费）, → Cadastre-se com número de celular (gratuito), → Register with phone number (free), → 用手机号注册（免费）
+ 万, mil, ten thousand, 万
+ 个 / 代理 , / agente , / agent , 个 / 代理 
+ 个] , ] , ] , 个] 
+ 个窗口, janelas, windows, 个窗口
+ 个脚本), scripts), scripts), 个脚本)
+ 个）, ), ), 个）
+ 切回, para voltar, to switch back, 切回
+" 到输入框"">@</span>"," à caixa de entrada"">@</span>"," to input box"">@</span>"," 到输入框"">@</span>"
+ 和 , e , and , 和 
+ 子代理, subagente, sub-agent, 子代理
+ 字), caracteres), characters), 字)
+" 字)</span></div><div class=""think-body"">"," caracteres)</span></div><div class=""think-body"">"," characters)</span></div><div class=""think-body"">"," 字)</span></div><div class=""think-body"">"
+ 字符）, caracteres), characters), 字符）
+" 对话</div><div class=""ck-ws-archived-items"">"," conversas</div><div class=""ck-ws-archived-items"">"," conversations</div><div class=""ck-ws-archived-items"">"," 对话</div><div class=""ck-ws-archived-items"">"
+ 工具</span></div></div>, ferramentas</span></div></div>, tools</span></div></div>, 工具</span></div></div>
+ 已下载完成, baixada com sucesso, download completed, 已下载完成
+ 技能, Habilidades, Skills, 技能
+ 权限。, está ativada., permission is enabled., 权限。
+ 次）, ª tentativa), th attempt), 次）
+ 步 —— 确认后开始执行, etapas — a execução começará após a confirmação, steps — execution will start after confirmation, 步 —— 确认后开始执行
+ 轮），停止," rodadas), parando"," rounds), stopping", 轮），停止
+ 轮；完成后 AI 会自行收尾）," rodadas; ao concluir, a IA finalizará por conta própria）"," rounds; upon completion, the AI will wrap up on its own)", 轮；完成后 AI 会自行收尾）
+ 这个 MCP, este MCP, this MCP, 这个 MCP
+" 项目</div><div class=""ck-ws-archived-projects-items"">"," projetos</div><div class=""ck-ws-archived-projects-items"">"," projects</div><div class=""ck-ws-archived-projects-items"">"," 项目</div><div class=""ck-ws-archived-projects-items"">"
+""" data-upgrade=""1"" title=""更新到最新"">",""" data-upgrade=""1"" title=""Atualizar para a versão mais recente"">",""" data-upgrade=""1"" title=""Update to latest"">",""" data-upgrade=""1"" title=""更新到最新"">"
+""" title=""删除""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div></div><div class=""ck-skill-desc"">",""" title=""Excluir""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div></div><div class=""ck-skill-desc"">",""" title=""Delete""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div></div><div class=""ck-skill-desc"">",""" title=""删除""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div></div><div class=""ck-skill-desc"">"
+""" title=""删除""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div></div><span class=""ck-snip-preview"">",""" title=""Excluir""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div></div><span class=""ck-snip-preview"">",""" title=""Delete""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div></div><span class=""ck-snip-preview"">",""" title=""删除""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 6h18""/><path d=""M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2""/><path d=""M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6""/></svg></button></div></div><span class=""ck-snip-preview"">"
+""" title=""删除"">×</button>",""" title=""Excluir"">×</button>",""" title=""Delete"">×</button>",""" title=""删除"">×</button>"
+""" title=""删除窗口"">✕</span></div><div class=""ck-win-bottom""><span class=""ck-win-provider"">",""" title=""Excluir janela"">✕</span></div><div class=""ck-win-bottom""><span class=""ck-win-provider"">",""" title=""Delete window"">✕</span></div><div class=""ck-win-bottom""><span class=""ck-win-provider"">",""" title=""删除窗口"">✕</span></div><div class=""ck-win-bottom""><span class=""ck-win-provider"">"
+""" title=""删除窗口"">删除</span></div>",""" title=""Excluir janela"">Excluir</span></div>",""" title=""Delete window"">Delete</span></div>",""" title=""删除窗口"">删除</span></div>"
+""" title=""删除组"">✕</span></div>",""" title=""Excluir grupo"">✕</span></div>",""" title=""Delete group"">✕</span></div>",""" title=""删除组"">✕</span></div>"
+""" title=""卸载"">",""" title=""Desinstalar"">",""" title=""Uninstall"">",""" title=""卸载"">"
+""" title=""启动时默认打开""><input type=""checkbox"" data-profile-id=""",""" title=""Abrir por padrão na inicialização""><input type=""checkbox"" data-profile-id=""",""" title=""Open by default on startup""><input type=""checkbox"" data-profile-id=""",""" title=""启动时默认打开""><input type=""checkbox"" data-profile-id="""
+""" title=""安装"">",""" title=""Instalar"">",""" title=""Install"">",""" title=""安装"">"
+""" title=""替换"">↻</button>",""" title=""Substituir"">↻</button>",""" title=""Replace"">↻</button>",""" title=""替换"">↻</button>"
+""" title=""点击跳到该窗口的最近对话"">最近：",""" title=""Clique para ir para a conversa mais recente desta janela"">Recente:",""" title=""Click to jump to the latest conversation of this window"">Latest:",""" title=""点击跳到该窗口的最近对话"">最近："
+""" title=""移除"">✕</span></div>",""" title=""Remover"">✕</span></div>",""" title=""Remove"">✕</span></div>",""" title=""移除"">✕</span></div>"
+""" title=""管理组（改名、增删窗口）"">管理</span><span class=""ck-wg-del"" data-group-id=""",""" title=""Gerenciar grupo (renomear, adicionar/remover janelas)"">Gerenciar</span><span class=""ck-wg-del"" data-group-id=""",""" title=""Manage group (rename, add/remove windows)"">Manage</span><span class=""ck-wg-del"" data-group-id=""",""" title=""管理组（改名、增删窗口）"">管理</span><span class=""ck-wg-del"" data-group-id="""
+""" title=""编辑""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></button><button class=""ck-snip-icon-btn danger"" data-del-agent=""",""" title=""Editar""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></button><button class=""ck-snip-icon-btn danger"" data-del-agent=""",""" title=""Edit""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></button><button class=""ck-snip-icon-btn danger"" data-del-agent=""",""" title=""编辑""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></button><button class=""ck-snip-icon-btn danger"" data-del-agent="""
+""" title=""编辑""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></button><button class=""ck-snip-icon-btn danger"" data-del=""",""" title=""Editar""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></button><button class=""ck-snip-icon-btn danger"" data-del=""",""" title=""Edit""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></button><button class=""ck-snip-icon-btn danger"" data-del=""",""" title=""编辑""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></button><button class=""ck-snip-icon-btn danger"" data-del="""
+""" title=""转移当前对话到下一窗口"">转移对话</span><span class=""ck-wg-manage"" data-group-id=""",""" title=""Transferir a conversa atual para a próxima janela"">Transferir conversa</span><span class=""ck-wg-manage"" data-group-id=""",""" title=""Transfer current conversation to the next window"">Transfer conversation</span><span class=""ck-wg-manage"" data-group-id=""",""" title=""转移当前对话到下一窗口"">转移对话</span><span class=""ck-wg-manage"" data-group-id="""
+""" title=""追加 @",""" title=""Adicionar @",""" title=""Append @",""" title=""追加 @"
+""" title=""配置"">⚙</button>",""" title=""Configurar"">⚙</button>",""" title=""Configure"">⚙</button>",""" title=""配置"">⚙</button>"
+""" 不能同时指定 url 和 command",""" não pode ter url e command definidos ao mesmo tempo",""" cannot specify both url and command",""" 不能同时指定 url 和 command"
+""" 的 Provider，是否替换？",""" , deseja substituir?",""" , replace it?",""" 的 Provider，是否替换？"
+""" 的 args 必须是数组",""" args deve ser um array",""" args must be an array",""" 的 args 必须是数组"
+""" 的 command 必须是非空字符串",""" deve ter um command não vazio do tipo string",""" command must be a non-empty string",""" 的 command 必须是非空字符串"
+""" 的 env 必须是对象",""" env deve ser um objeto",""" env must be an object",""" 的 env 必须是对象"
+""" 的 headers 必须是对象",""" headers deve ser um objeto",""" headers must be an object",""" 的 headers 必须是对象"
+""" 的 url 必须是非空字符串",""" deve ter uma url não vazia do tipo string",""" url must be a non-empty string",""" 的 url 必须是非空字符串"
+""" 的定义必须是对象",""" deve ter uma definição do tipo objeto",""" definition must be an object",""" 的定义必须是对象"
+""" 缺少 command 或 url",""" está sem command ou url",""" is missing command or url",""" 缺少 command 或 url"
+"""><div class=""ck-ws-archived-projects-title"">已归档 ","""><div class=""ck-ws-archived-projects-title"">Arquivado ","""><div class=""ck-ws-archived-projects-title"">Archived ","""><div class=""ck-ws-archived-projects-title"">已归档 "
+"""><div class=""ck-ws-archived-title"">已归档 ","""><div class=""ck-ws-archived-title"">Arquivado ","""><div class=""ck-ws-archived-title"">Archived ","""><div class=""ck-ws-archived-title"">已归档 "
+"""><label class=""cuckoo-window-auto"" title=""启动时默认打开此窗口""><input type=""checkbox"" data-profile-id=""","""><label class=""cuckoo-window-auto"" title=""Abrir esta janela por padrão na inicialização""><input type=""checkbox"" data-profile-id=""","""><label class=""cuckoo-window-auto"" title=""Open this window by default on startup""><input type=""checkbox"" data-profile-id=""","""><label class=""cuckoo-window-auto"" title=""启动时默认打开此窗口""><input type=""checkbox"" data-profile-id="""
+""">压缩历史（",""">Histórico compactado (",""">Compressed history (",""">压缩历史（"
+""">子代理（",""">Subagente (",""">Sub-agent (",""">子代理（"
+"""发送到开发者服务器""）→ 点「","""Enviar para servidor do desenvolvedor"") → clique em «","""Send to developer server"") → click «","""发送到开发者服务器""）→ 点「"
+(无),(Nenhum),(None),(无)
+(无输入框),(sem caixa de entrada),(no input box),(无输入框)
+(无输出),(Sem saída),(No output),(无输出)
+(未确定),(Indeterminado),(Undetermined),(未确定)
+(脚本执行完成，无输出),"(execução do script concluída, sem saída)","(script execution completed, no output)",(脚本执行完成，无输出)
+(解绑),(Desvincular),(Unbind),(解绑)
+", 长度=",", comprimento=",", length=",", 长度="
+", 项目目录 ",", diretório do projeto ",", project directory ",", 项目目录 "
+--- 下方按钮 ---,--- Botões abaixo ---,--- Buttons below ---,--- 下方按钮 ---
+...[输出过长已截断]...,"...[saída muito longa, truncada]...","...[output too long, truncated]...",...[输出过长已截断]...
+".md
+（已用系统默认程序打开，编辑保存后点「刷新」即可看到）",".md
+（aberto com o programa padrão do sistema; edite e salve, depois clique em ""Atualizar"" para ver as alterações）",".md
+(opened with the default system program; edit and save, then click ""Refresh"" to see changes)",".md
+（已用系统默认程序打开，编辑保存后点「刷新」即可看到）"
+"1. 优先使用可用工具实际推进（读写文件、执行命令、检索等），而非只输出计划；
+","1. Priorize o uso de ferramentas disponíveis para avançar de fato (ler/gravar arquivos, executar comandos, pesquisar, etc.), em vez de apenas apresentar um plano;
+","1. Prioritize using available tools to actually advance (read/write files, run commands, search, etc.), instead of only outputting a plan;
+","1. 优先使用可用工具实际推进（读写文件、执行命令、检索等），而非只输出计划；
+"
+"1. 用 todoWrite 工具列出完成该任务所需的完整分步计划，每一步一条，status 全部为 pending；
+","1. Use a ferramenta todoWrite para listar o plano passo a passo completo necessário para concluir a tarefa, um item por etapa, com status definido como pending para todos;
+","1. Use the todoWrite tool to list the full step-by-step plan required to complete the task, one item per step, with all status set to pending;
+","1. 用 todoWrite 工具列出完成该任务所需的完整分步计划，每一步一条，status 全部为 pending；
+"
+"2. 一轮无法完成时直接继续下一轮，无需等待用户确认；
+","2. Se não for possível concluir em uma rodada, continue diretamente para a próxima, sem esperar a confirmação do usuário;
+","2. If it can't be completed in one round, continue directly to the next round without waiting for user confirmation;
+","2. 一轮无法完成时直接继续下一轮，无需等待用户确认；
+"
+"2. 计划要从头到尾覆盖整个任务，粒度适中（不要合并成一步，也不要把一步拆碎）；
+","2. O plano deve cobrir a tarefa inteira do início ao fim, com granularidade adequada (não junte tudo em uma etapa, nem divida uma etapa em partes muito pequenas);
+","2. The plan must cover the entire task from start to finish, with appropriate granularity (do not merge into one step, nor split a single step into tiny pieces);
+","2. 计划要从头到尾覆盖整个任务，粒度适中（不要合并成一步，也不要把一步拆碎）；
+"
+3. 目标的所有要求确实完成后，调用 goalDone() 工具结束目标（写成 ,"3. Quando todos os requisitos do objetivo forem realmente cumpridos, chame a ferramenta goalDone() para encerrar o objetivo (escreva em um bloco de código ","3. When all requirements of the goal are truly completed, call the goalDone() tool to end the goal (write it in a ",3. 目标的所有要求确实完成后，调用 goalDone() 工具结束目标（写成 
+"3. 调用 todoWrite 属于""制定计划""本身，不算执行任务；除 todoWrite 外不要调用任何其它工具；
+","3. Chamar todoWrite faz parte do próprio «planejamento», não conta como execução da tarefa; não chame nenhuma outra ferramenta além de todoWrite;
+","3. Calling todoWrite is part of ""making the plan"" itself, it does not count as executing the task; do not call any other tool besides todoWrite;
+","3. 调用 todoWrite 属于""制定计划""本身，不算执行任务；除 todoWrite 外不要调用任何其它工具；
+"
+"4. todoWrite 调用后立即停下，**用一两句自然语言**说明计划已列出并等待用户确认。
+
+","4. Pare imediatamente após chamar todoWrite, **use uma ou duas frases em linguagem natural** para explicar que o plano foi listado e está aguardando a confirmação do usuário.
+
+","4. Stop immediately after calling todoWrite, **use one or two sentences in natural language** to explain that the plan has been listed and is waiting for user confirmation.
+
+","4. todoWrite 调用后立即停下，**用一两句自然语言**说明计划已列出并等待用户确认。
+
+"
+4. 遇到无法解决的阻碍时，说明原因并暂停等待。,"4. Se encontrar um obstáculo que não possa ser resolvido, explique o motivo e pause para aguardar.","4. When encountering an unsolvable obstacle, explain the reason and pause to wait.",4. 遇到无法解决的阻碍时，说明原因并暂停等待。
+"</div><div class=""ck-tip-time"" id=""ws-tip-time"">读取中…</div>","</div><div class=""ck-tip-time"" id=""ws-tip-time"">Carregando…</div>","</div><div class=""ck-tip-time"" id=""ws-tip-time"">Loading…</div>","</div><div class=""ck-tip-time"" id=""ws-tip-time"">读取中…</div>"
+"</span>
+        <span class=""session-action"">▶ 跳转</span>
+      </div>
+    ","</span>
+        <span class=""session-action"">▶ Ir para</span>
+      </div>
+    ","</span>
+        <span class=""session-action"">▶ Jump</span>
+      </div>
+    ","</span>
+        <span class=""session-action"">▶ 跳转</span>
+      </div>
+    "
+"</span><span class=""ck-ws-gacts""><span class=""ck-ws-gact"" data-gact=""new"" title=""用该项目新建对话""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 5v14M5 12h14""/></svg></span>","</span><span class=""ck-ws-gacts""><span class=""ck-ws-gact"" data-gact=""new"" title=""Nova conversa com este projeto""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 5v14M5 12h14""/></svg></span>","</span><span class=""ck-ws-gacts""><span class=""ck-ws-gact"" data-gact=""new"" title=""New conversation with this project""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 5v14M5 12h14""/></svg></span>","</span><span class=""ck-ws-gacts""><span class=""ck-ws-gact"" data-gact=""new"" title=""用该项目新建对话""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 5v14M5 12h14""/></svg></span>"
+"<button class=""ac-del"" title=""移除""><svg viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round""><path d=""M4 4l8 8M12 4l-8 8""/></svg></button>","<button class=""ac-del"" title=""Remover""><svg viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round""><path d=""M4 4l8 8M12 4l-8 8""/></svg></button>","<button class=""ac-del"" title=""Remove""><svg viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round""><path d=""M4 4l8 8M12 4l-8 8""/></svg></button>","<button class=""ac-del"" title=""移除""><svg viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round""><path d=""M4 4l8 8M12 4l-8 8""/></svg></button>"
+"<button class=""hc-del"" title=""移除""><svg viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round""><path d=""M4 4l8 8M12 4l-8 8""/></svg></button>","<button class=""hc-del"" title=""Remover""><svg viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round""><path d=""M4 4l8 8M12 4l-8 8""/></svg></button>","<button class=""hc-del"" title=""Remove""><svg viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round""><path d=""M4 4l8 8M12 4l-8 8""/></svg></button>","<button class=""hc-del"" title=""移除""><svg viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round""><path d=""M4 4l8 8M12 4l-8 8""/></svg></button>"
+"<div class=""ck-ft-truncated"">（结果过多，仅显示前 500 项）</div>","<div class=""ck-ft-truncated"">（muitos resultados, exibindo apenas os primeiros 500 itens）</div>","<div class=""ck-ft-truncated"">(too many results, only showing the first 500 items)</div>","<div class=""ck-ft-truncated"">（结果过多，仅显示前 500 项）</div>"
+"<div class=""ck-ft-truncated"">（节点过多，已截断显示）</div>","<div class=""ck-ft-truncated"">（muitos nós, exibição truncada）</div>","<div class=""ck-ft-truncated"">(too many nodes, display truncated)</div>","<div class=""ck-ft-truncated"">（节点过多，已截断显示）</div>"
+"<div class=""ck-list-empty"" style=""width:100%;"">暂无数据</div>","<div class=""ck-list-empty"" style=""width:100%;"">Sem dados</div>","<div class=""ck-list-empty"" style=""width:100%;"">No data</div>","<div class=""ck-list-empty"" style=""width:100%;"">暂无数据</div>"
+"<div class=""ck-list-empty"">加载中…</div>","<div class=""ck-list-empty"">Carregando…</div>","<div class=""ck-list-empty"">Loading…</div>","<div class=""ck-list-empty"">加载中…</div>"
+"<div class=""ck-list-empty"">加载中…（若持续为空，请点刷新）</div>","<div class=""ck-list-empty"">Carregando… (se continuar vazio, clique em atualizar)</div>","<div class=""ck-list-empty"">Loading… (if it remains empty, click refresh)</div>","<div class=""ck-list-empty"">加载中…（若持续为空，请点刷新）</div>"
+"<div class=""ck-list-empty"">加载失败</div>","<div class=""ck-list-empty"">Falha ao carregar</div>","<div class=""ck-list-empty"">Failed to load</div>","<div class=""ck-list-empty"">加载失败</div>"
+"<div class=""ck-list-empty"">无匹配结果</div>","<div class=""ck-list-empty"">Nenhum resultado correspondente</div>","<div class=""ck-list-empty"">No matching results</div>","<div class=""ck-list-empty"">无匹配结果</div>"
+"<div class=""ck-list-empty"">暂无 DSH 插件（点 + 安装）</div>","<div class=""ck-list-empty"">Nenhum plugin DSH (clique em + para instalar)</div>","<div class=""ck-list-empty"">No DSH plugins yet (click + to install)</div>","<div class=""ck-list-empty"">暂无 DSH 插件（点 + 安装）</div>"
+"<div class=""ck-list-empty"">暂无会话</div>","<div class=""ck-list-empty"">Nenhuma conversa ainda</div>","<div class=""ck-list-empty"">No conversations yet</div>","<div class=""ck-list-empty"">暂无会话</div>"
+"<div class=""ck-list-empty"">暂无插件<br><br>给你的仓库打上 <b>cuckoo-plugin</b> topic，<br>它就会出现在这里</div>","<div class=""ck-list-empty"">Nenhum plugin disponível no momento<br><br>Adicione o tópico <b>cuckoo-plugin</b> ao seu repositório,<br>e ele aparecerá aqui</div>","<div class=""ck-list-empty"">No plugins yet<br><br>Tag your repository with the <b>cuckoo-plugin</b> topic,<br>and it will appear here</div>","<div class=""ck-list-empty"">暂无插件<br><br>给你的仓库打上 <b>cuckoo-plugin</b> topic，<br>它就会出现在这里</div>"
+"<div class=""ck-list-empty"">暂无窗口</div>","<div class=""ck-list-empty"">Nenhuma janela</div>","<div class=""ck-list-empty"">No windows yet</div>","<div class=""ck-list-empty"">暂无窗口</div>"
+"<div class=""ck-list-empty"">未发现子代理<br>（.cuckoo/agents/ 或 ~/.cuckoo/agents/）</div>","<div class=""ck-list-empty"">Nenhum subagente encontrado<br>（.cuckoo/agents/ 或 ~/.cuckoo/agents/）</div>","<div class=""ck-list-empty"">No sub-agents found<br>（.cuckoo/agents/ or ~/.cuckoo/agents/）</div>","<div class=""ck-list-empty"">未发现子代理<br>（.cuckoo/agents/ 或 ~/.cuckoo/agents/）</div>"
+"<div class=""ck-list-empty"">未发现技能<br>（.cuckoo/skills/ 或 ~/.cuckoo/skills/）</div>","<div class=""ck-list-empty"">Nenhuma habilidade encontrada<br>（.cuckoo/skills/ ou ~/.cuckoo/skills/）</div>","<div class=""ck-list-empty"">No skills found<br>（.cuckoo/skills/ or ~/.cuckoo/skills/）</div>","<div class=""ck-list-empty"">未发现技能<br>（.cuckoo/skills/ 或 ~/.cuckoo/skills/）</div>"
+"<div class=""ck-list-empty"">未配置 MCP server</div>","<div class=""ck-list-empty"">Nenhum servidor MCP configurado</div>","<div class=""ck-list-empty"">No MCP server configured</div>","<div class=""ck-list-empty"">未配置 MCP server</div>"
+"<div class=""ck-list-empty"">空目录</div>","<div class=""ck-list-empty"">Diretório vazio</div>","<div class=""ck-list-empty"">Empty directory</div>","<div class=""ck-list-empty"">空目录</div>"
+"<div class=""ck-list-empty"">还没有安装插件<br>从下方市场安装</div>","<div class=""ck-list-empty"">Nenhum plugin instalado ainda<br>Instale da loja abaixo</div>","<div class=""ck-list-empty"">No plugins installed yet<br>Install from the marketplace below</div>","<div class=""ck-list-empty"">还没有安装插件<br>从下方市场安装</div>"
+"<div class=""ck-list-empty"">还没有提示词，点上方新建</div>","<div class=""ck-list-empty"">Ainda não há prompts, clique em novo acima</div>","<div class=""ck-list-empty"">No prompts yet, click new above</div>","<div class=""ck-list-empty"">还没有提示词，点上方新建</div>"
+"<div class=""ck-mcp-group-title"">用户级</div>","<div class=""ck-mcp-group-title"">Nível do usuário</div>","<div class=""ck-mcp-group-title"">User level</div>","<div class=""ck-mcp-group-title"">用户级</div>"
+"<div class=""ck-mcp-group-title"">项目级</div>","<div class=""ck-mcp-group-title"">Nível do projeto</div>","<div class=""ck-mcp-group-title"">Project level</div>","<div class=""ck-mcp-group-title"">项目级</div>"
+"<div class=""ck-plugin-req err"">读不到 plugin.json：","<div class=""ck-plugin-req err"">Não foi possível ler plugin.json：","<div class=""ck-plugin-req err"">Cannot read plugin.json:","<div class=""ck-plugin-req err"">读不到 plugin.json："
+"<div class=""ck-wg ck-wg-ungrouped""><div class=""ck-wg-head""><span class=""ck-wg-name"">未分组</span></div><div class=""ck-wg-body"">","<div class=""ck-wg ck-wg-ungrouped""><div class=""ck-wg-head""><span class=""ck-wg-name"">Sem grupo</span></div><div class=""ck-wg-body"">","<div class=""ck-wg ck-wg-ungrouped""><div class=""ck-wg-head""><span class=""ck-wg-name"">Ungrouped</span></div><div class=""ck-wg-body"">","<div class=""ck-wg ck-wg-ungrouped""><div class=""ck-wg-head""><span class=""ck-wg-name"">未分组</span></div><div class=""ck-wg-body"">"
+"<div class=""ck-wg-member-empty"">（暂无窗口）</div>","<div class=""ck-wg-member-empty"">(sem janelas no momento)</div>","<div class=""ck-wg-member-empty"">(no windows yet)</div>","<div class=""ck-wg-member-empty"">（暂无窗口）</div>"
+"<div class=""cuckoo-session-empty"">API 不可用</div>","<div class=""cuckoo-session-empty"">API indisponível</div>","<div class=""cuckoo-session-empty"">API unavailable</div>","<div class=""cuckoo-session-empty"">API 不可用</div>"
+"<div class=""cuckoo-session-empty"">加载出错</div>","<div class=""cuckoo-session-empty"">Erro ao carregar</div>","<div class=""cuckoo-session-empty"">Load error</div>","<div class=""cuckoo-session-empty"">加载出错</div>"
+"<div class=""cuckoo-session-empty"">加载失败</div>","<div class=""cuckoo-session-empty"">Falha ao carregar</div>","<div class=""cuckoo-session-empty"">Failed to load</div>","<div class=""cuckoo-session-empty"">加载失败</div>"
+"<div class=""cuckoo-session-empty"">暂无 MCP Server</div>","<div class=""cuckoo-session-empty"">Nenhum MCP Server disponível</div>","<div class=""cuckoo-session-empty"">No MCP Server available</div>","<div class=""cuckoo-session-empty"">暂无 MCP Server</div>"
+"<div class=""cuckoo-session-empty"">暂无会话</div>","<div class=""cuckoo-session-empty"">Nenhuma sessão</div>","<div class=""cuckoo-session-empty"">No sessions</div>","<div class=""cuckoo-session-empty"">暂无会话</div>"
+"<div class=""cuckoo-session-empty"">暂无窗口</div>","<div class=""cuckoo-session-empty"">Nenhuma janela</div>","<div class=""cuckoo-session-empty"">No windows</div>","<div class=""cuckoo-session-empty"">暂无窗口</div>"
+"<div class=""platform-desc"">点击进入</div>","<div class=""platform-desc"">Clique para entrar</div>","<div class=""platform-desc"">Click to enter</div>","<div class=""platform-desc"">点击进入</div>"
+"<div class=""platform-desc"">选择 JS 文件</div>","<div class=""platform-desc"">Selecione um arquivo JS</div>","<div class=""platform-desc"">Select JS file</div>","<div class=""platform-desc"">选择 JS 文件</div>"
+"<div class=""platform-name"">导入 Provider</div>","<div class=""platform-name"">Importar Provider</div>","<div class=""platform-name"">Import Provider</div>","<div class=""platform-name"">导入 Provider</div>"
+"<div class=""slash-sec"">工具</div>","<div class=""slash-sec"">Ferramentas</div>","<div class=""slash-sec"">Tools</div>","<div class=""slash-sec"">工具</div>"
+"<div class=""slash-sec"">技能</div>","<div class=""slash-sec"">Habilidades</div>","<div class=""slash-sec"">Skills</div>","<div class=""slash-sec"">技能</div>"
+"<div class=""slash-sec"">操作</div>","<div class=""slash-sec"">Ações</div>","<div class=""slash-sec"">Actions</div>","<div class=""slash-sec"">操作</div>"
+"<div class=""slash-sec"">无匹配项</div>","<div class=""slash-sec"">Sem correspondências</div>","<div class=""slash-sec"">No matches</div>","<div class=""slash-sec"">无匹配项</div>"
+"<div class=""think""><div class=""think-head""><svg class=""caret"" viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""1.8"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M6 3l5 5-5 5""/></svg><span class=""think-label"">已思考 (","<div class=""think""><div class=""think-head""><svg class=""caret"" viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""1.8"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M6 3l5 5-5 5""/></svg><span class=""think-label"">Pensou (","<div class=""think""><div class=""think-head""><svg class=""caret"" viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""1.8"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M6 3l5 5-5 5""/></svg><span class=""think-label"">Thought (","<div class=""think""><div class=""think-head""><svg class=""caret"" viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""1.8"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M6 3l5 5-5 5""/></svg><span class=""think-label"">已思考 ("
+"<div class=""think-head""><svg class=""caret"" viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""1.8"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M6 3l5 5-5 5""/></svg><span class=""think-label"">思考中…</span></div>","<div class=""think-head""><svg class=""caret"" viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""1.8"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M6 3l5 5-5 5""/></svg><span class=""think-label"">Pensando…</span></div>","<div class=""think-head""><svg class=""caret"" viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""1.8"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M6 3l5 5-5 5""/></svg><span class=""think-label"">Thinking…</span></div>","<div class=""think-head""><svg class=""caret"" viewBox=""0 0 16 16"" fill=""none"" stroke=""currentColor"" stroke-width=""1.8"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M6 3l5 5-5 5""/></svg><span class=""think-label"">思考中…</span></div>"
+"<div style=""color:#666;font-size:12px;font-style:italic;padding:8px 0;"">暂无记录</div>","<div style=""color:#666;font-size:12px;font-style:italic;padding:8px 0;"">Nenhum registro</div>","<div style=""color:#666;font-size:12px;font-style:italic;padding:8px 0;"">No records</div>","<div style=""color:#666;font-size:12px;font-style:italic;padding:8px 0;"">暂无记录</div>"
+"<div style=""color:#8a90b8;font-size:14px;"">暂无可用平台</div>","<div style=""color:#8a90b8;font-size:14px;"">Nenhuma plataforma disponível</div>","<div style=""color:#8a90b8;font-size:14px;"">No available platforms</div>","<div style=""color:#8a90b8;font-size:14px;"">暂无可用平台</div>"
+"<div style=""color:#ff6b7a;font-size:14px;"">API 未就绪，请重启应用</div>","<div style=""color:#ff6b7a;font-size:14px;"">API não está pronta, reinicie o aplicativo</div>","<div style=""color:#ff6b7a;font-size:14px;"">API is not ready, please restart the app</div>","<div style=""color:#ff6b7a;font-size:14px;"">API 未就绪，请重启应用</div>"
+"<div style=""color:#ff6b7a;font-size:14px;"">加载失败: ","<div style=""color:#ff6b7a;font-size:14px;"">Falha no carregamento: ","<div style=""color:#ff6b7a;font-size:14px;"">Load failed: ","<div style=""color:#ff6b7a;font-size:14px;"">加载失败: "
+"<option value="""">（未绑定 —— 该窗口飞书功能关闭）</option>","<option value="""">（não vinculado — a função do Feishu está desativada nesta janela）</option>","<option value="""">(not bound — Feishu feature is disabled for this window)</option>","<option value="""">（未绑定 —— 该窗口飞书功能关闭）</option>"
+"<option value="""">（选择要加入的窗口…）</option>","<option value="""">(selecione a janela para adicionar…)</option>","<option value="""">(select window to add…)</option>","<option value="""">（选择要加入的窗口…）</option>"
+"<span class=""ck-plugin-badge archived"" title=""仓库已归档，可能不再维护"">已归档</span>","<span class=""ck-plugin-badge archived"" title=""仓库已归档，可能不再维护"">Arquivado</span>","<span class=""ck-plugin-badge archived"" title=""仓库已归档，可能不再维护"">Archived</span>","<span class=""ck-plugin-badge archived"" title=""仓库已归档，可能不再维护"">已归档</span>"
+"<span class=""ck-plugin-badge on"">已安装</span>","<span class=""ck-plugin-badge on"">Instalado</span>","<span class=""ck-plugin-badge on"">Installed</span>","<span class=""ck-plugin-badge on"">已安装</span>"
+"<span class=""ck-plugin-badge update"" title=""含可执行内容"">含可执行</span>","<span class=""ck-plugin-badge update"" title=""含可执行内容"">Contém executável</span>","<span class=""ck-plugin-badge update"" title=""含可执行内容"">Contains executable</span>","<span class=""ck-plugin-badge update"" title=""含可执行内容"">含可执行</span>"
+"<span class=""ck-plugin-badge update"">可更新</span>","<span class=""ck-plugin-badge update"">Atualização disponível</span>","<span class=""ck-plugin-badge update"">Update available</span>","<span class=""ck-plugin-badge update"">可更新</span>"
+"<span class=""ck-snip-badge"">自动发送</span>","<span class=""ck-snip-badge"">Enviar automaticamente</span>","<span class=""ck-snip-badge"">Auto send</span>","<span class=""ck-snip-badge"">自动发送</span>"
+"<span class=""ck-token-unit-char"">万</span>","<span class=""ck-token-unit-char"">10 mil</span>","<span class=""ck-token-unit-char"">10K</span>","<span class=""ck-token-unit-char"">万</span>"
+"<span class=""ck-token-unit-char"">亿</span>","<span class=""ck-token-unit-char"">100 milhões</span>","<span class=""ck-token-unit-char"">100M</span>","<span class=""ck-token-unit-char"">亿</span>"
+"<span class=""ck-ws-act"" data-act=""archive"" title=""归档""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M10 12h4""/></svg></span>","<span class=""ck-ws-act"" data-act=""archive"" title=""Arquivar""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M10 12h4""/></svg></span>","<span class=""ck-ws-act"" data-act=""archive"" title=""Archive""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M10 12h4""/></svg></span>","<span class=""ck-ws-act"" data-act=""archive"" title=""归档""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M10 12h4""/></svg></span>"
+"<span class=""ck-ws-act"" data-act=""rename"" title=""重命名""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></span>","<span class=""ck-ws-act"" data-act=""rename"" title=""Renomear""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></span>","<span class=""ck-ws-act"" data-act=""rename"" title=""Rename""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></span>","<span class=""ck-ws-act"" data-act=""rename"" title=""重命名""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M12 20h9""/><path d=""M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z""/></svg></span>"
+"<span class=""ck-ws-act"" data-act=""unarchive"" title=""取消归档""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M12 10v6""/><path d=""M9 13l3-3 3 3""/></svg></span>","<span class=""ck-ws-act"" data-act=""unarchive"" title=""Desarquivar""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M12 10v6""/><path d=""M9 13l3-3 3 3""/></svg></span>","<span class=""ck-ws-act"" data-act=""unarchive"" title=""Unarchive""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M12 10v6""/><path d=""M9 13l3-3 3 3""/></svg></span>","<span class=""ck-ws-act"" data-act=""unarchive"" title=""取消归档""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M12 10v6""/><path d=""M9 13l3-3 3 3""/></svg></span>"
+"<span class=""ck-ws-gact"" data-gact=""archive"" title=""归档项目""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M10 12h4""/></svg></span>","<span class=""ck-ws-gact"" data-gact=""archive"" title=""Arquivar projeto""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M10 12h4""/></svg></span>","<span class=""ck-ws-gact"" data-gact=""archive"" title=""Archive project""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M10 12h4""/></svg></span>","<span class=""ck-ws-gact"" data-gact=""archive"" title=""归档项目""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><rect x=""3"" y=""4"" width=""18"" height=""4"" rx=""1""/><path d=""M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8""/><path d=""M10 12h4""/></svg></span>"
+"<span class=""ck-ws-gact"" data-gact=""unarchive"" title=""取消归档""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 7v5h5""/><path d=""M3.5 12a8.5 8.5 0 1 0 2-5.4L3 9""/></svg></span>","<span class=""ck-ws-gact"" data-gact=""unarchive"" title=""Desarquivar""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 7v5h5""/><path d=""M3.5 12a8.5 8.5 0 1 0 2-5.4L3 9""/></svg></span>","<span class=""ck-ws-gact"" data-gact=""unarchive"" title=""Unarchive""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 7v5h5""/><path d=""M3.5 12a8.5 8.5 0 1 0 2-5.4L3 9""/></svg></span>","<span class=""ck-ws-gact"" data-gact=""unarchive"" title=""取消归档""><svg viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2"" stroke-linecap=""round"" stroke-linejoin=""round""><path d=""M3 7v5h5""/><path d=""M3.5 12a8.5 8.5 0 1 0 2-5.4L3 9""/></svg></span>"
+"<span class=""sb-recent-label"">最近</span>","<span class=""sb-recent-label"">Recentes</span>","<span class=""sb-recent-label"">Recent</span>","<span class=""sb-recent-label"">最近</span>"
+"<span class=""tool-badge run"">运行中</span>","<span class=""tool-badge run"">Executando</span>","<span class=""tool-badge run"">Running</span>","<span class=""tool-badge run"">运行中</span>"
+<span>复制</span>,<span>Copiar</span>,<span>Copy</span>,<span>复制</span>
+AI 回复,Resposta da IA,AI reply,AI 回复
+AI 回复超时后重试（秒）,Repetir após tempo limite de resposta da IA (segundos),Retry after AI response timeout (seconds),AI 回复超时后重试（秒）
+AI 回复超时必须是非负数字,O tempo limite de resposta da IA deve ser um número não negativo,AI response timeout must be a non-negative number,AI 回复超时必须是非负数字
+AI 已完成回复,IA concluiu a resposta,AI has finished replying,AI 已完成回复
+AI 正在使用子代理执行任务，请等子代理结束后再发消息。,"A IA está executando a tarefa com um subagente. Por favor, envie mensagens novamente após o término do subagente.",AI is executing the task with a sub-agent. Please send messages again after the sub-agent finishes.,AI 正在使用子代理执行任务，请等子代理结束后再发消息。
+AI 网页在后台运行 · 按 ,Página da AI rodando em segundo plano · Pressione ,AI web page running in background · Press ,AI 网页在后台运行 · 按 
+AI 调用工具,IA chama uma ferramenta,AI calls a tool,AI 调用工具
+AI 页面响应超时,Tempo de resposta da página de IA esgotado,AI page response timed out,AI 页面响应超时
+"Assistente de IA para desktop. Português primeiro, inglês como alternativa.","Assistente de IA para desktop. Português primeiro, inglês como alternativa.","Desktop AI assistant. Portuguese first, English as an alternative.",桌面 AI 助手。默认葡萄牙语，可选英语或中文。
+"Baseado no Cuckoo Code, de wangyongpeng90 e colaboradores. Licença GPL-3.0-only.","Baseado no Cuckoo Code, de wangyongpeng90 e colaboradores. Licença GPL-3.0-only.","Based on Cuckoo Code, by wangyongpeng90 and contributors. Licensed under GPL-3.0-only.",基于 Cuckoo Code（wangyongpeng90 及贡献者）。GPL-3.0-only 许可。
+Cuckoo Code · 飞书同步配置教程,Bem-te-vi · Tutorial de configuração de sincronização do Feishu,Bem-te-vi · Feishu sync configuration tutorial,Cuckoo Code · 飞书同步配置教程
+Cuckoo 里发消息,Enviar mensagem no Bem-te-vi,Send message in Bem-te-vi,Cuckoo 里发消息
+DSH 插件（npm）,Plugin DSH (npm),DSH Plugin (npm),DSH 插件（npm）
+Enter 发送 · Shift+Enter 换行 · / 技能工具（↑↓ 选择） · /goal 目标 自动多轮推进 · 可粘贴/拖拽图片,Enter para enviar · Shift+Enter para quebrar linha · / para habilidades e ferramentas (↑↓ para selecionar) · /goal objetivo para progressão automática de múltiplas rodadas · Você pode colar/arrastar imagens,Enter to send · Shift+Enter for new line · / for skills & tools (↑↓ to select) · /goal for automatic multi-round progression · Paste/drag images supported,Enter 发送 · Shift+Enter 换行 · / 技能工具（↑↓ 选择） · /goal 目标 自动多轮推进 · 可粘贴/拖拽图片
+"GitHub 访问受限或更新资源不存在。请确认仓库名称和发布版本正确。
+
+错误信息：","Acesso ao GitHub restrito ou recurso de atualização não existe. Verifique se o nome do repositório e a versão do lançamento estão corretos.
+
+Mensagem de erro:","GitHub access is restricted or the update resource does not exist. Please confirm the repository name and release version are correct.
+
+Error message:","GitHub 访问受限或更新资源不存在。请确认仓库名称和发布版本正确。
+
+错误信息："
+Idioma / Language,Idioma / Language,Language / Idioma,语言 / Language
+Idioma salvo. Reinicie o aplicativo para aplicar.,Idioma salvo. Reinicie o aplicativo para aplicar.,Language saved. Restart the application to apply it.,语言已保存。重启应用以应用。
+JSON工具调用提示,Prompt de chamada de ferramenta JSON,JSON tool call prompt,JSON工具调用提示
+JS汇总,Resumo JS,JS Summary,JS汇总
+MB），请用系统程序打开,"MB), abra com um programa do sistema","MB), please open with a system program",MB），请用系统程序打开
+MCP 信息,Informações do MCP,MCP info,MCP 信息
+"MCP 配置已保存。
+
+是否告诉 AI 配置已更新？
+（请确保 AI 当前没有正在进行其他操作）","Configuração do MCP foi salva.
+
+Deseja informar à IA que a configuração foi atualizada?
+(Certifique-se de que a IA não esteja executando outras operações no momento)","MCP configuration has been saved.
+
+Tell the AI that the configuration has been updated?
+(Please make sure the AI is not running other operations right now)","MCP 配置已保存。
+
+是否告诉 AI 配置已更新？
+（请确保 AI 当前没有正在进行其他操作）"
+MCP信息,Informações do MCP,MCP Information,MCP信息
+MCP（连接器）,MCP (conectores),MCP (connectors),MCP（连接器）
+Monaco loader 未加载,Carregador do Monaco não carregado,Monaco loader not loaded,Monaco loader 未加载
+Não foi possível salvar o idioma.,Não foi possível salvar o idioma.,Could not save the language.,无法保存语言。
+Provider 已存在,Provider já existe,Provider already exists,Provider 已存在
+QQ 群,Grupo QQ,QQ group,QQ 群
+QQ 群：1104042537,Grupo QQ: 1104042537,QQ group: 1104042537,QQ 群：1104042537
+Q：多窗口消息串了？,P: As mensagens estão se misturando entre janelas?,Q: Messages are mixed up across multiple windows?,Q：多窗口消息串了？
+Q：找不到机器人 / 没有输入框？,P: Não consigo encontrar o bot / não há caixa de entrada?,Q: Can't find the bot / no input box?,Q：找不到机器人 / 没有输入框？
+Q：改了配置不生效？,P: A configuração alterada não está surtindo efeito?,Q: Changed settings don't take effect?,Q：改了配置不生效？
+"Q：状态一直""连接中""？",P: O status fica sempre «Conectando»?,"Q: Status is always ""Connecting""?","Q：状态一直""连接中""？"
+Q：飞书收不到消息？,P: Não consigo receber mensagens no Feishu?,Q: Can't receive messages on Feishu?,Q：飞书收不到消息？
+Reinicie o aplicativo para aplicar a alteração.,Reinicie o aplicativo para aplicar a alteração.,Restart the application to apply the change.,重启应用以应用更改。
+Token 超阈值（,Token acima do limite (,Token over threshold (,Token 超阈值（
+Token（词元）,Token (unidade de texto),Token,Token（词元）
+XML工具调用提示,Prompt de chamada de ferramenta XML,XML tool call prompt,XML工具调用提示
+[Cuckoo Attach] CDP 已点击 (,[Bem-te-vi Attach] CDP clicado (,[Bem-te-vi Attach] CDP clicked (,[Cuckoo Attach] CDP 已点击 (
+[Cuckoo Attach] 已直接注入隐藏 file input: ,[Cuckoo Attach] file input oculto injetado diretamente: ,[Cuckoo Attach] Hidden file input directly injected: ,[Cuckoo Attach] 已直接注入隐藏 file input: 
+[Cuckoo Attach] 文件已注入: ,[Cuckoo Attach] Arquivo injetado: ,[Cuckoo Attach] File injected: ,[Cuckoo Attach] 文件已注入: 
+[Cuckoo Attach] 第,[Cuckoo Attach],[Cuckoo Attach],[Cuckoo Attach] 第
+[Cuckoo Code] Session 数据目录:,[Bem-te-vi] Diretório de dados da Session:,[Bem-te-vi] Session data directory:,[Cuckoo Code] Session 数据目录:
+[Cuckoo Code] transformToolResult 调用失败:,[Bem-te-vi] Falha na chamada de transformToolResult:,[Bem-te-vi] transformToolResult call failed:,[Cuckoo Code] transformToolResult 调用失败:
+[Cuckoo Code] ❌ simulate-mouse 失败:,[Bem-te-vi] ❌ Falha no simulate-mouse:,[Bem-te-vi] ❌ simulate-mouse failed:,[Cuckoo Code] ❌ simulate-mouse 失败:
+[Cuckoo Code] ❌ 原生 Enter 发送失败:,[Bem-te-vi] ❌ Falha ao enviar com Enter nativo:,[Bem-te-vi] ❌ Native Enter send failed:,[Cuckoo Code] ❌ 原生 Enter 发送失败:
+[Cuckoo Code] 全部 session 数据已刷新到磁盘,[Bem-te-vi] Todos os dados de session foram gravados no disco,[Bem-te-vi] All session data has been flushed to disk,[Cuckoo Code] 全部 session 数据已刷新到磁盘
+[Cuckoo Code] 关闭窗口记录 lastUrl: profile=,"[Bem-te-vi] Fechar janela, registrar lastUrl: profile=","[Bem-te-vi] Close window, log lastUrl: profile=",[Cuckoo Code] 关闭窗口记录 lastUrl: profile=
+[Cuckoo Code] 关闭窗口：view 已销毁，跳过记录 URL (profile=,"[Bem-te-vi] Fechar janela: view já foi destruída, pulando registro de URL (profile=","[Bem-te-vi] Close window: view already destroyed, skipping URL log (profile=",[Cuckoo Code] 关闭窗口：view 已销毁，跳过记录 URL (profile=
+[Cuckoo Code] 切换平台: ,[Bem-te-vi] Alternar plataforma: ,[Bem-te-vi] Switch platform: ,[Cuckoo Code] 切换平台: 
+[Cuckoo Code] 切换平台完成，当前窗口数=,"[Bem-te-vi] Alternância de plataforma concluída, número de janelas atuais=","[Bem-te-vi] Platform switch complete, current window count=",[Cuckoo Code] 切换平台完成，当前窗口数=
+[Cuckoo Code] 创建 userData 目录失败:,[Bem-te-vi] Falha ao criar diretório userData:,[Bem-te-vi] Failed to create userData directory:,[Cuckoo Code] 创建 userData 目录失败:
+[Cuckoo Code] 创建窗口: profile=,[Bem-te-vi] Criar janela: profile=,[Bem-te-vi] Create window: profile=,[Cuckoo Code] 创建窗口: profile=
+[Cuckoo Code] 初始化项目失败:,[Bem-te-vi] Falha ao inicializar o projeto:,[Bem-te-vi] Failed to initialize project:,[Cuckoo Code] 初始化项目失败:
+[Cuckoo Code] 初始提示发送失败，已达上限，放弃,"[Bem-te-vi] Falha no envio do prompt inicial, limite de tentativas atingido, desistindo","[Bem-te-vi] Initial prompt send failed, retry limit reached, giving up",[Cuckoo Code] 初始提示发送失败，已达上限，放弃
+[Cuckoo Code] 初始提示发送失败，重试（第 ,"[Bem-te-vi] Falha no envio do prompt inicial, tentando novamente ( ","[Bem-te-vi] Initial prompt send failed, retrying ( ",[Cuckoo Code] 初始提示发送失败，重试（第 
+[Cuckoo Code] 初始提示填充后输入框为空，判定失败,"[Bem-te-vi] Caixa de entrada vazia após preencher prompt inicial, operação considerada falha","[Bem-te-vi] Input box empty after initial prompt filling, deemed failed",[Cuckoo Code] 初始提示填充后输入框为空，判定失败
+[Cuckoo Code] 初始提示填充失败,[Bem-te-vi] Falha ao preencher prompt inicial,[Bem-te-vi] Initial prompt filling failed,[Cuckoo Code] 初始提示填充失败
+[Cuckoo Code] 初始提示已填入，随机等待 ,"[Bem-te-vi] Prompt inicial preenchido, espera aleatória ","[Bem-te-vi] Initial prompt filled, random wait ",[Cuckoo Code] 初始提示已填入，随机等待 
+[Cuckoo Code] 刷新 session 失败:,[Bem-te-vi] Falha ao atualizar session:,[Bem-te-vi] Failed to refresh session:,[Cuckoo Code] 刷新 session 失败:
+[Cuckoo Code] 压缩失败:,[Bem-te-vi] Falha na compactação:,[Bem-te-vi] Compression failed:,[Cuckoo Code] 压缩失败:
+[Cuckoo Code] 发送 MCP 信息失败:,[Bem-te-vi] Falha ao enviar informações do MCP:,[Bem-te-vi] Failed to send MCP information:,[Cuckoo Code] 发送 MCP 信息失败:
+[Cuckoo Code] 启动默认打开 ,[Bem-te-vi] Abrir por padrão na inicialização ,[Bem-te-vi] Open on startup by default ,[Cuckoo Code] 启动默认打开 
+"[Cuckoo Code] 回传 JS 汇总执行结果, 消息长度=","[Bem-te-vi] Retornando resumo de execução JS, comprimento da mensagem=","[Bem-te-vi] Returning JS execution summary, message length=","[Cuckoo Code] 回传 JS 汇总执行结果, 消息长度="
+[Cuckoo Code] 导航到会话失败:,[Bem-te-vi] Falha ao navegar para a sessão:,[Bem-te-vi] Failed to navigate to session:,[Cuckoo Code] 导航到会话失败:
+[Cuckoo Code] 工具结果追加在用户已输入内容之后（保留 ,[Bem-te-vi] Resultado da ferramenta anexado após o conteúdo já inserido pelo usuário (mantidos ,[Bem-te-vi] Tool result appended after user input content (preserved ,[Cuckoo Code] 工具结果追加在用户已输入内容之后（保留 
+[Cuckoo Code] 已取消待发送的消息（输入框内容保留）,[Bem-te-vi] Mensagem pendente de envio cancelada (conteúdo da caixa de entrada mantido),[Bem-te-vi] Pending message cancelled (input box content preserved),[Cuckoo Code] 已取消待发送的消息（输入框内容保留）
+[Cuckoo Code] 已导航到会话:,[Bem-te-vi] Navegado para a sessão:,[Bem-te-vi] Navigated to session:,[Cuckoo Code] 已导航到会话:
+[Cuckoo Code] 已点击发送按钮,[Bem-te-vi] Botão de envio clicado,[Bem-te-vi] Send button clicked,[Cuckoo Code] 已点击发送按钮
+"[Cuckoo Code] 已触发发送, ","[Bem-te-vi] Envio acionado, ","[Bem-te-vi] Send triggered, ","[Cuckoo Code] 已触发发送, "
+"[Cuckoo Code] 已追加文本到输入框, 追加长度=","[Bem-te-vi] Texto anexado à caixa de entrada, comprimento do anexo=","[Bem-te-vi] Text appended to input box, appended length=","[Cuckoo Code] 已追加文本到输入框, 追加长度="
+[Cuckoo Code] 已通过 Enter 键触发发送 (未找到发送按钮),[Bem-te-vi] Envio acionado pela tecla Enter (botão de envio não encontrado),[Bem-te-vi] Send triggered via Enter key (send button not found),[Cuckoo Code] 已通过 Enter 键触发发送 (未找到发送按钮)
+[Cuckoo Code] 已通过站点原生发送触发,[Bem-te-vi] Envio acionado pelo recurso nativo do site,[Bem-te-vi] Send triggered via site native send,[Cuckoo Code] 已通过站点原生发送触发
+[Cuckoo Code] 找不到输入框，无法发送消息,"[Bem-te-vi] Caixa de entrada não encontrada, não é possível enviar a mensagem","[Bem-te-vi] Input box not found, cannot send message",[Cuckoo Code] 找不到输入框，无法发送消息
+[Cuckoo Code] 找不到输入框，无法插入提示词,"[Bem-te-vi] Caixa de entrada não encontrada, não é possível inserir o prompt","[Bem-te-vi] Input box not found, cannot insert prompt",[Cuckoo Code] 找不到输入框，无法插入提示词
+[Cuckoo Code] 找不到输入框，无法追加文本,"[Bem-te-vi] Caixa de entrada não encontrada, não é possível anexar texto","[Bem-te-vi] Input box not found, cannot append text",[Cuckoo Code] 找不到输入框，无法追加文本
+"[Cuckoo Code] 提示词已追加并触发发送, 长度=","[Bem-te-vi] Prompt adicionado e envio acionado, comprimento=","[Bem-te-vi] Prompt appended and send triggered, length=","[Cuckoo Code] 提示词已追加并触发发送, 长度="
+"[Cuckoo Code] 提示词已追加（未发送）, 长度=","[Bem-te-vi] Prompt adicionado (não enviado), comprimento=","[Bem-te-vi] Prompt appended (not sent), length=","[Cuckoo Code] 提示词已追加（未发送）, 长度="
+[Cuckoo Code] 新建对话初始化项目失败: ,[Bem-te-vi] Falha ao inicializar projeto na nova conversa: ,[Bem-te-vi] Failed to initialize project for new conversation: ,[Cuckoo Code] 新建对话初始化项目失败: 
+[Cuckoo Code] 消息已填入输入框，等待 ,"[Bem-te-vi] Mensagem preenchida na caixa de entrada, aguardando ","[Bem-te-vi] Message filled in input box, waiting ",[Cuckoo Code] 消息已填入输入框，等待 
+[Cuckoo Code] 清空平台日志失败:,[Bem-te-vi] Falha ao limpar logs da plataforma:,[Bem-te-vi] Failed to clear platform logs:,[Cuckoo Code] 清空平台日志失败:
+[Cuckoo Code] 渲染会话列表失败:,[Bem-te-vi] Falha ao renderizar lista de sessões:,[Bem-te-vi] Failed to render session list:,[Cuckoo Code] 渲染会话列表失败:
+[Cuckoo Code] 用项目新建对话 → ,[Bem-te-vi] Criar nova conversa com o projeto → ,[Bem-te-vi] Create new conversation with project → ,[Cuckoo Code] 用项目新建对话 → 
+[Cuckoo Code] 目录已更新,[Bem-te-vi] Diretório atualizado,[Bem-te-vi] Directory updated,[Cuckoo Code] 目录已更新
+[Cuckoo Code] 移动光标到末尾失败:,[Bem-te-vi] Falha ao mover o cursor para o final:,[Bem-te-vi] Failed to move cursor to end:,[Cuckoo Code] 移动光标到末尾失败:
+[Cuckoo Code] 等待结束，开始发送初始提示,"[Bem-te-vi] Espera encerrada, iniciando envio do prompt inicial","[Bem-te-vi] Wait finished, starting to send initial prompt",[Cuckoo Code] 等待结束，开始发送初始提示
+[Cuckoo Code] 等待结束，开始触发发送,"[Bem-te-vi] Espera encerrada, iniciando envio","[Bem-te-vi] Wait finished, triggering send",[Cuckoo Code] 等待结束，开始触发发送
+[Cuckoo Code] 等待输入框超时，放弃发送初始提示,"[Bem-te-vi] Tempo esgotado aguardando caixa de entrada, envio do prompt inicial cancelado","[Bem-te-vi] Input box wait timed out, giving up sending initial prompt",[Cuckoo Code] 等待输入框超时，放弃发送初始提示
+[Cuckoo Code] 设置输入框内容失败:,[Bem-te-vi] Falha ao definir conteúdo do campo de entrada:,[Bem-te-vi] Failed to set input box content:,[Cuckoo Code] 设置输入框内容失败:
+[Cuckoo Compact] 自动触发：当前 ,[Cuckoo Compact] Acionamento automático: atual ,[Cuckoo Compact] Auto trigger: current ,[Cuckoo Compact] 自动触发：当前 
+[Cuckoo Harness] CDP 上传结果: ,[Cuckoo Harness] Resultado do upload CDP: ,[Cuckoo Harness] CDP upload result: ,[Cuckoo Harness] CDP 上传结果: 
+[Cuckoo Harness] CDP 失败: ,[Bem-te-vi Harness] Falha no CDP: ,[Bem-te-vi Harness] CDP failed: ,[Cuckoo Harness] CDP 失败: 
+[Cuckoo Harness] CDP 通道异常，转合成事件兜底: ,"[Cuckoo Harness] Canal CDP com falha, usando fallback de evento sintético: ","[Cuckoo Harness] CDP channel abnormal, falling back to synthetic event: ",[Cuckoo Harness] CDP 通道异常，转合成事件兜底: 
+[Cuckoo Harness] contextBridge 失败:,[Cuckoo Harness] Falha no contextBridge:,[Cuckoo Harness] contextBridge failed:,[Cuckoo Harness] contextBridge 失败:
+"[Cuckoo Harness] harness-attach 完成, ok=","[Cuckoo Harness] harness-attach concluído, ok=","[Cuckoo Harness] harness-attach completed, ok=","[Cuckoo Harness] harness-attach 完成, ok="
+"[Cuckoo Harness] harness-attach 调用, files=","[Cuckoo Harness] Chamada harness-attach, arquivos=","[Cuckoo Harness] harness-attach call, files=","[Cuckoo Harness] harness-attach 调用, files="
+[Cuckoo Harness] stopGeneration 定位结果: ,[Bem-te-vi Harness] Resultado da localização do stopGeneration: ,[Bem-te-vi Harness] stopGeneration location result: ,[Cuckoo Harness] stopGeneration 定位结果: 
+[Cuckoo Harness] stopGeneration 异常: ,[Bem-te-vi Harness] Exceção do stopGeneration: ,[Bem-te-vi Harness] stopGeneration exception: ,[Cuckoo Harness] stopGeneration 异常: 
+[Cuckoo Harness] 上传异常: ,[Cuckoo Harness] Erro no upload: ,[Cuckoo Harness] Upload error: ,[Cuckoo Harness] 上传异常: 
+[Cuckoo Harness] 上传文件: ,[Cuckoo Harness] Enviar arquivo: ,[Cuckoo Harness] Upload file: ,[Cuckoo Harness] 上传文件: 
+[Cuckoo Harness] 上传结果: ,[Cuckoo Harness] Resultado do upload: ,[Cuckoo Harness] Upload result: ,[Cuckoo Harness] 上传结果: 
+[Cuckoo Harness] 初始化项目失败: ,[Cuckoo Harness] Falha ao inicializar projeto: ,[Cuckoo Harness] Failed to initialize project: ,[Cuckoo Harness] 初始化项目失败: 
+[Cuckoo Harness] 收到用户消息，长度=,"[Cuckoo Harness] Mensagem do usuário recebida, comprimento=","[Cuckoo Harness] User message received, length=",[Cuckoo Harness] 收到用户消息，长度=
+[Cuckoo Harness] 新对话 → 导航到 ,[Cuckoo Harness] Nova conversa → Navegando para ,[Cuckoo Harness] New conversation → Navigating to ,[Cuckoo Harness] 新对话 → 导航到 
+[Cuckoo Harness] 新对话异常: ,[Cuckoo Harness] Erro na nova conversa: ,[Cuckoo Harness] New conversation error: ,[Cuckoo Harness] 新对话异常: 
+[Cuckoo Harness] 页面加载失败: ,[Cuckoo Harness] Falha ao carregar página: ,[Cuckoo Harness] Failed to load page: ,[Cuckoo Harness] 页面加载失败: 
+[Cuckoo Harness] 页面加载完成,[Cuckoo Harness] Página carregada com sucesso,[Cuckoo Harness] Page loaded successfully,[Cuckoo Harness] 页面加载完成
+[Cuckoo Harness] 页面已就绪,[Cuckoo Harness] Página pronta,[Cuckoo Harness] Page is ready,[Cuckoo Harness] 页面已就绪
+[Cuckoo Overlay] 页面加载完成,[Cuckoo Overlay] Página carregada com sucesso,[Cuckoo Overlay] Page loaded successfully,[Cuckoo Overlay] 页面加载完成
+[Cuckoo Plugin] 加载失败:,[Cuckoo Plugin] Falha ao carregar:,[Cuckoo Plugin] Load failed:,[Cuckoo Plugin] 加载失败:
+[Cuckoo Plugin] 已加载: ,[Cuckoo Plugin] Carregado: ,[Cuckoo Plugin] Loaded: ,[Cuckoo Plugin] 已加载: 
+[Cuckoo Shell] contextBridge 失败:,[Cuckoo Shell] Falha no contextBridge:,[Cuckoo Shell] contextBridge failed:,[Cuckoo Shell] contextBridge 失败:
+[Feishu] 初始化失败:,[Feishu] Falha na inicialização:,[Feishu] Initialization failed:,[Feishu] 初始化失败:
+[Feishu] 启动时自动连接（已启用）,[Feishu] Conexão automática na inicialização (ativada),[Feishu] Auto-connect on startup (enabled),[Feishu] 启动时自动连接（已启用）
+[Feishu] 子代理运行中，拒收飞书消息并回提示,"[Feishu] Subagente em execução, rejeitando mensagens do Feishu e enviando aviso","[Feishu] Sub-agent running, rejecting Feishu messages and sending notice",[Feishu] 子代理运行中，拒收飞书消息并回提示
+"[Feishu] 已转发消息到 AI 页面, 长度=","[Feishu] Mensagem encaminhada para a página da IA, comprimento=","[Feishu] Message forwarded to AI page, length=","[Feishu] 已转发消息到 AI 页面, 长度="
+[Feishu] 推送失败（,[Feishu] Falha no envio (,[Feishu] Push failed (,[Feishu] 推送失败（
+[Feishu] 推送异常:,[Feishu] Exceção no envio:,[Feishu] Push exception:,[Feishu] 推送异常:
+[Feishu] 收到群消息，但没有窗口绑定该群，丢弃。chatId=,"[Feishu] Mensagem de grupo recebida, mas nenhuma janela está vinculada a este grupo, descartando. chatId=","[Feishu] Group message received, but no window is bound to this group, discarding. chatId=",[Feishu] 收到群消息，但没有窗口绑定该群，丢弃。chatId=
+[Feishu] 目标窗口不可用，消息丢弃,"[Feishu] Janela de destino indisponível, mensagem descartada","[Feishu] Target window unavailable, message discarded",[Feishu] 目标窗口不可用，消息丢弃
+[Feishu] 群已绑定 profile，但该窗口未打开，丢弃。profileId=,"[Feishu] Grupo vinculado a um profile, mas esta janela não está aberta, descartando. profileId=","[Feishu] Group bound to a profile, but this window is not open, discarding. profileId=",[Feishu] 群已绑定 profile，但该窗口未打开，丢弃。profileId=
+[Feishu] 转发失败:,[Feishu] Falha no encaminhamento:,[Feishu] Forward failed:,[Feishu] 转发失败:
+[MCP] enable 失败:,[MCP] Falha ao habilitar:,[MCP] Enable failed:,[MCP] enable 失败:
+[Plugin] 加载网页脚本失败:,[Plugin] Falha ao carregar script da página:,[Plugin] Failed to load web page script:,[Plugin] 加载网页脚本失败:
+[Profile] 写入 last-active 失败:,[Profile] Falha ao gravar last-active:,[Profile] Failed to write last-active:,[Profile] 写入 last-active 失败:
+[Profile] 写入 profile 列表失败:,[Profile] Falha ao gravar lista de perfis:,[Profile] Failed to write profile list:,[Profile] 写入 profile 列表失败:
+[Profile] 已创建:,[Profile] Criado:,[Profile] Created:,[Profile] 已创建:
+[Profile] 已清理子代理遗留存储文件:,[Profile] Arquivos de armazenamento remanescentes do subagente limpos:,[Profile] Cleaned up leftover sub-agent storage files:,[Profile] 已清理子代理遗留存储文件:
+[Profile] 已记录 lastUrl:,[Profile] lastUrl registrado:,[Profile] Recorded lastUrl:,[Profile] 已记录 lastUrl:
+[Profile] 清理子代理存储失败:,[Profile] Falha ao limpar armazenamento do subagente:,[Profile] Failed to clean sub-agent storage:,[Profile] 清理子代理存储失败:
+[Profile] 读取 profile 列表失败:,[Profile] Falha ao ler lista de perfis:,[Profile] Failed to read profile list:,[Profile] 读取 profile 列表失败:
+[Profile] 飞书群绑定更新:,[Profile] Atualização de vínculo de grupo do Feishu:,[Profile] Feishu group binding update:,[Profile] 飞书群绑定更新:
+[Snippets] 写入失败:,[Snippets] Falha na gravação:,[Snippets] Write failed:,[Snippets] 写入失败:
+[Snippets] 已写入:,[Snippets] Gravado:,[Snippets] Written:,[Snippets] 已写入:
+[Snippets] 读取失败:,[Snippets] Falha na leitura:,[Snippets] Read failed:,[Snippets] 读取失败:
+[Updater] 下载失败:,[Updater] Falha no download:,[Updater] Download failed:,[Updater] 下载失败:
+[Updater] 下载进度:,[Updater] Progresso do download:,[Updater] Download progress:,[Updater] 下载进度:
+[Updater] 发现新版本:,[Updater] Nova versão encontrada:,[Updater] New version found:,[Updater] 发现新版本:
+[Updater] 启动检查更新失败:,[Updater] Falha ao iniciar verificação de atualizações:,[Updater] Failed to start update check:,[Updater] 启动检查更新失败:
+[Updater] 启动自动检查更新,[Updater] Iniciando verificação automática de atualizações,[Updater] Starting automatic update check,[Updater] 启动自动检查更新
+[Updater] 已是最新版本,[Updater] Já está na versão mais recente,[Updater] Already on latest version,[Updater] 已是最新版本
+[Updater] 开发环境，跳过自动检查更新,"[Updater] Ambiente de desenvolvimento, verificação automática de atualizações ignorada","[Updater] Development environment, skipping automatic update check",[Updater] 开发环境，跳过自动检查更新
+[Updater] 新版本已下载:,[Updater] Nova versão baixada:,[Updater] New version downloaded:,[Updater] 新版本已下载:
+[Updater] 更新错误:,[Updater] Erro de atualização:,[Updater] Update error:,[Updater] 更新错误:
+[Updater] 检查更新异常:,[Updater] Erro ao verificar atualizações:,[Updater] Update check error:,[Updater] 检查更新异常:
+[Updater] 正在检查更新...,[Updater] Verificando atualizações...,[Updater] Checking for updates...,[Updater] 正在检查更新...
+[Updater] 重试检查更新失败:,[Updater] Falha ao tentar verificar atualizações novamente:,[Updater] Failed to retry checking for updates:,[Updater] 重试检查更新失败:
+[WindowGroups] 写入失败:,[WindowGroups] Falha na gravação:,[WindowGroups] Write failed:,[WindowGroups] 写入失败:
+[harness] fileInput.click 失败: ,[harness] falha em fileInput.click: ,[harness] fileInput.click failed: ,[harness] fileInput.click 失败: 
+"[harness] send 按钮点击, busy=","[harness] clique no botão enviar, busy=","[harness] send button clicked, busy=","[harness] send 按钮点击, busy="
+"[harness] send() 调用, text 长度=","[harness] chamada send(), comprimento do texto=","[harness] send() call, text length=","[harness] send() 调用, text 长度="
+[harness] 历史工具恢复失败:,[harness] Falha ao restaurar ferramenta do histórico:,[harness] Failed to restore history tool:,[harness] 历史工具恢复失败:
+[harness] 历史条目恢复失败:,[harness] Falha ao restaurar entrada do histórico:,[harness] Failed to restore history entry:,[harness] 历史条目恢复失败:
+[harness] 附件按钮点击,[harness] clique no botão de anexo,[harness] attachment button clicked,[harness] 附件按钮点击
+[plugin-dsh] 读取失败:,[plugin-dsh] Falha na leitura:,[plugin-dsh] Read failed:,[plugin-dsh] 读取失败:
+[plugin-tool] 注册: ,[plugin-tool] Registro: ,[plugin-tool] Register: ,[plugin-tool] 注册: 
+[plugin-tool] 注销: ,[plugin-tool] Cancelamento de registro: ,[plugin-tool] Unregister: ,[plugin-tool] 注销: 
+[plugin-ui] 读取失败:,[plugin-ui] Falha na leitura:,[plugin-ui] Read failed:,[plugin-ui] 读取失败:
+[子代理] 启动 ,[Subagente] Iniciar ,[Sub-agent] Start ,[子代理] 启动 
+[指令] ,[Comando] ,[Command] ,[指令] 
+[目标] ,[Objetivo] ,[Goal] ,[目标] 
+[窗口组] 探测窗口 ,[Grupo de janelas] Detectando janela ,[Window group] Detecting window ,[窗口组] 探测窗口 
+[窗口组] 探测结果 ,[Grupo de janelas] Resultado da detecção ,[Window group] Detection result ,[窗口组] 探测结果 
+[窗口组] 限流触发自动切换，组=,"[Grupo de janelas] Limite de taxa acionou alternância automática, grupo=","[Window group] Rate limit triggered auto switch, group=",[窗口组] 限流触发自动切换，组=
+[窗口组] 限流，但该窗口不在任何组，不切换,"[Grupo de janelas] Limite de taxa atingido, mas esta janela não está em nenhum grupo, sem alternância","[Window group] Rate limited, but this window is not in any group, no switch",[窗口组] 限流，但该窗口不在任何组，不切换
+[计划] ,[Plano] ,[Plan] ,[计划] 
+[附件 ,[Anexo ,[Attachment ,[附件 
+] [Cuckoo Code] initial-prompt 处理异常:,] [Bem-te-vi] Erro no processamento do initial-prompt:,] [Bem-te-vi] initial-prompt processing error:,] [Cuckoo Code] initial-prompt 处理异常:
+"] [Cuckoo Code] 收到 initial-prompt 事件, content长度=","] [Bem-te-vi] Evento initial-prompt recebido, comprimento do conteúdo=","] [Bem-te-vi] initial-prompt event received, content length=","] [Cuckoo Code] 收到 initial-prompt 事件, content长度="
+] [Cuckoo Code] 首次查找输入框结果=,] [Bem-te-vi] Resultado da primeira busca pela caixa de entrada=,] [Bem-te-vi] First input box search result=,] [Cuckoo Code] 首次查找输入框结果=
+cuckoo 代码块。,bloco de código cuckoo.,cuckoo code block.,cuckoo 代码块。
+cuckoo 代码块调用，不要输出 JSON 正文。）,"cuckoo, não saia com o corpo JSON.）","cuckoo code block call, do not output JSON body.)",cuckoo 代码块调用，不要输出 JSON 正文。）
+cuckoo 代码块（这是本环境的唯一调用方式），,"cuckoo (esta é a única forma de chamada neste ambiente),","cuckoo code block (this is the only call method in this environment),",cuckoo 代码块（这是本环境的唯一调用方式），
+"cuckoo 代码块，界面上不会显示这行调用）；
+","cuckoo, esta linha de chamada não será exibida na interface);
+","cuckoo code block, this call line will not be shown on the interface);
+","cuckoo 代码块，界面上不会显示这行调用）；
+"
+description: （一句话说明何时委派给这个子代理）,description: (uma frase explicando quando delegar para este subagente),description: (one sentence explaining when to delegate to this sub-agent),description: （一句话说明何时委派给这个子代理）
+getSessionListFn 未返回函数,getSessionListFn não retornou uma função,getSessionListFn did not return a function,getSessionListFn 未返回函数
+"json 代码块的形式直接输出。写法示例：
+
+","json. Exemplo de escrita:
+
+","json code block. Example format:
+
+","json 代码块的形式直接输出。写法示例：
+
+"
+ms 后发送...,ms para enviar...,ms before sending...,ms 后发送...
+npm 包名，如 @scope/dsh-plugin-xxx,"Nome do pacote npm, ex: @scope/dsh-plugin-xxx","npm package name, e.g. @scope/dsh-plugin-xxx",npm 包名，如 @scope/dsh-plugin-xxx
+prefix 必须以 / 开头,prefix deve começar com /,prefix must start with /,prefix 必须以 / 开头
+server 配置不完整（需要 name 和 type）,Configuração do server incompleta (name e type são obrigatórios),Server configuration incomplete (name and type required),server 配置不完整（需要 name 和 type）
+window.electronAPI.initProject 不存在,window.electronAPI.initProject não existe,window.electronAPI.initProject does not exist,window.electronAPI.initProject 不存在
+· mcp.json 里的 MCP server（会启动子进程）,· MCP server em mcp.json (iniciará um subprocesso),· MCP server in mcp.json (will launch a child process),· mcp.json 里的 MCP server（会启动子进程）
+—— 脚本 ,—— Script ,—— Script ,—— 脚本 
+⏳ 初始化中...,⏳ Inicializando...,⏳ Initializing...,⏳ 初始化中...
+⏹ 已忽略,⏹ Ignorado,⏹ Ignored,⏹ 已忽略
+⚠️ 改了上面,⚠️ Se você alterar qualquer,⚠️ If you change any,⚠️ 改了上面
+"⚠️ 这是最容易漏的一步。配错会导致""能发不能收""，或飞书里没有输入框。","⚠️ Este é o passo mais fácil de ser esquecido. Uma configuração errada causa o problema de ""consegue enviar mas não receber"", ou a caixa de entrada não aparece no Feishu.","⚠️ This is the most commonly missed step. Incorrect configuration will cause ""can send but not receive"" issues, or no input box in Feishu.","⚠️ 这是最容易漏的一步。配错会导致""能发不能收""，或飞书里没有输入框。"
+✅ 工具调用完成,✅ Chamada de ferramenta concluída,✅ Tool call completed,✅ 工具调用完成
+✅ 成功,✅ Sucesso,✅ Success,✅ 成功
+✅ 执行成功,✅ Executado com sucesso,✅ Execution successful,✅ 执行成功
+❌ 失败,❌ Falha,❌ Failed,❌ 失败
+❌ 执行失败,❌ Falha na execução,❌ Execution failed,❌ 执行失败
+「已添加事件」→ 点「,«Eventos adicionados» → clique em «,«Added events» → click «,「已添加事件」→ 点「
+「订阅方式」→ 选「,«Método de assinatura» → selecione «,«Subscription method» → select «,「订阅方式」→ 选「
+」→ 在「飞书群」下拉里选中刚建的群 → 自动绑定,"» → no menu suspenso «Grupo do Feishu», selecione o grupo recém-criado → vinculação automática","» → in the «Feishu group» dropdown, select the newly created group → auto-bind",」→ 在「飞书群」下拉里选中刚建的群 → 自动绑定
+」→ 填版本号（如 ,» → preencha o número da versão (ex. ,» → enter the version number (e.g. ,」→ 填版本号（如 
+」→ 搜「,» → pesquise por «,» → search for «,」→ 搜「
+」→ 添加 ,» → adicione ,» → add ,」→ 添加 
+」→ 点「,» → clique em «,» → click «,」→ 点「
+」→ 选「,» → selecione «,» → select «,」→ 选「
+」即成功,» para confirmar o sucesso,» when successful,」即成功
+」吗？,」?,」?,」吗？
+」图标（气泡）,» (bolha),» icon (bubble),」图标（气泡）
+」开关,»,» toggle,」开关
+」（绿点）,» (ponto verde),» (green dot),」（绿点）
+"」？
+
+插件目录与其启用状态都会被删除。","」？
+
+O diretório do plugin e seu status de ativação serão excluídos.","」?
+
+Both the plugin directory and its enabled status will be deleted.","」？
+
+插件目录与其启用状态都会被删除。"
+"」？
+
+该插件含可执行内容，启用后会在本机运行第三方代码：
+
+","」？
+
+Este plugin contém conteúdo executável. Ao ativá-lo, código de terceiros será executado no seu dispositivo:
+
+","」?
+
+This plugin contains executable content. Enabling it will run third-party code on your machine:
+
+","」？
+
+该插件含可执行内容，启用后会在本机运行第三方代码：
+
+"
+"」？
+（工具需重启后移除）","」？
+（A ferramenta será removida após reiniciar）","」？
+（The tool will be removed after restart）","」？
+（工具需重启后移除）"
+」？此操作不可恢复。,」? Esta ação não pode ser desfeita.,」? This action cannot be undone.,」？此操作不可恢复。
+【JS 执行结果汇总】(共 ,【Resumo de execução JS】(total de ,【JS Execution Summary】(total ,【JS 执行结果汇总】(共 
+"【MCP 配置已更新】
+
+","【Configuração do MCP atualizada】
+
+","【MCP configuration updated】
+
+","【MCP 配置已更新】
+
+"
+【目标】,【Objetivo】,【Goal】,【目标】
+【计划任务】,【Tarefa do Plano】,[Plan Task],【计划任务】
+一个群只对应一个窗口；未绑定群的窗口不推也不收。,Um grupo corresponde a apenas uma janela; janelas sem grupo vinculado não enviam nem recebem.,One group corresponds to only one window; windows without a bound group neither send nor receive.,一个群只对应一个窗口；未绑定群的窗口不推也不收。
+万,mil,ten thousand,万
+万 tokens 时触发,mil tokens para acionar,k tokens to trigger,万 tokens 时触发
+万），自动压缩中...,"mil), compactando automaticamente...","ten thousand), auto-compressing...",万），自动压缩中...
+上下文压缩,Compactação de contexto,Context compression,上下文压缩
+上传,Carregar,Upload,上传
+上传后检测等待（秒）,Espera de detecção após upload (segundos),Detection wait after upload (seconds),上传后检测等待（秒）
+上传失败,Falha no upload,Upload failed,上传失败
+上传失败，不再等待: ,"Falha no upload, não esperando mais: ","Upload failed, no longer waiting: ",上传失败，不再等待: 
+上传超时（15 秒无响应）,Tempo limite de carregamento excedido (sem resposta por 15 segundos),Upload timed out (no response for 15 seconds),上传超时（15 秒无响应）
+上传超时，未检测到附件出现,"Tempo limite de upload excedido, nenhum anexo detectado","Upload timed out, no attachment detected",上传超时，未检测到附件出现
+上传附件…,Carregar anexo…,Upload attachment…,上传附件…
+下载更新中,Baixando atualização,Downloading update,下载更新中
+不同的群,um grupo diferente,a different group,不同的群
+不是,não é,not,不是
+不是文件,Não é um arquivo,Not a file,不是文件
+不要把计划以 JSON 正文或 ,não saia o plano diretamente como corpo JSON ou em um bloco de código ,do not output the plan directly as JSON body or as a ,不要把计划以 JSON 正文或 
+不需企业认证,não precisa de certificação empresarial,no enterprise certification required,不需企业认证
+不需要公网 IP、不需要服务器,"não precisa de IP público, nem de servidor","no public IP required, no server required",不需要公网 IP、不需要服务器
+个,unidade(s),item(s),个
+个月前,meses atrás,months ago,个月前
+中止（停止生成 / 工具执行）,Interromper (parar geração / execução de ferramenta),Abort (stop generation / tool execution),中止（停止生成 / 工具执行）
+主页,Página inicial,Home,主页
+主题,Tema,Theme,主题
+事件与回调,Eventos e callbacks,Events & callbacks,事件与回调
+事件配置,Configuração de eventos,Event configuration,事件配置
+二进制文件，无法文本预览,"Arquivo binário, não é possível visualizar como texto","Binary file, cannot preview as text",二进制文件，无法文本预览
+亿,100 milhões,100 million,亿
+今日窗口,Janela de hoje,Today's window,今日窗口
+代理 ,Agente ,Agent ,代理 
+以下窗口正在使用此 Provider，请先在窗口管理中更换这些窗口的平台再删除：,As seguintes janelas estão usando este Provider. Altere a plataforma dessas janelas no gerenciamento de janelas antes de excluir:,"The following windows are using this Provider, change the platform of these windows in window management before deleting:",以下窗口正在使用此 Provider，请先在窗口管理中更换这些窗口的平台再删除：
+任何配置,configuração,configuration,任何配置
+位置,Localização,Location,位置
+你是管理员 → 审批通过（秒过）,você é administrador → aprove a solicitação (é instantâneo),you are an admin → approve the request (instant),你是管理员 → 审批通过（秒过）
+使用长连接接收事件,Receber eventos por conexão longa,Use long connection to receive events,使用长连接接收事件
+保存,Salvar,Save,保存
+保存名称,Salvar nome,Save name,保存名称
+保存失败,Falha ao salvar,Save failed,保存失败
+保存失败: ,Falha ao salvar: ,Save failed: ,保存失败: 
+保存并连接,Salvar e conectar,Save and connect,保存并连接
+保存推送设置,Salvar configurações de envio,Save push settings,保存推送设置
+保存设置,Salvar configurações,Save settings,保存设置
+修改目录失败:,Falha ao modificar diretório:,Failed to modify directory:,修改目录失败:
+停止,Parar,Stop,停止
+停止加载,Parar carregamento,Stop loading,停止加载
+元,yuan,yuan,元
+全选,Selecionar tudo,Select all,全选
+全部完成后把所有步骤标记为 completed。,"Quando tudo estiver concluído, marque todas as etapas como completed.","When everything is finished, mark all steps as completed.",全部完成后把所有步骤标记为 completed。
+全部置于顶层,Trazer todos para a frente,Bring all to front,全部置于顶层
+关于,Sobre,About,关于
+关于 Cuckoo Code,Sobre o Bem-te-vi,About Bem-te-vi,关于 Cuckoo Code
+关闭,Fechar,Close,关闭
+关闭窗口,Fechar janela,Close window,关闭窗口
+关闭预览,Fechar pré-visualização,Close preview,关闭预览
+内容,Conteúdo,Content,内容
+内容为空,Conteúdo vazio,Content is empty,内容为空
+写入失败,Falha na gravação,Write failed,写入失败
+写入失败: ,Falha na gravação: ,Write failed: ,写入失败: 
+净,Líquido,Net,净
+凭证与基础信息,Credenciais e informações básicas,Credentials and basic info,凭证与基础信息
+分享失败,Falha ao compartilhar,Share failed,分享失败
+分享请求超时,Tempo de solicitação de compartilhamento esgotado,Share request timed out,分享请求超时
+分钟前,minutos atrás,minutes ago,分钟前
+切换依赖未注入,Dependência de alternância não injetada,Switch dependency not injected,切换依赖未注入
+切换全屏,Alternar tela cheia,Toggle fullscreen,切换全屏
+切换失败：,Falha ao alternar:,Switch failed:,切换失败：
+切换纯净对话模式（Ctrl+Shift+H）,Alternar modo de conversa pura (Ctrl+Shift+H),Toggle clean conversation mode (Ctrl+Shift+H),切换纯净对话模式（Ctrl+Shift+H）
+刚刚,agora mesmo,just now,刚刚
+刚才卡住了请继续 爱你哦,"Travou há pouco, continue por favor. Te amo","It got stuck just now, please continue. Love you",刚才卡住了请继续 爱你哦
+刚才的回复似乎中断了，请重新完整回答上一个问题。,"Parece que a resposta anterior foi interrompida. Por favor, responda a pergunta anterior completamente novamente.",It seems the previous reply was interrupted. Please fully answer the previous question again.,刚才的回复似乎中断了，请重新完整回答上一个问题。
+创建,Criar,Create,创建
+"创建""企业自建应用""","Criar ""aplicativo corporativo próprio""","Create ""custom enterprise app""","创建""企业自建应用"""
+创建于 ,Criado em ,Created on ,创建于 
+创建企业自建应用,Criar aplicativo corporativo próprio,Create custom enterprise app,创建企业自建应用
+创建失败,Falha ao criar,Failed to create,创建失败
+创建并打开,Criar e abrir,Create and open,创建并打开
+创建新窗口失败: ,Falha ao criar nova janela: ,Failed to create new window: ,创建新窗口失败: 
+创建版本,Criar versão,Create version,创建版本
+初始化中…,Inicializando…,Initializing…,初始化中…
+初始化失败,Falha na inicialização,Initialization failed,初始化失败
+初始化失败: ,Falha na inicialização: ,Initialization failed: ,初始化失败: 
+初始化项目,Inicializar projeto,Initialize project,初始化项目
+删除,Excluir,Delete,删除
+删除失败,Falha ao excluir,Delete failed,删除失败
+删除失败: ,Falha ao excluir: ,Delete failed: ,删除失败: 
+制定计划 plan 计划 分步 步骤,criar plano plan plano passo a passo etapas,create plan plan plan step-by-step steps,制定计划 plan 计划 分步 步骤
+刷新,Atualizar,Refresh,刷新
+刷新列表,Atualizar lista,Refresh list,刷新列表
+刷新群列表,Atualizar lista de grupos,Refresh group list,刷新群列表
+刷新（同步其他窗口的改动）,Atualizar (sincronizar alterações de outras janelas),Refresh (sync changes from other windows),刷新（同步其他窗口的改动）
+刷新（重新搜索市场）,Atualizar (pesquisar mercado novamente),Refresh (re-search marketplace),刷新（重新搜索市场）
+刷新（重新读取当前设置）,Atualizar (reler configurações atuais),Refresh (re-read current settings),刷新（重新读取当前设置）
+前进,Avançar,Forward,前进
+剪切,Recortar,Cut,剪切
+加载中...,Carregando...,Loading...,加载中...
+加载中…,Carregando…,Loading…,加载中…
+加载失败,Falha ao carregar,Failed to load,加载失败
+加载失败: ,Falha ao carregar: ,Load failed: ,加载失败: 
+卡住了?点我,Travou? Clique aqui,Stuck? Click me,卡住了?点我
+卸载失败,Falha na desinstalação,Uninstall failed,卸载失败
+卸载插件,Desinstalar plugin,Uninstall plugin,卸载插件
+压缩-摘要,Compactar - Resumo,Compress - Summary,压缩-摘要
+压缩上下文,Compactar contexto,Compress context,压缩上下文
+原,Original,Original,原
+发布应用,Publicar aplicativo,Publish app,发布应用
+发现新版本,Nova versão disponível,New version available,发现新版本
+发现新版本 v,Nova versão v,New version v,发现新版本 v
+"发生未知错误。
+
+错误信息：","Ocorreu um erro desconhecido.
+
+Mensagem de erro:","An unknown error occurred.
+
+Error message:","发生未知错误。
+
+错误信息："
+发生未知错误，请稍后重试。,Ocorreu um erro desconhecido. Tente novamente mais tarde.,An unknown error occurred. Please try again later.,发生未知错误，请稍后重试。
+发给 AI。,para a IA.,to the AI.,发给 AI。
+发给绑定该群的窗口的 AI,Enviado para a IA da janela vinculada a esse grupo,Sent to the AI of the window bound to that group,发给绑定该群的窗口的 AI
+发送,Enviar,Send,发送
+发送中…,Enviando…,Sending…,发送中…
+发送失败: ,Falha no envio: ,Send failed: ,发送失败: 
+发送失败：未找到输入框,Falha no envio: caixa de entrada não encontrada,Send failed: input box not found,发送失败：未找到输入框
+发送延迟,Atraso de envio,Send delay,发送延迟
+发送延迟最大值不能小于最小值,O valor máximo de atraso de envio não pode ser menor que o valor mínimo,Maximum send delay cannot be less than the minimum value,发送延迟最大值不能小于最小值
+发送延迟最小值必须是非负数字,O valor mínimo de atraso de envio deve ser um número não negativo,Minimum send delay must be a non-negative number,发送延迟最小值必须是非负数字
+发送延迟最小值必须是非负数字（秒）,O valor mínimo de atraso de envio deve ser um número não negativo (segundos),Minimum send delay must be a non-negative number (seconds),发送延迟最小值必须是非负数字（秒）
+取消,Cancelar,Cancel,取消
+只显示你与模型的对话、思考过程与工具调用,"Mostra apenas suas conversas com o modelo, processo de raciocínio e chamadas de ferramentas","Only shows your conversation with the model, thinking process and tool calls",只显示你与模型的对话、思考过程与工具调用
+可执行 ,Executável ,Executable ,可执行 
+可用的 MCP server：,MCP servers disponíveis:,Available MCP servers:,可用的 MCP server：
+同名子代理已存在：,Subagente com o mesmo nome já existe:,Sub-agent with the same name already exists:,同名子代理已存在：
+名称,Nome,Name,名称
+名称不能为空,O nome não pode estar vazio,Name cannot be empty,名称不能为空
+后退,Voltar,Back,后退
+启用「,Ativar「,Enable「,启用「
+启用后：技能/代理/规则 + MCP + 可执行内容全部生效,Quando ativado: habilidades/agentes/regras + MCP + conteúdo executável entram em vigor,When enabled: skills/agents/rules + MCP + executable content all take effect,启用后：技能/代理/规则 + MCP + 可执行内容全部生效
+启用后：技能/代理/规则全部生效,Quando ativado: habilidades/agentes/regras entram em vigor,When enabled: skills/agents/rules all take effect,启用后：技能/代理/规则全部生效
+启用插件,Ativar plugin,Enable plugin,启用插件
+启用自动重试,Ativar repetição automática,Enable auto retry,启用自动重试
+启用飞书同步,Habilitar sincronização com Feishu,Enable Feishu sync,启用飞书同步
+命中隐藏 file input（坐标无意义），跳过点击，改为直接注入,"file input oculto encontrado (coordenadas sem sentido), pulando clique, injetando diretamente em vez disso","Hidden file input hit (coordinates are meaningless), skipping click, injecting directly instead",命中隐藏 file input（坐标无意义），跳过点击，改为直接注入
+命令不存在: ,Comando não existe: ,Command does not exist: ,命令不存在: 
+命令为空,Comando vazio,Empty command,命令为空
+命令所属窗口已关闭,Janela do comando já foi fechada,Command's window has been closed,命令所属窗口已关闭
+命令执行超时,Tempo de execução do comando esgotado,Command execution timed out,命令执行超时
+唯一搜索源,Fonte de pesquisa única,Single search source,唯一搜索源
+回到 Cuckoo Code，点左侧活动栏的「,Volte para o Bem-te-vi e clique no ícone «,"Go back to Bem-te-vi, click the «",回到 Cuckoo Code，点左侧活动栏的「
+回到 Cuckoo，在对应,"Volte para o Bem-te-vi e, na","Go back to Bem-te-vi, in the corresponding",回到 Cuckoo，在对应
+回到底部,Ir para o final,Scroll to bottom,回到底部
+图片,Imagem,Image,图片
+在,No,In the,在
+在 Cuckoo 里填写凭证,Preencher as credenciais no Cuckoo,Fill in credentials in Cuckoo,在 Cuckoo 里填写凭证
+在飞书群里发消息,Enviar mensagem no grupo do Feishu,Send message in Feishu group,在飞书群里发消息
+在飞书里给机器人发消息,Enviar uma mensagem para o bot no Feishu,Send a message to the bot in Feishu,在飞书里给机器人发消息
+填入 ,Preencha ,Enter ,填入 
+填写应用的 App Secret,Preencha o App Secret do aplicativo,Enter the app's App Secret,填写应用的 App Secret
+填应用名称（如 ,Preencha o nome do aplicativo (ex. ,Enter the app name (e.g. ,填应用名称（如 
+复制,Copiar,Copy,复制
+"复制这两个值（等下要填进 Cuckoo）：
+      ","Copie estes dois valores (você vai preenchê-los no Cuckoo depois):
+      ","Copy these two values (you will fill them into Cuckoo later):
+      ","复制这两个值（等下要填进 Cuckoo）：
+      "
+外观,Aparência,Appearance,外观
+天前,dias atrás,days ago,天前
+失败,Falha,Failed,失败
+失败自动重试,Tentativa automática após falha,Auto retry on failure,失败自动重试
+如：code-reviewer（英文）,Ex.: code-reviewer (em inglês),e.g. code-reviewer (English),如：code-reviewer（英文）
+如：生成项目说明,Ex.: gerar descrição do projeto,e.g. generate project description,如：生成项目说明
+子代理,Subagentes,Sub-agents,子代理
+子代理: ,Subagente: ,Sub-agent: ,子代理: 
+子代理依赖未注入,Dependência do subagente não injetada,Sub-agent dependency not injected,子代理依赖未注入
+子代理执行超时,Tempo limite de execução do subagente,Sub-agent execution timeout,子代理执行超时
+安装,Instalar,Install,安装
+安装 DSH 插件,Instalar plugin DSH,Install DSH plugin,安装 DSH 插件
+安装 DSH 插件（输入 npm 包名）,Instalar plugin DSH (digite o nome do pacote npm),Install DSH plugin (enter npm package name),安装 DSH 插件（输入 npm 包名）
+安装失败,Falha na instalação,Installation failed,安装失败
+安装完成,Instalação concluída,Installation completed,安装完成
+完成,Concluído,Done,完成
+完成！,Concluído!,Done!,完成！
+对话,Conversa,Chat,对话
+对话上下文:,Contexto da conversa:,Conversation context:,对话上下文:
+对话上下文：本会话当前占用的 token 总量,Contexto da conversa: quantidade total de tokens usados atualmente nesta sessão,Conversation context: total token amount currently used in this session,对话上下文：本会话当前占用的 token 总量
+对话累计,Total da conversa,Conversation total,对话累计
+导入失败: ,Falha na importação: ,Import failed: ,导入失败: 
+导航,Navegação,Navigation,导航
+导航 API 不可用,API de navegação indisponível,Navigation API unavailable,导航 API 不可用
+导航失败: ,Falha na navegação: ,Navigation failed: ,导航失败: 
+将执行以下命令：,O seguinte comando será executado:,The following command will be executed:,将执行以下命令：
+小时前,horas atrás,hours ago,小时前
+就绪,Pronto,Ready,就绪
+就绪等待后,Após espera de prontidão,After ready wait,就绪等待后
+工作区,Área de trabalho,Workspace,工作区
+工作区（会话）,Área de trabalho (sessões),Workspace (sessions),工作区（会话）
+工具: ,Ferramenta: ,Tool: ,工具: 
+工具循环催继续次数必须是整数,O número de lembretes para continuar no loop de ferramentas deve ser um número inteiro,Tool loop continue reminder count must be an integer,工具循环催继续次数必须是整数
+工具循环超时提示词不能为空,O prompt de tempo limite do loop de ferramentas não pode estar vazio,Tool loop timeout prompt cannot be empty,工具循环超时提示词不能为空
+工具状态带工具名（默认关，隐私）,"Status da ferramenta com nome da ferramenta (desativado por padrão, privacidade)","Tool status with tool name (off by default, privacy)",工具状态带工具名（默认关，隐私）
+工具结果回传,Retorno de resultado da ferramenta,Tool result return,工具结果回传
+工具调用执行中，请不要有额外操作,"Chamada de ferramenta em execução, não realize ações adicionais","Tool call in progress, please do not perform additional actions",工具调用执行中，请不要有额外操作
+工具调用状态,Status de chamada de ferramenta,Tool call status,工具调用状态
+工具运行中…,Ferramenta em execução…,Tool running…,工具运行中…
+左侧点「,"no lado esquerdo, clique em «","on the left, click «",左侧点「
+已下载 ,Baixado ,Downloaded ,已下载 
+已保存,Salvo,Saved,已保存
+已保存。重启或重载后生效（部分插件即时生效）。,Salvo. Terá efeito após reiniciar ou recarregar (alguns plugins têm efeito imediato).,Saved. Takes effect after restart or reload (some plugins take effect immediately).,已保存。重启或重载后生效（部分插件即时生效）。
+已停止生成,Geração interrompida,Generation stopped,已停止生成
+已停止生成，目标自动推进已一并退出（可 /goal 重新设定）,"Geração interrompida, o avanço automático do objetivo também foi encerrado (você pode usar /goal para redefinir)","Generation stopped, automatic goal advancement has also exited (you can use /goal to set a new goal)",已停止生成，目标自动推进已一并退出（可 /goal 重新设定）
+已切换到该窗口,Alternado para esta janela,Switched to this window,已切换到该窗口
+已创建：,Criado:,Created:,已创建：
+已删除窗口,Janela excluída,Window deleted,已删除窗口
+已发布,publicado,published,已发布
+已发送沉浸式交流提示,Prompt de comunicação imersiva enviado,Immersive communication prompt sent,已发送沉浸式交流提示
+已发送（技能 ,Enviado (habilidade ,Sent (skill ,已发送（技能 
+已发送：继续,Enviado: continuar,Sent: continue,已发送：继续
+已启用,Ativado,Enabled,已启用
+已复制,Copiado,Copied,已复制
+已安装插件,Plugins instalados,Installed Plugins,已安装插件
+已安装：,Instalado:,Installed:,已安装：
+已完成,Concluído,Completed,已完成
+"已导入过 id 为 ""","Já foi importado um Provider com id ""","Already imported Provider with id ""","已导入过 id 为 """
+已思考 (,Pensado (,Thought (,已思考 (
+已恢复默认设置,Configurações padrão restauradas,Default settings restored,已恢复默认设置
+已打开平台选择,Seleção de plataforma aberta,Platform selection opened,已打开平台选择
+已打开窗口,Janela aberta,Window opened,已打开窗口
+已断开 ,Desconectado ,Disconnected ,已断开 
+已是最新版本,Versão mais recente,Up to date,已是最新版本
+已暂停,Pausado,Paused,已暂停
+已更新：,Atualizado:,Updated:,已更新：
+已点击 (,Clicado (,Clicked (,已点击 (
+已确认计划，开始执行,"Plano confirmado, iniciando execução","Plan confirmed, starting execution",已确认计划，开始执行
+已确认，开始按计划执行,"Confirmado, iniciando execução conforme o plano","Confirmed, starting execution as planned",已确认，开始按计划执行
+已禁用,Desativado,Disabled,已禁用
+已绑定群,está vinculada a um grupo,is bound to a group,已绑定群
+已绑定：,Vinculado:,Bound:,已绑定：
+已绑定：xxx,Vinculado: xxx,Bound: xxx,已绑定：xxx
+已继续执行计划,Execução do plano retomada,Plan execution resumed,已继续执行计划
+已跳过不支持的附件：,Anexos não suportados foram ignorados:,Skipped unsupported attachments:,已跳过不支持的附件：
+已连接,Conectado,Connected,已连接
+已连接 ,Conectado ,Connected ,已连接 
+已退出目标，当前任务已中止,"Saiu da meta, a tarefa atual foi interrompida","Exited goal, current task has been aborted",已退出目标，当前任务已中止
+已退出计划模式，当前任务已中止,"Modo plano encerrado, a tarefa atual foi interrompida","Plan mode exited, current task has been aborted",已退出计划模式，当前任务已中止
+市场,Mercado,Marketplace,市场
+帮助,Ajuda,Help,帮助
+常见问题,Perguntas frequentes,FAQ,常见问题
+平台,Plataforma,Platform,平台
+平台不存在: ,Plataforma não existe: ,Platform does not exist: ,平台不存在: 
+年,ano,year,年
+年前,anos atrás,years ago,年前
+应用列表,Lista de aplicativos,App list,应用列表
+延迟区间（秒）,Intervalo de atraso (segundos),Delay range (seconds),延迟区间（秒）
+建群 + 绑定到窗口,Criar grupo + vincular à janela,Create group + bind to window,建群 + 绑定到窗口
+开发者工具,Ferramentas do desenvolvedor,Developer tools,开发者工具
+开启后，webFetch 将拒绝访问内网、回环、保留地址（防 SSRF）。默认关闭（可访问本地项目）。,"Quando ativado, o webFetch negará acesso a endereços de rede interna, loopback e reservados (proteção contra SSRF). Desativado por padrão (permite acessar projetos locais).","When enabled, webFetch will deny access to internal, loopback, and reserved addresses (SSRF protection). Disabled by default (allows access to local projects).",开启后，webFetch 将拒绝访问内网、回环、保留地址（防 SSRF）。默认关闭（可访问本地项目）。
+开启，阈值 ,"Ativado, limite ","Enabled, threshold ",开启，阈值 
+开始下载,Iniciar download,Start download,开始下载
+开源地址,Endereço do código aberto,Open source repository,开源地址
+开通权限,Habilitar permissões,Enable permissions,开通权限
+当前上下文,Contexto atual,Current context,当前上下文
+当前对话窗口不存在或已关闭,A janela de conversa atual não existe ou foi fechada,Current chat window does not exist or has been closed,当前对话窗口不存在或已关闭
+当前已是最新版本。,Você já está na versão mais recente.,You are already on the latest version.,当前已是最新版本。
+当前平台不支持窗口材质（需 Win11）,Material de janela não suportado na plataforma atual (requer Win11),Window material not supported on current platform (requires Win11),当前平台不支持窗口材质（需 Win11）
+当前平台可能不支持自动上传附件,A plataforma atual pode não suportar carregamento automático de anexos,The current platform may not support automatic attachment upload,当前平台可能不支持自动上传附件
+当前平台无首页地址,Plataforma atual não tem endereço da página inicial,Current platform has no homepage address,当前平台无首页地址
+当前没有已连接的 MCP server。,Não há nenhum MCP server conectado no momento.,There are no connected MCP servers currently.,当前没有已连接的 MCP server。
+当前目标：,Objetivo atual:,Current goal:,当前目标：
+当前窗口不在组内,A janela atual não está em um grupo,Current window is not in a group,当前窗口不在组内
+当前窗口不属于该组，请先切到组内窗口,"A janela atual não pertence a este grupo, alterne para uma janela do grupo primeiro","Current window does not belong to this group, switch to a window in the group first",当前窗口不属于该组，请先切到组内窗口
+当前计划：,Plano atual:,Current plan:,当前计划：
+当前项目目录,Diretório do projeto atual,Current project directory,当前项目目录
+待确认,Aguardando confirmação,Pending confirmation,待确认
+必须重新创建版本 + 发布,É necessário recriar a versão e publicar novamente,You must recreate the version + publish,必须重新创建版本 + 发布
+思考中…,Pensando…,Thinking…,思考中…
+恢复默认,Restaurar padrão,Restore defaults,恢复默认
+打开,Abra o,Open the,打开
+打开 ,Abra ,Open ,打开 
+打开「,Ative a opção «,Turn on the «,打开「
+打开失败,Falha ao abrir,Open failed,打开失败
+打开失败: ,Falha ao abrir: ,Failed to open: ,打开失败: 
+打开插件目录,Abrir diretório de plugins,Open plugin directory,打开插件目录
+打开正文,Abrir corpo do texto,Open body,打开正文
+打开目录失败,Falha ao abrir diretório,Failed to open directory,打开目录失败
+打开窗口失败: ,Falha ao abrir janela: ,Failed to open window: ,打开窗口失败: 
+执行,Executar,Execute,执行
+执行中,Em execução,Running,执行中
+执行已暂停，已回到待确认状态,"Execução pausada, retornou ao estado de espera por confirmação","Execution paused, returned to pending confirmation state",执行已暂停，已回到待确认状态
+找不到窗口,Janela não encontrada,Window not found,找不到窗口
+找到,Encontrado,Found,找到
+找到「,encontre «,find «,找到「
+技能,Habilidades,Skills,技能
+技能 ,Habilidade ,Skill ,技能 
+技能: ,Habilidade: ,Skill: ,技能: 
+技能与代理清单,Lista de habilidades e agentes,Skills & Agents List,技能与代理清单
+把,Adicione o,Add the,把
+把机器人拉进一个飞书群，这里选它。,Adicione o bot a um grupo do Feishu e selecione-o aqui.,Add the bot to a Feishu group and select it here.,把机器人拉进一个飞书群，这里选它。
+拉进这个群,a este grupo,to this group,拉进这个群
+拒绝 webFetch 访问内网/本地地址,Bloquear acesso do webFetch a endereços de rede interna/locais,Deny webFetch access to internal/local addresses,拒绝 webFetch 访问内网/本地地址
+拖动调整宽度,Arraste para ajustar a largura,Drag to adjust width,拖动调整宽度
+拖动调整：文件树 / 内容区,Arraste para ajustar: árvore de arquivos / área de conteúdo,Drag to adjust: file tree / content area,拖动调整：文件树 / 内容区
+挂起超时必须是非负数字（秒）,O tempo limite de suspensão deve ser um número não negativo (segundos),Suspend timeout must be a non-negative number (seconds),挂起超时必须是非负数字（秒）
+接口不可用,Interface indisponível,Interface unavailable,接口不可用
+接收消息,Receber mensagens,Receive messages,接收消息
+接收（飞书 → Cuckoo）,Receber (Feishu → Bem-te-vi),Receive (Feishu → Bem-te-vi),接收（飞书 → Cuckoo）
+推送内容（Cuckoo → 飞书）,Conteúdo de envio (Bem-te-vi → Feishu),Push content (Bem-te-vi → Feishu),推送内容（Cuckoo → 飞书）
+推送目标完成事件失败: ,Falha ao enviar evento de conclusão do destino: ,Failed to push target completion event: ,推送目标完成事件失败: 
+提示,Dica,Tip,提示
+提示词,Prompt,Prompt,提示词
+插件,Plugins,Plugins,插件
+插件 id 非法,ID do plugin inválido,Invalid plugin id,插件 id 非法
+插件 v,Plugin v,Plugin v,插件 v
+插件不存在: ,Plugin não existe: ,Plugin does not exist: ,插件不存在: 
+插件工具所属窗口已关闭: ,Janela da ferramenta de plugin já foi fechada: ,Plugin tool's window has been closed: ,插件工具所属窗口已关闭: 
+插件工具执行失败,Falha na execução da ferramenta de plugin,Plugin tool execution failed,插件工具执行失败
+插件工具执行超时: ,Tempo de execução da ferramenta de plugin esgotado: ,Plugin tool execution timed out: ,插件工具执行超时: 
+插件改造版,versão modificada para plugins,plugin-modified version,插件改造版
+插件未启用: ,Plugin não ativado: ,Plugin not enabled: ,插件未启用: 
+插件配置：,Configuração do plugin:,Plugin configuration:,插件配置：
+"搜索并开通以下权限：
+      ","pesquise e ative as seguintes permissões:
+      ","search for and enable the following permissions:
+      ","搜索并开通以下权限：
+      "
+搜索文件名…,Pesquisar nome do arquivo…,Search filename…,搜索文件名…
+撤销,Desfazer,Undo,撤销
+操作,Ação,Action,操作
+操作失败,Falha na operação,Operation failed,操作失败
+操作失败: ,Falha na operação: ,Operation failed: ,操作失败: 
+操作频繁重试次数必须是整数,O número de tentativas para operações frequentes deve ser um número inteiro,Retry count for frequent operations must be an integer,操作频繁重试次数必须是整数
+操作频繁重试次数（负数=无限）,Número de repetições por operação frequente (negativo = infinito),Frequent operation retry count (negative = unlimited),操作频繁重试次数（负数=无限）
+操作频繁重试间隔必须是非负数字,O intervalo de repetição por operação frequente deve ser um número não negativo,Frequent operation retry interval must be a non-negative number,操作频繁重试间隔必须是非负数字
+操作频繁重试间隔必须是非负数字（秒）,O intervalo de tentativa para operações frequentes deve ser um número não negativo (segundos),Retry interval for frequent operations must be a non-negative number (seconds),操作频繁重试间隔必须是非负数字（秒）
+操作频繁重试间隔（秒）,Intervalo de repetição por operação frequente (segundos),Frequent operation retry interval (seconds),操作频繁重试间隔（秒）
+改名会重命名文件；「打开正文」用系统程序编辑提示词。,"Renomear renomeia o arquivo; use ""Abrir corpo"" para editar o prompt com o programa do sistema.","Renaming will rename the file; use ""Open body"" to edit the prompt with the system program.",改名会重命名文件；「打开正文」用系统程序编辑提示词。
+放大,Ampliar,Zoom in,放大
+效果,Resultado,Effect,效果
+文件,Arquivo,File,文件
+文件不存在,Arquivo não existe,File does not exist,文件不存在
+文件不存在: ,Arquivo não existe: ,File does not exist: ,文件不存在: 
+文件已注入 ,Arquivo injetado ,File injected ,文件已注入 
+文件已注入（直接注入隐藏 file input）,Arquivo injetado (injeção direta em file input oculto),File injected (direct injection into hidden file input),文件已注入（直接注入隐藏 file input）
+文件过大（>,Arquivo muito grande (>,File too large (>,文件过大（>
+文件预览,Pré-visualização de arquivo,File Preview,文件预览
+文本为空,Texto vazio,Text is empty,文本为空
+斜杠菜单里显示的是中文名与英文标识（如 目标 goal），也可直接手输 ,"O menu de barra exibe nomes em chinês e identificadores em inglês (ex: objetivo goal), você também pode digitar diretamente ","The slash menu shows Chinese names and English identifiers (e.g. goal), you can also type directly ",斜杠菜单里显示的是中文名与英文标识（如 目标 goal），也可直接手输 
+断开,Desconectar,Disconnect,断开
+新对话,Nova conversa,New chat,新对话
+新建子代理,Novo subagente,New sub-agent,新建子代理
+新建对话,Nova conversa,New conversation,新建对话
+新建快捷提示词,Criar prompt rápido,New quick prompt,新建快捷提示词
+新建提示词,Novo prompt,New prompt,新建提示词
+新建窗口,Nova janela,New window,新建窗口
+新建窗口组,Criar grupo de janelas,New window group,新建窗口组
+新版本 v,Nova versão v,New version v,新版本 v
+新版本已下载完成,Nova versão baixada com sucesso,New version has finished downloading,新版本已下载完成
+无,Nenhum,None,无
+无主窗口,Sem janela principal,No main window,无主窗口
+无会话上下文,Sem contexto de sessão,No session context,无会话上下文
+无可用窗口,Nenhuma janela disponível,No available window,无可用窗口
+无效的 JS 代码,Código JS inválido,Invalid JS code,无效的 JS 代码
+无效的命令,Comando inválido,Invalid command,无效的命令
+无法确定会话 URL（当前平台未提供 sessionUrlBase）,Não é possível determinar a URL da sessão (a plataforma atual não fornece sessionUrlBase),Cannot determine session URL (current platform does not provide sessionUrlBase),无法确定会话 URL（当前平台未提供 sessionUrlBase）
+无法访问 GitHub 更新服务器,Não foi possível acessar o servidor de atualização do GitHub,Cannot access GitHub update server,无法访问 GitHub 更新服务器
+无法连接到更新服务器,Não foi possível conectar ao servidor de atualização,Cannot connect to update server,无法连接到更新服务器
+无法连接到更新服务器（GitHub），请检查网络连接。,Não foi possível conectar ao servidor de atualização (GitHub). Verifique sua conexão de rede.,Cannot connect to update server (GitHub). Please check your network connection.,无法连接到更新服务器（GitHub），请检查网络连接。
+无活跃窗口,Nenhuma janela ativa,No active window,无活跃窗口
+日 ,dia ,day ,日 
+是否现在下载更新？下载完成后可在退出时自动安装。,Deseja baixar a atualização agora? Ela será instalada automaticamente ao sair do aplicativo após o download.,Download the update now? It will install automatically when you exit after download completes.,是否现在下载更新？下载完成后可在退出时自动安装。
+是否立即重启应用并安装更新？,Deseja reiniciar o aplicativo agora para instalar a atualização?,Restart the app now to install the update?,是否立即重启应用并安装更新？
+显示/隐藏地址栏,Mostrar/ocultar barra de endereço,Show/hide address bar,显示/隐藏地址栏
+普通失败最大间隔不能小于最小间隔,O intervalo máximo para falhas comuns não pode ser menor que o intervalo mínimo,Maximum interval for common failures cannot be less than the minimum interval,普通失败最大间隔不能小于最小间隔
+普通失败最小间隔必须是非负数字,O intervalo mínimo de falha comum deve ser um número não negativo,Minimum common failure interval must be a non-negative number,普通失败最小间隔必须是非负数字
+普通失败最小间隔必须是非负数字（秒）,O intervalo mínimo para falhas comuns deve ser um número não negativo (segundos),Minimum interval for common failures must be a non-negative number (seconds),普通失败最小间隔必须是非负数字（秒）
+普通失败重试次数必须是整数,O número de tentativas para falhas comuns deve ser um número inteiro,Retry count for common failures must be an integer,普通失败重试次数必须是整数
+普通失败重试次数（负数=无限）,Número de tentativas de falha comum (negativo = infinito),Common failure retry count (negative = unlimited),普通失败重试次数（负数=无限）
+普通失败间隔（秒）,Intervalo para falhas comuns (segundos),Normal failure interval (seconds),普通失败间隔（秒）
+暂不下载,Não baixar agora,Not now,暂不下载
+暂停,Pausar,Pause,暂停
+暂无窗口,Nenhuma janela ainda,No windows yet,暂无窗口
+更新,Atualizar,Update,更新
+更新 profile 失败,Falha ao atualizar profile,Failed to update profile,更新 profile 失败
+更新失败,Falha na atualização,Update failed,更新失败
+更新完成,Atualização concluída,Update completed,更新完成
+更新已就绪,Atualização pronta,Update ready,更新已就绪
+替换,Substituir,Replace,替换
+替换失败: ,Falha ao substituir: ,Replace failed: ,替换失败: 
+替换成功,Substituído com sucesso,Replaced successfully,替换成功
+最大化,Maximizar,Maximize,最大化
+最小化,Minimizar,Minimize,最小化
+月,mês,month,月
+未命名,Sem nome,Untitled,未命名
+未找到,Não encontrado,Not found,未找到
+未找到 AI 页面,Página de IA não encontrada,AI page not found,未找到 AI 页面
+未找到文件上传输入框（已尝试点击上传按钮）,Campo de entrada de upload de arquivo não encontrado (tentativa de clique no botão de upload já feita),File upload input field not found (upload button click already attempted),未找到文件上传输入框（已尝试点击上传按钮）
+未找到输入框，请确保已打开聊天界面,"Caixa de entrada não encontrada, certifique-se de que a interface de chat está aberta","Input box not found, please ensure the chat interface is open",未找到输入框，请确保已打开聊天界面
+未按标记定位到 file input，回退到点击流程,"Não foi possível localizar o file input pela marcação, voltando para o fluxo de clique","Failed to locate file input by marker, falling back to click flow",未按标记定位到 file input，回退到点击流程
+未知错误,Erro desconhecido,Unknown error,未知错误
+未绑定,Não vinculado,Unbound,未绑定
+未连接,Desconectado,Not connected,未连接
+未选平台,Nenhuma plataforma selecionada,No platform selected,未选平台
+未选择,Nenhum selecionado,None selected,未选择
+未选择平台,Nenhuma plataforma selecionada,No platform selected,未选择平台
+未选择项目目录,Nenhum diretório de projeto selecionado,No project directory selected,未选择项目目录
+未选择项目目录（点击初始化）,Nenhum diretório de projeto selecionado (clique para inicializar),No project directory selected (click to initialize),未选择项目目录（点击初始化）
+未配置凭证,Credenciais não configuradas,Credentials not configured,未配置凭证
+"本次先只做「计划」，不要执行任何任务：
+","Desta vez, faça apenas o «planejamento», não execute nenhuma tarefa:
+","For now, only do the ""planning"" step, do not execute any tasks:
+","本次先只做「计划」，不要执行任何任务：
+"
+本次实际执行的代码(前300字符):,Código efetivamente executado desta vez (primeiros 300 caracteres):,Actually executed code this time (first 300 characters):,本次实际执行的代码(前300字符):
+本版本为,Esta versão é uma,This version is a,本版本为
+本窗口,esta janela,this window,本窗口
+本窗口绑定的飞书群,Grupo do Feishu vinculado a esta janela,Feishu group bound to this window,本窗口绑定的飞书群
+本系统为开源项目，欢迎点 Star 支持。,Este sistema é um projeto de código aberto. Sinta-se à vontade para dar uma estrela para nos apoiar.,This system is an open source project. Feel free to give it a Star to support us.,本系统为开源项目，欢迎点 Star 支持。
+本轮未出现文件选择框，重新探测下一步…,"Nenhuma caixa de seleção de arquivo apareceu nesta rodada, detectando a próxima etapa novamente…","No file selection dialog appeared this round, re-detecting next step…",本轮未出现文件选择框，重新探测下一步…
+机器人,Robô,Bot,机器人
+权限管理,Gerenciamento de permissões,Permission management,权限管理
+松开以添加文件,Solte para adicionar arquivo,Release to add file,松开以添加文件
+查看,Exibir,View,查看
+查看图文配置教程 →,Ver tutorial de configuração com imagens →,View illustrated configuration tutorial →,查看图文配置教程 →
+根据当前项目生成一个类似 claude.md 的项目说明文件，并将文件放到当前项目 .cuckoo/CUCKOO.md,Gere um arquivo de descrição de projeto semelhante a claude.md com base no projeto atual e coloque o arquivo em .cuckoo/CUCKOO.md do projeto atual,"Generate a claude.md-like project description file based on the current project, and place the file in the current project's .cuckoo/CUCKOO.md",根据当前项目生成一个类似 claude.md 的项目说明文件，并将文件放到当前项目 .cuckoo/CUCKOO.md
+格式纠正,Correção de formato,Format correction,格式纠正
+框架指令,Instrução do framework,Framework instruction,框架指令
+框架：,Framework:,Framework:,框架：
+检查更新,Verificar atualizações,Check for updates,检查更新
+检查更新失败,Falha ao verificar atualizações,Failed to check for updates,检查更新失败
+模型输出速度：tokens/秒（生成中实时更新，结束后保留最终值）,"Velocidade de saída do modelo: tokens/segundo (atualizado em tempo real durante a geração, valor final mantido após conclusão)","Model output speed: tokens/second (updated in real-time during generation, final value kept after completion)",模型输出速度：tokens/秒（生成中实时更新，结束后保留最终值）
+正在下载 v,Baixando v,Downloading v,正在下载 v
+正在检查是否有新版本...,Verificando se há uma nova versão...,Checking for new version...,正在检查是否有新版本...
+正在生成计划条目…,Gerando itens do plano…,Generating plan items…,正在生成计划条目…
+每个窗口绑定一个飞书群,Cada janela é vinculada a um grupo do Feishu,Each window is bound to one Feishu group,每个窗口绑定一个飞书群
+每个窗口绑定各自的群,Cada janela está vinculada ao seu próprio grupo,Each window is bound to its own group,每个窗口绑定各自的群
+沉浸式交流,Comunicação imersiva,Immersive communication,沉浸式交流
+没有找到任何技能或代理,Nenhuma habilidade ou agente encontrado,No skills or agents found,没有找到任何技能或代理
+注入后3s,3s após a injeção,3s after injection,注入后3s
+注入后立即,Imediatamente após a injeção,Immediately after injection,注入后立即
+注入失败: ,Falha na injeção: ,Injection failed: ,注入失败: 
+注册到 ToolRegistry 失败: ,Falha ao registrar no ToolRegistry: ,Failed to register to ToolRegistry: ,注册到 ToolRegistry 失败: 
+注册时会让你创建一个组织/团队（随便起名，个人可用，,"Durante o cadastro, você será solicitado a criar uma organização/equipe (escolha qualquer nome, pode ser usado pessoalmente,","During registration, you will be asked to create an organization/team (any name works, for personal use,",注册时会让你创建一个组织/团队（随便起名，个人可用，
+注册飞书账号,Cadastrar conta no Feishu,Register a Feishu account,注册飞书账号
+注意：工具调用必须写成 ,Aviso: a chamada de ferramenta deve ser escrita como um bloco de código ,Note: tool calls must be written as a ,注意：工具调用必须写成 
+浅色,Claro,Light,浅色
+深色,Escuro,Dark,深色
+添加,Adicionar,Add,添加
+"添加""机器人""能力","Adicionar capacidade de ""bot""","Add ""bot"" capability","添加""机器人""能力"
+添加事件,Adicionar evento,Add event,添加事件
+添加应用能力,Adicionar capacidade do aplicativo,Add app capability,添加应用能力
+添加文件 / 图片,Adicionar arquivo / imagem,Add file / image,添加文件 / 图片
+添加窗口,Adicionar janela,Add window,添加窗口
+添加附件 attach 附件 文件 上传 图片 file,adicionar anexo anexar anexo arquivo carregar imagem file,add attachment attach attachment file upload image file,添加附件 attach 附件 文件 上传 图片 file
+添加附件（图片/文件）,Adicionar anexo (imagem/arquivo),Add attachment (image/file),添加附件（图片/文件）
+清除,Limpar,Clear,清除
+源窗口不可用,Janela de origem indisponível,Source window is unavailable,源窗口不可用
+点「,Clique em「,Click 「,点「
+点击后将填入输入框的文本,Texto que será inserido na caixa de entrada ao clicar,Text that will be filled into the input box when clicked,点击后将填入输入框的文本
+点击左侧文件查看内容,Clique em um arquivo à esquerda para ver o conteúdo,Click a file on the left to view content,点击左侧文件查看内容
+父 profile 不存在: ,Profile pai não existe: ,Parent profile does not exist: ,父 profile 不存在: 
+父窗口上下文不存在,Contexto da janela pai não existe,Parent window context does not exist,父窗口上下文不存在
+版本 ,Versão ,Version ,版本 
+版本管理与发布,Gerenciamento de versão e publicação,Version management & release,版本管理与发布
+版本：v,Versão: v,Version: v,版本：v
+状态变「,O status muda para «,Status changes to «,状态变「
+状态应变「,O status deve mudar para «,Status will change to «,状态应变「
+"现在你的任何疑问,或没有疑问的选择都需要和我确认 , 确认的方式是 你问一个问题我回答一个问题,然后你再问下一个问题, 最好给我选项, 也要给我个其他的选项, 谢谢 爱你哦","Agora qualquer dúvida que você tiver, ou mesmo escolhas sem dúvidas, precisam ser confirmadas comigo. A forma de confirmação é: você faz uma pergunta, eu respondo, depois você faz a próxima pergunta. De preferência me dê opções, e também inclua uma opção de 'outro'. Obrigado, te amo","Now any question you have, or even choices without doubts, need to be confirmed with me. The confirmation method is: you ask one question, I answer one question, then you ask the next question. Preferably give me options, and also include an 'other' option. Thank you, love you","现在你的任何疑问,或没有疑问的选择都需要和我确认 , 确认的方式是 你问一个问题我回答一个问题,然后你再问下一个问题, 最好给我选项, 也要给我个其他的选项, 谢谢 爱你哦"
+生成中…,Gerando…,Generating…,生成中…
+生成文档,Gerar documento,Generate document,生成文档
+生成模板后，会用系统默认程序打开，你直接编辑保存即可。,"Depois que o modelo for gerado, ele será aberto com o programa padrão do sistema, basta editar e salvar.","After the template is generated, it will open with your default system program; just edit and save it directly.",生成模板后，会用系统默认程序打开，你直接编辑保存即可。
+生成计划中,Gerando plano,Generating plan,生成计划中
+生成项目说明,Gerar descrição do projeto,Generate project description,生成项目说明
+用户,Usuário,User,用户
+用户取消了执行,Usuário cancelou a execução,User cancelled execution,用户取消了执行
+用户消息,Mensagens do usuário,User messages,用户消息
+用户级（~/.cuckoo/agents/）,Nível do usuário (~/.cuckoo/agents/),User level (~/.cuckoo/agents/),用户级（~/.cuckoo/agents/）
+用法：/goal <目标描述> —— 设定后自动多轮推进，目标完成后自动结束；也可点「暂停」中止当前任务、点「退出」彻底停止,Uso: /goal <descrição do objetivo> — avança automaticamente em múltiplas rodadas após definição e termina automaticamente quando o objetivo é concluído; você também pode clicar em «Pausar» para interromper a tarefa atual ou em «Sair» para parar completamente,"Usage: /goal <goal description> — automatically advances through multiple rounds after setting, and ends automatically when the goal is complete; you can also click «Pause» to stop the current task, or «Exit» to stop completely",用法：/goal <目标描述> —— 设定后自动多轮推进，目标完成后自动结束；也可点「暂停」中止当前任务、点「退出」彻底停止
+用法：/plan <任务描述> —— 先列出计划条目，确认后再执行,Uso: /plan <descrição da tarefa> — lista os itens do plano primeiro e executa após confirmação,"Usage: /plan <task description> — list plan items first, then execute after confirmation",用法：/plan <任务描述> —— 先列出计划条目，确认后再执行
+用系统程序打开,Abrir com programa do sistema,Open with system program,用系统程序打开
+申请发布,Solicitar publicação,Request release,申请发布
+目录,Sumário,Table of contents,目录
+目标,Objetivo,Goal,目标
+目标已修改：,Meta modificada:,Goal modified:,目标已修改：
+目标已完成,Meta concluída,Goal completed,目标已完成
+目标已完成（AI 已调用 goalDone 结束目标）,Meta concluída (a IA chamou goalDone para encerrar a meta),Goal completed (AI has called goalDone to end the goal),目标已完成（AI 已调用 goalDone 结束目标）
+目标已暂停，当前任务已中止,"Meta pausada, a tarefa atual foi interrompida","Goal paused, current task has been aborted",目标已暂停，当前任务已中止
+目标已继续,Meta retomada,Goal resumed,目标已继续
+目标已设定（自动迭代，最多 ,"Objetivo definido (iteração automática, no máximo ","Goal set (auto-iteration, up to ",目标已设定（自动迭代，最多 
+目标已设定：,Meta definida:,Goal set:,目标已设定：
+目标已达最大迭代次数（,A meta atingiu o número máximo de iterações（,Goal has reached maximum iteration count (,目标已达最大迭代次数（
+目标无进展，停止,"Meta sem progresso, parando","Goal has no progress, stopping",目标无进展，停止
+目标最大迭代次数必须是正整数,O número máximo de iterações de destino deve ser um número inteiro positivo,Target maximum iteration count must be a positive integer,目标最大迭代次数必须是正整数
+目标窗口不存在,Janela de destino não existe,Target window does not exist,目标窗口不存在
+目标窗口视图不可用,Visualização da janela de destino indisponível,Target window view is unavailable,目标窗口视图不可用
+目标达最大迭代次数，停止,"Meta atingiu o número máximo de iterações, parando","Goal reached maximum iteration count, stopping",目标达最大迭代次数，停止
+目标连续多轮无进展，停止,"Meta sem progresso por várias rodadas consecutivas, parando","Goal has had no progress for multiple consecutive rounds, stopping",目标连续多轮无进展，停止
+目标（点击可直接编辑）,Objetivo (clique para editar diretamente),Goal (click to edit directly),目标（点击可直接编辑）
+直接注入后立即,Imediatamente após injeção direta,Immediately after direct injection,直接注入后立即
+直接注入异常: ,Exceção de injeção direta: ,Direct injection exception: ,直接注入异常: 
+看门狗,Watchdog,Watchdog,看门狗
+确定,OK,OK,确定
+确定删除提示词「,Tem certeza de que deseja excluir o prompt「,Are you sure you want to delete the prompt「,确定删除提示词「
+确定删除窗口「,Tem certeza de que deseja excluir a janela「,Are you sure you want to delete the window「,确定删除窗口「
+确定删除该子代理文件？此操作不可恢复。,Tem certeza de que deseja excluir este arquivo de subagente? Esta ação não pode ser desfeita.,Are you sure you want to delete this sub-agent file? This action cannot be undone.,确定删除该子代理文件？此操作不可恢复。
+确定删除该窗口组？（窗口本身不删）,Tem certeza de que deseja excluir este grupo de janelas? (as janelas em si não serão excluídas),Are you sure you want to delete this window group? (the windows themselves will not be deleted),确定删除该窗口组？（窗口本身不删）
+确定删除这个自定义 Provider 吗？,Tem certeza de que deseja excluir este Provider personalizado?,Are you sure you want to delete this custom Provider?,确定删除这个自定义 Provider 吗？
+确定卸载插件「,Tem certeza de que deseja desinstalar o plugin「,Are you sure you want to uninstall the plugin「,确定卸载插件「
+确定压缩上下文？将生成摘要并在新会话继续。,Tem certeza de que deseja compactar o contexto? Um resumo será gerado e continuará em uma nova conversa.,Are you sure you want to compress the context? A summary will be generated and continue in a new session.,确定压缩上下文？将生成摘要并在新会话继续。
+确定恢复默认设置？,Tem certeza de que deseja restaurar as configurações padrão?,Are you sure you want to restore default settings?,确定恢复默认设置？
+确定要关闭窗口「,Tem certeza que deseja fechar a janela「,Are you sure you want to close the window「,确定要关闭窗口「
+确认,Confirmar,Confirm,确认
+确认关闭,Confirmar fechamento,Confirm close,确认关闭
+确认执行,Confirmar execução,Confirm execution,确认执行
+确认执行命令,Confirmar execução do comando,Confirm command execution,确认执行命令
+稍后,Mais tarde,Later,稍后
+窗口,Janela,Window,窗口
+窗口上下文不存在,Contexto da janela não existe,Window context does not exist,窗口上下文不存在
+窗口不存在,Janela não existe,Window does not exist,窗口不存在
+窗口已关闭,Janela já foi fechada,Window already closed,窗口已关闭
+窗口未挂 overlay 创建器,Janela não tem criador de overlay anexado,Window has no overlay creator attached,窗口未挂 overlay 创建器
+窗口累计,Total da janela,Window total,窗口累计
+窗口组 ,Grupo de janelas ,Window group ,窗口组 
+立即下载,Baixar agora,Download now,立即下载
+立即重启,Reiniciar agora,Restart now,立即重启
+第,,,第
+等待你的输入,Aguardando sua entrada,Waiting for your input,等待你的输入
+等待超时催继续,Lembrete de continuação por tempo limite de espera,Timeout reminder to continue,等待超时催继续
+等待附件就绪超时，最后状态: ,"Tempo de espera para o anexo ficar pronto expirou, último status: ","Timeout waiting for attachment to be ready, last status: ",等待附件就绪超时，最后状态: 
+管理窗口组,Gerenciar grupo de janelas,Manage window group,管理窗口组
+粘贴,Colar,Paste,粘贴
+系统总累计,Total geral do sistema,System total,系统总累计
+系统提示词,Prompt do sistema,System prompt,系统提示词
+纯净对话模式,Modo de conversa limpa,Clean chat mode,纯净对话模式
+纯净对话模式未开启，没有目标可结束,"Modo de conversa limpa não está ativado, não há destino para encerrar","Clean chat mode is not enabled, no target to end",纯净对话模式未开启，没有目标可结束
+组内没有其他窗口,Não há outras janelas no grupo,No other windows in the group,组内没有其他窗口
+组内窗口均不可用（限流/超时），已退回重试,"Todas as janelas do grupo estão indisponíveis (limite de taxa/timeout), retorno para nova tentativa","All windows in the group are unavailable (rate limit/timeout), reverted to retry",组内窗口均不可用（限流/超时），已退回重试
+组内窗口（按顺序轮换）,Janelas no grupo (alternam em ordem),Windows in group (rotate in order),组内窗口（按顺序轮换）
+组名,Nome do grupo,Group name,组名
+组名（如：主力账号组）,Nome do grupo (ex: grupo de contas principais),Group name (e.g. main account group),组名（如：主力账号组）
+绑定的群,grupo vinculado,bound group,绑定的群
+继续,Continuar,Continue,继续
+继续执行计划中尚未完成的步骤，并立即用 todoWrite 更新状态：完成的标记为 completed、正在做的标记为 in_progress。,Continue executando as etapas do plano que ainda não foram concluídas e atualize imediatamente o status com todoWrite: marque as concluídas como completed e as em andamento como in_progress.,"Continue executing the uncompleted steps in the plan, and immediately update the status with todoWrite: mark completed steps as completed, ongoing steps as in_progress.",继续执行计划中尚未完成的步骤，并立即用 todoWrite 更新状态：完成的标记为 completed、正在做的标记为 in_progress。
+继续推进当前目标。若目标已全部完成，请调用 goalDone() 工具结束目标。,"Continue avançando a meta atual. Se a meta foi totalmente concluída, chame a ferramenta goalDone() para encerrá-la.","Continue advancing the current goal. If the goal is fully completed, call the goalDone() tool to end the goal.",继续推进当前目标。若目标已全部完成，请调用 goalDone() 工具结束目标。
+编辑,Editar,Edit,编辑
+编辑子代理,Editar subagente,Edit sub-agent,编辑子代理
+编辑提示词,Editar prompt,Edit prompt,编辑提示词
+缩小,Diminuir,Zoom out,缩小
+缩放,Zoom,Zoom,缩放
+缺 pluginId/slot/id,pluginId/slot/id ausente,Missing pluginId/slot/id,缺 pluginId/slot/id
+缺少 code,code ausente,Missing code,缺少 code
+缺少 commandId,commandId ausente,Missing commandId,缺少 commandId
+缺少 css,css ausente,Missing css,缺少 css
+缺少 dir,dir ausente,Missing dir,缺少 dir
+缺少 groupId,groupId ausente,Missing groupId,缺少 groupId
+缺少 html,html ausente,Missing html,缺少 html
+缺少 pluginId,pluginId ausente,Missing pluginId,缺少 pluginId
+缺少 profileId,profileId ausente,Missing profileId,缺少 profileId
+缺少 providerId,providerId ausente,Missing providerId,缺少 providerId
+缺少 relPath,relPath ausente,Missing relPath,缺少 relPath
+缺少 target,target ausente,Missing target,缺少 target
+缺少 toolId 或 name,toolId ou name ausente,Missing toolId or name,缺少 toolId 或 name
+缺少会话ID,ID da sessão ausente,Missing session ID,缺少会话ID
+缺少包名,Nome do pacote ausente,Missing package name,缺少包名
+缺少参数,Parâmetro ausente,Missing parameter,缺少参数
+缺少平台ID,ID da plataforma ausente,Missing platform ID,缺少平台ID
+缺少文件路径,Caminho do arquivo ausente,Missing file path,缺少文件路径
+缺少窗口ID,ID da janela ausente,Missing window ID,缺少窗口ID
+网络安全,Segurança de rede,Network security,网络安全
+网页模式,Modo Web,Web Mode,网页模式
+网页脚本 ,Script de página web ,Webpage script ,网页脚本 
+自动压缩,Compactação automática,Auto compress,自动压缩
+自动压缩设置已保存：,Configuração de compactação automática salva:,Auto-compress settings saved:,自动压缩设置已保存：
+自动发送,Envio automático,Auto-send,自动发送
+自动续跑,Retomada automática,Auto resume,自动续跑
+至,a,to,至
+获取 App ID / App Secret,Obter App ID / App Secret,Get App ID / App Secret,获取 App ID / App Secret
+获取清单失败: ,Falha ao obter a lista: ,Failed to fetch list: ,获取清单失败: 
+覆盖层不存在,Camada de sobreposição não existe,Overlay does not exist,覆盖层不存在
+规则 ,Regra ,Rule ,规则 
+视图不可用,Visão indisponível,View unavailable,视图不可用
+解绑,Desvincular,Unbind,解绑
+计划,Plano,Plan,计划
+计划已全部完成,Todo o plano foi concluído,All plan steps have been completed,计划已全部完成
+计划已就绪，共 ,"Plano pronto, total de ","Plan ready, total of ",计划已就绪，共 
+计划已就绪，等待确认,"Plano pronto, aguardando confirmação","Plan ready, waiting for confirmation",计划已就绪，等待确认
+计划无进展，已回到待确认状态,"Plano sem progresso, voltou ao estado de espera de confirmação","Plan has no progress, returned to pending confirmation state",计划无进展，已回到待确认状态
+计划模式：先列出完整计划条目，确认后再执行,Modo plano: liste todos os itens do plano primeiro e execute após confirmação,"Plan mode: list all plan items first, then execute after confirmation",计划模式：先列出完整计划条目，确认后再执行
+计划模式：先列出计划条目，等待确认,"Modo plano: liste os itens do plano primeiro, aguarde confirmação","Plan mode: list plan items first, wait for confirmation",计划模式：先列出计划条目，等待确认
+计划等待用户输入，自动推进已停止,"Plano aguardando entrada do usuário, avanço automático interrompido","Plan waiting for user input, automatic advancement has stopped",计划等待用户输入，自动推进已停止
+计划连续多轮无进展，已回到待确认状态,"Plano sem progresso por várias rodadas consecutivas, voltou ao estado de espera de confirmação","Plan has had no progress for multiple consecutive rounds, returned to pending confirmation state",计划连续多轮无进展，已回到待确认状态
+计划需要你补充信息才能继续 —— 自动推进已停止,O plano precisa que você complemente informações para continuar — o avanço automático foi interrompido,The plan requires you to provide additional information to continue — automatic advancement has stopped,计划需要你补充信息才能继续 —— 自动推进已停止
+设定目标 制定目标 目标 goal goalmode 自动推进 多轮,definir objetivo criar objetivo objetivo goal goalmode avanço automático múltiplas rodadas,set goal create goal goal goalmode auto advance multi-round,设定目标 制定目标 目标 goal goalmode 自动推进 多轮
+设置,Configurações,Settings,设置
+设置失败,Falha na configuração,Settings failed,设置失败
+设置失败: ,Falha na configuração: ,Settings failed: ,设置失败: 
+设置已保存,Configurações salvas,Settings saved,设置已保存
+设置已保存：最大迭代次数 = ,Configuração salva: número máximo de iterações = ,Settings saved: max iterations = ,设置已保存：最大迭代次数 = 
+设置或查看长期任务目标,Definir ou visualizar objetivos de tarefas de longo prazo,Set or view long-term task goals,设置或查看长期任务目标
+该插件没有配置项,Este plugin não tem itens de configuração,This plugin has no configuration items,该插件没有配置项
+"该插件？
+
+","este plugin？
+
+","this plugin?
+
+","该插件？
+
+"
+该窗口,Esta janela,This window,该窗口
+请使用 ,Use ,Use ,请使用 
+请使用工具：,"Por favor, use a ferramenta:",Please use tool:,请使用工具：
+请使用技能：,"Por favor, use a habilidade:",Please use skill:,请使用技能：
+请修正 JavaScript 代码后重新输出完整的 ,Corrija o código JavaScript e reenvie o bloco completo de ,Please fix the JavaScript code and re-output the complete ,请修正 JavaScript 代码后重新输出完整的 
+请先选择项目目录,Selecione o diretório do projeto primeiro,Please select a project directory first,请先选择项目目录
+请填写内容,"Por favor, preencha o conteúdo",Please fill in the content,请填写内容
+请填写名称,"Por favor, insira um nome",Please enter a name,请填写名称
+"请检查网络连接。更新服务器位于 GitHub，可能需要代理或 VPN 才能访问。
+
+错误信息：","Verifique sua conexão de rede. O servidor de atualização está no GitHub e pode exigir proxy ou VPN para acesso.
+
+Mensagem de erro:","Please check your network connection. The update server is on GitHub and may require a proxy or VPN to access.
+
+Error message:","请检查网络连接。更新服务器位于 GitHub，可能需要代理或 VPN 才能访问。
+
+错误信息："
+请继续,Por favor continue,Please continue,请继续
+请输入配置,Insira a configuração,Enter configuration,请输入配置
+读取失败,Falha ao ler,Read failed,读取失败
+读取失败: ,Falha ao ler: ,Read failed: ,读取失败: 
+读取配置失败,Falha ao ler configuração,Failed to read configuration,读取配置失败
+超时重试提示词,Prompt de repetição por tempo limite,Timeout retry prompt,超时重试提示词
+超时重试提示词不能为空,O prompt de repetição por tempo limite não pode estar vazio,Timeout retry prompt cannot be empty,超时重试提示词不能为空
+超时重试次数必须是整数,O número de repetições por tempo limite deve ser um número inteiro,Timeout retry count must be an integer,超时重试次数必须是整数
+超时重试次数（负数=无限）,Número de repetições por tempo limite (negativo = infinito),Timeout retry count (negative = unlimited),超时重试次数（负数=无限）
+超过,Exceder,Exceed,超过
+跟随系统,Seguir sistema,Follow system,跟随系统
+路径越界,Caminho fora dos limites,Path out of bounds,路径越界
+转移中…,Transferindo…,Transferring…,转移中…
+轮上传入口探测: ,ª rodada de detecção de entrada de upload: ,th upload entry detection round: ,轮上传入口探测: 
+轮探测: ,ª rodada de detecção: ,th detection round: ,轮探测: 
+轮探测异常: ,ª rodada de detecção anômala: ,th detection round abnormal: ,轮探测异常: 
+输入,Entrada,Input,输入
+输入 ,Digite ,Enter ,输入 
+输入区状态(,Status da área de entrada(,Input area status(,输入区状态(
+输入对话名称,Digite o nome da conversa,Enter conversation name,输入对话名称
+输入消息…  / 查看技能与工具,Digite uma mensagem…  / ver habilidades e ferramentas,Type a message…  / view skills and tools,输入消息…  / 查看技能与工具
+输入网址后回车,Digite o URL e pressione Enter,Enter URL and press Enter,输入网址后回车
+输出速度:,Velocidade de saída:,Output speed:,输出速度:
+返回网页模式 (Ctrl+Shift+H),Voltar ao modo Web (Ctrl+Shift+H),Back to Web Mode (Ctrl+Shift+H),返回网页模式 (Ctrl+Shift+H)
+还没配置过？,Ainda não configurou?,Haven't configured it yet?,还没配置过？
+进入平台失败: ,Falha ao entrar na plataforma: ,Failed to enter platform: ,进入平台失败: 
+进入应用后，左侧点「,"Depois de entrar no aplicativo, clique em「","After entering the app, click 「",进入应用后，左侧点「
+进入或退出计划模式,Entrar ou sair do modo plano,Enter or exit plan mode,进入或退出计划模式
+进行中,Em andamento,In progress,进行中
+连接中…,Conectando…,Connecting…,连接中…
+迭代 ,Iteração ,Iteration ,迭代 
+迭代次数需为正整数,O número de iterações deve ser um número inteiro positivo,Iteration count must be a positive integer,迭代次数需为正整数
+退出,Sair,Quit,退出
+选择平台 - Cuckoo Code,Selecionar plataforma - Bem-te-vi,Select Platform - Bem-te-vi,选择平台 - Cuckoo Code
+选择新的 Provider 文件（id 必须为 ,Selecionar novo arquivo de Provider (o id deve ser ,Select new Provider file (id must be ,选择新的 Provider 文件（id 必须为 
+选择自定义 Provider 文件,Selecionar arquivo de Provider personalizado,Select custom Provider file,选择自定义 Provider 文件
+选择要使用的 AI 平台,Selecione a plataforma de AI que deseja usar,Select the AI platform you want to use,选择要使用的 AI 平台
+配置事件订阅（关键！）,Configurar assinatura de eventos (crítico!),Configure event subscription (critical!),配置事件订阅（关键！）
+配置事件订阅（关键）,Configurar assinatura de eventos (essencial),Configure event subscription (critical),配置事件订阅（关键）
+配置后，手机飞书就能收发 Cuckoo Code 的对话 · 全程约 10 分钟 · 免费,"Após a configuração, você pode enviar e receber conversas do Bem-te-vi pelo Feishu no celular · Duração aproximada de 10 minutos · Gratuito","After configuration, you can send and receive Bem-te-vi conversations on Feishu mobile · Takes about 10 minutes · Free",配置后，手机飞书就能收发 Cuckoo Code 的对话 · 全程约 10 分钟 · 免费
+配置已保存,Configuração salva,Configuration saved,配置已保存
+配置接口不可用,Interface de configuração indisponível,Configuration interface unavailable,配置接口不可用
+配置格式错误，需要 mcpServers 对象,Formato de configuração inválido: é necessário um objeto mcpServers,Invalid configuration format: mcpServers object is required,配置格式错误，需要 mcpServers 对象
+"配置错误：server ""","Erro de configuração: server ""","Configuration error: server ""","配置错误：server """
+里发消息（可 @ 或直接发），会送到,"envie uma mensagem (pode @ ou enviar diretamente), ela será enviada para","send a message (you can @ or send directly), it will be sent to",里发消息（可 @ 或直接发），会送到
+里打开「飞书」页,"correspondente, abra a aba «Feishu»",", open the «Feishu» tab",里打开「飞书」页
+重做,Refazer,Redo,重做
+重命名,Renomear,Rename,重命名
+重命名对话,Renomear conversa,Rename conversation,重命名对话
+重新加载,Recarregar,Reload,重新加载
+重新项目初始化,Reinicializar projeto,Re-initialize project,重新项目初始化
+重置缩放,Redefinir zoom,Reset zoom,重置缩放
+重试,Tentar novamente,Retry,重试
+重试(操作频繁),Tentar novamente (operações frequentes),Retry (frequent operations),重试(操作频繁)
+重试提示词,Prompt de repetição,Retry prompt,重试提示词
+重试提示词不能为空,O prompt de tentativa não pode estar vazio,Retry prompt cannot be empty,重试提示词不能为空
+错误原因: ,Motivo do erro: ,Error reason: ,错误原因: 
+错误：,Erro:,Error:,错误：
+阈值需为正数（万）,O limite deve ser um número positivo (mil),Threshold must be a positive number (ten thousand),阈值需为正数（万）
+附件上传出错：,Erro ao carregar anexo:,Attachment upload error:,附件上传出错：
+附件上传失败：,Falha ao carregar anexo:,Attachment upload failed:,附件上传失败：
+附件上传间隔,Intervalo de upload de anexos,Attachment upload interval,附件上传间隔
+附件上传间隔最大值不能小于最小值,O valor máximo do intervalo de upload de anexos não pode ser menor que o valor mínimo,Maximum attachment upload interval cannot be less than the minimum value,附件上传间隔最大值不能小于最小值
+附件上传间隔最大值不能超过 60 秒,O valor máximo do intervalo de upload de anexos não pode exceder 60 segundos,Maximum attachment upload interval cannot exceed 60 seconds,附件上传间隔最大值不能超过 60 秒
+附件上传间隔最小值必须是非负数字,O valor mínimo do intervalo de upload de anexos deve ser um número não negativo,Minimum attachment upload interval must be a non-negative number,附件上传间隔最小值必须是非负数字
+附件上传间隔最小值必须是非负数字（秒）,O valor mínimo do intervalo de upload de anexos deve ser um número não negativo (segundos),Minimum attachment upload interval must be a non-negative number (seconds),附件上传间隔最小值必须是非负数字（秒）
+附件就绪: ,Anexo pronto: ,Attachment ready: ,附件就绪: 
+限流自动重试,Tentativa automática por limite de taxa,Auto retry on rate limit,限流自动重试
+需要 Cuckoo Code ≥ ,Requer Bem-te-vi ≥ ,Requires Bem-te-vi ≥ ,需要 Cuckoo Code ≥ 
+需要时用 mcpListServers() 查看概览，或用 mcpGetTools(serverName) 查看具体工具。,"Quando necessário, use mcpListServers() para ver a visão geral, ou mcpGetTools(serverName) para ver ferramentas específicas.","When needed, use mcpListServers() for an overview, or mcpGetTools(serverName) to view specific tools.",需要时用 mcpListServers() 查看概览，或用 mcpGetTools(serverName) 查看具体工具。
+非法路径,Caminho inválido,Invalid path,非法路径
+项目,Projeto,Project,项目
+项目文件,Arquivos do projeto,Project files,项目文件
+项目级（.cuckoo/agents/）,Nível do projeto (.cuckoo/agents/),Project level (.cuckoo/agents/),项目级（.cuckoo/agents/）
+飞书,Feishu,Feishu,飞书
+飞书 App,app do Feishu,Feishu app,飞书 App
+飞书同步,Sincronização do Feishu,Feishu Sync,飞书同步
+飞书同步配置教程,Tutorial de configuração de sincronização do Feishu,Feishu sync configuration tutorial,飞书同步配置教程
+飞书同步配置教程 - Cuckoo Code,Tutorial de configuração de sincronização do Feishu - Bem-te-vi,Feishu Sync Configuration Tutorial - Bem-te-vi,飞书同步配置教程 - Cuckoo Code
+飞书同步（手机）,Sincronização do Feishu (celular),Feishu Sync (mobile),飞书同步（手机）
+飞书收到「👤 我：xxx」,Feishu recebe «👤 Eu: xxx»,Feishu receives «👤 Me: xxx»,飞书收到「👤 我：xxx」
+飞书收到「🔧 调用中 / ✅ 完成」,Feishu recebe «🔧 Chamando / ✅ Concluído»,Feishu receives «🔧 Calling / ✅ Done»,飞书收到「🔧 调用中 / ✅ 完成」
+飞书收到「🤖 AI：xxx」（纯对话）,Feishu recebe «🤖 IA: xxx» (conversa pura),Feishu receives «🤖 AI: xxx» (pure conversation),飞书收到「🤖 AI：xxx」（纯对话）
+飞书消息,Mensagem do Feishu,Feishu message,飞书消息
+飞书群,Grupo do Feishu,Feishu Group,飞书群
+首次创建对话时，需要初始化项目，并选择一个项目目录，不然无法使用,"Ao criar a primeira conversa, é necessário inicializar o projeto e selecionar um diretório de projeto, caso contrário não será possível usar","When creating the first conversation, you need to initialize the project and select a project directory, otherwise it cannot be used",首次创建对话时，需要初始化项目，并选择一个项目目录，不然无法使用
+首次对话需选择项目目录,Selecione o diretório do projeto na primeira conversa,Select project directory for the first conversation,首次对话需选择项目目录
+默认窗口,Janela padrão,Default window,默认窗口
+👤 我：,👤 Eu:,👤 Me:,👤 我：
+💡 开多个窗口时，给每个窗口建一个不同的群，各绑各的，消息不会串。,"💡 Ao usar várias janelas, crie um grupo diferente para cada uma e vincule cada uma ao seu grupo, para que as mensagens não se misturem.","💡 When using multiple windows, create a different group for each window and bind them separately, so messages don't get mixed up.",💡 开多个窗口时，给每个窗口建一个不同的群，各绑各的，消息不会串。
+💡 长连接的好处：,💡 Vantagens da conexão longa:,💡 Benefits of long connection:,💡 长连接的好处：
+🔧 AI 正在调用工具…,🔧 A IA está chamando uma ferramenta…,🔧 AI is calling a tool…,🔧 AI 正在调用工具…
+🔧 正在调用工具：,🔧 Chamando ferramenta:,🔧 Calling tool:,🔧 正在调用工具：
+（plugin-ui-ext），已禁用原版在线更新，以免被覆盖丢失插件系统。,(plugin-ui-ext). A atualização online original foi desativada para evitar que o sistema de plugins seja substituído e perdido.,(plugin-ui-ext). The original online update has been disabled to prevent the plugin system from being overwritten and lost.,（plugin-ui-ext），已禁用原版在线更新，以免被覆盖丢失插件系统。
+（todoWrite 必须写成 ,（todoWrite deve ser escrito como uma chamada em bloco de código ,(todoWrite must be written as a ,（todoWrite 必须写成 
+（以应用身份发消息）,(enviar mensagens como aplicativo),(send messages as the app),（以应用身份发消息）
+（会被 require 执行）,（será executado via require）,(will be executed by require),（会被 require 执行）
+（如 ,(ex. ,(e.g. ,（如 
+（已保存，留空则不变）,（salvo; deixe em branco para manter inalterado）,(saved; leave blank to keep unchanged),（已保存，留空则不变）
+（当前版本仅支持单对话，请勿在运行过程切换对话）,"(A versão atual suporta apenas uma conversa por vez, não alterne entre conversas durante a execução)","(Current version only supports single conversation, do not switch conversations while running)",（当前版本仅支持单对话，请勿在运行过程切换对话）
+"（手机/电脑）→ 新建一个群（如""Cuckoo 项目A""）","(celular/computador) → crie um novo grupo (ex: ""Bem-te-vi Projeto A"")","(mobile/desktop) → create a new group (e.g. ""Bem-te-vi Project A"")","（手机/电脑）→ 新建一个群（如""Cuckoo 项目A""）"
+（无描述）,（sem descrição）,(no description),（无描述）
+（无法读取创建时间）,(não foi possível ler a data de criação),(unable to read creation time),（无法读取创建时间）
+（无简介）,（sem descrição）,(no description),（无简介）
+（暂无计划条目）,（Nenhum item de plano ainda）,(No plan items yet),（暂无计划条目）
+（未绑定 —— 该窗口飞书功能关闭）,（Não vinculado — função do Feishu desativada para esta janela）,（Unbound — Feishu feature disabled for this window）,（未绑定 —— 该窗口飞书功能关闭）
+（查询机器人所在的群列表）,(consultar a lista de grupos em que o robô está),(query the list of groups the bot is in),（查询机器人所在的群列表）
+（点「查看」）,(clique em «Ver»),(click «View»),（点「查看」）
+（点击追加到输入框）,(clique para adicionar ao campo de entrada),(click to append to input box),（点击追加到输入框）
+（第 7 步）。,(passo 7).,(step 7).,（第 7 步）。
+（聊天平台不接受可执行文件/二进制库）,(a plataforma de chat não aceita arquivos executáveis/bibliotecas binárias),(chat platform does not accept executable files/binary libraries),（聊天平台不接受可执行文件/二进制库）
+（获取与发送单聊、群组消息）,(receber e enviar mensagens em conversas individuais e grupos),(receive and send single chat and group messages),（获取与发送单聊、群组消息）
+（读取单聊消息）,(ler mensagens de conversas individuais),(read single chat messages),（读取单聊消息）
+（读取群消息，用于接收群里所有消息）,"(ler mensagens de grupo, para receber todas as mensagens do grupo)","(read group messages, to receive all messages in the group)",（读取群消息，用于接收群里所有消息）
+（这里是子代理的系统提示词：写清它的职责、执行方式、输出要求。）,"（Aqui está o prompt de sistema do subagente: descreva claramente suas responsabilidades, método de execução e requisitos de saída.）","（This is the sub-agent's system prompt: clearly state its responsibilities, execution method, and output requirements.）",（这里是子代理的系统提示词：写清它的职责、执行方式、输出要求。）
+）、图标随意 → ,"), ícone à sua escolha → ","), choose any icon → ",）、图标随意 → 
+，回退到点击流程,", voltando para o fluxo de clique",", falling back to click flow",，回退到点击流程
+，对话互不干扰。,", e as conversas não interferem umas com as outras.",", and conversations do not interfere with each other.",，对话互不干扰。
+，对话互不干扰。没绑群的窗口，飞书功能关闭。,", e as conversas não interferem umas nas outras. Para janelas sem grupo vinculado, as funções do Feishu ficam desativadas.",", and conversations don't interfere with each other. Feishu features are disabled for windows without a bound group.",，对话互不干扰。没绑群的窗口，飞书功能关闭。
+，普通电脑直接可用。,", funciona diretamente em um computador comum.",", works directly on a regular computer.",，普通电脑直接可用。
+，都要重新「创建版本 + 发布」，否则不生效！,"acima, você deve criar uma nova versão e publicar novamente, senão as alterações não terão efeito!","above, you must create a new version + publish again, otherwise changes will not take effect!",，都要重新「创建版本 + 发布」，否则不生效！
+，重建窗口,", reconstruir janela",", rebuild window",，重建窗口
+；一个群只能绑一个窗口。,; um grupo só pode ser vinculado a uma janela.,; one group can only be bound to one window.,；一个群只能绑一个窗口。
+；失败: ,; falha: ,; failed: ,；失败: 
+；检查应用「可用范围」是否包含你自己。,; verifique se você mesmo está incluído no «Escopo de uso» do aplicativo.,; check if you are included in the app's «Available scope».,；检查应用「可用范围」是否包含你自己。
+；检查第 7 步是否,; verifique se no passo 7 o aplicativo foi,; check if in step 7 it has been,；检查第 7 步是否
+；检查第 9 步机器人是否在群里；检查是否开了 ,; verifique se o bot está no grupo no passo 9; verifique se a permissão de ,; check if the bot is in the group in step 9; check if ,；检查第 9 步机器人是否在群里；检查是否开了 
