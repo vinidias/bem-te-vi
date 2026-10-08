@@ -118,6 +118,13 @@ DSH（DeepSeek Harness）是 DeepSeek 官方的 Agent 框架，生态里已有�
 - **基准**：相对路径基于**当前项目目录**（宿主注入）
 - **对比 DSH**：DSH 是"沙箱化 + target/version/observe"的大服务；Cuckoo 简化掉版本/观察/沙箱
 
+## C4-C：ctx.agents（`src/plugins/dsh-compat/agents-service.ts`）
+
+- **简化实现**：`get(id) / current() / list() / roots()`——**会话 → agent 视图**（`{ id, session: { id, projectDir } }`）
+- **对比 DSH**：DSH 是"活 agent 注册表 + handle/dispose"；Cuckoo 无 agent registry，用会话映射
+
+> **C4 完整**（systemPrompt + fs + agents 全接真）。
+
 ## 验证
 
 ### 单测（865 tests 全过）

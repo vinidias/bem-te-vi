@@ -170,7 +170,7 @@
 | **events**（on/emit）| 事件订阅/广播 | EventBus | ✅ | — |
 | **fs** | 文件读写 | fs-service（node:fs）| ✅ | — |
 | **systemPrompt** | 系统提示词段 | prompt-sections | ✅ | — |
-| **agents** | 子代理 | runAgent | ❌ | 🔴 |
+| **agents** | 子代理 | agents-service（会话视图）| ✅ | — |
 | **skills** | 技能 | Cuckoo skills | ❌ | 🟡 |
 | **commands** | 命令 | Cuckoo 命令 | ❌ | 🟡 |
 | **storage / storageDomain** | 持久化 | ❌ | ❌ | 🟡 |
@@ -201,7 +201,7 @@
 | **C3** | **事件总线**（`ctx.on/emit` 接 Cuckoo 事件）| ✅ **已完成（2026-10-08）** |
 | **C4-A** | **systemPrompt**（提示词段）| ✅ **已完成（2026-10-08）** |
 | **C4-B** | **fs**（文件读写）| ✅ **已完成（2026-10-08）** |
-| **C4-C** | **agents**（子代理）| 🟡 待做 |
+| **C4-C** | **agents**（子代理）| ✅ **已完成（2026-10-08）** |
 | **C5** | **storage 落盘**（学 DSH 独立层）| 🟡 待做 |
 | **C6** | skills / commands / goals / compaction 等 | 🟡 待做 |
 | **P3** | UI/主题等 DSH 客户端能力 | 🟢 待做 |
