@@ -9,6 +9,8 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { DshRuntime } from '../dsh-compat/runtime.js';
 import { setDshSession } from '../dsh-compat/shim.js';
+import { EventBus } from '../runtime/events.js';
+import { registerBus, unregisterBus } from './event-bridge.js';
 
 const require = createRequire(import.meta.url);
 
@@ -141,8 +143,11 @@ interface CuckooHost {
 }
 
 /** 一个"假 ctx"——收集插件注册的工具；未知属性用 stub 兜底（够用空接口） */
-function createCollectorCtx(pluginName: string, host?: CuckooHost, runtime?: any): { ctx: any; tools: any[] } {
+function createCollectorCtx(pluginName: string, host?: CuckooHost, runtime?: any): { ctx: any; tools: any[]; bus: EventBus } {
   const tools: any[] = [];
+  // 插件专属事件总线（C3）：ctx.on/emit 接真；注册到桥以接收 Cuckoo 事件
+  const bus = new EventBus();
+  registerBus(bus);
   const base: any = {
     // 会话投影注册表（C2）：插件 register 的投影，能驱动、能读回
     sessionProjections: runtime ? runtime.projections : undefined,
@@ -172,10 +177,15 @@ function createCollectorCtx(pluginName: string, host?: CuckooHost, runtime?: any
       list() { return host && host.listSessions ? host.listSessions() : []; },
       get(id: string) { return host && host.getSession ? host.getSession(id) : null; },
     },
-    on() { return () => {}; },
-    once() { return () => {}; },
-    off() {},
-    emit() {},
+    // 事件总线（C3）：接真 EventBus
+    on: (event: string, listener: any) => bus.on(event, listener),
+    once: (event: string, listener: any) => bus.once(event, listener),
+    off: (event: string, listener: any) => bus.off(event, listener),
+    emit: (event: string, ...args: any[]) => bus.emit(event, ...args),
+    parallel: (event: string, ...args: any[]) => bus.parallel(event, ...args),
+    serial: (event: string, ...args: any[]) => bus.serial(event, ...args),
+    bail: (event: string, ...args: any[]) => bus.bail(event, ...args),
+    waterfall: (event: string, value: any, ...args: any[]) => bus.waterfall(event, value, ...args),
     effect(fn: any) { try { const c = fn(); return typeof c === 'function' ? c : () => {}; } catch (_) { return () => {}; } },
     scope() { return { effect: () => () => {}, on: () => () => {}, dispose() {}, disposed: false }; },
     provide() { return () => {}; },
@@ -191,11 +201,11 @@ function createCollectorCtx(pluginName: string, host?: CuckooHost, runtime?: any
       return makeStub('ctx.' + String(prop));
     },
   });
-  return { ctx, tools };
+  return { ctx, tools, bus };
 }
 
-/** 从插件目录加载，返回 { pluginName, tools, runtime } */
-async function loadCuckooPlugin(pluginDir: string, host?: CuckooHost): Promise<{ pluginName: string; tools: any[]; runtime: any }> {
+/** 从插件目录加载，返回 { pluginName, tools, runtime, bus } */
+async function loadCuckooPlugin(pluginDir: string, host?: CuckooHost): Promise<{ pluginName: string; tools: any[]; runtime: any; bus: any }> {
   const entry = resolveEntry(pluginDir);
   if (!entry) throw new Error('未找到插件入口（package.json main / index.js）');
   // 创建"最小 DSH 运行时"（内存会话 + 投影注册表），注入给插件（C2）
@@ -207,11 +217,11 @@ async function loadCuckooPlugin(pluginDir: string, host?: CuckooHost): Promise<{
   const mod = fn(moduleObj, moduleObj.exports, require);
   const plugin = (mod && mod.default && typeof mod.default === 'object') ? mod.default : mod;
   const pluginName = (plugin && typeof plugin.name === 'string' && plugin.name) ? plugin.name : path.basename(pluginDir);
-  const { ctx, tools } = createCollectorCtx(pluginName, host, runtime);
+  const { ctx, tools, bus } = createCollectorCtx(pluginName, host, runtime);
   if (plugin && typeof plugin.apply === 'function') {
     await plugin.apply(ctx, {});
   }
-  return { pluginName, tools, runtime };
+  return { pluginName, tools, runtime, bus };
 }
 
 export { loadCuckooPlugin, resolveEntry, bundlePlugin };
