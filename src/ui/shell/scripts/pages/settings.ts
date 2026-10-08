@@ -138,3 +138,18 @@ if (themeSelect) {
   });
   renderThemeSelect();
 }
+
+// Language changes take effect on the next launch, preserving active conversations.
+const languageSelect = document.getElementById('btv-language') as HTMLSelectElement | null;
+if (languageSelect && api.getLanguage && api.setLanguage) {
+  api.getLanguage().then((result) => { languageSelect.value = result.preference; }).catch(() => {});
+  languageSelect.addEventListener('change', async () => {
+    const status = document.getElementById('btv-language-status');
+    try {
+      await api.setLanguage!(languageSelect.value);
+      if (status) status.textContent = 'Idioma salvo. Reinicie o aplicativo para aplicar.';
+    } catch (_) {
+      if (status) status.textContent = 'Não foi possível salvar o idioma.';
+    }
+  });
+}

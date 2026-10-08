@@ -11,8 +11,8 @@ import path from 'node:path';
 const isWin = process.platform === 'win32';
 
 // ========== 1. 编译 ==========
-console.log('[start.js] 编译中（tsc -p tsconfig.build.json）...');
-const build = spawnSync('npx', ['tsc', '-p', 'tsconfig.build.json'], {
+console.log('[start.js] 编译中（npm run compile）...');
+const build = spawnSync('npm', ['run', 'compile'], {
   shell: true,
   stdio: 'inherit',
   cwd: import.meta.dirname,

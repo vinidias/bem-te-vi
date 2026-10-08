@@ -1,5 +1,5 @@
-﻿/**
- * Cuckoo Code 主进程入口（多窗口多 profile 版）
+/**
+ * Bem-te-vi 主进程入口（多窗口多 profile 版）
  * 由项目根目录 main.js 薄壳加载。
  */
 import path from 'node:path';
@@ -22,17 +22,17 @@ const { app, BrowserWindow, WebContentsView, Menu, dialog, screen, nativeTheme, 
 const closeConfirmed = new Set<number>();
 
 // ========== 持久化会话配置 ==========
-const SESSION_DIR = process.env.CUCKOO_SESSION_DIR || 'cuckoo-ai-pro-session';
+const SESSION_DIR = process.env.BEM_TE_VI_SESSION_DIR || process.env.CUCKOO_SESSION_DIR || 'bem-te-vi';
 const USER_DATA_DIR = path.join(app.getPath('appData'), SESSION_DIR);
 // app.setPath('userData', ...) 要求目标目录必须已存在，否则会抛错导致启动闪退。
 // 用户首次运行或手动删除该目录时，此处负责兜底创建。
 try {
   fs.mkdirSync(USER_DATA_DIR, { recursive: true });
 } catch (err: any) {
-  console.error('[Cuckoo Code] 创建 userData 目录失败:', err.message);
+  console.error('[Bem-te-vi] 创建 userData 目录失败:', err.message);
 }
 app.setPath('userData', USER_DATA_DIR);
-console.log('[Cuckoo Code] Session 数据目录:', app.getPath('userData'));
+console.log('[Bem-te-vi] Session 数据目录:', app.getPath('userData'));
 
 // 渲染进程日志输出目录（仅开发环境持久化；打包版不写日志文件）
 const RENDERER_LOG_DIR = app.isPackaged
@@ -46,7 +46,7 @@ if (RENDERER_LOG_DIR) {
       if (f.endsWith('.log')) fs.writeFileSync(path.join(RENDERER_LOG_DIR, f), '', 'utf-8');
     }
   } catch (err: any) {
-    console.warn('[Cuckoo Code] 清空平台日志失败:', err.message);
+    console.warn('[Bem-te-vi] 清空平台日志失败:', err.message);
   }
 }
 
@@ -71,11 +71,11 @@ async function flushAllSessions() {
   const promises = [];
   for (const ses of sessionsToFlush) {
     promises.push(ses.flushStorageData().catch((err: any) => {
-      console.error('[Cuckoo Code] 刷新 session 失败:', err.message);
+      console.error('[Bem-te-vi] 刷新 session 失败:', err.message);
     }));
   }
   await Promise.all(promises);
-  console.log('[Cuckoo Code] 全部 session 数据已刷新到磁盘');
+  console.log('[Bem-te-vi] 全部 session 数据已刷新到磁盘');
 }
 
 /**
@@ -135,7 +135,7 @@ function createWindow(profile: any) {
     minHeight: 240,
     ...(defaultBounds.x !== undefined ? { x: defaultBounds.x + cascadeOffset, y: (defaultBounds.y || 0) + cascadeOffset } : {}),
     icon: resolveAsset('assets/icon.png'),
-    title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
+    title: 'Bem-te-vi Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
     webPreferences: {
       // 壳页面 preload（只负责地址栏导航，与 AI 页面 preload 分离）
       preload: path.join(import.meta.dirname, 'shell-preload.js'),
@@ -465,7 +465,7 @@ function createWindow(profile: any) {
 
   // 优先恢复上次关闭时的 URL（仅 http/https，且平台已确定）
   const lastUrl = profileData.lastUrl;
-  console.log('[Cuckoo Code] 创建窗口: profile=' + profileData.id + ' providerChosen=' + providerChosen + ' lastUrl=' + (lastUrl || '(无)'));
+  console.log('[Bem-te-vi] 创建窗口: profile=' + profileData.id + ' providerChosen=' + providerChosen + ' lastUrl=' + (lastUrl || '(无)'));
   if (providerChosen && provider && lastUrl && /^https?:\/\//i.test(lastUrl)) {
     view.webContents.loadURL(lastUrl);
   } else if (providerChosen && provider) {
@@ -561,10 +561,10 @@ function createWindow(profile: any) {
       // 记录最后 URL（仅 http/https；view 可能已销毁）
       if (view && view.webContents && !view.webContents.isDestroyed()) {
         const curUrl = view.webContents.getURL();
-        console.log('[Cuckoo Code] 关闭窗口记录 lastUrl: profile=' + profileData.id + ' url=' + curUrl);
+        console.log('[Bem-te-vi] 关闭窗口记录 lastUrl: profile=' + profileData.id + ' url=' + curUrl);
         profileManager.setLastUrl(profileData.id, curUrl);
       } else {
-        console.log('[Cuckoo Code] 关闭窗口：view 已销毁，跳过记录 URL (profile=' + profileData.id + ')');
+        console.log('[Bem-te-vi] 关闭窗口：view 已销毁，跳过记录 URL (profile=' + profileData.id + ')');
       }
     } catch (_) { /* ignore */ }
   });
@@ -730,7 +730,7 @@ function setupAppMenu() {
           }
         },
         { type: 'separator' },
-        { role: 'about', label: '关于 Cuckoo Code' }
+        { role: 'about', label: '关于 Bem-te-vi' }
       ]
     }
   ];
@@ -1098,7 +1098,7 @@ ipcMainForProfile.handle('select-platform', async (event: any, { providerId }: a
   // 关闭旧窗口（其 session 仍是旧 partition）
   // 注意：这里销毁最后一个窗口会触发 window-all-closed，
   // 但紧接着会 createWindow 重建，故 window-all-closed 采用延迟确认避免误退。
-  console.log('[Cuckoo Code] 切换平台: ' + ctx.providerId + ' -> ' + providerId + '，重建窗口');
+  console.log('[Bem-te-vi] 切换平台: ' + ctx.providerId + ' -> ' + providerId + '，重建窗口');
   const oldWin = ctx.win;
   if (oldWin && !oldWin.isDestroyed()) {
     oldWin.destroy();
@@ -1106,7 +1106,7 @@ ipcMainForProfile.handle('select-platform', async (event: any, { providerId }: a
 
   // 用新 profile（含新 partition）重建窗口
   createWindow(updatedProfile);
-  console.log('[Cuckoo Code] 切换平台完成，当前窗口数=' + windowState.getAllWindows().length);
+  console.log('[Bem-te-vi] 切换平台完成，当前窗口数=' + windowState.getAllWindows().length);
   return { success: true };
 });
 
@@ -1140,7 +1140,7 @@ ipcMainForProfile.handle('update-window-name', async (event: any, { displayName 
   if (!ctx) return { success: false, error: '窗口上下文不存在' };
   const updated = profileManager.updateProfileName(ctx.profileId, displayName);
   if (updated && ctx.win && !ctx.win.isDestroyed()) {
-    ctx.win.setTitle('Cuckoo Code Pro - ' + updated.name);
+    ctx.win.setTitle('Bem-te-vi Pro - ' + updated.name);
   }
   return { success: !!updated, name: updated ? updated.name : null };
 });
@@ -1255,7 +1255,7 @@ if (!gotSingleInstanceLock) {
     // 启动时打开所有"默认打开"的窗口；若一个都没勾，回退默认（上次活跃的或第一个）
     const autoOpen = profileManager.getAutoOpenProfiles();
     if (autoOpen.length > 0) {
-      console.log('[Cuckoo Code] 启动默认打开 ' + autoOpen.length + ' 个窗口');
+      console.log('[Bem-te-vi] 启动默认打开 ' + autoOpen.length + ' 个窗口');
       for (const p of autoOpen) createWindow(p);
     } else {
       createWindow(null);

@@ -32,6 +32,9 @@ userData/
 *.tmp
 temp/
 
+# Backup temporário de refs (migração de repo)
+.git-preserve/
+
 # 打包用的运行时二进制（uv/node，本地下载，不进仓库）
 resources/runtime/
 
@@ -63,3 +66,11 @@ coverage/
 custom-providers/
 # Monaco（体积大，不进仓库；由 scripts/copy-monaco.mjs 从 node_modules 复制）
 src/ui/vendor/monaco/
+
+# Localized pages are generated from source templates and catalogs.
+src/ui/*.pt-BR.html
+src/ui/*.en.html
+src/ui/*.zh-CN.html
+translation-inventory.json
+inventory.mjs
+temp-translate.py

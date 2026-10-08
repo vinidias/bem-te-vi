@@ -12,6 +12,8 @@ const platformArg = (process.argv || []).find((a) => a.startsWith('--cuckoo-plat
 const platform = platformArg ? platformArg.slice('--cuckoo-platform='.length) : process.platform;
 
 const shellAPI = {
+  getLanguage: () => ipcRenderer.invoke('bem-te-vi-language-get'),
+  setLanguage: (language: string) => ipcRenderer.invoke('bem-te-vi-language-set', language),
   platform,
   navigate: (url: string) => ipcRenderer.invoke('shell-navigate', { url }),
   back: () => ipcRenderer.invoke('shell-back'),
