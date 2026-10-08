@@ -58,6 +58,7 @@ import { injectAgentRunner, injectSubagentChecker } from '../tools/impl/run-agen
 import { injectGoalDonePusher } from '../tools/impl/goal-done.js';
 import { isSubagentWindow, pushGoalDone } from './goal.js';
 import { injectSessionTitleSetter } from '../tools/impl/name-conversation.js';
+import { windowManager } from '../tools/impl/browser-window-manager.js';
 import { pushUrlState } from './ipc/shell.js';
 import { pushHarnessState, stopGeneration } from './ipc/harness.js';
 import { injectWindowGroupDeps, requestShareFromWindow } from './ipc/window-groups.js';
@@ -272,7 +273,7 @@ function createWindow(profile: any) {
     // Links target=_blank no harness (segurança extra — o handler de clique
     // no HTML cobre o caso comum; este cobre window.open programático)
     hv.webContents.setWindowOpenHandler(({ url }: any) => {
-      try { if (/^https?:\/\//i.test(url)) shell.openExternal(url); } catch (_) {}
+      try { if (/^https?:\/\//i.test(url)) windowManager.openWindow(null, url, { width: 1200, height: 800 }); } catch (_) {}
       return { action: 'deny' };
     });
     // Se algum link escapar (ex.: navegação direta via JS), redireciona para o navegador
@@ -281,7 +282,7 @@ function createWindow(profile: any) {
         const isLocal = url.startsWith('file:');
         if (!isLocal && /^https?:\/\//i.test(url)) {
           event.preventDefault();
-          shell.openExternal(url);
+          try { windowManager.openWindow(null, url, { width: 1200, height: 800 }); } catch (_) {}
         }
       } catch (_) { /* ignore */ }
     });
@@ -494,9 +495,9 @@ function createWindow(profile: any) {
         view.webContents.loadURL(url).catch(() => {});
         return { action: 'deny' };
       }
-      // Externo: abre no navegador padrão
+      // Externo: abre em janela Electron interna (mantém tudo no app)
       if (/^https?:\/\//i.test(url)) {
-        try { shell.openExternal(url); } catch (_) {}
+        try { windowManager.openWindow(null, url, { width: 1200, height: 800 }); } catch (_) {}
       }
       return { action: 'deny' };
     } catch (_) {
@@ -511,10 +512,10 @@ function createWindow(profile: any) {
       const provider = profileData.providerId ? getProvider(profileData.providerId) : null;
       if (!provider || typeof provider.matchesUrl !== 'function') return;
       if (provider.matchesUrl(url)) return; // interno: deixa navegar
-      // Externo: aborta e abre no navegador
+      // Externo: aborta e abre em janela Electron interna
       event.preventDefault();
       if (/^https?:\/\//i.test(url)) {
-        try { shell.openExternal(url); } catch (_) {}
+        try { windowManager.openWindow(null, url, { width: 1200, height: 800 }); } catch (_) {}
       }
     } catch (_) { /* ignore */ }
   });
