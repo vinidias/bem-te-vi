@@ -96,6 +96,15 @@ DSH（DeepSeek Harness）是 DeepSeek 官方的 Agent 框架，生态里已有�
 
 > **⚠️ 边界**：内存流水——**本次运行内**写读自洽；**重启/换会话丢失**（未落盘）。
 
+## C3：事件总线（`src/plugins/cuckoo-plugins/event-bridge.ts`）
+
+- **EventBus**：复用 `src/plugins/runtime/events.ts`（5 种派发：emit/parallel/serial/bail/waterfall）
+- **每个插件一个 EventBus**：`ctx.on/once/off/emit/parallel/serial/bail/waterfall` **接真**
+- **事件桥**：主进程 `harness-event-report` → 转 DSH 事件名 → 广播给所有活跃插件
+- **映射**：stream→assistant-stream / assistant-done→turn-end / task-idle / tool-start→tool/call / tool-end→tool/result
+
+**现在**：DSH 插件 `ctx.on('agent/turn-end', ...)` **能收到** Cuckoo 的 AI 事件。
+
 ## 验证
 
 ### 单测（865 tests 全过）

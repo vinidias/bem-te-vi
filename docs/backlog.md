@@ -148,7 +148,7 @@
 | 参数 schema（schemastery/zod）| 递归转 JSON Schema | ✅ |
 | 服务注入 `ctx.inject/provide/get` | 简化（inject 回调传 ctx）| ⚠️ 部分 |
 | 可逆副作用 `ctx.effect/scope` | 空转（不真清理）| ⚠️ 空 |
-| **事件总线 `ctx.on/emit`** | **全部空转（收不到）** | ❌ **重要** |
+| **事件总线 `ctx.on/emit`** | EventBus（接 Cuckoo 事件）| ✅ |
 | 会话投影 `ctx.sessionProjections` | 内存实现 | ✅ |
 | 会话事件流 `session.append` | 内存实现 | ✅ |
 | 落盘 `ctx.storage` | 无 | ❌ |
@@ -167,7 +167,7 @@
 | **sessions** | 会话信息 | sessionStore | ✅ | — |
 | **sessionProjections** | 会话投影 | 内存实现 | ✅ | — |
 | **settings** | 插件配置 | plugins-config | ✅ | — |
-| **events**（on/emit）| 事件订阅/广播 | 空转 | ❌ | 🔴 |
+| **events**（on/emit）| 事件订阅/广播 | EventBus | ✅ | — |
 | **fs** | 文件读写 | read/write 工具 | ❌ | 🔴 |
 | **systemPrompt** | 系统提示词段 | Cuckoo 提示词 | ❌ | 🔴 |
 | **agents** | 子代理 | runAgent | ❌ | 🔴 |
@@ -198,7 +198,7 @@
 | **P1** | 工具类插件 | ✅ |
 | **C1** | settings/tools/sessions 接真 | ✅ |
 | **C2** | 内存流水 + 投影 | ✅ |
-| **C3** | **事件总线**（`ctx.on/emit` 接 Cuckoo 事件）| 🔴 待做 |
+| **C3** | **事件总线**（`ctx.on/emit` 接 Cuckoo 事件）| ✅ **已完成（2026-10-08）** |
 | **C4** | **fs / systemPrompt / agents** 接真 | 🔴 待做 |
 | **C5** | **storage 落盘**（学 DSH 独立层）| 🟡 待做 |
 | **C6** | skills / commands / goals / compaction 等 | 🟡 待做 |
