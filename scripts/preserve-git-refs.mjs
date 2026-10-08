@@ -31,12 +31,13 @@ function restore(url) {
   // empurra todos os branches locais
   sh('git push origin --all');
   // empurra branches que só existiam no remoto antigo, via refspec
-  const remotes = sh('git for-each-ref --format="%(refname:short)" refs/remotes/origin')
-    .split('\n').filter((l) => l && !l.includes('origin/HEAD'));
+  const remotes = sh('git branch -r --format="%(refname:short)"')
+    .split('\n')
+    .filter((l) => l.startsWith('origin/') && l !== 'origin' && !l.includes('HEAD'));
   const locals = new Set(sh('git branch --format="%(refname:short)"').split('\n'));
-  const only = remotes.map((r) => r.replace(/^origin\//, '')).filter((b) => !locals.has(b));
+  const only = remotes.filter((r) => !locals.has(r.replace(/^origin\//, '')));
   if (only.length) {
-    const spec = only.map((b) => `refs/remotes/origin/${b}:refs/heads/${b}`).join(' ');
+    const spec = only.map((r) => `${r}:refs/heads/${r.replace(/^origin\//, '')}`).join(' ');
     sh(`git push origin ${spec}`);
     console.log('[preserve] empurrados', only.length, 'branches só-remotos');
   }
