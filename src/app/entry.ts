@@ -15,7 +15,7 @@ import * as mcpClient from '../mcp/client.js';
 import { resolveAsset, resolveSrc } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
-const { app, BrowserWindow, WebContentsView, Menu, dialog, screen, nativeTheme, ipcMain: ipcMainForProfile } = require('electron');
+const { app, BrowserWindow, WebContentsView, Menu, dialog, screen, nativeTheme, shell, ipcMain: ipcMainForProfile } = require('electron');
 
 // ========== 关闭确认 ==========
 /** 已确认关闭的窗口 id（确认后再次触发 close 时直接放行，避免重复弹框） */
@@ -269,6 +269,22 @@ function createWindow(profile: any) {
       const ctx: any = windowState.getWindowContext(mainWindow.id);
       if (ctx) ctx.harnessView = hv;
     }
+    // Links target=_blank no harness (segurança extra — o handler de clique
+    // no HTML cobre o caso comum; este cobre window.open programático)
+    hv.webContents.setWindowOpenHandler(({ url }: any) => {
+      try { if (/^https?:\/\//i.test(url)) shell.openExternal(url); } catch (_) {}
+      return { action: 'deny' };
+    });
+    // Se algum link escapar (ex.: navegação direta via JS), redireciona para o navegador
+    hv.webContents.on('will-navigate', (event: any, url: string) => {
+      try {
+        const isLocal = url.startsWith('file:');
+        if (!isLocal && /^https?:\/\//i.test(url)) {
+          event.preventDefault();
+          shell.openExternal(url);
+        }
+      } catch (_) { /* ignore */ }
+    });
     // 加载 harness 页面
     hv.webContents.loadFile(resolveSrc('ui/harness.html'));
     hv.webContents.on('did-finish-load', () => {
@@ -462,6 +478,46 @@ function createWindow(profile: any) {
   // 1. 不带 Electron 标识，避免 DeepSeek 识别为第三方客户端
   // 2. 与内核版本一致，避免 Google OAuth 因 UA/sec-ch-ua 不一致报"浏览器不安全"
   view.webContents.setUserAgent(buildChromeUserAgent());
+
+  // ========== Links target="_blank" (window.open) ==========
+  // Sem isto, o Electron abre uma BrowserWindow NOVA sem preload do bridge,
+  // sem barra de endereço e sem overlay — o usuário fica "preso" sem voltar.
+  // Regra:
+  //   - link do próprio provedor → navega na view atual (botão Voltar funciona)
+  //   - link externo → abre no navegador padrão do sistema, view não muda
+  view.webContents.setWindowOpenHandler(({ url }: any) => {
+    try {
+      const provider = profileData.providerId ? getProvider(profileData.providerId) : null;
+      const isSameProvider = !!(provider && typeof provider.matchesUrl === 'function' && provider.matchesUrl(url));
+      if (isSameProvider) {
+        // Navega na própria view (mantém overlay, bridge, botão voltar)
+        view.webContents.loadURL(url).catch(() => {});
+        return { action: 'deny' };
+      }
+      // Externo: abre no navegador padrão
+      if (/^https?:\/\//i.test(url)) {
+        try { shell.openExternal(url); } catch (_) {}
+      }
+      return { action: 'deny' };
+    } catch (_) {
+      return { action: 'deny' };
+    }
+  });
+
+  // Navegação na mesma view para domínio externo → também bloqueia
+  // (o site pode usar <a href="https://externo"> sem target=_blank)
+  view.webContents.on('will-navigate', (event: any, url: string) => {
+    try {
+      const provider = profileData.providerId ? getProvider(profileData.providerId) : null;
+      if (!provider || typeof provider.matchesUrl !== 'function') return;
+      if (provider.matchesUrl(url)) return; // interno: deixa navegar
+      // Externo: aborta e abre no navegador
+      event.preventDefault();
+      if (/^https?:\/\//i.test(url)) {
+        try { shell.openExternal(url); } catch (_) {}
+      }
+    } catch (_) { /* ignore */ }
+  });
 
   // 优先恢复上次关闭时的 URL（仅 http/https，且平台已确定）
   const lastUrl = profileData.lastUrl;
