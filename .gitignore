@@ -32,6 +32,9 @@ userData/
 *.tmp
 temp/
 
+# Backup temporário de refs (migração de repo)
+.git-preserve/
+
 # 打包用的运行时二进制（uv/node，本地下载，不进仓库）
 resources/runtime/
 
