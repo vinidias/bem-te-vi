@@ -11,14 +11,39 @@ import { loadCuckooPlugin } from './loader.js';
 import { listCuckooPluginDirs, getCuckooPluginDir, isValidPluginId } from './paths.js';
 import { isCuckooPluginEnabled, setCuckooPluginEnabled, clearCuckooPluginState } from './state.js';
 
-/** 从 JSON Schema 生成 JS 调用签名（供提示词），如 greet(name: string, age?: number) */
+/**
+ * 从 JSON Schema 生成 JS 调用签名（供提示词），展开嵌套结构——
+ * 如 todo_write(todos: {content: string, status: 'pending'|'in_progress'|'completed'}[])
+ * AI 看签名就懂参数结构，减少误传。
+ */
+function typeOf(spec: any, depth: number): string {
+  if (!spec || typeof spec !== 'object' || depth > 3) return 'any';
+  const t = spec.type;
+  if (Array.isArray(spec.enum)) {
+    return spec.enum.map((v: any) => JSON.stringify(v)).join('|');
+  }
+  if (t === 'array') {
+    const inner = spec.items ? typeOf(spec.items, depth + 1) : 'any';
+    // 对象数组用 (…)[]，简单类型用 string[] 更简洁
+    return /[{}()|]/.test(inner) ? '(' + inner + ')[]' : inner + '[]';
+  }
+  if (t === 'object') {
+    const props = spec.properties || {};
+    const req: string[] = spec.required || [];
+    const inner = Object.keys(props).map((k) => k + (req.includes(k) ? '' : '?') + ': ' + typeOf(props[k], depth + 1));
+    return '{' + inner.join(', ') + '}';
+  }
+  if (t === 'integer') return 'number';
+  return t || 'any';
+}
+
+/** 生成 JS 调用签名，如 greet(name: string, age?: number) */
 function buildJsApi(name: string, parameters: any): string {
   const props = (parameters && parameters.properties) || {};
   const required: string[] = (parameters && parameters.required) || [];
   const parts = Object.keys(props).map((k) => {
-    const t = (props[k] && props[k].type) || 'any';
     const opt = required.includes(k) ? '' : '?';
-    return k + opt + ': ' + t;
+    return k + opt + ': ' + typeOf(props[k], 0);
   });
   return name + '(' + parts.join(', ') + ')';
 }
