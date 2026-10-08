@@ -122,15 +122,51 @@ function makeStub(name: string): any {
   return p;
 }
 
+/** 宿主能力：由 app 层注入（plugins 层不能直接依赖 app/session） */
+interface CuckooHost {
+  /** 工具名列表（真·registry） */
+  getToolNames?: () => string[];
+  /** 读插件自己的配置（plugins-config） */
+  getPluginConfig?: (pluginId: string, defaults?: any) => Record<string, any>;
+  /** 写插件自己的配置 */
+  setPluginConfig?: (pluginId: string, values: Record<string, any>) => boolean;
+  /** 当前会话（id + 项目目录） */
+  getCurrentSession?: () => { id: string | null; projectDir: string | null };
+  /** 所有会话列表 */
+  listSessions?: () => Array<{ id: string; title?: string }>;
+  /** 某会话 */
+  getSession?: (id: string) => { id: string; title?: string } | null;
+}
+
 /** 一个"假 ctx"——收集插件注册的工具；未知属性用 stub 兜底（够用空接口） */
-function createCollectorCtx(pluginName: string): { ctx: any; tools: any[] } {
+function createCollectorCtx(pluginName: string, host?: CuckooHost): { ctx: any; tools: any[] } {
   const tools: any[] = [];
   const base: any = {
     name: pluginName,
     log: (...args: any[]) => console.log('[DSHPlugin:' + pluginName + ']', ...args),
     tools: {
       register(tool: any) { tools.push(tool); return () => {}; },
-      list() { return tools.map((t) => t.name); },
+      // 真·列出工具（宿主注入；无则退回本插件注册的）
+      list() { return host && host.getToolNames ? host.getToolNames() : tools.map((t) => t.name); },
+    },
+    // 真·设置（接 plugins-config：插件自己的配置）
+    settings: {
+      get(key: string) {
+        if (!host || !host.getPluginConfig) return undefined;
+        return host.getPluginConfig(pluginName)[key];
+      },
+      set(key: string, value: any) {
+        if (!host || !host.setPluginConfig || !host.getPluginConfig) return;
+        const cur = host.getPluginConfig(pluginName);
+        cur[key] = value;
+        host.setPluginConfig(pluginName, cur);
+      },
+    },
+    // 真·会话（宿主注入）
+    sessions: {
+      current() { return host && host.getCurrentSession ? host.getCurrentSession() : { id: null, projectDir: null }; },
+      list() { return host && host.listSessions ? host.listSessions() : []; },
+      get(id: string) { return host && host.getSession ? host.getSession(id) : null; },
     },
     on() { return () => {}; },
     once() { return () => {}; },
@@ -155,7 +191,7 @@ function createCollectorCtx(pluginName: string): { ctx: any; tools: any[] } {
 }
 
 /** 从插件目录加载，返回 { pluginName, tools } */
-async function loadCuckooPlugin(pluginDir: string): Promise<{ pluginName: string; tools: any[] }> {
+async function loadCuckooPlugin(pluginDir: string, host?: CuckooHost): Promise<{ pluginName: string; tools: any[] }> {
   const entry = resolveEntry(pluginDir);
   if (!entry) throw new Error('未找到插件入口（package.json main / index.js）');
   const code = await bundlePlugin(entry);
@@ -164,7 +200,7 @@ async function loadCuckooPlugin(pluginDir: string): Promise<{ pluginName: string
   const mod = fn(moduleObj, moduleObj.exports, require);
   const plugin = (mod && mod.default && typeof mod.default === 'object') ? mod.default : mod;
   const pluginName = (plugin && typeof plugin.name === 'string' && plugin.name) ? plugin.name : path.basename(pluginDir);
-  const { ctx, tools } = createCollectorCtx(pluginName);
+  const { ctx, tools } = createCollectorCtx(pluginName, host);
   if (plugin && typeof plugin.apply === 'function') {
     await plugin.apply(ctx, {});
   }
@@ -172,3 +208,4 @@ async function loadCuckooPlugin(pluginDir: string): Promise<{ pluginName: string
 }
 
 export { loadCuckooPlugin, resolveEntry, bundlePlugin };
+export type { CuckooHost };

@@ -8,6 +8,7 @@
 import { Tool } from '../../tools/core/Tool.js';
 import { installCuckooPlugin } from './installer.js';
 import { loadCuckooPlugin } from './loader.js';
+import type { CuckooHost } from './loader.js';
 import { listCuckooPluginDirs, getCuckooPluginDir, isValidPluginId } from './paths.js';
 import { isCuckooPluginEnabled, setCuckooPluginEnabled, clearCuckooPluginState } from './state.js';
 
@@ -70,8 +71,8 @@ class DshPluginTool extends Tool {
 const loadedPluginTools = new Set<string>();
 
 /** 从插件目录加载并注册工具到 registry */
-async function loadPluginFromDir(dir: string, registry: any): Promise<{ pluginName: string; tools: string[] }> {
-  const { pluginName, tools } = await loadCuckooPlugin(dir);
+async function loadPluginFromDir(dir: string, registry: any, host?: CuckooHost): Promise<{ pluginName: string; tools: string[] }> {
+  const { pluginName, tools } = await loadCuckooPlugin(dir, host);
   const names: string[] = [];
   for (const def of tools) {
     if (!def || typeof def.name !== 'string') continue;
@@ -83,22 +84,22 @@ async function loadPluginFromDir(dir: string, registry: any): Promise<{ pluginNa
 }
 
 /** 安装（npm 下载）+ 加载 + 注册 */
-async function installAndLoad(pkgName: string, registry: any): Promise<{ id: string; pluginName: string; tools: string[] }> {
+async function installAndLoad(pkgName: string, registry: any, host?: CuckooHost): Promise<{ id: string; pluginName: string; tools: string[] }> {
   const { id, dir } = await installCuckooPlugin(pkgName);
-  const r = await loadPluginFromDir(dir, registry);
+  const r = await loadPluginFromDir(dir, registry, host);
   setCuckooPluginEnabled(id, true);
   return { id, pluginName: r.pluginName, tools: r.tools };
 }
 
 /** 启动时加载所有"已启用"的插件 */
-async function loadEnabledPlugins(registry: any): Promise<{ loaded: string[]; failed: { id: string; error: string }[] }> {
+async function loadEnabledPlugins(registry: any, host?: CuckooHost): Promise<{ loaded: string[]; failed: { id: string; error: string }[] }> {
   const loaded: string[] = [];
   const failed: { id: string; error: string }[] = [];
   for (const dir of listCuckooPluginDirs()) {
     const id = dir.split(/[\\/]/).pop() || '';
     if (!isValidPluginId(id) || !isCuckooPluginEnabled(id)) continue;
     try {
-      const r = await loadPluginFromDir(dir, registry);
+      const r = await loadPluginFromDir(dir, registry, host);
       loaded.push(id + '(' + r.pluginName + '):' + r.tools.join(','));
     } catch (err: any) {
       failed.push({ id, error: err && err.message ? err.message : String(err) });
