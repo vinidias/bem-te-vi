@@ -27,6 +27,27 @@
 }
 .cuckoo-overlay.cuckoo-hidden { opacity: 0; pointer-events: none; transform: translateY(8px); }
 
+/* ===== Botão "Voltar ao chat" =====
+ * Aparece quando a view do AI navegou para fora do domínio do provedor
+ * (ex.: clique num link externo). Leva de volta à página anterior. */
+.cuckoo-btn-back {
+  position: fixed; top: 14px; left: 14px;
+  width: 38px; height: 38px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(17, 19, 34, 0.92);
+  border: 1px solid rgba(139, 147, 255, 0.45);
+  border-radius: 10px;
+  color: #dde1ff; font-size: 20px; font-weight: 700; line-height: 1;
+  cursor: pointer; user-select: none;
+  z-index: 2147483647;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  transition: background 0.15s, transform 0.15s, opacity 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.cuckoo-btn-back:hover { background: rgba(139, 147, 255, 0.35); border-color: rgba(139, 147, 255, 0.8); }
+.cuckoo-btn-back:active { transform: scale(0.95); }
+.cuckoo-btn-back.cuckoo-hidden { display: none; }
+
 /* ===== 左侧活动栏（VS Code 风格）===== */
 .cuckoo-activitybar {
   width: 46px; flex-shrink: 0;

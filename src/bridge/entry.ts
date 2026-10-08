@@ -103,6 +103,7 @@ let lastUserNameKey = '';
  */
 function handleUrlChanged(): void {
   try { ui.updateHomeMode(); } catch (_) {}
+  try { ui.updateBackButton(); } catch (_) {}
   try { checkSessionChange(); } catch (_) {}
   try { refreshTokenForCurrentSession(); } catch (_) {}
   try {
@@ -144,6 +145,14 @@ function init(): void {
     }
     bindEvents();
     ui.updateHomeMode();
+    ui.updateBackButton();
+    // Botão "Voltar ao chat": sai da página externa e retorna ao provedor
+    try {
+      const backBtn = document.getElementById('cuckoo-btn-back');
+      if (backBtn) backBtn.addEventListener('click', () => {
+        try { (window as any).electronAPI.pageBack(); } catch (_) {}
+      });
+    } catch (_) { /* ignore */ }
 
     // URL 变化：主进程 did-navigate/-in-page 会推 'cuckoo-url-changed'
     ipcRenderer.on('cuckoo-url-changed', handleUrlChanged);
