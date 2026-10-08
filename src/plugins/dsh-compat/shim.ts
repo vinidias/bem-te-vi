@@ -34,26 +34,47 @@ interface CuckooTool {
   execute: (args: any) => Promise<any>;
 }
 
-/** DSH 参数映射 → JSON Schema（隐式 open object，required 是每属性的标注）*/
-function dshParamsToJsonSchema(params: Record<string, DshParamProp> | undefined): any {
+/**
+ * 把 DSH 的"值 schema"（每层可有 required:true 方言）递归转成标准 JSON Schema。
+ * 关键：每层的 required:true 提取到该层的 required: [] 数组；去掉非标准字段。
+ */
+function dshValueToJsonSchema(spec: any): any {
+  if (!spec || typeof spec !== 'object') return {};
+  const t = spec.type || 'string';
+  const node: any = { type: t === 'json' ? 'object' : t };
+  if (spec.description) node.description = spec.description;
+  if (spec.title) node.title = spec.title;
+  if (spec.default !== undefined) node.default = spec.default;
+  if (spec.examples !== undefined) node.examples = spec.examples;
+  if (Array.isArray(spec.enum)) node.enum = spec.enum;
+  if (spec.const !== undefined) node.const = spec.const;
+  if (t === 'array') {
+    node.items = spec.items ? dshValueToJsonSchema(spec.items) : {};
+  } else if (t === 'object') {
+    const inner = dshParamsToJsonSchema(spec.properties, spec.additionalProperties);
+    node.properties = inner.properties;
+    node.required = inner.required;
+    node.additionalProperties = inner.additionalProperties;
+  } else if (spec.oneOf) {
+    node.oneOf = spec.oneOf.map((s: any) => dshValueToJsonSchema(s));
+  }
+  return node;
+}
+
+/** DSH 参数映射 → JSON Schema（隐式 open object；required 是每属性标注 → 提取为数组）*/
+function dshParamsToJsonSchema(params: Record<string, DshParamProp> | undefined, additionalProperties?: boolean): any {
   const properties: Record<string, any> = {};
   const required: string[] = [];
   for (const [key, spec] of Object.entries(params || {})) {
-    const t = spec.type || 'string';
-    const node: any = { type: t === 'json' ? 'object' : t };
-    if (spec.description) node.description = spec.description;
-    if (spec.title) node.title = spec.title;
-    if (spec.default !== undefined) node.default = spec.default;
-    if (spec.enum) node.enum = spec.enum;
-    if (t === 'array' && spec.items) node.items = spec.items;
-    if (t === 'object') {
-      node.properties = spec.properties || {};
-      node.additionalProperties = spec.additionalProperties !== false;
-    }
-    properties[key] = node;
+    properties[key] = dshValueToJsonSchema(spec);
     if (spec.required) required.push(key);
   }
-  return { type: 'object', properties, required, additionalProperties: true };
+  return {
+    type: 'object',
+    properties,
+    required,
+    additionalProperties: additionalProperties !== false,
+  };
 }
 
 /** DSH defineTool → Cuckoo 工具描述 */
@@ -122,5 +143,5 @@ class Service {
   }
 }
 
-export { defineTool, dshParamsToJsonSchema, Service, makeStub, z };
+export { defineTool, dshParamsToJsonSchema, dshValueToJsonSchema, Service, makeStub, z };
 export type { DshDefineToolOptions, DshParamProp, CuckooTool };
