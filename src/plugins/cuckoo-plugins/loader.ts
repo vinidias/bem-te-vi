@@ -14,6 +14,7 @@ import { registerBus, unregisterBus } from './event-bridge.js';
 import { registerPromptSection, getPromptSections } from '../dsh-compat/prompt-sections.js';
 import { createFs } from '../dsh-compat/fs-service.js';
 import { createAgents } from '../dsh-compat/agents-service.js';
+import { PluginStorage } from './plugin-storage.js';
 
 const require = createRequire(import.meta.url);
 
@@ -223,6 +224,8 @@ async function loadCuckooPlugin(pluginDir: string, host?: CuckooHost): Promise<{
   if (!entry) throw new Error('未找到插件入口（package.json main / index.js）');
   // 创建"最小 DSH 运行时"（内存会话 + 投影注册表），注入给插件（C2）
   const runtime = new DshRuntime();
+  // C5：接持久化（JSONL 落盘 + 启动重放），按插件 id 隔离
+  try { runtime.session.attachStorage(new PluginStorage(path.basename(pluginDir))); } catch (_) { /* ignore */ }
   setDshSession(runtime.session);
   const code = await bundlePlugin(entry);
   const moduleObj: any = { exports: {} };
