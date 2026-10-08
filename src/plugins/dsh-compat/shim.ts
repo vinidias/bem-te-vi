@@ -77,6 +77,28 @@ function dshParamsToJsonSchema(params: Record<string, DshParamProp> | undefined,
   };
 }
 
+/**
+ * 当前 DSH 运行时会话（由 loader 在加载插件前注入）。
+ * 让插件的 exec.agent.session.append(...) 真写进内存会话（C2）。
+ *
+ * 用 globalThis 而非模块变量：esbuild 打包会把本 shim 内联进插件 bundle，
+ * 模块变量是"独立副本"，与 loader 侧不共享；全局才共享。
+ */
+function setDshSession(session: any): void { (globalThis as any).__dshSession = session; }
+function getDshSession(): any { return (globalThis as any).__dshSession || null; }
+
+/** 构造 exec：agent.session 用真会话，其余属性用 stub 兜底 */
+function buildExec(): any {
+  const base: any = { agent: { session: getDshSession() || makeStub('session') } };
+  return new Proxy(base, {
+    get(t, prop) {
+      if (prop in t) return (t as any)[prop];
+      if (typeof prop === 'symbol') return undefined;
+      return makeStub('exec.' + String(prop));
+    },
+  });
+}
+
 /** DSH defineTool → Cuckoo 工具描述 */
 function defineTool(options: DshDefineToolOptions): CuckooTool {
   if (!options || typeof options.name !== 'string' || !options.name) {
@@ -93,8 +115,8 @@ function defineTool(options: DshDefineToolOptions): CuckooTool {
     description: options.description,
     parameters: dshParamsToJsonSchema(options.parameters),
     execute: async (args: any) => {
-      // exec 用 stub 兜底：插件调 exec.agent.session.append(...) 等不抛错（副作用空转）
-      const value = await options.execute(args || {}, makeStub('exec'));
+      // exec.agent.session 接内存会话（C2）：插件 append 的事件真写进内存流水
+      const value = await options.execute(args || {}, buildExec());
       // DSH 的 output.render 把值转成 ContentBlock[]；Cuckoo 工具返回字符串即可
       if (options.output && typeof options.output.render === 'function') {
         try {
@@ -143,5 +165,5 @@ class Service {
   }
 }
 
-export { defineTool, dshParamsToJsonSchema, dshValueToJsonSchema, Service, makeStub, z };
+export { defineTool, dshParamsToJsonSchema, dshValueToJsonSchema, Service, makeStub, z, setDshSession, getDshSession };
 export type { DshDefineToolOptions, DshParamProp, CuckooTool };

@@ -7,6 +7,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { DshRuntime } from '../dsh-compat/runtime.js';
+import { setDshSession } from '../dsh-compat/shim.js';
 
 const require = createRequire(import.meta.url);
 
@@ -139,9 +141,11 @@ interface CuckooHost {
 }
 
 /** 一个"假 ctx"——收集插件注册的工具；未知属性用 stub 兜底（够用空接口） */
-function createCollectorCtx(pluginName: string, host?: CuckooHost): { ctx: any; tools: any[] } {
+function createCollectorCtx(pluginName: string, host?: CuckooHost, runtime?: any): { ctx: any; tools: any[] } {
   const tools: any[] = [];
   const base: any = {
+    // 会话投影注册表（C2）：插件 register 的投影，能驱动、能读回
+    sessionProjections: runtime ? runtime.projections : undefined,
     name: pluginName,
     log: (...args: any[]) => console.log('[DSHPlugin:' + pluginName + ']', ...args),
     tools: {
@@ -190,21 +194,24 @@ function createCollectorCtx(pluginName: string, host?: CuckooHost): { ctx: any; 
   return { ctx, tools };
 }
 
-/** 从插件目录加载，返回 { pluginName, tools } */
-async function loadCuckooPlugin(pluginDir: string, host?: CuckooHost): Promise<{ pluginName: string; tools: any[] }> {
+/** 从插件目录加载，返回 { pluginName, tools, runtime } */
+async function loadCuckooPlugin(pluginDir: string, host?: CuckooHost): Promise<{ pluginName: string; tools: any[]; runtime: any }> {
   const entry = resolveEntry(pluginDir);
   if (!entry) throw new Error('未找到插件入口（package.json main / index.js）');
+  // 创建"最小 DSH 运行时"（内存会话 + 投影注册表），注入给插件（C2）
+  const runtime = new DshRuntime();
+  setDshSession(runtime.session);
   const code = await bundlePlugin(entry);
   const moduleObj: any = { exports: {} };
   const fn = new Function('module', 'exports', 'require', code + '\n;return module.exports;');
   const mod = fn(moduleObj, moduleObj.exports, require);
   const plugin = (mod && mod.default && typeof mod.default === 'object') ? mod.default : mod;
   const pluginName = (plugin && typeof plugin.name === 'string' && plugin.name) ? plugin.name : path.basename(pluginDir);
-  const { ctx, tools } = createCollectorCtx(pluginName, host);
+  const { ctx, tools } = createCollectorCtx(pluginName, host, runtime);
   if (plugin && typeof plugin.apply === 'function') {
     await plugin.apply(ctx, {});
   }
-  return { pluginName, tools };
+  return { pluginName, tools, runtime };
 }
 
 export { loadCuckooPlugin, resolveEntry, bundlePlugin };
