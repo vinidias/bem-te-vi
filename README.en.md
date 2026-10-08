@@ -1,22 +1,10 @@
-# Cuckoo Code
+# Bem-te-vi
 
-<p align="center">
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/releases/latest"><img src="https://img.shields.io/github/v/release/wangyongpeng90/cuckoo-code?style=flat-square&color=8b93ff" alt="Latest Release"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/wangyongpeng90/cuckoo-code/build.yml?style=flat-square&label=Build" alt="Build Status"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/wangyongpeng90/cuckoo-code/release.yml?style=flat-square&label=Release" alt="Release Status"></a>
-  <a href="https://codecov.io/gh/wangyongpeng90/cuckoo-code"><img src="https://codecov.io/gh/wangyongpeng90/cuckoo-code/branch/master/graph/badge.svg" alt="codecov"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/github/stars/wangyongpeng90/cuckoo-code?style=flat-square&color=yellow" alt="Stars"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/releases"><img src="https://img.shields.io/github/downloads/wangyongpeng90/cuckoo-code/total?style=flat-square&color=green" alt="Downloads"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-8b93ff?style=flat-square" alt="Platform"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/badge/Electron-33-47848f?style=flat-square&logo=electron&logoColor=white" alt="Electron"></a>
-</p>
+[Português (Brasil)](README.md) | **English**
 
-English | [中文](README.md)
+Based on [Cuckoo Code](https://github.com/wangyongpeng90/cuckoo-code), by its original contributors. GPL-3.0-only.
 
-[Download the latest release](https://github.com/wangyongpeng90/cuckoo-code/releases/latest)
-
-**Cuckoo Code** is a zero-token-cost AI Agent desktop application.
+**Bem-te-vi** is a desktop AI assistant that uses provider web interfaces without requiring an API key. Provider account limits and subscription costs still apply.
 
 It uses Electron to embed the web versions of AI assistants (DeepSeek, Claude, etc.) into a local window and injects a sidebar overlay. The AI is guided by the system prompt to generate tool calls (JavaScript code blocks). After user confirmation, those calls are executed in a local sandbox and the results are sent back to the AI. The whole flow requires no API key and incurs no API usage fees — you use your web account instead of a pay-per-token API.
 
@@ -60,27 +48,31 @@ Not just chat. The AI can read/write files, search code, execute commands, query
 - **Overlay panel**: shows command previews, execution results, and history; toggle with Ctrl+Shift+C or Esc
 - **Context compaction**: long sessions auto-compact (clear IDB + refresh + share link) to avoid hitting the context limit
 - **Automatic retry**: two mechanisms — (1) retry with backoff when a reply is truncated/fails; (2) watchdog prompts "continue" when the SSE stream goes silent
-- **Session persistence**: login state and settings are saved to %APPDATA%/cuckoo-ai-pro-session
+- **Session persistence**: login state and settings are saved to %APPDATA%/bem-te-vi
 - **Safety mechanisms**: 30-second command timeout, 60-second sandbox timeout, 1MB output buffer, dangerous command confirmation (including compound commands); webFetch can optionally **reject internal addresses** (SSRF protection, enabled in Settings)
 
 ---
+
+## Languages
+
+Portuguese (Brazil) is the default. Select English or Chinese (简体中文) in Settings → Idioma / Language, then restart the application. Existing chats are preserved. For a one-off launch, set `BEM_TE_VI_LANGUAGE=en` or `BEM_TE_VI_LANGUAGE=zh-CN`. The embedded provider website follows its own language settings. Historical Chinese documentation is retained for reference.
 
 ## Installation and Running
 
 ### Requirements
 
-- Node.js >= 16.0.0 (matches `engines` in `package.json`; 18+ recommended)
+- Node.js >= 22.0.0 (matches `engines` in `package.json`; 18+ recommended)
 - npm
 
 ### Steps
 
 ```bash
 # Clone the repository
-git clone https://github.com/wangyongpeng90/cuckoo-code.git
-cd cuckoo-code
+git clone https://github.com/vinidias/bem-te-vi.git
+cd bem-te-vi
 
 # Install dependencies
-npm install
+npm ci
 
 # If npm blocks the electron/esbuild postinstall scripts (allowScripts), approve first:
 #   npm install-scripts ls             # list blocked packages
@@ -336,3 +328,7 @@ This project is licensed under the GNU General Public License v3.0. See the LICE
 - [@ZiJiangel](https://github.com/ZiJiangel):
   - **Feishu Markdown card**: AI replies pushed to Feishu now render Markdown (including tables) via interactive cards (PR #35)
 - All contributors and users
+
+## Google Gemini
+
+Gemini support is planned, not implemented. See [integration plan](docs/gemini-plan.en.md).

@@ -1,32 +1,33 @@
 {
-  "name": "cuckoo-code",
+  "name": "bem-te-vi",
   "version": "0.8.10",
-  "description": "DeepSeek 桌面应用——内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行",
+  "description": "Assistente de IA para desktop com ferramentas locais, português como padrão e inglês como alternativa.",
   "type": "module",
-  "main": "out/src/app/entry.js",
+  "main": "bootstrap.js",
   "scripts": {
-    "compile": "node scripts/copy-monaco.mjs && node scripts/build-hooks.mjs && tsc -p tsconfig.build.json && node scripts/build-tool-api.mjs && node scripts/build-shell.mjs",
+    "compile": "node scripts/copy-monaco.mjs && node scripts/build-hooks.mjs && tsc -p tsconfig.build.json && node scripts/build-tool-api.mjs && node scripts/build-shell.mjs && node scripts/build-locales.mjs",
     "copy-monaco": "node scripts/copy-monaco.mjs",
     "fetch-runtime": "node scripts/fetch-runtime.mjs",
     "start": "node scripts/fetch-runtime.mjs && node scripts/copy-monaco.mjs && node start.js",
-    "test": "vitest run",
+    "test": "vitest run && npm run test:locales",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ci": "vitest run",
+    "test:ci": "vitest run && npm run test:locales",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.hooks.json",
     "lint": "eslint .",
     "docs:index": "node scripts/build-docs-index.mjs",
     "prepare": "git config core.hooksPath .githooks || true",
-    "build": "npm run compile && electron-builder --publish always",
-    "build:win": "npm run compile && electron-builder --win --publish always",
-    "build:win:nsis": "npm run compile && electron-builder --win --config.win.target=nsis --publish always",
-    "build:mac": "npm run compile && electron-builder --mac --publish always",
-    "build:mac:dmg": "npm run compile && electron-builder --mac --config.mac.target=dmg --publish always",
+    "build": "npm run compile && electron-builder --publish never",
+    "build:win": "npm run compile && electron-builder --win --publish never",
+    "build:win:nsis": "npm run compile && electron-builder --win --config.win.target=nsis --publish never",
+    "build:mac": "npm run compile && electron-builder --mac --publish never",
+    "build:mac:dmg": "npm run compile && electron-builder --mac --config.mac.target=dmg --publish never",
     "build:local": "npm run compile && electron-builder --publish never",
     "build:win:local": "npm run compile && electron-builder --win --publish never",
     "build:win:nsis:local": "npm run compile && electron-builder --win --config.win.target=nsis --publish never",
     "build:mac:local": "npm run compile && electron-builder --mac --publish never",
-    "build:mac:dmg:local": "npm run compile && electron-builder --mac --config.mac.target=dmg --publish never"
+    "build:mac:dmg:local": "npm run compile && electron-builder --mac --config.mac.target=dmg --publish never",
+    "test:locales": "node --test test/localization/*.test.mjs"
   },
   "keywords": [
     "deepseek",
@@ -35,26 +36,27 @@
     "cli",
     "command-execution",
     "developer-tools",
-    "cuckoo-code"
+    "bem-te-vi"
   ],
   "author": {
-    "name": "Cuckoo Code Contributors",
-    "url": "https://github.com/wangyongpeng90/cuckoo-code"
+    "name": "Bem-te-vi Contributors",
+    "url": "https://github.com/vinidias/bem-te-vi"
   },
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wangyongpeng90/cuckoo-code.git"
+    "url": "git+https://github.com/vinidias/bem-te-vi.git"
   },
   "bugs": {
-    "url": "https://github.com/wangyongpeng90/cuckoo-code/issues"
+    "url": "https://github.com/vinidias/bem-te-vi/issues"
   },
-  "homepage": "https://github.com/wangyongpeng90/cuckoo-code#readme",
+  "homepage": "https://github.com/vinidias/bem-te-vi#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.13.6",
     "@types/picomatch": "^4.0.3",
     "@vitest/coverage-v8": "^5.0.1",
+    "acorn": "^8.19.0",
     "electron": "^44.4.3",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
@@ -64,7 +66,7 @@
     "vitest": "^5.0.1"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=22.0.0"
   },
   "os": [
     "win32",
@@ -72,13 +74,13 @@
     "linux"
   ],
   "build": {
-    "appId": "com.cuckoo.cuckoo-code",
-    "productName": "Cuckoo-Code",
+    "appId": "com.vinidias.bemtevi",
+    "productName": "Bem-te-vi",
     "publish": [
       {
         "provider": "github",
-        "owner": "wangyongpeng90",
-        "repo": "cuckoo-code"
+        "owner": "vinidias",
+        "repo": "bem-te-vi"
       }
     ],
     "directories": {
@@ -89,7 +91,7 @@
       "target": [
         "nsis"
       ],
-      "artifactName": "cuckoo-code-win-v${version}-${arch}.${ext}"
+      "artifactName": "bem-te-vi-win-v${version}-${arch}.${ext}"
     },
     "mac": {
       "icon": "build/icon.png",
@@ -109,14 +111,14 @@
           ]
         }
       ],
-      "artifactName": "cuckoo-code-mac-v${version}-${arch}.${ext}"
+      "artifactName": "bem-te-vi-mac-v${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "artifactName": "cuckoo-code-win-v${version}.${ext}"
+      "artifactName": "bem-te-vi-win-v${version}.${ext}"
     },
     "asarUnpack": [
       "**/node_modules/@vscode/ripgrep/**",
@@ -138,7 +140,6 @@
       "!dist",
       "!build",
       "!**/*.md",
-      "!LICENSE",
       "src/prompt/*.md",
       "src/overlay/template/*.html",
       "src/overlay/template/*.css",
