@@ -171,17 +171,17 @@
 | **fs** | 文件读写 | fs-service（node:fs）| ✅ | — |
 | **systemPrompt** | 系统提示词段 | prompt-sections | ✅ | — |
 | **agents** | 子代理 | agents-service（会话视图）| ✅ | — |
-| **skills** | 技能 | Cuckoo skills | ❌ | 🟡 |
-| **commands** | 命令 | Cuckoo 命令 | ❌ | 🟡 |
+| **skills** | 技能 | Cuckoo skills | ✅ | — |
+| **commands** | 命令 | snippets | ✅ | — |
 | **storage / storageDomain** | 持久化 | plugin-storage（JSONL）| ✅ | — |
 | **sessionQuery** | 会话查询 | ❌ | ❌ | 🟡 |
-| **sessionTitle** | 会话标题 | nameConversation | ❌ | 🟡 |
-| **compaction** | 上下文压缩 | Cuckoo 压缩 | ❌ | 🟡 |
+| **sessionTitle** | 会话标题 | sessionStore | ✅ | — |
+| **compaction** | 上下文压缩 | Cuckoo 压缩 | ✅ | — |
 | **subagents** | 子代理管理 | runAgent | ❌ | 🟡 |
-| **goals / planMode** | 目标/计划 | Goal/Plan 面板 | ❌ | 🟡 |
+| **goals / planMode** | 目标/计划 | Goal/Plan 面板 | ✅ | — |
 | **shell / shellEnv** | 命令/环境 | bash/pwsh | ❌ | 🟡 |
-| **workspaceFiles / Registry / Changes** | 工作区 | 文件树 | ❌ | 🟡 |
-| **tokenMeter** | token 统计 | Cuckoo token | ❌ | 🟡 |
+| **workspaceFiles / Registry / Changes** | 工作区 | 文件树 | ✅ | — |
+| **tokenMeter** | token 统计 | token-stats | ✅ | — |
 | **mcpResources** | MCP 资源 | Cuckoo MCP | ❌ | 🟢 |
 | **web / webServer** | 网络/HTTP | webFetch | ❌ | 🟢 |
 | **terminals / ssh / lsp** | 终端/SSH/LSP | ❌ | ❌ | 🟢 |
@@ -203,7 +203,7 @@
 | **C4-B** | **fs**（文件读写）| ✅ **已完成（2026-10-08）** |
 | **C4-C** | **agents**（子代理）| ✅ **已完成（2026-10-08）** |
 | **C5** | **storage 落盘**（JSONL + 重放）| ✅ **已完成（2026-10-08）** |
-| **C6** | skills / commands / goals / compaction 等 | 🟡 待做 |
+| **C6** | skills / commands / goals / compaction 等（7 个）| ✅ **已完成（2026-10-08）** |
 | **P3** | UI/主题等 DSH 客户端能力 | 🟢 待做 |
 
 **完成标准**：主流 DSH 插件（工具/事件/存储类）**原样能跑、行为一致**（对照测试验证）。

@@ -135,6 +135,20 @@ DSH（DeepSeek Harness）是 DeepSeek 官方的 Agent 框架，生态里已有�
 
 **现在**：插件 `append` 的事件**落盘** → **重启后投影恢复**。
 
+## C6：7 个服务（`src/plugins/dsh-compat/c6-services.ts`）
+
+| 服务 | Cuckoo 对应 |
+|---|---|
+| `ctx.skills` | scanSkills |
+| `ctx.commands` | snippets |
+| `ctx.goals` | 目标状态 |
+| `ctx.compaction` | 触发压缩 |
+| `ctx.workspaceFiles` | 文件树 |
+| `ctx.sessionTitle` | sessionStore |
+| `ctx.tokenMeter` | token-stats |
+
+**现在**：DSH 插件能"列技能/命令、看目标、触发压缩、读 token、读写标题"。
+
 ## 验证
 
 ### 单测（865 tests 全过）
