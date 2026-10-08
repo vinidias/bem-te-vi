@@ -1,15 +1,14 @@
 # Bem-te-vi
 
 <p align="center">
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/releases/latest"><img src="https://img.shields.io/github/v/release/wangyongpeng90/cuckoo-code?style=flat-square&color=8b93ff" alt="Latest Release"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/wangyongpeng90/cuckoo-code/build.yml?style=flat-square&label=Build" alt="Build Status"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/wangyongpeng90/cuckoo-code/release.yml?style=flat-square&label=Release" alt="Release Status"></a>
-  <a href="https://codecov.io/gh/wangyongpeng90/cuckoo-code"><img src="https://codecov.io/gh/wangyongpeng90/cuckoo-code/branch/master/graph/badge.svg" alt="codecov"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/github/stars/wangyongpeng90/cuckoo-code?style=flat-square&color=yellow" alt="Stars"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code/releases"><img src="https://img.shields.io/github/downloads/wangyongpeng90/cuckoo-code/total?style=flat-square&color=green" alt="Downloads"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-8b93ff?style=flat-square" alt="Platform"></a>
-  <a href="https://github.com/wangyongpeng90/cuckoo-code"><img src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square&logo=electron&logoColor=white" alt="Electron"></a>
+  <a href="https://github.com/vinidias/bem-te-vi/releases/latest"><img src="https://img.shields.io/github/v/release/vinidias/bem-te-vi?style=flat-square&color=8b93ff" alt="Latest Release"></a>
+  <a href="https://github.com/vinidias/bem-te-vi/actions/workflows/quality.yml"><img src="https://img.shields.io/github/actions/workflow/status/vinidias/bem-te-vi/quality.yml?style=flat-square&label=Quality" alt="Quality"></a>
+  <a href="https://github.com/vinidias/bem-te-vi/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/vinidias/bem-te-vi/release.yml?style=flat-square&label=Release" alt="Release Status"></a>
+  <a href="https://github.com/vinidias/bem-te-vi/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
+  <a href="https://github.com/vinidias/bem-te-vi"><img src="https://img.shields.io/github/stars/vinidias/bem-te-vi?style=flat-square&color=yellow" alt="Stars"></a>
+  <a href="https://github.com/vinidias/bem-te-vi/releases"><img src="https://img.shields.io/github/downloads/vinidias/bem-te-vi/total?style=flat-square&color=green" alt="Downloads"></a>
+  <a href="https://github.com/vinidias/bem-te-vi"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-8b93ff?style=flat-square" alt="Platform"></a>
+  <a href="https://github.com/vinidias/bem-te-vi"><img src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square&logo=electron&logoColor=white" alt="Electron"></a>
 </p>
 
 [Português (Brasil)](README.md) | [English](README.en.md) | **中文**
@@ -85,8 +84,8 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/wangyongpeng90/cuckoo-code.git
-cd cuckoo-code
+git clone https://github.com/vinidias/bem-te-vi.git
+cd bem-te-vi
 
 # 安装依赖
 npm install
