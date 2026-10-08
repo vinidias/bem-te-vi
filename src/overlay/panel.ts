@@ -374,6 +374,22 @@ function setSuppressHomeMode(v: boolean): void {
   suppressHomeMode = !!v;
 }
 
+/**
+ * Mostra o botão "Voltar ao chat" quando a view do AI não está mais
+ * numa página de provedor conhecido (ex.: o usuário clicou num link externo).
+ * Um único clique leva de volta à página anterior (navigationHistory.goBack).
+ */
+function updateBackButton(): void {
+  const btn = document.getElementById('cuckoo-btn-back');
+  if (!btn) return;
+  let isProviderPage = false;
+  try {
+    const provider = getProviderByUrl(window.location.href);
+    isProviderPage = !!provider;
+  } catch (_) { /* ignore */ }
+  btn.classList.toggle('cuckoo-hidden', isProviderPage);
+}
+
 function updateHomeMode(): void {
   const url = window.location.href;
   const provider = getProviderByUrl(url);
@@ -432,6 +448,7 @@ function startOverlayWatcher(): void {
 export {
   injectCSS,
   injectOverlay,
+  updateBackButton,
   generateId,
   formatTime,
   truncate,

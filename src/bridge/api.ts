@@ -163,6 +163,8 @@ let electronAPI: any = {
   navigateSession: (sessionId: any) => {
     return ipcRenderer.invoke('navigate-session', { sessionId });
   },
+  /** Voltar na view do AI (usado pelo botão "Voltar ao chat" do overlay) */
+  pageBack: () => ipcRenderer.invoke('shell-back'),
   createProfileWindow: () => {
     return ipcRenderer.invoke('create-profile-window');
   },
