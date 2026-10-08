@@ -17,11 +17,11 @@ function shimPath(): string {
   return base + '.js';
 }
 
-/** 找插件入口文件：package.json 的 main/module，否则 index.js */
-function resolveEntry(pluginDir: string): string | null {
+/** 在某目录里找入口文件：package.json 的 main/module，否则 index.js 等 */
+function findEntryIn(dir: string): string | null {
   let pkg: any = null;
   try {
-    pkg = JSON.parse(fs.readFileSync(path.join(pluginDir, 'package.json'), 'utf-8'));
+    pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf-8'));
   } catch (_) { /* ignore */ }
   const candidates = [
     pkg && pkg.module,
@@ -31,8 +31,31 @@ function resolveEntry(pluginDir: string): string | null {
     'dist/index.js',
   ].filter((x: any) => typeof x === 'string' && x);
   for (const rel of candidates) {
-    const abs = path.join(pluginDir, rel);
-    if (fs.existsSync(abs)) return abs;
+    const abs = path.join(dir, rel);
+    if (fs.existsSync(abs) && fs.statSync(abs).isFile()) return abs;
+  }
+  return null;
+}
+
+/**
+ * 找插件入口。
+ * 1) 先找插件目录自身（package.json main / index.js）；
+ * 2) 找不到 → 它是"npm 安装的壳目录"（只写了 dependencies），
+ *    去 node_modules/<每个依赖> 里找（真正的插件包在那）。
+ */
+function resolveEntry(pluginDir: string): string | null {
+  const direct = findEntryIn(pluginDir);
+  if (direct) return direct;
+  // 壳目录：遍历 dependencies，去 node_modules 里找
+  let pkg: any = null;
+  try {
+    pkg = JSON.parse(fs.readFileSync(path.join(pluginDir, 'package.json'), 'utf-8'));
+  } catch (_) { /* ignore */ }
+  const deps = (pkg && pkg.dependencies) || {};
+  for (const depName of Object.keys(deps)) {
+    const depDir = path.join(pluginDir, 'node_modules', depName);
+    const entry = findEntryIn(depDir);
+    if (entry) return entry;
   }
   return null;
 }
