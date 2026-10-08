@@ -13,6 +13,8 @@ const harnessAPI = {
   sendMessage: (text: string) => ipcRenderer.invoke('harness-send', { text }),
   /** 退出纯净模式，返回网页模式 */
   exitToWeb: () => ipcRenderer.invoke('harness-exit'),
+  /** Abrir link no navegador padrão (links do markdown não devem navegar a view) */
+  openExternal: (url: string) => ipcRenderer.invoke('harness-open-external', { url }),
   /** 停止生成 */
   stop: () => ipcRenderer.invoke('harness-stop'),
   /** 列出可用技能与工具 */

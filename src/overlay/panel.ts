@@ -25,7 +25,10 @@ function injectOverlay(): void {
   const container = document.createElement('div');
   container.id = 'cuckoo-root';
   container.innerHTML = OVERLAY_HTML;
-  document.body.appendChild(container);
+  // Fallback: em páginas externas / SPAs rápidas o body pode ainda não existir
+  // quando o preload roda; documentElement existe desde o início.
+  const parent = document.body || document.documentElement;
+  parent.appendChild(container);
 }
 
 // ========== 覆盖层逻辑 ==========
@@ -380,6 +383,11 @@ function setSuppressHomeMode(v: boolean): void {
  * Um único clique leva de volta à página anterior (navigationHistory.goBack).
  */
 function updateBackButton(): void {
+  // Re-injeta se o overlay ainda não estiver no DOM (páginas externas)
+  if (!document.getElementById('cuckoo-root')) {
+    try { injectCSS(); } catch (_) {}
+    try { injectOverlay(); } catch (_) {}
+  }
   const btn = document.getElementById('cuckoo-btn-back');
   if (!btn) return;
   let isProviderPage = false;

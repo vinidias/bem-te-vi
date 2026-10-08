@@ -126,6 +126,25 @@ function handleUrlChanged(): void {
  * 初始化 Cuckoo Code 扩展
  * 注入样式、覆盖层 HTML，绑定事件，启动回复监听（拦截或 DOM 观察）
  */
+/**
+ * Configura o botão "Voltar ao chat" independentemente do resto do init().
+ * Precisa rodar SEMPRE — inclusive em páginas externas (GitHub, etc.) onde
+ * alguma parte do init() pode falhar e pular o resto do try principal.
+ */
+function setupBackButton(): void {
+  try { ui.updateBackButton(); } catch (_) { /* ignore */ }
+  try {
+    const backBtn = document.getElementById('cuckoo-btn-back') as any;
+    if (backBtn && !backBtn.__ckBound) {
+      backBtn.__ckBound = true;
+      backBtn.addEventListener('click', () => {
+        try { (window as any).electronAPI.pageBack(); } catch (_) {}
+      });
+      console.log('[Cuckoo] botão voltar configurado (url=' + window.location.href + ')');
+    }
+  } catch (_) { /* ignore */ }
+}
+
 function init(): void {
   // 子代理窗口：注册完成判定（onInterceptedResponse 计数），但 overlay 照常初始化
   const subCfg = initSubagentIfNeeded();
@@ -145,14 +164,7 @@ function init(): void {
     }
     bindEvents();
     ui.updateHomeMode();
-    ui.updateBackButton();
-    // Botão "Voltar ao chat": sai da página externa e retorna ao provedor
-    try {
-      const backBtn = document.getElementById('cuckoo-btn-back');
-      if (backBtn) backBtn.addEventListener('click', () => {
-        try { (window as any).electronAPI.pageBack(); } catch (_) {}
-      });
-    } catch (_) { /* ignore */ }
+    setupBackButton();
 
     // URL 变化：主进程 did-navigate/-in-page 会推 'cuckoo-url-changed'
     ipcRenderer.on('cuckoo-url-changed', handleUrlChanged);
@@ -278,6 +290,13 @@ function init(): void {
     // 兜底：即使出错也强制显示面板
     ui.forceShowOverlay();
   }
+
+  // Botão "Voltar ao chat": roda SEMPRE, mesmo se o try acima falhou
+  // (páginas externas — GitHub etc. — têm DOM muito diferente e podem quebrar o init)
+  setupBackButton();
+  // Retry tardio: garante que aparece mesmo se o DOM/CSS ainda não estiverem prontos
+  setTimeout(setupBackButton, 500);
+  setTimeout(setupBackButton, 1500);
 
   // 定期巡检：防止面板被意外隐藏
   ui.startOverlayWatcher();

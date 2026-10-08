@@ -318,6 +318,19 @@ function registerHarnessIpc(): void {
     }
   });
 
+  // Abrir link externo no navegador padrão
+  ipcMain.handle('harness-open-external', async (_event: any, { url }: any) => {
+    if (!url || typeof url !== 'string') return { success: false };
+    if (!/^https?:\/\//i.test(url)) return { success: false, error: 'invalid-url' };
+    try {
+      const { shell } = require('electron');
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
   // 退出纯净模式，返回网页模式
   ipcMain.handle('harness-exit', (event: any) => {
     const ctx = findContext(event.sender);
