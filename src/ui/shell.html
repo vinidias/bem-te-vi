@@ -4,7 +4,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>Cuckoo</title>
+<title>Bem-te-vi</title>
 <script src="vendor/monaco/vs/loader.js"></script>
 <style>
 /* ===== 全局滚动条（统一规范：4px 细条、透明轨道、圆角滑块）=====
@@ -1629,6 +1629,15 @@
             <!-- ===== 设置 ===== -->
             <div class="ck-tab" data-panel="settings">
               <div class="ck-card">
+                <div class="ck-set-group-title">Idioma / Language</div>
+                <select class="ck-set-input" id="btv-language" aria-label="Idioma / Language">
+                  <option value="pt-BR">Português (Brasil)</option>
+                  <option value="en">English</option>
+                  <option value="zh-CN">简体中文</option>
+                </select>
+                <p id="btv-language-status" role="status">Reinicie o aplicativo para aplicar a alteração.</p>
+              </div>
+              <div class="ck-card">
                 <div class="ck-set-group-title">外观</div>
                 <div class="ck-set-field">
                   <span class="ck-set-key">主题</span>
@@ -1731,27 +1740,12 @@
               </div>
             </div>
 
-            <!-- ===== 关于 ===== -->
-            <div class="ck-tab" data-panel="about">
-              <div class="ck-about-head">
-                <div class="ck-about-logo">C</div>
-                <div class="ck-about-title">Cuckoo Code</div>
-                <div class="ck-about-ver">版本 <span id="about-version">—</span></div>
-              </div>
-
-              <p class="ck-about-tip">本版本为<strong>插件改造版</strong>（plugin-ui-ext），已禁用原版在线更新，以免被覆盖丢失插件系统。</p>
-
-              <div class="ck-about-group">
-                <div class="ck-about-group-title">开源地址</div>
-                <p class="ck-about-tip">本系统为开源项目，欢迎点 Star 支持。</p>
-                <a class="ck-about-link" id="about-github">github.com/wangyongpeng90/cuckoo-code</a>
-              </div>
-
-              <div class="ck-about-group">
-                <div class="ck-about-group-title">QQ 群：1104042537</div>
-                <img class="ck-about-qr" id="about-qq" alt="QQ 群" />
-              </div>
-            </div>
+<div class="ck-tab" data-panel="about">
+  <div class="ck-about-head"><div class="ck-about-logo">B</div><div class="ck-about-title">Bem-te-vi</div><div class="ck-about-ver"><span id="about-version">—</span></div></div>
+  <p class="ck-about-tip">Assistente de IA para desktop. Português primeiro, inglês como alternativa.</p>
+  <div class="ck-about-group"><a class="ck-about-link" id="about-github">github.com/vinidias/bem-te-vi</a></div>
+  <p class="ck-about-tip">Baseado no Cuckoo Code, de wangyongpeng90 e colaboradores. Licença GPL-3.0-only.</p>
+</div>
 
           </div>
         </div>
@@ -3722,7 +3716,7 @@
     }
   }
   document.getElementById("about-github")?.addEventListener("click", () => {
-    if (api.openExternal) api.openExternal("https://github.com/wangyongpeng90/cuckoo-code");
+    if (api.openExternal) api.openExternal("https://github.com/vinidias/bem-te-vi");
   });
 
   // src/ui/shell/scripts/pages/feishu.ts
@@ -4275,6 +4269,22 @@
       }
     });
     renderThemeSelect();
+  }
+  var languageSelect = document.getElementById("btv-language");
+  if (languageSelect && api.getLanguage && api.setLanguage) {
+    api.getLanguage().then((result) => {
+      languageSelect.value = result.preference;
+    }).catch(() => {
+    });
+    languageSelect.addEventListener("change", async () => {
+      const status = document.getElementById("btv-language-status");
+      try {
+        await api.setLanguage(languageSelect.value);
+        if (status) status.textContent = "Idioma salvo. Reinicie o aplicativo para aplicar.";
+      } catch (_) {
+        if (status) status.textContent = "N\xE3o foi poss\xEDvel salvar o idioma.";
+      }
+    });
   }
 
   // src/ui/shell/scripts/pages/conversations.ts

@@ -27,6 +27,9 @@ export function resolveAsset(rel: string): string {
 
 /** 解析 src/ 下的非 TS 资源（如 prompt/*.md、ui/*.html） */
 export function resolveSrc(rel: string): string {
+  const lang = process.env.BEM_TE_VI_LANGUAGE;
+  const language = (lang === 'en' || lang === 'zh-CN') ? lang : 'pt-BR';
+  if (/^ui\/[^/]+\.html$/.test(rel)) rel = rel.replace(/\.html$/, '.' + language + '.html');
   return path.join(APP_ROOT, 'src', rel);
 }
 
