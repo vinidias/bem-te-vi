@@ -84,7 +84,7 @@ async function setInputContent(input: any, msg: string): Promise<boolean> {
  * @returns 是否成功
  */
 // 当前待发送的消息（可被 cancelPendingSend 取消）
-interface PendingSend { timer: any; input: any; cancelled: boolean; }
+interface PendingSend { timer: any; input: any; cancelled: boolean; text: string; tag: string; }
 let pendingSend: PendingSend | null = null;
 
 // 「用户消息已发出」回调（供 bridge 上报飞书等；overlay 不依赖上层，用回调注入）
@@ -129,7 +129,7 @@ async function sendToChat(msg: string, tag?: string, fixedDelay?: number, afterS
     console.log('[Cuckoo Code] 找不到输入框，无法发送消息');
     return false;
   }
-  const token: PendingSend = { timer: null, input: input, cancelled: false };
+  const token: PendingSend = { timer: null, input: input, cancelled: false, text: msg, tag: tag || '' };
   pendingSend = token;
   if (!(await setInputContent(input, msg))) {
     if (pendingSend === token) pendingSend = null;
@@ -172,6 +172,22 @@ function cancelPendingSend(): boolean {
   // 不清空输入框：保留待发内容，用户可自行决定发送或删除
   console.log('[Cuckoo Code] 已取消待发送的消息（输入框内容保留）');
   return true;
+}
+
+/**
+ * 取出并取消当前待发消息，返回其文本（无待发则 null）。
+ * 用于「上下文耗尽续接」：捞回刚填入、未及发送的工具结果，带到新会话补发。
+ * @returns 待发文本；无则 null
+ */
+function takePendingSendText(): string | null {
+  if (!pendingSend) return null;
+  const t = pendingSend;
+  t.cancelled = true;
+  if (t.timer) clearTimeout(t.timer);
+  pendingSend = null;
+  const text = t.text || '';
+  console.log('[Cuckoo Code] 取出待发消息（长度=' + text.length + '，tag=' + t.tag + '）');
+  return text || null;
 }
 /**
  * 将消息填入 DeepSeek 聊天输入框并触发发送（工具结果回传的公共实现）
@@ -526,6 +542,7 @@ export {
   applyResultTransform,
   sendCombinedJsResultsToChat,
   cancelPendingSend,
+  takePendingSendText,
   findInputArea,
   isInputVisible,
   sendInitialPromptToInput,

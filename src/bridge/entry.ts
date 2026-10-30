@@ -17,13 +17,14 @@ import * as settingsPanel from '../overlay/panels/settings.js';
 import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/registry.js';
 import { startInterceptObserver, onInterceptedResponse, onTaskIdle, onStream } from './intercept/observer.js';
-import { shareAllForSwitch } from '../session/compaction.js';
+import { prepareSwitchShare } from '../session/compaction.js';
 import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, startWatchdog, checkSessionChange } from './loop/watchdog.js';
 import { initSubagentIfNeeded } from './subagent.js';
 import { initHarnessBridge } from './harness-bridge.js';
 import { initProbeIfNeeded } from './probe.js';
 import { initFeishuBridge } from './feishu-bridge.js';
+import { initWhatsappBridge } from './whatsapp-bridge.js';
 import { initPlugins, bindPluginReload } from './plugin-system.js';
 
 const require = createRequire(import.meta.url);
@@ -217,13 +218,14 @@ function init(): void {
         ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: false, error: err.message });
       }
     });
-    // 窗口组切换：主进程请求"全量分享当前会话"，回执 shareId
-    ipcRenderer.on('cuckoo-switch-share', async (_e: any, { reqId }: any) => {
+    // 窗口组切换：主进程请求"准备转移分享"（清 IDB + 刷新，复用压缩的重写逻辑）
+    // 刷新后由 checkPendingSwitch 完成分享并回执，故此处无需等待结果
+    ipcRenderer.on('cuckoo-switch-prepare', async (_e: any, { switchId }: any) => {
       try {
-        const r = await shareAllForSwitch();
-        ipcRenderer.send('cuckoo-switch-share-result', { reqId, ok: true, shareId: r.shareId, sessionId: r.sessionId });
+        await prepareSwitchShare(String(switchId || ''));
       } catch (err: any) {
-        ipcRenderer.send('cuckoo-switch-share-result', { reqId, ok: false, error: err.message });
+        console.error('[Cuckoo Code] 准备转移分享失败:', err && err.message);
+        ipcRenderer.send('cuckoo-switch-share-result', { switchId, ok: false, error: err.message });
       }
     });
     // 追加文本到输入框末尾（MCP 名等，不发送）
@@ -272,6 +274,7 @@ function init(): void {
 
     // 飞书同步：上报用户消息/AI回复/工具状态，并接收飞书来消息
     initFeishuBridge();
+    initWhatsappBridge();
 
     // Cuckoo 插件系统：加载 dsh/*.js 风格插件（异步，不阻塞）
     initPlugins().catch((err: any) => {

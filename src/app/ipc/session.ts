@@ -207,6 +207,40 @@ function registerSessionIpc(): void {
     return { success: true };
   });
 
+  // 上下文耗尽自动续接：从当前窗口 sessionStore 取 projectDir → 导航首页 + 初始化（保留项目目录）
+  // pendingText：耗尽瞬间「刚填入、未及发送」的工具结果，带到新会话补发给 AI
+  ipcMain.handle('context-exhausted-continue', async (event: any, payload: any = {}) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false, error: 'no-view' };
+    const store = ctx.sessionStore;
+    const projectDir = store && store.state ? (store.state.selectedProjectDir || null) : null;
+    const provider = ctx.providerId ? getProvider(ctx.providerId) : null;
+    const homeUrl = provider && provider.homeUrl ? provider.homeUrl : null;
+    if (!homeUrl) return { success: false, error: '当前平台无首页地址' };
+    const wc = ctx.view.webContents;
+    const pendingText = String((payload && payload.pendingText) || '');
+    console.log('[Cuckoo Code] 上下文耗尽 → 自动新会话续接，项目目录=' + (projectDir || '(无)') + '，待补发=' + pendingText.length + ' 字符');
+    let extraPrompt = '';
+    if (pendingText) {
+      extraPrompt =
+        '【续接说明】上一会话因上下文耗尽中断。中断前，一个工具调用刚执行完、结果未及发送，' +
+        '以下是该执行结果，请据此继续（不要重复执行同一工具）：\n\n' + pendingText;
+    }
+    const onLoad = () => {
+      try { wc.off('did-finish-load', onLoad); } catch (_) { /* ignore */ }
+      setTimeout(async () => {
+        try {
+          await initProject(false, ctx, projectDir, false, extraPrompt, false);
+        } catch (err: any) {
+          console.log('[Cuckoo Code] 续接初始化项目失败: ' + (err && err.message));
+        }
+      }, 2000);
+    };
+    try { wc.on('did-finish-load', onLoad); } catch (_) { /* ignore */ }
+    try { await wc.loadURL(homeUrl); } catch (err: any) { return { success: false, error: err.message }; }
+    return { success: true, projectDir: projectDir || null, pendingTextLen: pendingText.length };
+  });
+
   // 导航到会话
   ipcMain.handle('navigate-session', async (event: any, { sessionId }: any) => {
     if (!sessionId) return { success: false, error: '缺少会话ID' };

@@ -97,6 +97,7 @@ function createProfile(name: string, providerId: string): any {
     autoOpen: false,
     feishuChatId: '',
     feishuChatName: '',
+    whatsappJids: [],
   };
   profiles.push(profile);
   writeProfiles(profiles);

@@ -8,22 +8,23 @@ import * as windowState from "../window.js";
 const require = createRequire(import.meta.url);
 const { ipcMain } = require("electron");
 
-// 请求源窗口的 AI 页面执行"全量分享"，等回执
-let reqSeq = 0;
-const pendingShare = new Map<string, any>();
+// 窗口组转移分享：发 prepare 指令 → 源窗口清 IDB + 刷新 → 刷新后 checkPendingSwitch 完成分享并回执。
+// 因源窗口会刷新（在途 IPC 被打断），改用 switchId 关联（跨刷新），不再请求/响应式。
+let switchSeq = 0;
+const pendingSwitch = new Map<string, any>();
 
-/** AI 页面回执入口（由 index 注册） */
+/** AI 页面回执入口（由 index 注册）：{ switchId, ok, shareId?, sessionId?, error? } */
 function onSwitchShareResult(_event: any, payload: any): void {
-  const { reqId } = payload || {};
-  if (!reqId || !pendingShare.has(reqId)) return;
-  const p = pendingShare.get(reqId);
-  pendingShare.delete(reqId);
+  const { switchId } = payload || {};
+  if (!switchId || !pendingSwitch.has(switchId)) return;
+  const p = pendingSwitch.get(switchId);
+  pendingSwitch.delete(switchId);
   if (p.timer) clearTimeout(p.timer);
   p.resolve(payload);
 }
 
-/** 让指定窗口的 AI 页面执行全量分享，返回 { ok, shareId, sessionId, error } */
-function requestShareFromWindow(windowId: number, timeoutMs = 30000): Promise<any> {
+/** 请求源窗口准备转移分享（事件化：发 prepare，等刷新后的 ready 回执）。返回 { ok, shareId, sessionId, error } */
+function requestSwitchShare(windowId: number, timeoutMs = 90000): Promise<any> {
   return new Promise((resolve) => {
     const ctx = windowState.getWindowContext(windowId);
     const view = ctx && ctx.view;
@@ -31,13 +32,13 @@ function requestShareFromWindow(windowId: number, timeoutMs = 30000): Promise<an
       resolve({ ok: false, error: "源窗口不可用" });
       return;
     }
-    const reqId = "wg-" + (++reqSeq) + "-" + Date.now();
+    const switchId = "sw-" + (++switchSeq) + "-" + Date.now();
     const timer = setTimeout(() => {
-      if (pendingShare.has(reqId)) { pendingShare.delete(reqId); resolve({ ok: false, error: "分享请求超时" }); }
+      if (pendingSwitch.has(switchId)) { pendingSwitch.delete(switchId); resolve({ ok: false, error: "转移分享超时" }); }
     }, timeoutMs);
-    pendingShare.set(reqId, { resolve, timer });
-    try { view.webContents.send("cuckoo-switch-share", { reqId }); }
-    catch (err: any) { pendingShare.delete(reqId); clearTimeout(timer); resolve({ ok: false, error: err.message }); }
+    pendingSwitch.set(switchId, { resolve, timer });
+    try { view.webContents.send("cuckoo-switch-prepare", { switchId }); }
+    catch (err: any) { pendingSwitch.delete(switchId); clearTimeout(timer); resolve({ ok: false, error: err.message }); }
   });
 }
 
@@ -93,4 +94,4 @@ function registerWindowGroupsIpc(): void {
   });
 }
 
-export { registerWindowGroupsIpc, injectWindowGroupDeps, onSwitchShareResult, requestShareFromWindow };
+export { registerWindowGroupsIpc, injectWindowGroupDeps, onSwitchShareResult, requestSwitchShare };

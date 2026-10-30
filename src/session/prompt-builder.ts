@@ -6,7 +6,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getProvider } from '../providers/registry.js';
 import * as mcpClient from '../mcp/client.js';
-import { resolveSrc, resolveToolSpec } from '../infra/paths.js';
+import { resolveSrc, resolveToolSpec, resolveToolSpecFeature } from '../infra/paths.js';
+import { getEnabledToolFeatures } from '../infra/config.js';
+import { buildMemorySection } from '../infra/memories.js';
 import { registry as toolRegistry } from '../tools/index.js';
 import { scanSkills, buildSkillsSection } from '../skills/index.js';
 import { scanAgents, buildAgentsSection } from '../agents/index.js';
@@ -155,6 +157,15 @@ function buildPrompt(opts: { providerId: string; selectedDir: string; isCompacti
   if (!toolApiTypes) {
     console.error('[Cuckoo Code] 读取 cuckoo-tools.d.ts 失败:', resolveToolSpec());
   }
+  // 追加按功能启用的契约文件（如 memories 开启时 api.memories.d.ts）
+  try {
+    for (const feat of getEnabledToolFeatures()) {
+      const p = resolveToolSpecFeature(feat);
+      if (fs.existsSync(p)) {
+        toolApiTypes += '\n' + fs.readFileSync(p, 'utf-8');
+      }
+    }
+  } catch (_) { /* ignore */ }
 
   const toolsDescription = toolRegistry.getFormattedJsApiForPrompt();
   // C4：DSH 插件注册的提示词段（与工具 section 合并）
@@ -164,6 +175,9 @@ function buildPrompt(opts: { providerId: string; selectedDir: string; isCompacti
     if (secs.length > 0) dshSections = secs.map((s) => s.text).join('\n\n');
   } catch (_) { /* ignore */ }
   const toolSections = toolRegistry.getFormattedPromptSections();
+  // 用户记忆章节（功能关闭时返回空串）
+  let memorySection = '';
+  try { memorySection = buildMemorySection(); } catch (_) { /* ignore */ }
   const promptSections = dshSections ? (toolSections + '\n\n' + dshSections) : toolSections;
 
   // 后台异步连接已启用的 MCP server，不阻塞初始化（按当前项目）
@@ -200,6 +214,7 @@ function buildPrompt(opts: { providerId: string; selectedDir: string; isCompacti
     '{{SKILLS_SECTION}}': skillsSection,
     '{{AGENTS_SECTION}}': agentsSection,
     '{{PROJECT_RULES_SECTION}}': rulesSection,
+    '{{MEMORY_SECTION}}': memorySection,
   };
   let combined = tpl.content;
   for (const [key, value] of Object.entries(placeholders)) {

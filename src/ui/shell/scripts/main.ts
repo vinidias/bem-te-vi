@@ -17,11 +17,13 @@ import { loadMcpServers } from './pages/mcp.js';
 import { loadAutoCompact } from './pages/token.js';
 import { loadAbout } from './pages/about.js';
 import { loadFeishu } from './pages/feishu.js';
+import { loadWhatsapp } from './pages/whatsapp.js';
 import { renderWindowList } from './pages/windows.js';
 import { loadSettings } from './pages/settings.js';
 import { renderRecent } from './recent.js';
 import { loadConversations } from './pages/conversations.js';
 import { loadPlugins } from './pages/plugins.js';
+import { loadMemories } from './pages/memories.js';
 import { initPluginShell } from './plugin-shell.js';
 import { initThemePresenter } from './theme-presenter.js';
 
@@ -35,10 +37,12 @@ registerTab('mcp', loadMcpServers);
 registerTab('token', loadAutoCompact);
 registerTab('about', loadAbout);
 registerTab('feishu', loadFeishu);
+registerTab('whatsapp', loadWhatsapp);
 registerTab('windows', renderWindowList);
 registerTab('settings', loadSettings);
 registerTab('conversations', loadConversations);
 registerTab('plugins', loadPlugins);
+registerTab('memories', loadMemories);
 
 // 预加载：工作区（默认页）+ 提示词 + 自动压缩配置
 try { loadWorkspaces(); } catch (_) { /* ignore */ }

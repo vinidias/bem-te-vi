@@ -40,7 +40,7 @@ class ToolRegistry {
   }
 
   getDescriptions(): ToolDescription[] {
-    return Array.from(this.tools.values()).map(t => t.getDescription());
+    return Array.from(this.tools.values()).filter(t => t.isEnabled()).map(t => t.getDescription());
   }
 
   /** 列出运行时动态工具（插件工具等，需运行期注入沙箱） */
@@ -79,6 +79,7 @@ class ToolRegistry {
   getPromptSections(): PromptSection[] {
     const sections: PromptSection[] = [];
     for (const tool of this.tools.values()) {
+      if (!tool.isEnabled()) continue;
       const section = tool.getPromptSection();
       if (section && typeof section.text === 'string' && section.text.trim().length > 0) {
         sections.push({

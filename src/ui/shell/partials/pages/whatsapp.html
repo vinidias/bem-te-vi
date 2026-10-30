@@ -1,0 +1,67 @@
+            <!-- ===== WhatsApp 同步 ===== -->
+            <div class="ck-tab" data-panel="whatsapp">
+              <div class="ck-card">
+                <div class="ck-set-group-title">WhatsApp 同步</div>
+                <p class="ck-about-tip">连接 WhatsApp Web 后可通过手机收发消息。使用 Baileys 协议，非官方客户端，请使用专用号码测试。</p>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">启用 WhatsApp</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="wa-enabled" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-primary" id="wa-save">保存并连接</button>
+                  <button class="ck-btn ck-btn-secondary" id="wa-reconnect">重新生成 QR</button>
+                  <button class="ck-btn ck-btn-secondary" id="wa-disconnect">断开</button>
+                </div>
+                <div class="fs-status">
+                  <span class="fs-dot" id="wa-dot"></span>
+                  <span class="ck-set-key" id="wa-status-text">未连接</span>
+                </div>
+                <div id="wa-qr-wrap" style="display:none;text-align:center;margin-top:16px;">
+                  <p class="ck-about-tip">用手机 WhatsApp → 已连接的设备 → 连接设备，扫描下方二维码</p>
+                  <img id="wa-qr-img" style="width:320px;height:320px;background:#fff;border-radius:8px;padding:8px;" />
+                </div>
+              </div>
+
+              <div class="ck-card" style="margin-top:12px;">
+                <div class="ck-set-group-title">本窗口绑定的会话</div>
+                <p class="ck-about-tip">收到的 WhatsApp 消息只转发到绑定了该会话的窗口。</p>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">当前回复目标</span>
+                  <select class="ck-set-input" id="wa-active-select" style="max-width:100%;">
+                    <option value="">（未选择）</option>
+                  </select>
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">添加 jid</span>
+                  <input type="text" class="ck-set-input" id="wa-jid-input" placeholder="5585999999999@s.whatsapp.net 或 120363xxx@g.us" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">显示名</span>
+                  <input type="text" class="ck-set-input" id="wa-name-input" placeholder="例如：João / Grupo Equipe" />
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-primary" id="wa-add-binding">添加</button>
+                  <button class="ck-btn ck-btn-secondary" id="wa-refresh-binding">刷新</button>
+                </div>
+                <div id="wa-binding-list" style="margin-top:12px;"></div>
+              </div>
+
+              <div class="ck-card" style="margin-top:12px;">
+                <div class="ck-set-group-title">推送选项</div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">推送用户消息</span>
+                  <label class="ck-switch"><input type="checkbox" id="wa-push-user" /><span class="ck-switch-track"></span></label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">推送 AI 回复</span>
+                  <label class="ck-switch"><input type="checkbox" id="wa-push-ai" /><span class="ck-switch-track"></span></label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">推送工具状态</span>
+                  <label class="ck-switch"><input type="checkbox" id="wa-push-tool" /><span class="ck-switch-track"></span></label>
+                </div>
+              </div>
+            </div>

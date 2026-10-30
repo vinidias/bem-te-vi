@@ -64,10 +64,15 @@ test('chatgpt matchesUrl', () => {
   assert.strictEqual(chatgpt.matchesUrl('https://chat.deepseek.com'), false);
 });
 
-test('chatgpt extractSessionId 排除 WEB 中间态', () => {
-  assert.strictEqual(chatgpt.extractSessionId('https://chatgpt.com/c/abc-123_def'), 'abc-123_def');
-  // 创建会话中间态 /c/WEB:xxx 不应把 WEB 当会话 ID（正则只匹配 UUID 片段）
-  assert.notStrictEqual(chatgpt.extractSessionId('https://chatgpt.com/c/WEB:abc'), 'WEB');
+test('chatgpt extractSessionId 只认完整 UUID', () => {
+  // 正式会话 ID 是完整 UUID
+  assert.strictEqual(
+    chatgpt.extractSessionId('https://chatgpt.com/c/abc12345-1234-5678-9abc-1234567890ab'),
+    'abc12345-1234-5678-9abc-1234567890ab'
+  );
+  // 中间态（WEB:xxx / local-chatgpt 等非 UUID）一律返回 null
+  assert.strictEqual(chatgpt.extractSessionId('https://chatgpt.com/c/WEB:abc'), null);
+  assert.strictEqual(chatgpt.extractSessionId('https://chatgpt.com/c/local-chatgpt'), null);
   assert.strictEqual(chatgpt.extractSessionId('https://chatgpt.com/'), null);
 });
 

@@ -29,10 +29,26 @@ const SUMMARY_INSTRUCTION =
   '已完成的结论和未完成的事项，用中文，一次性输出全部内容，' +
   '直接输出摘要，不要输出其他解释。';
 
+// 压缩交接提示（v0.8.12/v0.8.17）：压缩后新会话只有摘要上下文，AI 会盲目信任它。
+//   要求 AI 主动读文件补全项目/任务上下文，避免基于残缺摘要行动。
+//   v0.8.17：合并进系统提示词的 extraPrompt，一条消息发出（避免与交接提示分两次发送互相覆盖）。
+const CONTEXT_HANDOFF_INSTRUCTION =
+  '【上下文交接提示】你当前看到的对话是上一轮会话经压缩后的摘要，**并非完整上下文**——' +
+  '摘要可能丢失细节、假设、未落盘的决策。**不要盲目相信你当前的上下文。**\n\n' +
+  '请立即主动补全上下文：\n' +
+  '1. 读取项目文档/代码，了解项目现状与进行中的任务（如 spec、README、任务清单、最近改动的文件）；\n' +
+  '2. 核实摘要中的关键结论在文件/代码里是否真实成立（不轻信摘要）；\n' +
+  '3. 明确当前任务进度与下一步。\n\n' +
+  '补全后，最后单独输出一句：**上下文交接已完成**。';
+
 const COMPACT_URL_FLAG = 'cuckoo-compact';
 const COMPACT_DIR_KEY = 'cuckoo-compact-project-dir';
 const PENDING_INIT_KEY = 'cuckoo-compact-pending-init';
 const IDB_WAIT_TIMEOUT = 20000;
+
+// 窗口组转移对话：与压缩同源（清 IDB + 刷新 + 等重写），但 ratio=1.0（全量）、不跳转（主进程导航目标窗口）
+const SWITCH_URL_FLAG = 'cuckoo-switch';
+const SWITCH_ID_KEY = 'cuckoo-switch-id';
 
 function logStep(step: string, msg: string): void {
   console.log('[Cuckoo Compact] [' + step + '] ' + msg);
@@ -354,7 +370,10 @@ function checkPendingInit(): void {
   console.log('[Cuckoo Compact] 检测到压缩后待初始化，3 秒后执行；项目目录=' + (projectDir || '(无)') + '，压缩前会话=' + (parentSessionId || '(无)'));
   setTimeout(() => {
     try {
-      (window as any).electronAPI.initProject(projectDir || null, true, '', false, parentSessionId);
+      // v0.8.17：交接提示合并进系统提示词的 extraPrompt，一条消息发出
+      // （此前分两次发送，延迟较长时系统提示词会被交接提示覆盖）
+      (window as any).electronAPI.initProject(projectDir || null, true, CONTEXT_HANDOFF_INSTRUCTION, false, parentSessionId);
+      console.log('[Cuckoo Compact] 已在系统提示词中注入上下文交接提示');
     } catch (err) {
       console.error('[Cuckoo Compact] 压缩后初始化失败:', err);
     }
@@ -362,26 +381,79 @@ function checkPendingInit(): void {
 }
 
 /**
- * 全量分享当前会话（供"窗口组切换"用）。
- * 与压缩不同：这里分享**全部消息**（ratio=1），用于把当前对话完整交给另一个窗口。
- * @returns { shareId, sessionId }
+ * 段A：窗口组转移 —— 清 IDB + 刷新，让 DeepSeek 重写完整历史。
+ * 与压缩同源，但：① ratio=1.0（全量分享）② 不跳转（shareId 上报主进程，由主进程导航目标窗口）。
+ * @param switchId 本次转移的唯一 id（跨刷新关联）
  */
-async function shareAllForSwitch(): Promise<{ shareId: string; sessionId: string }> {
+async function prepareSwitchShare(switchId: string): Promise<void> {
   const sessionId = getSessionIdFromUrl();
   if (!sessionId) throw new Error('无法从 URL 获取 chat_session_id');
-  const headers = getCachedHeaders();
-  if (!headers || !headers['authorization']) {
-    throw new Error('未获取到认证请求头（请刷新页面后重试）');
-  }
-  const { list: allMsgs, currentMessageId } = await getMessagesFromIndexedDB(sessionId);
-  if (allMsgs.length === 0) throw new Error('未读取到消息列表');
-  const ids = pickRecentPairedIds(allMsgs, currentMessageId, 1.0);
-  if (ids.length === 0) throw new Error('无有效消息可分享');
-  logStep('switch', '全量分享 ' + ids.length + ' 条消息（会话 ' + sessionId + '）');
-  const shareId = await createShare(sessionId, ids, headers);
-  return { shareId, sessionId };
+  logStep('switch', '准备转移分享 sessionId=' + sessionId + ' switchId=' + switchId);
+  try { localStorage.setItem(SWITCH_ID_KEY, switchId); } catch (_) {}
+  logStep('switch', '清除当前会话 IDB 记录');
+  await clearSessionFromIdb(sessionId);
+  const url = new URL(location.href);
+  url.searchParams.set(SWITCH_URL_FLAG, '1');
+  logStep('switch', '刷新页面以重建 IDB: ' + url.toString());
+  showToast('正在准备转移对话...', 3000);
+  location.href = url.toString();
 }
 
-export { runCompaction, checkPendingCompact, checkPendingInit, shareAllForSwitch };
+/**
+ * 段B：刷新后同页 —— 等 IDB 写入 → 读全量 → 分享 → 上报 shareId（不跳转）。
+ * @returns 是否处理了本次转移标记
+ */
+async function checkPendingSwitch(): Promise<boolean> {
+  let flag = '';
+  try { flag = new URL(location.href).searchParams.get(SWITCH_URL_FLAG) || ''; } catch (_) {}
+  if (!flag) return false;
+
+  try {
+    const url = new URL(location.href);
+    url.searchParams.delete(SWITCH_URL_FLAG);
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+    logStep('switch', '已清除 URL 标记');
+  } catch (_) {}
+
+  let switchId = '';
+  try { switchId = localStorage.getItem(SWITCH_ID_KEY) || ''; } catch (_) {}
+
+  try {
+    const sessionId = getSessionIdFromUrl();
+    if (!sessionId) throw new Error('无法从 URL 获取 chat_session_id');
+
+    logStep('switch', '等待 DeepSeek 重建 IDB（监听写入事件）');
+    await waitForIdbWrite(IDB_WAIT_TIMEOUT);
+    logStep('switch', '收到 IDB 写入事件');
+
+    const headers = getCachedHeaders();
+    if (!headers || !headers['authorization']) {
+      throw new Error('未获取到认证请求头（请刷新页面后重试）');
+    }
+
+    const { list: allMsgs, currentMessageId } = await getMessagesFromIndexedDB(sessionId);
+    if (allMsgs.length === 0) throw new Error('未读取到消息列表');
+    const ids = pickRecentPairedIds(allMsgs, currentMessageId, 1.0);
+    if (ids.length === 0) throw new Error('无有效消息可分享');
+    logStep('switch', '全量消息 ' + allMsgs.length + ' 条（叶子=' + (currentMessageId || '?') + '），分享 ' + ids.length + ' 条');
+
+    const shareId = await createShare(sessionId, ids, headers);
+    logStep('switch', '分享成功 shareId=' + shareId);
+
+    try {
+      (window as any).electronAPI.switchShareReady({ switchId, shareId, sessionId });
+      logStep('switch', '已上报主进程');
+    } catch (err: any) {
+      console.error('[Cuckoo Compact] 上报转移分享失败:', err);
+    }
+    return true;
+  } catch (err: any) {
+    console.error('[Cuckoo Compact] 段B(转移)失败:', err);
+    try { (window as any).electronAPI.switchShareReady({ switchId, error: err.message }); } catch (_) {}
+    return false;
+  }
+}
+
+export { runCompaction, checkPendingCompact, checkPendingInit, prepareSwitchShare, checkPendingSwitch };
 // 纯函数导出（测试用）
 export { pickRecentPairedIds as _pickRecentPairedIds };

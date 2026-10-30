@@ -115,6 +115,16 @@ const shellAPI = {
   setProjectArchived: (dir: string, archived: boolean) => ipcRenderer.invoke('set-project-archived', { dir, archived }),
   setSessionTitle: (sessionId: string, title: string) => ipcRenderer.invoke('set-session-title', { sessionId, title }),
   newConversationForProject: (projectDir: string) => ipcRenderer.invoke('new-conversation-for-project', { projectDir }),
+  // ========== 记忆 ==========
+  listMemories: () => ipcRenderer.invoke('list-memories'),
+  saveMemories: (memories: any) => ipcRenderer.invoke('save-memories', { memories }),
+  addMemory: (text: string) => ipcRenderer.invoke('add-memory', { text }),
+  deleteMemory: (id: string) => ipcRenderer.invoke('delete-memory', { id }),
+  getMemoriesEnabled: () => ipcRenderer.invoke('get-memories-enabled'),
+  setMemoriesEnabled: (enabled: boolean) => ipcRenderer.invoke('set-memories-enabled', { enabled }),
+  onMemoriesChanged: (cb: () => void) => {
+    ipcRenderer.on('shell-memories-changed', () => cb());
+  },
   // ========== 快捷提示词 ==========
   listSnippets: () => ipcRenderer.invoke('list-snippets'),
   saveSnippets: (snippets: any) => ipcRenderer.invoke('save-snippets', { snippets }),
@@ -189,6 +199,18 @@ const shellAPI = {
   listFeishuChats: () => ipcRenderer.invoke('feishu-list-chats'),
   getFeishuBinding: () => ipcRenderer.invoke('feishu-get-binding'),
   bindFeishuChat: (chatId: string, chatName: string) => ipcRenderer.invoke('feishu-bind-chat', { chatId, chatName }),
+  // WhatsApp
+  getWhatsappConfig: () => ipcRenderer.invoke('whatsapp-get-config'),
+  saveWhatsappConfig: (data: any) => ipcRenderer.invoke('whatsapp-save-config', { data }),
+  reconnectWhatsapp: () => ipcRenderer.invoke('whatsapp-reconnect'),
+  disconnectWhatsapp: () => ipcRenderer.invoke('whatsapp-disconnect'),
+  getWhatsappQr: () => ipcRenderer.invoke('whatsapp-get-qr'),
+  listWhatsappChats: () => ipcRenderer.invoke('whatsapp-list-chats'),
+  getWhatsappBinding: () => ipcRenderer.invoke('whatsapp-get-binding'),
+  bindWhatsappJid: (jid: string, name: string, active: boolean) => ipcRenderer.invoke('whatsapp-bind-jid', { jid, name, active }),
+  unbindWhatsappJid: (jid: string) => ipcRenderer.invoke('whatsapp-unbind-jid', { jid }),
+  setWhatsappActive: (jid: string) => ipcRenderer.invoke('whatsapp-set-active', { jid }),
+  listWhatsappWorkspaces: () => ipcRenderer.invoke('whatsapp-list-workspaces'),
   // ========== 自动压缩 ==========
   getAutoCompact: () => ipcRenderer.invoke('get-autocompact'),
   saveAutoCompact: (data: any) => ipcRenderer.invoke('save-autocompact', { data }),

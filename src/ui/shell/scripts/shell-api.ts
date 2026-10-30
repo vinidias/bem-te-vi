@@ -75,6 +75,14 @@ export interface ShellAPI {
   setProjectArchived?: (dir: string, archived: boolean) => Promise<any>;
   setSessionTitle?: (sessionId: string, title: string) => Promise<any>;
   newConversationForProject?: (projectDir: string) => Promise<any>;
+  // 记忆
+  listMemories?: () => Promise<any>;
+  saveMemories?: (list: any[]) => Promise<any>;
+  addMemory?: (text: string) => Promise<any>;
+  deleteMemory?: (id: string) => Promise<any>;
+  getMemoriesEnabled?: () => Promise<any>;
+  setMemoriesEnabled?: (enabled: boolean) => Promise<any>;
+  onMemoriesChanged?: (cb: () => void) => void;
   // 提示词
   listSnippets?: () => Promise<any>;
   getSnippets?: () => Promise<any>;
@@ -121,4 +129,16 @@ export interface ShellAPI {
   listFeishuChats?: () => Promise<any>;
   getFeishuBinding?: () => Promise<any>;
   bindFeishuChat?: (chatId: string, chatName: string) => Promise<any>;
+  // WhatsApp
+  getWhatsappConfig?: () => Promise<any>;
+  saveWhatsappConfig?: (data: any) => Promise<any>;
+  reconnectWhatsapp?: () => Promise<any>;
+  disconnectWhatsapp?: () => Promise<any>;
+  getWhatsappQr?: () => Promise<any>;
+  listWhatsappChats?: () => Promise<any>;
+  getWhatsappBinding?: () => Promise<any>;
+  bindWhatsappJid?: (jid: string, name: string, active: boolean) => Promise<any>;
+  unbindWhatsappJid?: (jid: string) => Promise<any>;
+  setWhatsappActive?: (jid: string) => Promise<any>;
+  listWhatsappWorkspaces?: () => Promise<any>;
 }

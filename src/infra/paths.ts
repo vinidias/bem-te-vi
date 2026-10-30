@@ -70,3 +70,19 @@ export function resolveToolSpec(): string {
   }
   return candidates[candidates.length - 1];
 }
+
+/**
+ * 解析某个 feature 的工具 API 类型定义（api.<feature>.d.ts）。
+ * 打包后位于 resources/tools/cuckoo-tools.<feature>.d.ts，开发时 src/tools/api.<feature>.d.ts。
+ * @returns 文件路径（不存在时返回候选中的最后一个，由调用方判空）
+ */
+export function resolveToolSpecFeature(feature: string): string {
+  const candidates = [
+    path.join(process.resourcesPath || '', 'tools', 'cuckoo-tools.' + feature + '.d.ts'),
+    path.join(APP_ROOT, 'src', 'tools', 'api.' + feature + '.d.ts'),
+  ];
+  for (const p of candidates) {
+    if (p && fs.existsSync(p)) return p;
+  }
+  return candidates[candidates.length - 1];
+}

@@ -1170,6 +1170,9 @@
           <button class="ck-ab-item" data-tab="plugins" title="插件">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.2 2.2 0 0 1 0 4.4H2V19a2 2 0 0 0 2 2h3.8v-1.5a2.2 2.2 0 0 1 4.4 0V21H18a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/></svg>
           </button>
+          <button class="ck-ab-item" data-tab="memories" title="记忆">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>
+          </button>
           <!-- 对话入口：暂时注释（新合并来的功能，先隐藏）
           <button class="ck-ab-item" data-tab="conversations" title="对话">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -1193,6 +1196,9 @@
           </button>
           <button class="ck-ab-item" data-tab="feishu" title="飞书同步（手机）">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M11 18h2"/></svg>
+          </button>
+          <button class="ck-ab-item" data-tab="whatsapp" title="WhatsApp 同步">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
           </button>
           <button class="ck-ab-item" data-tab="settings" title="设置">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1389,6 +1395,29 @@
                 </button>
               </div>
               <div class="ck-list" id="ckp-list">
+                <div class="ck-list-empty">加载中…</div>
+              </div>
+            </div>
+
+            <!-- ===== 记忆 ===== -->
+            <div class="ck-tab" data-panel="memories">
+              <div class="ck-actions">
+                <button class="ck-btn ck-btn-anim" id="mem-add">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  <span>新建记忆</span>
+                </button>
+                <button class="ck-icon-btn" id="mem-refresh" title="刷新">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+              <div class="ck-actions" style="margin-bottom:8px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+                  <input type="checkbox" id="mem-enabled" />
+                  <span>启用记忆功能（关闭后不注入提示词、不捕获标记、不可调用）</span>
+                </label>
+              </div>
+              <p class="ck-about-tip">记忆会随系统提示词发给模型，让 AI 了解你的习惯（跨项目保留）。</p>
+              <div class="ck-list" id="mem-list">
                 <div class="ck-list-empty">加载中…</div>
               </div>
             </div>
@@ -1623,6 +1652,74 @@
               <div class="ck-card">
                 <div class="ck-set-group-title">接收（飞书 → Cuckoo）</div>
                 <p class="ck-about-tip">在<strong>绑定的群</strong>里发消息（可 @ 或直接发），会送到<strong>本窗口</strong>发给 AI。<br>一个群只对应一个窗口；未绑定群的窗口不推也不收。</p>
+              </div>
+            </div>
+
+            <!-- ===== WhatsApp 同步 ===== -->
+            <div class="ck-tab" data-panel="whatsapp">
+              <div class="ck-card">
+                <div class="ck-set-group-title">WhatsApp 同步</div>
+                <p class="ck-about-tip">连接 WhatsApp Web 后可通过手机收发消息。使用 Baileys 协议，非官方客户端，请使用专用号码测试。</p>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">启用 WhatsApp</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="wa-enabled" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-primary" id="wa-save">保存并连接</button>
+                  <button class="ck-btn ck-btn-secondary" id="wa-reconnect">重新生成 QR</button>
+                  <button class="ck-btn ck-btn-secondary" id="wa-disconnect">断开</button>
+                </div>
+                <div class="fs-status">
+                  <span class="fs-dot" id="wa-dot"></span>
+                  <span class="ck-set-key" id="wa-status-text">未连接</span>
+                </div>
+                <div id="wa-qr-wrap" style="display:none;text-align:center;margin-top:16px;">
+                  <p class="ck-about-tip">用手机 WhatsApp → 已连接的设备 → 连接设备，扫描下方二维码</p>
+                  <img id="wa-qr-img" style="width:320px;height:320px;background:#fff;border-radius:8px;padding:8px;" />
+                </div>
+              </div>
+
+              <div class="ck-card" style="margin-top:12px;">
+                <div class="ck-set-group-title">本窗口绑定的会话</div>
+                <p class="ck-about-tip">收到的 WhatsApp 消息只转发到绑定了该会话的窗口。</p>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">当前回复目标</span>
+                  <select class="ck-set-input" id="wa-active-select" style="max-width:100%;">
+                    <option value="">（未选择）</option>
+                  </select>
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">添加 jid</span>
+                  <input type="text" class="ck-set-input" id="wa-jid-input" placeholder="5585999999999@s.whatsapp.net 或 120363xxx@g.us" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">显示名</span>
+                  <input type="text" class="ck-set-input" id="wa-name-input" placeholder="例如：João / Grupo Equipe" />
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-primary" id="wa-add-binding">添加</button>
+                  <button class="ck-btn ck-btn-secondary" id="wa-refresh-binding">刷新</button>
+                </div>
+                <div id="wa-binding-list" style="margin-top:12px;"></div>
+              </div>
+
+              <div class="ck-card" style="margin-top:12px;">
+                <div class="ck-set-group-title">推送选项</div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">推送用户消息</span>
+                  <label class="ck-switch"><input type="checkbox" id="wa-push-user" /><span class="ck-switch-track"></span></label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">推送 AI 回复</span>
+                  <label class="ck-switch"><input type="checkbox" id="wa-push-ai" /><span class="ck-switch-track"></span></label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">推送工具状态</span>
+                  <label class="ck-switch"><input type="checkbox" id="wa-push-tool" /><span class="ck-switch-track"></span></label>
+                </div>
               </div>
             </div>
 
@@ -3873,6 +3970,184 @@
     await loadFeishu();
   });
 
+  // src/ui/shell/scripts/pages/whatsapp.ts
+  init_shared();
+  function renderWhatsappStatus(status, detail) {
+    const dot = document.getElementById("wa-dot");
+    const txt = document.getElementById("wa-status-text");
+    const wrap = document.getElementById("wa-qr-wrap");
+    if (dot) {
+      dot.className = "fs-dot" + (status === "connected" ? " connected" : status === "error" ? " error" : status === "connecting" || status === "qr" ? " connecting" : "");
+    }
+    if (txt) {
+      const label = status === "connected" ? "\u5DF2\u8FDE\u63A5" : status === "qr" ? "\u7B49\u5F85\u626B\u7801" : status === "connecting" ? "\u8FDE\u63A5\u4E2D\u2026" : status === "error" ? "\u9519\u8BEF\uFF1A" + (detail || "") : "\u672A\u8FDE\u63A5";
+      txt.textContent = label;
+    }
+    if (wrap) wrap.style.display = status === "qr" ? "block" : "none";
+  }
+  async function refreshQR() {
+    if (!api.getWhatsappQr) return;
+    try {
+      const r = await api.getWhatsappQr();
+      renderWhatsappStatus(r.status, r.detail || "");
+      const img = document.getElementById("wa-qr-img");
+      if (img && r.qrDataUrl) img.src = r.qrDataUrl;
+    } catch (_) {
+    }
+  }
+  async function renderBindings() {
+    if (!api.getWhatsappBinding) return;
+    const list = document.getElementById("wa-binding-list");
+    const select = document.getElementById("wa-active-select");
+    if (!list) return;
+    try {
+      const r = await api.getWhatsappBinding();
+      const bindings = r && r.bindings || [];
+      if (select) {
+        select.innerHTML = "";
+        if (bindings.length === 0) {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.textContent = "\uFF08\u672A\u9009\u62E9\uFF09";
+          select.appendChild(opt);
+        } else {
+          for (const b of bindings) {
+            const opt = document.createElement("option");
+            opt.value = b.jid;
+            opt.textContent = (b.name || b.jid) + " (" + b.type + ")";
+            if (b.active) opt.selected = true;
+            select.appendChild(opt);
+          }
+        }
+      }
+      if (bindings.length === 0) {
+        list.innerHTML = '<p class="ck-about-tip">\u8FD8\u6CA1\u6709\u7ED1\u5B9A\u4EFB\u4F55\u4F1A\u8BDD\u3002</p>';
+        return;
+      }
+      list.innerHTML = "";
+      for (const b of bindings) {
+        const row = document.createElement("div");
+        row.className = "ck-set-field";
+        row.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 0;";
+        row.innerHTML = '<span style="flex:1;font-size:13px;">' + (b.active ? "\u25CF " : "\u25CB ") + (b.name || b.jid) + ' <span style="opacity:.6;font-size:11px;">(' + b.type + ")</span></span>";
+        const btnActive = document.createElement("button");
+        btnActive.className = "ck-btn ck-btn-secondary";
+        btnActive.textContent = "\u8BBE\u4E3A\u56DE\u590D\u76EE\u6807";
+        btnActive.style.cssText = "font-size:11px;padding:2px 8px;";
+        btnActive.onclick = async () => {
+          if (!api.setWhatsappActive) return;
+          await api.setWhatsappActive(b.jid);
+          await renderBindings();
+        };
+        const btnDel = document.createElement("button");
+        btnDel.className = "ck-btn ck-btn-secondary";
+        btnDel.textContent = "\u79FB\u9664";
+        btnDel.style.cssText = "font-size:11px;padding:2px 8px;";
+        btnDel.onclick = async () => {
+          if (!api.unbindWhatsappJid) return;
+          await api.unbindWhatsappJid(b.jid);
+          await renderBindings();
+        };
+        row.appendChild(btnActive);
+        row.appendChild(btnDel);
+        list.appendChild(row);
+      }
+    } catch (_) {
+    }
+  }
+  async function loadWhatsapp() {
+    if (!api.getWhatsappConfig) return;
+    try {
+      const r = await api.getWhatsappConfig();
+      if (!r || !r.success) return;
+      const c = r.config || {};
+      const enabledEl = document.getElementById("wa-enabled");
+      const uEl = document.getElementById("wa-push-user");
+      const aEl = document.getElementById("wa-push-ai");
+      const tEl = document.getElementById("wa-push-tool");
+      if (enabledEl) enabledEl.checked = !!c.enabled;
+      if (uEl) uEl.checked = c.pushUserMessage !== false;
+      if (aEl) aEl.checked = c.pushAiReply !== false;
+      if (tEl) tEl.checked = c.pushToolStatus !== false;
+      renderWhatsappStatus(r.status, r.statusDetail || "");
+      if (r.status === "qr") await refreshQR();
+      await renderBindings();
+    } catch (_) {
+    }
+  }
+  async function saveWhatsapp() {
+    if (!api.saveWhatsappConfig) return;
+    const enabledEl = document.getElementById("wa-enabled");
+    const uEl = document.getElementById("wa-push-user");
+    const aEl = document.getElementById("wa-push-ai");
+    const tEl = document.getElementById("wa-push-tool");
+    try {
+      const r = await api.saveWhatsappConfig({
+        enabled: !!(enabledEl && enabledEl.checked),
+        pushUserMessage: !!(uEl && uEl.checked),
+        pushAiReply: !!(aEl && aEl.checked),
+        pushToolStatus: !!(tEl && tEl.checked)
+      });
+      if (!r || !r.success) {
+        if (ckAlert) ckAlert("\u4FDD\u5B58\u5931\u8D25\uFF1A" + (r && r.error || "\u672A\u77E5\u9519\u8BEF"));
+        return;
+      }
+      await loadWhatsapp();
+    } catch (err) {
+      if (ckAlert) ckAlert("\u4FDD\u5B58\u5931\u8D25\uFF1A" + (err && err.message));
+    }
+  }
+  async function reconnectWhatsapp() {
+    if (!api.reconnectWhatsapp) return;
+    await api.reconnectWhatsapp();
+    await loadWhatsapp();
+    await refreshQR();
+  }
+  async function disconnectWhatsapp() {
+    if (!api.disconnectWhatsapp) return;
+    await api.disconnectWhatsapp();
+    await loadWhatsapp();
+  }
+  async function addBinding() {
+    if (!api.bindWhatsappJid) return;
+    const jidEl = document.getElementById("wa-jid-input");
+    const nameEl = document.getElementById("wa-name-input");
+    const jid = (jidEl && jidEl.value || "").trim();
+    const name = (nameEl && nameEl.value || "").trim();
+    if (!jid) {
+      if (ckAlert) ckAlert("\u8BF7\u8F93\u5165 jid");
+      return;
+    }
+    const r = await api.bindWhatsappJid(jid, name || jid, false);
+    if (!r || !r.success) {
+      if (ckAlert) ckAlert("\u6DFB\u52A0\u5931\u8D25\uFF1A" + (r && r.error || "\u672A\u77E5\u9519\u8BEF"));
+      return;
+    }
+    if (jidEl) jidEl.value = "";
+    if (nameEl) nameEl.value = "";
+    await renderBindings();
+  }
+  document.getElementById("wa-active-select")?.addEventListener("change", async (e) => {
+    const jid = e && e.target && e.target.value;
+    if (!jid || !api.setWhatsappActive) return;
+    await api.setWhatsappActive(jid);
+    await renderBindings();
+  });
+  document.getElementById("wa-save")?.addEventListener("click", saveWhatsapp);
+  document.getElementById("wa-reconnect")?.addEventListener("click", reconnectWhatsapp);
+  document.getElementById("wa-disconnect")?.addEventListener("click", disconnectWhatsapp);
+  document.getElementById("wa-add-binding")?.addEventListener("click", addBinding);
+  document.getElementById("wa-refresh-binding")?.addEventListener("click", () => {
+    renderBindings();
+  });
+  setInterval(() => {
+    if (!api.getWhatsappQr) return;
+    api.getWhatsappConfig?.().then((r) => {
+      if (r && r.status === "qr") refreshQR();
+    }).catch(() => {
+    });
+  }, 2e3);
+
   // src/ui/shell/scripts/pages/windows.ts
   init_shared();
   var PROVIDER_COLORS = {
@@ -4771,6 +5046,110 @@
     if (r && !r.success) await ckAlert(r.error || "\u6253\u5F00\u76EE\u5F55\u5931\u8D25");
   });
 
+  // src/ui/shell/scripts/pages/memories.ts
+  init_shared();
+  var memories = [];
+  async function loadEnabledState() {
+    const cb = document.getElementById("mem-enabled");
+    if (!cb || !api.getMemoriesEnabled) return;
+    try {
+      const r = await api.getMemoriesEnabled();
+      cb.checked = !!(r && r.success && r.enabled);
+    } catch (_) {
+      cb.checked = false;
+    }
+  }
+  async function loadMemories() {
+    await loadEnabledState();
+    if (!api.listMemories) return;
+    try {
+      const res = await api.listMemories();
+      memories = res && res.success && Array.isArray(res.memories) ? res.memories : [];
+    } catch (_) {
+      memories = [];
+    }
+    renderMemories();
+  }
+  function renderMemories() {
+    const listEl2 = document.getElementById("mem-list");
+    if (!listEl2) return;
+    if (!memories.length) {
+      listEl2.innerHTML = '<div class="ck-list-empty">\u8FD8\u6CA1\u6709\u8BB0\u5FC6\uFF0C\u70B9\u4E0A\u65B9\u65B0\u5EFA\uFF0C\u6216\u8BA9 AI \u7528 remember \u5DE5\u5177\u8BB0</div>';
+      return;
+    }
+    listEl2.innerHTML = memories.map((m) => {
+      return '<div class="ck-snip-item" data-id="' + escapeAttr(m.id) + '"><div class="ck-snip-top"><span class="ck-snip-name">' + escapeHtml(m.text) + '</span><div class="ck-snip-actions"><button class="ck-snip-icon-btn" data-edit="' + escapeAttr(m.id) + '" title="\u7F16\u8F91"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="ck-snip-icon-btn danger" data-del="' + escapeAttr(m.id) + '" title="\u5220\u9664"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div></div></div>';
+    }).join("");
+    listEl2.querySelectorAll("[data-edit]").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const m = memories.filter((x) => x.id === btn.dataset.edit)[0];
+        if (!m) return;
+        const text = await ckPrompt({ title: "\u7F16\u8F91\u8BB0\u5FC6", value: m.text });
+        if (text === null) return;
+        const t = text.trim();
+        if (!t) {
+          await ckAlert("\u5185\u5BB9\u4E0D\u80FD\u4E3A\u7A7A");
+          return;
+        }
+        memories = memories.map((x) => x.id === m.id ? { ...x, text: t } : x);
+        if (api.saveMemories) {
+          try {
+            await api.saveMemories(memories);
+          } catch (_) {
+          }
+        }
+        renderMemories();
+      });
+    });
+    listEl2.querySelectorAll("[data-del]").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.del;
+        const m = memories.filter((x) => x.id === id)[0];
+        if (!await ckConfirm("\u786E\u5B9A\u5220\u9664\u8BB0\u5FC6\u300C" + (m ? m.text : "") + "\u300D\uFF1F")) return;
+        if (api.deleteMemory) {
+          try {
+            await api.deleteMemory(id);
+          } catch (_) {
+          }
+        }
+        await loadMemories();
+      });
+    });
+  }
+  document.getElementById("mem-add")?.addEventListener("click", async () => {
+    const text = await ckPrompt({ title: "\u65B0\u5EFA\u8BB0\u5FC6", placeholder: "\u5982\uFF1A\u7528\u6237\u504F\u597D\u7528\u4E2D\u6587\u56DE\u590D" });
+    if (text === null) return;
+    const t = text.trim();
+    if (!t) {
+      await ckAlert("\u5185\u5BB9\u4E0D\u80FD\u4E3A\u7A7A");
+      return;
+    }
+    if (api.addMemory) {
+      try {
+        await api.addMemory(t);
+      } catch (_) {
+      }
+    }
+    await loadMemories();
+  });
+  document.getElementById("mem-refresh")?.addEventListener("click", loadMemories);
+  document.getElementById("mem-enabled")?.addEventListener("change", async (e) => {
+    if (!api.setMemoriesEnabled) return;
+    try {
+      await api.setMemoriesEnabled(!!e.target.checked);
+      await ckAlert(e.target.checked ? "\u8BB0\u5FC6\u529F\u80FD\u5DF2\u5F00\u542F" : "\u8BB0\u5FC6\u529F\u80FD\u5DF2\u5173\u95ED");
+    } catch (_) {
+      await ckAlert("\u8BBE\u7F6E\u5931\u8D25");
+    }
+  });
+  if (api.onMemoriesChanged) {
+    api.onMemoriesChanged(() => {
+      loadMemories();
+    });
+  }
+
   // src/ui/shell/scripts/plugin-shell.ts
   init_shared();
   var mountedStatus = /* @__PURE__ */ new Set();
@@ -5059,10 +5438,12 @@
   registerTab("token", loadAutoCompact);
   registerTab("about", loadAbout);
   registerTab("feishu", loadFeishu);
+  registerTab("whatsapp", loadWhatsapp);
   registerTab("windows", renderWindowList);
   registerTab("settings", loadSettings);
   registerTab("conversations", loadConversations);
   registerTab("plugins", loadPlugins);
+  registerTab("memories", loadMemories);
   try {
     loadWorkspaces();
   } catch (_) {

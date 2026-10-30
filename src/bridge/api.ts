@@ -26,11 +26,20 @@ let electronAPI: any = {
   updateProjectDir: () => {
     return ipcRenderer.invoke('init-project', { skipPrompt: true });
   },
+  // 窗口组转移：源窗口刷新后完成全量分享，上报 shareId（或错误）给主进程
+  switchShareReady: (payload: any) => {
+    const p = Object.assign({ ok: !(payload && payload.error) }, payload || {});
+    return ipcRenderer.send('cuckoo-switch-share-result', p);
+  },
   getPluginWebScripts: () => {
     return ipcRenderer.invoke('get-plugin-web-scripts');
   },
   executeTool: (toolName: any, params: any, callId: any) => {
     return ipcRenderer.invoke('execute-tool', { toolName, params, callId });
+  },
+  // 正文标记触发：AI 回复里的 [记忆]xxx / [快照]xxx
+  createMemoryFromMarker: (text: any) => {
+    return ipcRenderer.invoke('create-memory-marker', { text });
   },
   executeJs: (code: any, callId: any) => {
     // 附件上传间隔（毫秒），随 JS 执行一并传给主进程的 attachFile 工具
@@ -234,6 +243,10 @@ let electronAPI: any = {
   },
   replaceProvider: (providerId: any) => {
     return ipcRenderer.invoke('replace-provider', { providerId });
+  },
+  // 上下文耗尽：请求主进程自动在新会话续接（保留当前项目目录；pendingText=未及发送的工具结果）
+  contextExhaustedContinue: (payload: any) => {
+    return ipcRenderer.invoke('context-exhausted-continue', payload || {});
   },
 };
 

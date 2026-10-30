@@ -53,15 +53,18 @@ if (RENDERER_LOG_DIR) {
 import { registerIpcHandlers } from './ipc/index.js';
 import { buildChromeUserAgent } from '../infra/user-agent.js';
 import { initFeishu } from './ipc/feishu.js';
+import { initWhatsapp } from './ipc/whatsapp.js';
 import { injectSubagentDeps, runAgent as runAgentImpl } from './subagent.js';
 import { injectAgentRunner, injectSubagentChecker } from '../tools/impl/run-agent.js';
 import { injectGoalDonePusher } from '../tools/impl/goal-done.js';
 import { isSubagentWindow, pushGoalDone } from './goal.js';
 import { injectSessionTitleSetter } from '../tools/impl/name-conversation.js';
+import { injectMemoryStore } from '../tools/impl/remember.js';
+import { addMemory, removeMemory, listMemories } from '../infra/memories.js';
 import { windowManager } from '../tools/impl/browser-window-manager.js';
 import { pushUrlState } from './ipc/shell.js';
 import { pushHarnessState, stopGeneration } from './ipc/harness.js';
-import { injectWindowGroupDeps, requestShareFromWindow } from './ipc/window-groups.js';
+import { injectWindowGroupDeps, requestSwitchShare } from './ipc/window-groups.js';
 import { initProject } from '../session/project-context.js';
 import * as windowGroups from './window-groups.js';
 
@@ -628,6 +631,20 @@ function createWindow(profile: any) {
 
   mainWindow.on('closed', () => {
     sessionsToFlush.delete(winSession);
+    // 释放子视图渲染进程：Electron 的 win.close() 只销毁壳窗口 webContents，
+    // 挂在 contentView 上的 WebContentsView（AI 页 + harness 页）独立持有渲染进程，
+    // 不会被连带销毁 → 每个窗口关闭后留下孤儿渲染进程。
+    // 次序：先 removeChildView（须壳未销毁）再 webContents.close()。
+    try {
+      const ctx = windowState.getWindowContext(mainWindow.id);
+      const childViews = [ctx && ctx.view, ctx && (ctx as any).harnessView].filter(Boolean);
+      for (const v of childViews) {
+        try {
+          if (!mainWindow.isDestroyed()) mainWindow.contentView.removeChildView(v);
+        } catch (_) {}
+        try { if (v.webContents && !v.webContents.isDestroyed()) v.webContents.close(); } catch (_) {}
+      }
+    } catch (_) {}
     windowState.removeWindow(mainWindow.id);
     // 释放该窗口持有的 MCP 连接引用 + 清理自动连记录
     try { mcpClient.forgetWindow(mainWindow.id); } catch (_) {}
@@ -795,6 +812,13 @@ function setupAppMenu() {
   Menu.setApplicationMenu(menu);
 }
 
+// ========== 记忆存储注入（tools 层不依赖 app） ==========
+injectMemoryStore({
+  add: (text: string) => { const m = addMemory(text); return m ? { id: m.id } : null; },
+  remove: (id: string) => removeMemory(id),
+  list: () => listMemories().map((m) => ({ id: m.id, text: m.text })),
+});
+
 // ========== 子代理依赖注入 ==========
 injectSubagentDeps({ createWindow, profileManager });
 // 给 runAgent 工具注入执行器（tools 层不依赖 app）
@@ -890,7 +914,7 @@ async function runSwitchForGroup(groupId: string, fromProfileId: string): Promis
     try { await stopGeneration(cur); } catch (_) { /* ignore */ }
 
     // 4) 请求源窗口分享当前对话（全量）
-    const share = await requestShareFromWindow(curWindowId);
+    const share = await requestSwitchShare(curWindowId);
     if (!share || !share.ok || !share.shareId) {
       try { cur.view.webContents.send('harness-resume-retry'); } catch (_) { /* ignore */ }
       return { success: false, error: (share && share.error) || '分享失败' };
@@ -1004,6 +1028,7 @@ registerIpcHandlers();
 
 // ========== 飞书同步（若已配置启用则自动连接）==========
 try { initFeishu(); } catch (err: any) { console.error('[Feishu] 初始化失败:', err.message); }
+try { initWhatsapp(); } catch (err: any) { console.error('[WhatsApp] 初始化失败:', err.message); }
 
 // 覆盖层"新建窗口"按钮触发
 ipcMainForProfile.handle('create-profile-window', async (_event: any, { providerId }: any = {}) => {

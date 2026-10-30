@@ -53,6 +53,15 @@ class Tool {
   getPromptSection(): PromptSection | null {
     return null;
   }
+
+  /**
+   * 工具是否启用（用于按功能开关隐藏工具）。
+   * 默认 true；子类可 override（如 remember 在记忆功能关闭时返回 false）。
+   * 影响：{{TOOLS_LIST}}、{{TOOL_SECTIONS}} 均会过滤掉禁用的工具。
+   */
+  isEnabled(): boolean {
+    return true;
+  }
 }
 
 /** 工具 API 契约元数据（D12：构建期据此生成 api.d.ts） */
@@ -79,6 +88,12 @@ export interface ToolApiMeta {
   throws?: string;
   /** JsRunner 沙箱注入的 bootstrap 代码（globalThis.x = async function ...） */
   bootstrap?: string;
+  /**
+   * 功能开关分组（可选）。有值 → 归入该 feature 的独立契约文件（api.<feature>.d.ts），
+   * 仅在功能启用时注入提示词（如 'memories'）。
+   * 无值 → 归入基础契约 api.d.ts，始终注入。
+   */
+  feature?: string;
 }
 
 export { Tool };

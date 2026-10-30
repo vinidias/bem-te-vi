@@ -600,12 +600,15 @@ function install(): void {
   }
 
   // ---------- IDB 写入拦截：history-message 写入成功时发事件 ----------
-  // 仅当 URL 带 cuckoo-compact 标记时启用（压缩流程用），日常零开销。
-  // 目的：压缩清 IDB + 刷新后，精确知道 DeepSeek 已把完整历史写回。
+  // 仅当 URL 带 cuckoo-compact（压缩）/ cuckoo-switch（窗口组转移）标记时启用，日常零开销。
+  // 目的：清 IDB + 刷新后，精确知道 DeepSeek 已把完整历史写回。
   try {
-    var hasCompactFlag = false;
-    try { hasCompactFlag = String(location.search).indexOf('cuckoo-compact') !== -1; } catch (e) { /* ignore */ }
-    if (hasCompactFlag && typeof IDBObjectStore !== 'undefined' && IDBObjectStore.prototype.put) {
+    var hasIdbFlag = false;
+    try {
+      var qs = String(location.search);
+      hasIdbFlag = qs.indexOf('cuckoo-compact') !== -1 || qs.indexOf('cuckoo-switch') !== -1;
+    } catch (e) { /* ignore */ }
+    if (hasIdbFlag && typeof IDBObjectStore !== 'undefined' && IDBObjectStore.prototype.put) {
       var origPut = IDBObjectStore.prototype.put;
       IDBObjectStore.prototype.put = function (value, key) {
         var result = origPut.apply(this, arguments);
