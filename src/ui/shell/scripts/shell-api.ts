@@ -141,4 +141,9 @@ export interface ShellAPI {
   unbindWhatsappJid?: (jid: string) => Promise<any>;
   setWhatsappActive?: (jid: string) => Promise<any>;
   listWhatsappWorkspaces?: () => Promise<any>;
+  // ===== 日志（仅打包版生效；开发版由 start.js 写日志）=====
+  getLogInfo?: () => Promise<{ success: boolean; enabled: boolean; dir: string; file: string; size: number; error?: string }>;
+  setLogEnabled?: (enabled: boolean) => Promise<{ success: boolean; enabled?: boolean; error?: string }>;
+  deleteLogs?: () => Promise<{ success: boolean; error?: string }>;
+  openLogDir?: () => Promise<{ success: boolean; error?: string }>;
 }

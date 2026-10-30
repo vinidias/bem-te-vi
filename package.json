@@ -122,7 +122,9 @@
     },
     "asarUnpack": [
       "**/node_modules/@vscode/ripgrep/**",
-      "**/node_modules/@vscode/ripgrep-win32-x64/**"
+      "**/node_modules/@vscode/ripgrep-win32-x64/**",
+      "**/node_modules/esbuild/**",
+      "**/node_modules/@esbuild/**"
     ],
     "extraResources": [
       {
@@ -132,6 +134,14 @@
       {
         "from": "resources/runtime",
         "to": "runtime"
+      },
+      {
+        "from": "src/tools/api.memories.d.ts",
+        "to": "tools/cuckoo-tools.memories.d.ts"
+      },
+      {
+        "from": "resources/bundled-plugins",
+        "to": "bundled-plugins"
       }
     ],
     "files": [
@@ -156,6 +166,7 @@
     "@whiskeysockets/baileys": "^7.0.0-rc14",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
+    "esbuild": "^0.28.2",
     "marked": "^18.0.14",
     "monaco-editor": "^0.57.0",
     "mysql2": "^3.24.2",

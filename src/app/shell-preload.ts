@@ -219,6 +219,11 @@ const shellAPI = {
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (data: any) => ipcRenderer.invoke('save-settings', { data }),
   resetSettings: () => ipcRenderer.invoke('reset-settings'),
+  // ========== 日志（仅打包版生效）==========
+  getLogInfo: () => ipcRenderer.invoke('get-log-info'),
+  setLogEnabled: (enabled: boolean) => ipcRenderer.invoke('set-log-enabled', { enabled }),
+  deleteLogs: () => ipcRenderer.invoke('delete-logs'),
+  openLogDir: () => ipcRenderer.invoke('open-log-dir'),
 };
 
 try {

@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { getCuckooPluginDir, isValidPluginId } from './paths.js';
+import { resolveResourceRoot } from '../app-root.js';
 
 /** 找自带的 npm.cmd（resources/runtime/<platform>/bin/） */
 function bundledNpm(): { cmd: string; binDir: string } | null {
@@ -16,9 +17,8 @@ function bundledNpm(): { cmd: string; binDir: string } | null {
       ? (process.arch === 'arm64' ? 'mac-arm64' : 'mac-x64')
       : null);
   if (!platform) return null;
-  // resources/runtime 相对应用根（out/src/plugins/cuckoo-plugins → ../../../..）
-  const appRoot = path.join(import.meta.dirname, '..', '..', '..', '..');
-  const binDir = path.join(appRoot, 'resources', 'runtime', platform, 'bin');
+  // 打包版走 process.resourcesPath，开发版回退源码推算（见 app-root.ts）
+  const binDir = path.join(resolveResourceRoot(), 'runtime', platform, 'bin');
   const cmd = path.join(binDir, process.platform === 'win32' ? 'npm.cmd' : 'npm');
   if (fs.existsSync(cmd)) return { cmd, binDir };
   return null;

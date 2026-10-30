@@ -32,6 +32,11 @@ try {
   console.error('[Bem-te-vi] 创建 userData 目录失败:', err.message);
 }
 app.setPath('userData', USER_DATA_DIR);
+// 尽早初始化日志（读 log-settings.json 决定是否落盘；后续所有 console.log 都会写入）
+try {
+  const { initLogging } = require('./ipc/logs.js');
+  initLogging();
+} catch (_) { /* ignore */ }
 console.log('[Bem-te-vi] Session 数据目录:', app.getPath('userData'));
 
 // 渲染进程日志输出目录（仅开发环境持久化；打包版不写日志文件）
@@ -51,7 +56,7 @@ if (RENDERER_LOG_DIR) {
 }
 
 import { registerIpcHandlers } from './ipc/index.js';
-import { buildChromeUserAgent } from '../infra/user-agent.js';
+import { buildChromeUserAgent, buildClientHintsHeaders } from '../infra/user-agent.js';
 import { initFeishu } from './ipc/feishu.js';
 import { initWhatsapp } from './ipc/whatsapp.js';
 import { injectSubagentDeps, runAgent as runAgentImpl } from './subagent.js';
@@ -67,6 +72,9 @@ import { pushHarnessState, stopGeneration } from './ipc/harness.js';
 import { injectWindowGroupDeps, requestSwitchShare } from './ipc/window-groups.js';
 import { initProject } from '../session/project-context.js';
 import * as windowGroups from './window-groups.js';
+
+// 全局默认 UA：在 app.whenReady() 之前统一设置为干净 UA，保证所有 WebContents 一致
+app.userAgentFallback = buildChromeUserAgent();
 
 // 退出前需要 flush 的 sessions
 const sessionsToFlush = new Set<any>();
@@ -482,6 +490,32 @@ function createWindow(profile: any) {
   // 1. 不带 Electron 标识，避免 DeepSeek 识别为第三方客户端
   // 2. 与内核版本一致，避免 Google OAuth 因 UA/sec-ch-ua 不一致报"浏览器不安全"
   view.webContents.setUserAgent(buildChromeUserAgent());
+
+  // 补齐 Chrome 客户端提示请求头（Sec-CH-UA*）：
+  // Electron 默认发的 sec-ch-ua 缺少 "Google Chrome" 品牌，Google 据此判定
+  // "浏览器或应用不安全"而拒绝登录。按真实 Chrome 补齐。
+  try {
+    const hints = buildClientHintsHeaders();
+    const ses = view.webContents.session;
+    ses.webRequest.onBeforeSendHeaders((details: any, callback: any) => {
+      try {
+        const h = details.requestHeaders || {};
+        for (const k of Object.keys(h)) {
+          const lk = k.toLowerCase();
+          if (lk === 'sec-ch-ua' || lk === 'sec-ch-ua-mobile' || lk === 'sec-ch-ua-platform' ||
+              lk === 'sec-ch-ua-full-version' || lk === 'sec-ch-ua-full-version-list') {
+            delete h[k];
+          }
+        }
+        Object.assign(h, hints);
+        callback({ requestHeaders: h });
+      } catch (_) {
+        callback({ requestHeaders: details.requestHeaders });
+      }
+    });
+  } catch (err: any) {
+    console.error('[Bem-te-vi] 注册 Client Hints 拦截器失败:', err && err.message);
+  }
 
   // ========== Links target="_blank" (window.open) ==========
   // Sem isto, o Electron abre uma BrowserWindow NOVA sem preload do bridge,

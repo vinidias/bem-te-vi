@@ -1,23 +1,24 @@
 /**
- * DeepSeek 拦截模式下的回复处理器（隔离世界）
- * 监听主世界注入的 'cuckoo-ai-response' 事件，收到完整回复后走与 DOM 模式
- * 相同的工具调用/JS 代码块处理流程。
+ * DeepSeek µïªµê¬µ¿íÕ╝Åõ©ïþÜäÕø×ÕñìÕñäþÉåÕÖ¿´╝êÚÜöþª╗õ©ûþòî´╝ë
+ * þøæÕÉ¼õ©╗õ©ûþòîµ│¿ÕàÑþÜä 'cuckoo-ai-response' õ║ïõ╗Â´╝îµöÂÕê░Õ«îµò┤Õø×ÕñìÕÉÄÞÁ░õ©Ä DOM µ¿íÕ╝Å
+ * þø©ÕÉîþÜäÕÀÑÕàÀÞ░âþö¿/JS õ╗úþáüÕØùÕñäþÉåµÁüþ¿ïÒÇé
  */
 import { extractJsToolBlocks, BT } from '../parser/js-detector.js';
 import { looksLikeJsonToolCall } from '../parser/json-detector.js';
 import { handleJsToolScript } from '../loop/executor.js';
-import { sendCombinedJsResultsToChat, sendMessageToChat, cancelPendingSend, takePendingSendText } from '../../overlay/chat-input.js';
+import { sendCombinedJsResultsToChat, sendMessageToChat, cancelPendingSend, takePendingSendText, getLastToolResultText } from '../../overlay/chat-input.js';
 import { showToolMask, hideToolMask } from '../../overlay/panel.js';
 import * as watchdog from '../loop/watchdog.js';
 
-// 正文标记：AI 回复里输出 [记忆]xxx，软件据此自动创建
-// 中文全角/半角方括号都支持。标记本身会留在 AI 页面的对话正文里（无法隐藏）。
-// 只匹配行首（可含前导空白）的标记，避免误伤正文中引用的 \`[记忆]\` 字样
-const MEMORY_MARKER_RE = /^[ \t]*[\[【]记忆[\]】]\s*([^\n]+)/gm;
+// µ¡úµûçµáçÞ«░´╝ÜAI Õø×ÕñìÚçîÞ¥ôÕç║ [Þ«░Õ┐å]xxx´╝îÞ¢»õ╗Âµì«µ¡ñÞç¬Õè¿ÕêøÕ╗║
+// õ©¡µûçÕà¿ÞºÆ/ÕìèÞºÆµû╣µï¼ÕÅÀÚâ¢µö»µîüÒÇéµáçÞ«░µ£¼Þ║½õ╝ÜþòÖÕ£¿ AI ÚíÁÚØóþÜäÕ»╣Þ»Øµ¡úµûçÚçî´╝êµùáµ│òÚÜÉÞùÅ´╝ëÒÇé
+// ÕÅ¬Õî╣ÚàìÞíîÚªû´╝êÕÅ»ÕÉ½ÕëìÕ»╝þ®║þÖ¢´╝ëþÜäµáçÞ«░´╝îÚü┐ÕàìÞ»»õ╝ñµ¡úµûçõ©¡Õ╝òþö¿þÜä `[Þ«░Õ┐å]` Õ¡ùµáÀ
+const MEMORY_MARKER_RE = /^[ \t]*[\[ÒÇÉ]Þ«░Õ┐å[\]ÒÇæ]\s*([^\n]+)/gm;
 
 /**
- * 从 AI 回复正文中提取 [记忆] 标记并触发主进程创建。
- * 失败静默（不影响主流程）。返回提取到的数量。
+ * õ╗Ä AI Õø×Õñìµ¡úµûçõ©¡µÅÉÕÅû [Þ«░Õ┐å] µáçÞ«░Õ╣ÂÞºªÕÅæõ©╗Þ┐øþ¿ïÕêøÕ╗║ÒÇé
+ * Õñ▒Þ┤ÑÚØÖÚ╗ÿ´╝êõ©ìÕ¢▒Õôìõ©╗µÁüþ¿ï´╝ëÒÇéÞ┐öÕø×µÅÉÕÅûÕê░þÜäµò░ÚçÅÒÇé
+ * µ│¿µäÅ´╝ÜµáçÞ«░ÞíîÕÀ▓þö▒ AI þ¢æÚíÁµ©▓µƒôÞ┐øÕ»╣Þ»Ø´╝îµ£¼Õç¢µò░ÕÅ¬Þ┤ƒÞ┤úµìòÞÄÀ´╝îõ©ìõ┐«µö╣µÿ¥þñ║ÒÇé
  */
 async function processInlineMarkers(text: string): Promise<{ memories: number }> {
   const result = { memories: 0 };
@@ -34,20 +35,56 @@ async function processInlineMarkers(text: string): Promise<{ memories: number }>
     } catch (_) { /* ignore */ }
   }
   if (result.memories) {
-    console.log('[Cuckoo Code][标记] 记忆=' + result.memories);
+    console.log('[Cuckoo Code][µáçÞ«░] Þ«░Õ┐å=' + result.memories);
   }
   return result;
 }
 
+
 const MAX_JS_RETRY = 3;
-// 连续"格式提示"次数（JSON/XML 共用，防止 AI 来回切换格式绕过上限）
+// Þ┐×þ╗¡"µá╝Õ╝ÅµÅÉþñ║"µ¼íµò░´╝êJSON/XML Õà▒þö¿´╝îÚÿ▓µ¡ó AI µØÑÕø×Õêçµìóµá╝Õ╝Åþ╗òÞ┐çõ©èÚÖÉ´╝ë
 let formatHintCount = 0;
 const FORMAT_HINT_MAX = 10;
-// 上次已处理的文本（去重，防同一条回复重复处理）
+
+/** AI Õø×Õñìµïªµê¬þÜäÚ╗ÿÞ«ñµ¡úÕêÖ´╝êÕÆî settings.ts þÜä DEFAULT_AI_INTERCEPT_PATTERNS õ©ÇÞç┤´╝ë */
+const DEFAULT_AI_INTERCEPT_PATTERNS = [
+  '^<\\s*´¢£´¢£DSML´¢£´¢£',
+  '<\\s*(?:[\\w-]+:)?invoke\\s+name=',
+  '<\\s*\\/\\s*(?:[\\w-]+:)?invoke\\s*>',
+  '<\\s*(?:[\\w-]+:)?parameter\\s+name=',
+].join('\n');
+/** AI Õø×Õñìµïªµê¬þÜäÚ╗ÿÞ«ñµÅÉþñ║Þ»¡ */
+const DEFAULT_AI_INTERCEPT_PROMPT = 'Þ»Àõ¢┐þö¿ cuckoo õ╗úþáüÕØùÞ┐øÞíîÕÀÑÕàÀÞ░âþö¿´╝îõ©ìÞªüõ¢┐þö¿ XML invoke µá╝Õ╝ÅÒÇé';
+
+/** Þ»╗ÕÅûþö¿µêÀÚàìþ¢«þÜäµïªµê¬µ¡úÕêÖÕêùÞí¿´╝êÕÀ▓þ╝ûÞ»æ´╝ëÒÇéþ®║ÕêùÞí¿ = õ©ìµïªµê¬ÒÇé */
+function getAiInterceptRegexes(): RegExp[] {
+  let raw = '';
+  try { raw = localStorage.getItem('cuckoo-ai-intercept-patterns') || ''; } catch (_) { /* ignore */ }
+  const source = raw.trim() ? raw : DEFAULT_AI_INTERCEPT_PATTERNS;
+  const out: RegExp[] = [];
+  for (const line of source.split('\n')) {
+    const s = line.trim();
+    if (!s) continue;
+    try { out.push(new RegExp(s, 'i')); } catch (_) { /* ÚØ×µ│òµ¡úÕêÖÞÀ│Þ┐ç´╝êsettings õ┐ØÕ¡ÿµùÂÕÀ▓µáíÚ¬î´╝ë */ }
+  }
+  return out;
+}
+
+/** Þ»╗ÕÅûþö¿µêÀÚàìþ¢«þÜäµïªµê¬µÅÉþñ║Þ»¡ÒÇé */
+function getAiInterceptPrompt(): string {
+  try {
+    const v = localStorage.getItem('cuckoo-ai-intercept-prompt');
+    if (v !== null) return v;
+  } catch (_) { /* ignore */ }
+  return DEFAULT_AI_INTERCEPT_PROMPT;
+}
+// õ©èµ¼íÕÀ▓ÕñäþÉåþÜäµûçµ£¼´╝êÕÄ╗Úçì´╝îÚÿ▓ÕÉîõ©ÇµØíÕø×ÕñìÚçìÕñìÕñäþÉå´╝ë
 let lastProcessedText = '';
-// 最近一次拦截到的完整回复文本（供手动解析复用，不依赖 DOM）
+// µ£ÇÞ┐æõ©Çµ¼íµïªµê¬Õê░þÜäÕ«îµò┤Õø×Õñìµûçµ£¼´╝êõ¥øµëïÕè¿Þºúµ×ÉÕñìþö¿´╝îõ©ìõ¥ØÞÁû DOM´╝ë
 let lastInterceptedText = '';
-// 用户请求中止：停止工具循环的回传（停止按钮触发）
+// [õ©┤µùÂÞ»èµû¡] µ£ÇÞ┐æõ©Çµ¼íÕø×ÕñìþÜä dbg´╝êÕÉ½ hook þÜä opLog´╝ë
+let lastRespDbg: any = null;
+// þö¿µêÀÞ»Àµ▒éõ©¡µ¡ó´╝ÜÕü£µ¡óÕÀÑÕàÀÕ¥¬þÄ»þÜäÕø×õ╝á´╝êÕü£µ¡óµîëÚÆ«ÞºªÕÅæ´╝ë
 let abortRequested = false;
 function requestAbort(): void { abortRequested = true; }
 function clearAbort(): void { abortRequested = false; }
@@ -62,17 +99,19 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * 执行 JS 代码块，遇到"代码不完整"错误时自动重试。
- * 拦截模式下文本已完整（finished），无需重新提取，简单重试执行即可。
+ * µëºÞíî JS õ╗úþáüÕØù´╝îÚüçÕê░"õ╗úþáüõ©ìÕ«îµò┤"ÚöÖÞ»»µùÂÞç¬Õè¿ÚçìÞ»òÒÇé
+ * µïªµê¬µ¿íÕ╝Åõ©ïµûçµ£¼ÕÀ▓Õ«îµò┤´╝êfinished´╝ë´╝îµùáÚ£ÇÚçìµû░µÅÉÕÅû´╝îþ«ÇÕìòÚçìÞ»òµëºÞíîÕì│ÕÅ»ÒÇé
+ * @param shouldCancel ÕÅûµÂêÕêñÕ«Ü´╝øÞ┐öÕø× true µùÂÕü£µ¡óµëºÞíîÕÉÄþ╗¡õ╗úþáüÕØù´╝êÕÀ▓Þ┐øÕàÑµëºÞíîþÜäÕØùõ©ìõ©¡µû¡´╝ë
+ * @returns ÕÀ▓µëºÞíîÕØùþÜäþ╗ôµ×£´╝êÕÅûµÂêµùÂõ©║ÕÀ▓Õ«îµêÉþÜäÚéúõ║øÕØù´╝ë
  */
 async function executeJsBlocksWithRetry(blocks: string[], shouldCancel?: () => boolean): Promise<any[]> {
-  // 工具开始（每个代码块一次）
+  // ÕÀÑÕàÀÕ╝ÇÕºï´╝êµ»Åõ©¬õ╗úþáüÕØùõ©Çµ¼í´╝ë
   for (const code of blocks) emitToolCall({ phase: 'start', code });
   let results: any[] = [];
   for (let attempt = 0; attempt <= MAX_JS_RETRY; attempt++) {
     results = [];
     for (const code of blocks) {
-      // 用户已取消：不再执行后续代码块，仅保留已执行块的结果
+      // þö¿µêÀÕÀ▓ÕÅûµÂê´╝Üõ©ìÕåìµëºÞíîÕÉÄþ╗¡õ╗úþáüÕØù´╝îõ╗àõ┐ØþòÖÕÀ▓µëºÞíîÕØùþÜäþ╗ôµ×£
       if (shouldCancel && shouldCancel()) break;
       const r = await handleJsToolScript(code);
       if (r) results.push(r);
@@ -84,7 +123,7 @@ async function executeJsBlocksWithRetry(blocks: string[], shouldCancel?: () => b
     if (!hasIncompleteFailure) break;
     if (attempt < MAX_JS_RETRY) await sleep(1000);
   }
-  // 工具结束（逐块上报结果）
+  // ÕÀÑÕàÀþ╗ôµØƒ´╝êÚÇÉÕØùõ©èµèÑþ╗ôµ×£´╝ë
   for (const r of results) {
     emitToolCall({
       phase: 'end',
@@ -98,111 +137,122 @@ async function executeJsBlocksWithRetry(blocks: string[], shouldCancel?: () => b
 }
 
 /**
- * 处理一条已完成的 AI 回复文本
- * @param text 完整回复文本（Markdown 原文）
- * @param force 为 true 时跳过去重（手动解析重新执行同一条时使用）
+ * ÕñäþÉåõ©ÇµØíÕÀ▓Õ«îµêÉþÜä AI Õø×Õñìµûçµ£¼
+ * @param text Õ«îµò┤Õø×Õñìµûçµ£¼´╝êMarkdown ÕÄƒµûç´╝ë
+ * @param force õ©║ true µùÂÞÀ│Þ┐çÕÄ╗Úçì´╝êµëïÕè¿Þºúµ×ÉÚçìµû░µëºÞíîÕÉîõ©ÇµØíµùÂõ¢┐þö¿´╝ë
  */
 async function processInterceptedResponse(text: string, force?: boolean): Promise<void> {
-  if (abortRequested) { abortRequested = false; console.log('[Cuckoo Code][拦截] 已请求中止，跳过本次处理'); return; }
+  if (abortRequested) { abortRequested = false; console.log('[Cuckoo Code][µïªµê¬] ÕÀ▓Þ»Àµ▒éõ©¡µ¡ó´╝îÞÀ│Þ┐çµ£¼µ¼íÕñäþÉå'); return; }
   const raw = (text || '').trim();
   if (!raw) return;
   if (!force && raw === lastProcessedText) return;
   lastProcessedText = raw;
 
-  console.log('[Cuckoo Code][拦截] 收到完整回复，长度=' + raw.length + '，开始解析工具调用');
+  console.log('[Cuckoo Code][µïªµê¬] µöÂÕê░Õ«îµò┤Õø×Õñì´╝îÚò┐Õ║ª=' + raw.length + '´╝îÕ╝ÇÕºïÞºúµ×ÉÕÀÑÕàÀÞ░âþö¿');
 
-  // 0. 正文标记：[记忆]xxx（独立于工具调用，无论后续走哪条路都先处理）
+  // 0. µ¡úµûçµáçÞ«░´╝Ü[Þ«░Õ┐å]xxx´╝êþï¼þ½ïõ║ÄÕÀÑÕàÀÞ░âþö¿´╝îµùáÞ«║ÕÉÄþ╗¡ÞÁ░Õô¬µØíÞÀ»Úâ¢ÕàêÕñäþÉå´╝ë
   try { await processInlineMarkers(raw); } catch (_) { /* ignore */ }
 
-  // 1. 优先检测 JS 工具代码块（cuckoo / js 代码块）
+  // 1. õ╝ÿÕàêµúÇµÁï JS ÕÀÑÕàÀõ╗úþáüÕØù´╝êcuckoo / js õ╗úþáüÕØù´╝ë
   const jsBlocks = extractJsToolBlocks(raw);
+  // [õ©┤µùÂÞ»èµû¡] Õ«Üõ¢ìÒÇîµ£ëÕØùÕì┤Þ»åÕê½õ©ìÕê░ÒÇìÔÇöÔÇöÕñ▒Þ┤ÑµùÂÞÉ¢þøÿÕà¿µûç
+  try {
+    const BT3 = BT + BT + BT;
+    const fenceCount = raw.split(BT3).length - 1;
+    const hasCuckooWord = raw.indexOf('cuckoo') >= 0;
+    const fenceLangs = raw.split(String.fromCharCode(10)).map(function (l) { return l.trim(); }).filter(function (l) { return l.indexOf(BT3) === 0; }).map(function (l) { return l.slice(3).trim().split(' ')[0]; }).slice(0, 10);
+    console.log('[Cuckoo Code][Þ»èµû¡] ÕÄƒµûçþë╣Õ¥ü: Úò┐Õ║ª=' + raw.length + ' Õø┤µáÅþ¼ªÕÅÀµò░=' + fenceCount + ' ÕÉ½cuckooÕ¡ù=' + hasCuckooWord + ' Õø┤µáÅÞ»¡Þ¿Ç=' + JSON.stringify(fenceLangs) + ' µÅÉÕÅûÕØùµò░=' + jsBlocks.length);
+    // µ£ë cuckoo Õ¡ùõ¢åµÅÉÕÅû 0 ÕØù ÔåÆ µëôÕà¿µûçõ¥øÕêåµ×É´╝êþö¿ÕêåÚÜöµáçÞ«░ÕîàÞú╣´╝îõ¥┐õ║ÄµùÑÕ┐ùµÅÉÕÅû´╝ë
+    if (hasCuckooWord && jsBlocks.length === 0) {
+      console.log('[Cuckoo Code][Þ»èµû¡] µÅÉÕÅûÕñ▒Þ┤ÑÕà¿µûç >>>' + raw + '<<< Õà¿µûçþ╗ôµØƒ');
+      try { console.log('[Cuckoo Code][Þ»èµû¡] opLog=' + JSON.stringify(lastRespDbg && lastRespDbg.opLog)); } catch (_) {}
+    }
+  } catch (e) { /* ignore */ }
   if (jsBlocks.length > 0) {
-    console.log('[Cuckoo Code][拦截] 检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
+    console.log('[Cuckoo Code][µïªµê¬] µúÇµÁïÕê░ JS ÕÀÑÕàÀõ╗úþáüÕØù´╝ê' + jsBlocks.length + ' õ©¬´╝ë´╝îÕ╝ÇÕºïµëºÞíî');
     formatHintCount = 0;
-    // 从检测到工具调用到结果发送完成，全程遮盖页面，禁止用户额外操作
-    // 遮罩支持取消：点击停止后不再执行后续代码块（已执行的保留）
-    let execCancelled = false;
-    const onCancel = () => { execCancelled = true; hideToolMask(); };
+    // õ╗ÄµúÇµÁïÕê░ÕÀÑÕàÀÞ░âþö¿Õê░þ╗ôµ×£ÕÅæÚÇüÕ«îµêÉ´╝îÕà¿þ¿ïÚü«þøûÚíÁÚØó´╝îþªüµ¡óþö¿µêÀÚóØÕñûµôìõ¢£´╝ø
+    // ÕÀÑÕàÀµëºÞíîµ£ƒÚù┤ÕÉîµáÀµÿ¥þñ║ÒÇîÕü£µ¡óÒÇìµîëÚÆ«´╝îþé╣Õç╗ÕÅ»ÕÅûµÂê´╝êÚò┐õ╗╗ÕèíÕÅ»õ©¡µ¡ó´╝ë
+    let cancelled = false;
+    const onCancel = () => {
+      cancelled = true;
+      cancelPendingSend();
+      hideToolMask();
+    };
     showToolMask(onCancel);
     let results: any[] = [];
     try {
-      results = await executeJsBlocksWithRetry(jsBlocks, () => execCancelled);
+      results = await executeJsBlocksWithRetry(jsBlocks, () => cancelled);
     } catch (err) {
       hideToolMask();
       throw err;
+    }
+    // þö¿µêÀÕÀ▓ÕÅûµÂê´╝Üõ©óÕ╝âµëºÞíîþ╗ôµ×£´╝îõ©ìÕåìÕø×õ╝á
+    if (cancelled) {
+      hideToolMask();
+      return;
     }
     if (results.length === 0) {
       hideToolMask();
       return;
     }
-    // 等待发送阶段：遮罩上显示「停止」按钮，点击可取消回传
-    let cancelled = false;
-    showToolMask(() => {
-      cancelled = true;
-      cancelPendingSend();
-      hideToolMask();
-    });
-    if (abortRequested) { abortRequested = false; hideToolMask(); console.log('[Cuckoo Code][拦截] 已请求中止，不回传工具结果'); return; }
-    // afterSent 在"结果已发出"时触发隐藏；发送失败（找不到输入框等）则立即隐藏兜底
+    // þ¡ëÕ¥àÕÅæÚÇüÚÿÂµ«Á´╝ÜÚü«þ¢®õ┐ØµîüÒÇîÕü£µ¡óÒÇìµîëÚÆ«´╝êonCancel Õñìþö¿´╝ë´╝îþé╣Õç╗ÕÅ»ÕÅûµÂêÕø×õ╝á
+    showToolMask(onCancel);
+    if (abortRequested) { abortRequested = false; hideToolMask(); console.log('[Cuckoo Code][µïªµê¬] ÕÀ▓Þ»Àµ▒éõ©¡µ¡ó´╝îõ©ìÕø×õ╝áÕÀÑÕàÀþ╗ôµ×£'); return; }
+    // afterSent Õ£¿"þ╗ôµ×£ÕÀ▓ÕÅæÕç║"µùÂÞºªÕÅæÚÜÉÞùÅ´╝øÕÅæÚÇüÕñ▒Þ┤Ñ´╝êµë¥õ©ìÕê░Þ¥ôÕàÑµíåþ¡ë´╝ëÕêÖþ½ïÕì│ÚÜÉÞùÅÕà£Õ║ò
     const sent = await sendCombinedJsResultsToChat(results, hideToolMask);
-    if (cancelled) return; // 用户已取消，不再处理
+    if (cancelled) return; // þö¿µêÀÕÀ▓ÕÅûµÂê´╝îõ©ìÕåìÕñäþÉå
     if (!sent) hideToolMask();
     return;
   }
 
-  // 2. JSON 格式工具调用（D11：已废除执行，仅识别并提示改用 cuckoo 代码块）
+  // 2. JSON µá╝Õ╝ÅÕÀÑÕàÀÞ░âþö¿´╝êD11´╝ÜÕÀ▓Õ║ƒÚÖñµëºÞíî´╝îõ╗àÞ»åÕê½Õ╣ÂµÅÉþñ║µö╣þö¿ cuckoo õ╗úþáüÕØù´╝ë
   if (looksLikeJsonToolCall(raw)) {
     if (formatHintCount >= FORMAT_HINT_MAX) {
-      console.log('[Cuckoo Code][拦截] 已连续提示 ' + formatHintCount + ' 次格式问题，停止发送');
+      console.log('[Cuckoo Code][µïªµê¬] ÕÀ▓Þ┐×þ╗¡µÅÉþñ║ ' + formatHintCount + ' µ¼íµá╝Õ╝ÅÚù«Úóÿ´╝îÕü£µ¡óÕÅæÚÇü');
       return;
     }
     formatHintCount++;
-    console.log('[Cuckoo Code][拦截] 检测到 JSON 格式工具调用（第 ' + formatHintCount + ' 次提示）');
+    console.log('[Cuckoo Code][µïªµê¬] µúÇµÁïÕê░ JSON µá╝Õ╝ÅÕÀÑÕàÀÞ░âþö¿´╝êþ¼¼ ' + formatHintCount + ' µ¼íµÅÉþñ║´╝ë');
     sendMessageToChat(
-      '请使用' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' 代码块进行工具调用，不要输出 JSON 格式。',
-      'JSON工具调用提示'
+      'Þ»Àõ¢┐þö¿' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' õ╗úþáüÕØùÞ┐øÞíîÕÀÑÕàÀÞ░âþö¿´╝îõ©ìÞªüÞ¥ôÕç║ JSON µá╝Õ╝ÅÒÇé',
+      'JSONÕÀÑÕàÀÞ░âþö¿µÅÉþñ║'
     );
     return;
   }
 
-  // 3. XML 格式工具调用提示
-  const hasAntmlXml = /^<\s*｜｜DSML｜｜/i.test(raw);
-  const hasXmlInvoke = /<\s*(?:[\w-]+:)?invoke\s+name=/i.test(raw);
-  const hasXmlClose = /<\s*\/\s*(?:[\w-]+:)?invoke\s*>/i.test(raw);
-  const hasXmlParam = /<\s*(?:[\w-]+:)?parameter\s+name=/i.test(raw);
-  if (hasAntmlXml || (hasXmlInvoke && (hasXmlClose || hasXmlParam))) {
+  // 3. AI Õø×Õñìµïªµê¬´╝êþö¿µêÀÕÅ»Úàìþ¢«µ¡úÕêÖ´╝îõ╗╗µäÅÕæ¢õ©¡Õì│µÅÉþñ║ AI µö╣µá╝Õ╝Å´╝ë
+  const interceptRegexes = getAiInterceptRegexes();
+  if (interceptRegexes.some((re) => re.test(raw))) {
     if (formatHintCount >= FORMAT_HINT_MAX) {
-      console.log('[Cuckoo Code][拦截] 已连续提示 ' + formatHintCount + ' 次格式问题，停止发送');
+      console.log('[Cuckoo Code][µïªµê¬] ÕÀ▓Þ┐×þ╗¡µÅÉþñ║ ' + formatHintCount + ' µ¼íµá╝Õ╝ÅÚù«Úóÿ´╝îÕü£µ¡óÕÅæÚÇü');
       return;
     }
     formatHintCount++;
-    console.log('[Cuckoo Code][拦截] 检测到 XML 格式工具调用（第 ' + formatHintCount + ' 次提示）');
-    sendMessageToChat(
-      '请使用' + BT + BT + BT + 'cuckoo' + BT + BT + BT + ' 代码块进行工具调用，不要使用 XML invoke 格式。',
-      'XML工具调用提示'
-    );
+    console.log('[Cuckoo Code][µïªµê¬] Õæ¢õ©¡ AI Õø×Õñìµïªµê¬ÞºäÕêÖ´╝êþ¼¼ ' + formatHintCount + ' µ¼íµÅÉþñ║´╝ë');
+    sendMessageToChat(getAiInterceptPrompt(), 'AIÕø×Õñìµïªµê¬µÅÉþñ║');
     return;
   }
 
-  // 4. 普通文本回复：任务完成，退出工具循环
-  console.log('[Cuckoo Code][拦截] 正常文本回复，未检测到工具调用');
+  // 4. µÖ«ÚÇÜµûçµ£¼Õø×Õñì´╝Üõ╗╗ÕèíÕ«îµêÉ´╝îÚÇÇÕç║ÕÀÑÕàÀÕ¥¬þÄ»
+  console.log('[Cuckoo Code][µïªµê¬] µ¡úÕ©©µûçµ£¼Õø×Õñì´╝îµ£¬µúÇµÁïÕê░ÕÀÑÕàÀÞ░âþö¿');
   try {
     (window as any).electronAPI.showAiNotification().catch(() => {});
   } catch (e) { /* ignore */ }
-  // 任务空闲信号（工具循环结束 = AI 给出普通文本回复）——供自动压缩等"任务边界"逻辑使用
+  // õ╗╗Õèíþ®║Úù▓õ┐íÕÅÀ´╝êÕÀÑÕàÀÕ¥¬þÄ»þ╗ôµØƒ = AI þ╗ÖÕç║µÖ«ÚÇÜµûçµ£¼Õø×Õñì´╝ëÔÇöÔÇöõ¥øÞç¬Õè¿ÕÄïþ╝®þ¡ë"õ╗╗ÕèíÞ¥╣þòî"ÚÇ╗Þ¥æõ¢┐þö¿
   emitTaskIdle();
 }
 
-// 流式增量监听器（供纯净模式实时渲染；无监听者时零开销）
+// µÁüÕ╝ÅÕó×ÚçÅþøæÕÉ¼ÕÖ¿´╝êõ¥øþ║»ÕçÇµ¿íÕ╝ÅÕ«×µùÂµ©▓µƒô´╝øµùáþøæÕÉ¼ÞÇàµùÂÚøÂÕ╝ÇÚöÇ´╝ë
 const streamListeners = new Set<(ev: any) => void>();
 
-/** 注册"流式增量"监听器（{ think, text, finished }） */
+/** µ│¿Õåî"µÁüÕ╝ÅÕó×ÚçÅ"þøæÕÉ¼ÕÖ¿´╝ê{ think, text, finished }´╝ë */
 function onStream(cb: (ev: any) => void): () => void {
   streamListeners.add(cb);
   return () => streamListeners.delete(cb);
 }
 
-/** 派发流式增量（无监听者时直接返回） */
+/** µ┤¥ÕÅæµÁüÕ╝ÅÕó×ÚçÅ´╝êµùáþøæÕÉ¼ÞÇàµùÂþø┤µÄÑÞ┐öÕø×´╝ë */
 function emitStream(ev: any): void {
   if (streamListeners.size === 0) return;
   for (const cb of streamListeners) {
@@ -210,16 +260,16 @@ function emitStream(ev: any): void {
   }
 }
 
-// 任务空闲监听器（工具循环结束：AI 给出普通文本回复时派发；无监听者时零开销）
+// õ╗╗Õèíþ®║Úù▓þøæÕÉ¼ÕÖ¿´╝êÕÀÑÕàÀÕ¥¬þÄ»þ╗ôµØƒ´╝ÜAI þ╗ÖÕç║µÖ«ÚÇÜµûçµ£¼Õø×ÕñìµùÂµ┤¥ÕÅæ´╝øµùáþøæÕÉ¼ÞÇàµùÂÚøÂÕ╝ÇÚöÇ´╝ë
 const taskIdleListeners = new Set<() => void>();
 
-/** 注册"任务空闲"监听器（工具循环结束） */
+/** µ│¿Õåî"õ╗╗Õèíþ®║Úù▓"þøæÕÉ¼ÕÖ¿´╝êÕÀÑÕàÀÕ¥¬þÄ»þ╗ôµØƒ´╝ë */
 function onTaskIdle(cb: () => void): () => void {
   taskIdleListeners.add(cb);
   return () => taskIdleListeners.delete(cb);
 }
 
-/** 派发"任务空闲"（无监听者时直接返回） */
+/** µ┤¥ÕÅæ"õ╗╗Õèíþ®║Úù▓"´╝êµùáþøæÕÉ¼ÞÇàµùÂþø┤µÄÑÞ┐öÕø×´╝ë */
 function emitTaskIdle(): void {
   if (taskIdleListeners.size === 0) return;
   for (const cb of taskIdleListeners) {
@@ -227,20 +277,20 @@ function emitTaskIdle(): void {
   }
 }
 
-// 工具调用监听器（供纯净模式等上报工具开始/结束；无监听者时零开销）
+// ÕÀÑÕàÀÞ░âþö¿þøæÕÉ¼ÕÖ¿´╝êõ¥øþ║»ÕçÇµ¿íÕ╝Åþ¡ëõ©èµèÑÕÀÑÕàÀÕ╝ÇÕºï/þ╗ôµØƒ´╝øµùáþøæÕÉ¼ÞÇàµùÂÚøÂÕ╝ÇÚöÇ´╝ë
 const toolCallListeners = new Set<(ev: any) => void>();
 
 /**
- * 注册"工具调用"监听器
- * @param cb 工具开始/结束时调用，参数 { phase: 'start'|'end', code, success?, output?, error? }
- * @returns 取消注册
+ * µ│¿Õåî"ÕÀÑÕàÀÞ░âþö¿"þøæÕÉ¼ÕÖ¿
+ * @param cb ÕÀÑÕàÀÕ╝ÇÕºï/þ╗ôµØƒµùÂÞ░âþö¿´╝îÕÅéµò░ { phase: 'start'|'end', code, success?, output?, error? }
+ * @returns ÕÅûµÂêµ│¿Õåî
  */
 function onToolCall(cb: (ev: any) => void): () => void {
   toolCallListeners.add(cb);
   return () => toolCallListeners.delete(cb);
 }
 
-/** 派发工具调用事件（无监听者时直接返回） */
+/** µ┤¥ÕÅæÕÀÑÕàÀÞ░âþö¿õ║ïõ╗Â´╝êµùáþøæÕÉ¼ÞÇàµùÂþø┤µÄÑÞ┐öÕø×´╝ë */
 function emitToolCall(ev: any): void {
   if (toolCallListeners.size === 0) return;
   for (const cb of toolCallListeners) {
@@ -248,17 +298,17 @@ function emitToolCall(ev: any): void {
   }
 }
 
-// 回复完成监听器（供压缩等流程等待 AI 回复完成）
-// meta 携带服务端权威数据（tokenUsage / msgIds），由监听方按需取用，
-// 避免共享状态跨层（bridge 不依赖 overlay）。
+// Õø×ÕñìÕ«îµêÉþøæÕÉ¼ÕÖ¿´╝êõ¥øÕÄïþ╝®þ¡ëµÁüþ¿ïþ¡ëÕ¥à AI Õø×ÕñìÕ«îµêÉ´╝ë
+// meta µÉ║Õ©ªµ£ìÕèíþ½»µØâÕ¿üµò░µì«´╝êtokenUsage / msgIds´╝ë´╝îþö▒þøæÕÉ¼µû╣µîëÚ£ÇÕÅûþö¿´╝î
+// Úü┐ÕàìÕà▒õ║½þèÂµÇüÞÀ¿Õ▒é´╝êbridge õ©ìõ¥ØÞÁû overlay´╝ëÒÇé
 const responseListeners = new Set<(text: string, meta: any) => void>();
-// 失败监听器（供自动重试引擎订阅）
+// Õñ▒Þ┤ÑþøæÕÉ¼ÕÖ¿´╝êõ¥øÞç¬Õè¿ÚçìÞ»òÕ╝òµôÄÞ«óÚÿà´╝ë
 const errorListeners = new Set<(detail: any) => void>();
 
 /**
- * 注册"AI 回复完成"监听器
- * @param cb 收到完成回复时调用，参数为完整文本 + meta（{ tokenUsage, msgIds }）
- * @returns 取消注册
+ * µ│¿Õåî"AI Õø×ÕñìÕ«îµêÉ"þøæÕÉ¼ÕÖ¿
+ * @param cb µöÂÕê░Õ«îµêÉÕø×ÕñìµùÂÞ░âþö¿´╝îÕÅéµò░õ©║Õ«îµò┤µûçµ£¼ + meta´╝ê{ tokenUsage, msgIds }´╝ë
+ * @returns ÕÅûµÂêµ│¿Õåî
  */
 function onInterceptedResponse(cb: (text: string, meta: any) => void): () => void {
   responseListeners.add(cb);
@@ -266,9 +316,9 @@ function onInterceptedResponse(cb: (text: string, meta: any) => void): () => voi
 }
 
 /**
- * 注册"AI 请求失败"监听器
- * @param cb 收到失败事件时调用，参数为 detail { text, status, reason, httpStatus, name }
- * @returns 取消注册
+ * µ│¿Õåî"AI Þ»Àµ▒éÕñ▒Þ┤Ñ"þøæÕÉ¼ÕÖ¿
+ * @param cb µöÂÕê░Õñ▒Þ┤Ñõ║ïõ╗ÂµùÂÞ░âþö¿´╝îÕÅéµò░õ©║ detail { text, status, reason, httpStatus, name }
+ * @returns ÕÅûµÂêµ│¿Õåî
  */
 function onAiError(cb: (detail: any) => void): () => void {
   errorListeners.add(cb);
@@ -276,32 +326,33 @@ function onAiError(cb: (detail: any) => void): () => void {
 }
 
 /**
- * 启动拦截事件监听
+ * ÕÉ»Õè¿µïªµê¬õ║ïõ╗ÂþøæÕÉ¼
  */
 function startInterceptObserver(): void {
   window.addEventListener('cuckoo-ai-response', (ev: any) => {
     try {
       const detail = ev && ev.detail;
       if (!detail) return;
-      // 诊断日志已移除（高频 JSON.stringify + 每回复输出，会拖慢页面/累积日志）
-      // 用户主动停止：不处理，也不通知监听器（等待方按超时处理）
+      // Þ»èµû¡µùÑÕ┐ùÕÀ▓þº╗ÚÖñ´╝êÚ½ÿÚóæ JSON.stringify + µ»ÅÕø×ÕñìÞ¥ôÕç║´╝îõ╝ÜµïûµàóÚíÁÚØó/þ┤»þº»µùÑÕ┐ù´╝ë
+      // þö¿µêÀõ©╗Õè¿Õü£µ¡ó´╝Üõ©ìÕñäþÉå´╝îõ╣ƒõ©ìÚÇÜþƒÑþøæÕÉ¼ÕÖ¿´╝êþ¡ëÕ¥àµû╣µîëÞÂàµùÂÕñäþÉå´╝ë
       if (detail.status === 'stopped') {
-        console.log('[Cuckoo Code][拦截] 检测到用户停止生成，忽略该回复');
+        console.log('[Cuckoo Code][µïªµê¬] µúÇµÁïÕê░þö¿µêÀÕü£µ¡óþöƒµêÉ´╝îÕ┐¢þòÑÞ»ÑÕø×Õñì');
         try { watchdog.onResponseReceived('stopped'); } catch (_) { /* ignore */ }
         return;
       }
       if (!detail.finished) return;
       try { watchdog.onResponseReceived('finished'); } catch (_) { /* ignore */ }
-      // 缓存最近一次完整回复文本，供手动解析复用（不依赖 DOM）
+      // þ╝ôÕ¡ÿµ£ÇÞ┐æõ©Çµ¼íÕ«îµò┤Õø×Õñìµûçµ£¼´╝îõ¥øµëïÕè¿Þºúµ×ÉÕñìþö¿´╝êõ©ìõ¥ØÞÁû DOM´╝ë
       lastInterceptedText = detail.text || '';
-      // 通知监听器（每次成功回复都触发），携带服务端权威数据
+      lastRespDbg = detail.dbg || null;
+      // ÚÇÜþƒÑþøæÕÉ¼ÕÖ¿´╝êµ»Åµ¼íµêÉÕèƒÕø×ÕñìÚâ¢ÞºªÕÅæ´╝ë´╝îµÉ║Õ©ªµ£ìÕèíþ½»µØâÕ¿üµò░µì«
       const meta = { tokenUsage: detail.tokenUsage || null, msgIds: detail.msgIds || null };
       for (const cb of responseListeners) {
         try { cb(detail.text || '', meta); } catch (_) { /* ignore */ }
       }
       processInterceptedResponse(detail.text);
     } catch (err) {
-      console.error('[Cuckoo Code][拦截] 处理回复事件出错:', err);
+      console.error('[Cuckoo Code][µïªµê¬] ÕñäþÉåÕø×Õñìõ║ïõ╗ÂÕç║ÚöÖ:', err);
     }
   });
   window.addEventListener('cuckoo-ai-stream', (ev: any) => {
@@ -312,10 +363,40 @@ function startInterceptObserver(): void {
         think: detail.think || '',
         text: detail.text || '',
         finished: !!detail.finished,
-        // 透传服务端权威 token（DeepSeek）；缺失时为 undefined，下游回退估算
+        // ÚÇÅõ╝áµ£ìÕèíþ½»µØâÕ¿ü token´╝êDeepSeek´╝ë´╝øþ╝║Õñ▒µùÂõ©║ undefined´╝îõ©ïµ©©Õø×ÚÇÇõ╝░þ«ù
         accumulatedTokens: typeof detail.accumulatedTokens === 'number' ? detail.accumulatedTokens : null,
       });
     } catch (_) { /* ignore */ }
+  });
+  // õ©èõ©ïµûçÞÇùÕ░¢´╝Ühook µúÇµÁïÕê░ banner_info.call_to_action ÕÉ½ continue_in_new_chat ÔåÆ Þ»Àµ▒éõ©╗Þ┐øþ¿ïÞç¬Õè¿þ╗¡µÄÑ
+  window.addEventListener('cuckoo-context-exhausted', (ev: any) => {
+    try {
+      const detail = ev && ev.detail;
+      console.log('[Cuckoo Code][µïªµê¬] õ©èõ©ïµûçÕÀ▓þö¿Õ«î´╝îÞ»Àµ▒éÞç¬Õè¿Õ£¿µû░õ╝ÜÞ»Øþ╗¡µÄÑ:', JSON.stringify(detail || {}));
+      // µì×Õø×ÕÀÑÕàÀþ╗ôµ×£Õ©ªÕê░µû░õ╝ÜÞ»Ø´╝Ü
+      //  1) õ╝ÿÕàêÒÇîÕêÜÕí½ÕàÑÒÇüµ£¬ÕÅèÕÅæÚÇüÒÇìþÜä´╝êÞÇùÕ░¢þ×¼Úù┤ÕìíÕ£¿ÕÅæÚÇüÕ╗ÂÞ┐ƒÚçî´╝ë
+      //  2) ÕÉªÕêÖþö¿ÒÇîµ£ÇÞ┐æõ©ÇµØíÕÀ▓ÕÅæÕç║þÜäÕÀÑÕàÀþ╗ôµ×£ÒÇì´╝êÞÇùÕ░¢ÚÇÜÕ©©ÕÅæþöƒÕ£¿ AI Õø×ÕñìµÁüµ£½Õ░¥´╝îµ¡ñµùÂþ╗ôµ×£ÕÀ▓ÕÅæÕç║´╝î
+      //     õ¢åµû░õ╝ÜÞ»Øõ©èõ©ïµûçÚçîµ▓íµ£ëÕ«â´╝îÚ£ÇÞªüÞíÑÕÅæÞ«® AI þƒÑÚüôµëºÞíîþ╗ôµ×£´╝ë
+      let pendingText: string | null = null;
+      try {
+        cancelPendingSend();
+        pendingText = takePendingSendText();
+        if (pendingText) {
+          console.log('[Cuckoo Code][µïªµê¬] µì×Õø×µ£¬ÕÅæÕç║þÜäÕÀÑÕàÀþ╗ôµ×£´╝îÚò┐Õ║ª=' + pendingText.length);
+        } else {
+          pendingText = getLastToolResultText() || null;
+          if (pendingText) console.log('[Cuckoo Code][µïªµê¬] þö¿µ£ÇÞ┐æÕÀ▓ÕÅæÕç║þÜäÕÀÑÕàÀþ╗ôµ×£þ╗¡µÄÑ´╝îÚò┐Õ║ª=' + pendingText.length);
+        }
+      } catch (_) { /* ignore */ }
+      const api = (window as any).electronAPI;
+      if (api && typeof api.contextExhaustedContinue === 'function') {
+        api.contextExhaustedContinue({ pendingText }).catch((err: any) => {
+          console.error('[Cuckoo Code][µïªµê¬] õ©èõ©ïµûçþ╗¡µÄÑÞ»Àµ▒éÕñ▒Þ┤Ñ:', err && err.message);
+        });
+      }
+    } catch (err) {
+      console.error('[Cuckoo Code][µïªµê¬] ÕñäþÉåõ©èõ©ïµûçÞÇùÕ░¢õ║ïõ╗ÂÕç║ÚöÖ:', err);
+    }
   });
   window.addEventListener('cuckoo-ai-error', (ev: any) => {
     try {
@@ -325,37 +406,15 @@ function startInterceptObserver(): void {
         try { cb(detail || {}); } catch (_) { /* ignore */ }
       }
     } catch (err) {
-      console.error('[Cuckoo Code][拦截] 处理失败事件出错:', err);
+      console.error('[Cuckoo Code][µïªµê¬] ÕñäþÉåÕñ▒Þ┤Ñõ║ïõ╗ÂÕç║ÚöÖ:', err);
     }
   });
-  // 上下文耗尽：ChatGPT hook 检测到 context-limit banner 时派发，请求自动在新会话续接
-  window.addEventListener('cuckoo-context-exhausted', (ev: any) => {
-    try {
-      const detail = ev && ev.detail;
-      console.log('[Cuckoo Code][拦截] 上下文已用完，请求自动在新会话续接:', JSON.stringify(detail || {}));
-      // 捞回「刚填入、未及发送」的工具结果（耗尽瞬间正卡在发送延迟里），带到新会话补发
-      let pendingText: string | null = null;
-      try {
-        cancelPendingSend();
-        pendingText = takePendingSendText();
-        if (pendingText) console.log('[Cuckoo Code][拦截] 捞回未发出的工具结果，长度=' + pendingText.length);
-      } catch (_) { /* ignore */ }
-      const api = (window as any).electronAPI;
-      if (api && typeof api.contextExhaustedContinue === 'function') {
-        api.contextExhaustedContinue({ pendingText }).catch((err: any) => {
-          console.error('[Cuckoo Code][拦截] 上下文续接请求失败:', err && err.message);
-        });
-      }
-    } catch (err) {
-      console.error('[Cuckoo Code][拦截] 处理上下文耗尽事件出错:', err);
-    }
-  });
-  console.log('[Cuckoo Code][拦截] 已启动 cuckoo-ai-response / cuckoo-ai-error 事件监听');
+  console.log('[Cuckoo Code][µïªµê¬] ÕÀ▓ÕÉ»Õè¿ cuckoo-ai-response / cuckoo-ai-error õ║ïõ╗ÂþøæÕÉ¼');
 }
 
-/** 取最近一次拦截到的完整回复文本（手动解析用） */
+/** ÕÅûµ£ÇÞ┐æõ©Çµ¼íµïªµê¬Õê░þÜäÕ«îµò┤Õø×Õñìµûçµ£¼´╝êµëïÕè¿Þºúµ×Éþö¿´╝ë */
 function getLastInterceptedText(): string {
   return lastInterceptedText;
 }
 
-export { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError, onToolCall, onStream, onTaskIdle, requestAbort, clearAbort };
+export { startInterceptObserver, processInterceptedResponse, processInlineMarkers, getLastInterceptedText, onInterceptedResponse, onAiError, onToolCall, onStream, onTaskIdle, requestAbort, clearAbort };
