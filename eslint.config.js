@@ -33,7 +33,16 @@ const COMMON_GLOBALS = {
 
 export default [
   {
-    ignores: ['node_modules/**', 'dist/**', 'dist-verify/**', 'out/**', 'build/**', 'wyp/**', 'coverage/**', '**/*.d.ts', 'src/ui/vendor/**', 'custom-providers/**'],
+    ignores: [
+      'node_modules/**', 'dist/**', 'dist-verify/**', 'out/**', 'build/**',
+      'wyp/**', 'coverage/**', '**/*.d.ts', 'src/ui/vendor/**', 'custom-providers/**',
+      // Third-party / sample code that is not linted as project source:
+      // - bundled-plugins is synced from upstream (its no-control-regex hit is
+      //   the intentional log-injection guard, not a defect)
+      // - templates and examples are didactic snippets where unused callback
+      //   parameters are part of the API being demonstrated
+      'resources/bundled-plugins/**', 'templates/**', 'examples/**',
+    ],
   },
   js.configs.recommended,
   {
