@@ -58,3 +58,6 @@
 ## 许可证
 
 本项目使用 GPL-3.0 许可证，所有贡献都将遵循该许可证。
+# Contributing
+
+Contributions are welcome! Feel free to open issues and pull requests.
